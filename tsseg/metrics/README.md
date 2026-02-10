@@ -69,9 +69,9 @@ The following metrics are standard clustering measures adapted from [scikit-lear
 
 | Metric | Description |
 |---|---|
-| `AdjustedRandIndex` | [Adjusted Rand Index](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html) — Rand index adjusted for chance agreement |
-| `AdjustedMutualInformation` | [Adjusted Mutual Information](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_mutual_info_score.html) — mutual information adjusted for chance |
-| `NormalizedMutualInformation` | [Normalised Mutual Information](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.normalized_mutual_info_score.html) — mutual information normalised by joint entropy |
+| `AdjustedRandIndex` | [Adjusted Rand Index](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html) — Rand index adjusted for chance |
+| `AdjustedMutualInformation` | [Adjusted Mutual Information](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_mutual_info_score.html) — Mutual information adjusted for chance |
+| `NormalizedMutualInformation` | [Normalised Mutual Information](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.normalized_mutual_info_score.html) — Normalised Mutual Information |
 
 ### Introduced in *Toward Interpretable Evaluation Measures for Time Series Segmentation*
 
@@ -81,4 +81,4 @@ The following metrics were introduced in [Toward Interpretable Evaluation Measur
 |---|---|
 | `WeightedAdjustedRandIndex` | **WARI** — a temporal-aware extension of ARI that weights errors by their position within segments, giving more importance to errors that disrupt the temporal structure of the segmentation |
 | `WeightedNormalizedMutualInformation` | **WNMI** — a temporal-aware extension of NMI using the same positional weighting scheme as WARI |
-| `StateMatchingScore` | **SMS** — a fine-grained, interpretable metric that uses Hungarian matching to align predicted and true states, then identifies and scores four distinct types of segmentation errors (over-segmentation, under-segmentation, misclassification, and boundary shift), allowing error-specific weighting |
+| `StateMatchingScore` | **SMS** — an interpretable metric that uses Hungarian matching to align predicted and true states, then identifies and scores four distinct types of segmentation errors (delay, transition, isolation, missed), allowing error-specific weighting |
