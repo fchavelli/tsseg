@@ -1,0 +1,58 @@
+# Environnements Conda/Python
+/tsseg-env/
+/venv/
+/env/
+/.env
+
+# Fichiers de cache et bytecode Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Dossiers de build et de distribution
+/build/
+/dist/
+*.egg-info/
+*.egg
+
+# Fichiers de l'IDE
+.vscode/
+.idea/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Local
+misc/
+tsseg/algorithms/patss/temp/
+
+# Temporary
+TSCP2-main/
+tGLAD-main/
+**.zip
+
+# Others
+.agent/
+.pytest_cache/
+.tmp/
+latex/
+.ruff_cache
+.gi
+
+# Build artifacts (already partially covered but ensure top-level)
+build/
+dist/
+*.egg-info/
+docs/_build/
+
+# Environment file (keep .env.example only)
+.env
+
+# Compiled C binaries
+c/autoplait/autoplait
+c/autoplait/*.o
+
+# Notebooks
+notebooks/

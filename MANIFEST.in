@@ -1,0 +1,6 @@
+include LICENSE
+include README.md
+recursive-include docs *.rst *.md *.png *.svg
+recursive-include tsseg *.py *.c *.h *.json *.yaml
+prune docs/_build
+prune build
