@@ -42,6 +42,10 @@ from segmenter import (  # noqa: E402
     TirexGateRatioCPD,
     TirexForgetDropCPD,
     TirexForecastErrorCPD,
+    TirexStateDetector,
+    TirexStateGMM,
+    TirexStateKMeans,
+    TirexStateHMM,
 )
 
 __all__ = [
@@ -54,4 +58,8 @@ __all__ = [
     "TirexGateRatioCPD",
     "TirexForgetDropCPD",
     "TirexForecastErrorCPD",
+    "TirexStateDetector",
+    "TirexStateGMM",
+    "TirexStateKMeans",
+    "TirexStateHMM",
 ]
