@@ -17,6 +17,10 @@ Change-point metrics
   and predicted segments.
 * :class:`tsseg.metrics.HausdorffDistance` – worst-case deviation between true
   and predicted change points.
+* :class:`tsseg.metrics.GaussianF1` – F1 score using Gaussian-weighted
+  tolerance around true change points.
+* :class:`tsseg.metrics.BidirectionalCovering` – symmetric segment-overlap
+  score measuring both precision and recall coverage.
 
 State-labelling metrics
 -----------------------

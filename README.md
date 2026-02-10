@@ -5,10 +5,8 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/tsseg/"><img src="https://img.shields.io/pypi/pyversions/tsseg.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
-  <a href="https://tsseg.readthedocs.io"><img src="https://img.shields.io/readthedocs/tsseg?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Docs"></a>
-  <a href="https://github.com/fchavelli/tsseg/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/fchavelli/tsseg/test.yml?branch=main&label=tests&style=for-the-badge&logo=github" alt="Tests"></a>
-  <a href="https://codecov.io/gh/fchavelli/tsseg"><img src="https://img.shields.io/codecov/c/github/fchavelli/tsseg?style=for-the-badge&logo=codecov&logoColor=white" alt="Coverage"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+"></a>
+  <a href="https://github.com/fchavelli/tsseg/releases/tag/v0.1.0"><img src="https://img.shields.io/github/v/tag/fchavelli/tsseg?label=version&style=for-the-badge&logo=github" alt="Version"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=for-the-badge" alt="Ruff"></a>
   <a href="https://github.com/fchavelli/tsseg/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fchavelli/tsseg?color=blue&style=for-the-badge" alt="License"></a>
 </p>
@@ -35,7 +33,7 @@ score = StateMatchingScore().compute(y_true, y_pred)
 print(f"SMS: {score['score']:.4f}")
 ```
 
-📖 Full documentation at **[tsseg.readthedocs.io](https://tsseg.readthedocs.io/)**
+📖 Documentation: build locally with `make docs` (see below).
 
 ## Installation
 

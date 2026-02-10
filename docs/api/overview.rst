@@ -21,27 +21,13 @@ Segments and detectors
 Datasets
 --------
 
-`tsseg.datasets` bundles a small collection of toy datasets plus convenience
-functions for loading datasets from disk. Refer to
+:mod:`tsseg.data.datasets` bundles a small collection of datasets (e.g. MoCap)
+plus convenience functions for loading data. Refer to
 :doc:`../guides/datasets` for details on file formats and helper functions.
-
-Segmentation primitives
------------------------
-
-`tsseg.segment` defines light-weight structures describing change points and
-windows. They are primarily used internally but can be helpful when wiring the
-library into custom pipelines.
 
 Evaluation
 ----------
 
-`tsseg.metrics` contains scoring helpers for both change-point detection and
+:mod:`tsseg.metrics` contains scoring helpers for both change-point detection and
 state-labelling evaluation. The most common utilities are summarised in
 :doc:`metrics`.
-
-Utilities
----------
-
-Supporting tools such as configuration helpers and the testing fixtures live in
-`tsseg.utils`. They are considered internal but can occasionally simplify
-integration scenarios.

@@ -70,8 +70,11 @@ Explicitly set parameters like `n_segments` or `n_states` in the constructor.
 To ensure your environment is healthy:
 
 ```bash
-pip install -r requirements-dev.txt  # if available
-pytest
+make test
 ```
 
-Refer to :doc:`../README` in the repository root for project-level setup tips.
+Or directly:
+
+```bash
+pytest tests/
+```

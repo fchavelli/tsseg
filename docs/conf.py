@@ -42,7 +42,6 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     "api/modules.rst",
-    "api/tsseg.*",
 ]
 
 # Mock optional dependencies so autodoc can import modules without installing

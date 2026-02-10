@@ -4,16 +4,14 @@ Datasets
 ========
 
 ``tsseg`` packages helpers to access curated datasets used in the test suite
-and benchmarks. You can browse available datasets via
-:mod:`tsseg.datasets`.
+and benchmarks. You can load available datasets via
+:mod:`tsseg.data.datasets`.
 
 .. code-block:: python
 
-   from tsseg import datasets
+   from tsseg.data.datasets import load_mocap
 
-   names = datasets.list_datasets()
-   print(names)
-   X, y = datasets.load_dataset("synthetic_regimes")
+   X, y = load_mocap(trial=0)
 
 Each loader returns a tuple ``(X, y)``:
 
@@ -23,7 +21,8 @@ Each loader returns a tuple ``(X, y)``:
 When a dataset ships with annotated change points, you can convert labels to
 change-point indices using :func:`tsseg.algorithms.utils.extract_cps`.
 
-### Creating custom datasets
+Creating custom datasets
+------------------------
 
 You can wrap your own time series as lightweight dataset objects by exposing a
 callable returning ``(X, y, metadata)``. For testing you may reuse the synthetic

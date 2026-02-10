@@ -33,16 +33,17 @@ Example usage:
 .. code-block:: python
 
    from tsseg.algorithms import EspressoDetector
-   from tsseg.metrics import segmentation_f1
+   from tsseg.metrics import F1Score
 
    # Explicitly provide n_segments if known, or use a default/heuristic
    detector = EspressoDetector(subsequence_length=32, chain_len=5, n_segments=3)
    
    # Unsupervised fit (y is not passed)
-   change_points = detector.fit_predict(X)
+   y_pred = detector.fit_predict(X)
 
-   score = segmentation_f1(detector, X, y)
-   print(f"F1 score: {score:.3f}")
+   f1 = F1Score()
+   result = f1.compute(y_true, y_pred)
+   print(f"F1 score: {result['f1']:.3f}")
 
 Refer to the :ref:`api-index` for detailed class reference. Recently, the
 classic ``ruptures`` change point detectors (``BinSegDetector``,
