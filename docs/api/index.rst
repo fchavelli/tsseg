@@ -11,4 +11,5 @@ where end-to-end examples live.
 
    overview
    metrics
+   tsseg.metrics
    tsseg.algorithms

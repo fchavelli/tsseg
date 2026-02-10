@@ -79,11 +79,11 @@ tglad = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fchavell/tsseg"
-Repository = "https://github.com/fchavell/tsseg"
-Documentation = "https://tsseg.readthedocs.io/en/latest/"
-Issues = "https://github.com/fchavell/tsseg/issues"
-Changelog = "https://github.com/fchavell/tsseg/blob/main/docs/changelog.rst"
+Homepage = "https://github.com/fchavelli/tsseg"
+Repository = "https://github.com/fchavelli/tsseg"
+Documentation = "https://fchavelli.github.io/tsseg/"
+Issues = "https://github.com/fchavelli/tsseg/issues"
+Changelog = "https://github.com/fchavelli/tsseg/blob/main/docs/changelog.rst"
 
 [tool.setuptools]
 include-package-data = true

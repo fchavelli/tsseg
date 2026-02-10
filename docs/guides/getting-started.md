@@ -1,7 +1,7 @@
 # Getting started
 
 This quick guide shows how to install `tsseg`, load a time series and run a
-segmentation detector. The instructions assume Python 3.9+ and a virtual
+segmentation detector. The instructions assume Python 3.10+ and a virtual
 environment.
 
 ## Installation
@@ -10,7 +10,7 @@ This library relies on a robust environment. It is recommended to use `conda` or
 
 ```bash
 # Clone the repository
-git clone https://github.com/fchavell/tsseg.git
+git clone https://github.com/fchavelli/tsseg.git
 cd tsseg
 
 # Install the environment using the provided makefile
@@ -47,7 +47,7 @@ print(np.unique(state_labels, return_counts=True))
 ```
 
 Most detectors expose the `fit`, `predict`, and `fit_predict` methods and share
-metadata tags (see :doc:`guides/detectors`).
+metadata tags (see [Detectors](detectors)).
 
 ## Semi-supervised usage
 

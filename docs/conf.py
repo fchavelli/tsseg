@@ -30,7 +30,6 @@ html_theme_options = {"collapse_navigation": False}
 html_logo = "_static/logo.png"
 html_static_path = ["_static"]
 
-# Optionally track the RTD version in the footer
 html_context = {"display_github": True, "github_user": "fchavelli", "github_repo": "tsseg"}
 
 # Allow Markdown documents
@@ -42,6 +41,7 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     "api/modules.rst",
+    "api/tsseg.rst",
 ]
 
 # Mock optional dependencies so autodoc can import modules without installing

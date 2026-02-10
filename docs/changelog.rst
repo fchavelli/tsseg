@@ -17,7 +17,7 @@ Unreleased
 * Replaced the ``pyhsmm``-backed ``HdpHsmmDetector`` with a native
     NumPy/SciPy sticky HDP implementation and preserved a legacy wrapper for
     reference.
-* Added Sphinx documentation scaffold with Read the Docs configuration.
+* Added Sphinx documentation scaffold with GitHub Pages deployment.
 * Documented test suite layout and fixtures.
 * Improved detector axis handling for ``ClaspDetector``.
 
