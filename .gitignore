@@ -58,3 +58,6 @@ c/autoplait/*.o
 notebooks/demo/
 docs/make.bat
 notebooks/
+
+# Demo
+demo/

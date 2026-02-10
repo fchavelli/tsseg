@@ -8,6 +8,7 @@
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+"></a>
   <a href="https://github.com/fchavelli/tsseg/releases/tag/v0.1.0"><img src="https://img.shields.io/github/v/tag/fchavelli/tsseg?label=version&style=for-the-badge&logo=github" alt="Version"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=for-the-badge" alt="Ruff"></a>
+  <a href="https://fchavelli.github.io/tsseg/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue?style=for-the-badge&logo=github" alt="Documentation"></a>
   <a href="https://github.com/fchavelli/tsseg/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fchavelli/tsseg?color=blue&style=for-the-badge" alt="License"></a>
 </p>
 
@@ -33,7 +34,7 @@ score = StateMatchingScore().compute(y_true, y_pred)
 print(f"SMS: {score['score']:.4f}")
 ```
 
-📖 Documentation: build locally with `make docs` (see below).
+📖 **Documentation:** [fchavelli.github.io/tsseg](https://fchavelli.github.io/tsseg/)
 
 ## Installation
 
@@ -82,7 +83,7 @@ make lint       # check style with ruff
 make docs       # build the documentation locally
 ```
 
-See the [Contributing Guide](docs/guides/contributing.rst) for full instructions.
+See the [Contributing Guide](https://fchavelli.github.io/tsseg/guides/contributing.html) for full instructions.
 
 ## License
 
