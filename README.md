@@ -82,7 +82,7 @@ make lint       # check style with ruff
 make docs       # build the documentation locally
 ```
 
-See the [Contributing Guide](https://tsseg.readthedocs.io/en/latest/guides/contributing.html) for full instructions.
+See the [Contributing Guide](docs/guides/contributing.rst) for full instructions.
 
 ## License
 

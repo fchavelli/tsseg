@@ -28,11 +28,16 @@ Subpackages
    tsseg.algorithms.pelt
    tsseg.algorithms.prophet
    tsseg.algorithms.random
+   tsseg.algorithms.ruptures
    tsseg.algorithms.dynp
+   tsseg.algorithms.tglad
    tsseg.algorithms.ticc
+   tsseg.algorithms.tirex
    tsseg.algorithms.tscp2
    tsseg.algorithms.time2state
    tsseg.algorithms.tire
+   tsseg.algorithms.vqtss
+   tsseg.algorithms.vsax
    tsseg.algorithms.window
 
 Submodules

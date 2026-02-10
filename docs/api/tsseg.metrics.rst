@@ -29,7 +29,7 @@ tsseg.metrics.gaussian\_f1 module
    :undoc-members:
 
 tsseg.metrics.bidirectional\_covering module
--------------------------------------------
+--------------------------------------------
 
 .. automodule:: tsseg.metrics.bidirectional_covering
    :members:

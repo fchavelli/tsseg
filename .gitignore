@@ -55,4 +55,6 @@ c/autoplait/autoplait
 c/autoplait/*.o
 
 # Notebooks
+notebooks/demo/
+docs/make.bat
 notebooks/

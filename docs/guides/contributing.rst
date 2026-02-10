@@ -12,7 +12,7 @@ Development Setup
 
     .. code-block:: bash
 
-        git clone https://github.com/fchavell/tsseg.git
+        git clone https://github.com/fchavelli/tsseg.git
         cd tsseg
 
 2.  **Install Development Dependencies**:
@@ -20,8 +20,8 @@ Development Setup
 
     .. code-block:: bash
 
-        pip install -e .[dev]
-        pre-commit install
+        make install
+        conda activate tsseg-env
 
 Code Style
 ----------
@@ -30,9 +30,9 @@ This project adheres to strict code quality standards to maintain professional r
 
 -   **Linting**: use ``ruff check tsseg`` to catch errors.
 -   **Formatting**: use ``ruff format tsseg`` to auto-format code (Black-compatible).
--   **Type Checking**: use ``mypy tsseg`` for static analysis.
 
-Please ensure all checks pass before submitting a Pull Request.
+You can also run ``make lint`` which combines both. Please ensure all checks
+pass before submitting a Pull Request.
 
 Testing
 -------
