@@ -14,7 +14,7 @@
 
 **tsseg** is a Python library for **Time Series Segmentation**, covering both Change Point Detection and State Detection. It bundles 30+ segmentation algorithms, evaluation metrics, data loaders, and real-world benchmark datasets under a unified API.
 
-Detectors share the same base class interface as the [aeon](https://github.com/aeon-toolkit/aeon) time series toolkit, making them interoperable with the broader aeon ecosystem. Several aeon segmenters are also re-exposed through tsseg for convenience.
+Segmentation algorithms share the same base class interface as the [aeon](https://github.com/aeon-toolkit/aeon) time series toolkit, making them interoperable with the broader aeon ecosystem. Several aeon segmenters are also re-exposed through tsseg for convenience.
 
 ## Quick Start
 
