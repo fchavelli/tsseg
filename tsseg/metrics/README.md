@@ -44,7 +44,7 @@ Extends the classical covering metric by measuring overlap in both directions:
 For segment sets $\mathcal{S}$ and $\mathcal{T}$, the directional covering is:
 
 $$
-\mathrm{Cover}(\mathcal{S} \to \mathcal{T}) = \frac{\sum_{s \in \mathcal{S}} |s| \max_{t \in \mathcal{T}} \operatorname{IoU}(s, t)}{\sum_{s \in \mathcal{S}} |s|}
+\mathrm{Cover}(\mathcal{S} \to \mathcal{T}) = \frac{\sum_{s \in \mathcal{S}} |s| \max_{t \in \mathcal{T}} \mathrm{IoU}(s, t)}{\sum_{s \in \mathcal{S}} |s|}
 $$
 
 The two directions are aggregated with a configurable strategy: `harmonic` (default), `geometric`, `arithmetic`, or `min`.
@@ -63,11 +63,22 @@ Classical (unidirectional) covering score measuring ground-truth coverage only.
 
 ## State Detection Metrics
 
+### Adapted from scikit-learn
+
+The following metrics are standard clustering measures adapted from [scikit-learn](https://scikit-learn.org/stable/modules/clustering.html#clustering-performance-evaluation) for the time series segmentation setting:
+
 | Metric | Description |
 |---|---|
-| `AdjustedRandIndex` | Rand index adjusted for chance agreement |
-| `AdjustedMutualInformation` | Mutual information corrected for chance |
-| `NormalizedMutualInformation` | Mutual information normalized by joint entropy |
-| `WeightedAdjustedRandIndex` | Class-imbalance aware variant of ARI |
-| `WeightedNormalizedMutualInformation` | Weighted variant of NMI |
-| `StateMatchingScore` | Hungarian matching-based accuracy between predicted and true states |
+| `AdjustedRandIndex` | [Adjusted Rand Index](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html) — Rand index adjusted for chance agreement |
+| `AdjustedMutualInformation` | [Adjusted Mutual Information](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_mutual_info_score.html) — mutual information adjusted for chance |
+| `NormalizedMutualInformation` | [Normalised Mutual Information](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.normalized_mutual_info_score.html) — mutual information normalised by joint entropy |
+
+### Introduced in *Toward Interpretable Evaluation Measures for Time Series Segmentation*
+
+The following metrics were introduced in [Toward Interpretable Evaluation Measures for Time Series Segmentation](https://arxiv.org/abs/2510.23261) (NeurIPS 2025). They address key shortcomings of existing point-based measures by accounting for the temporal structure of segmentation errors.
+
+| Metric | Description |
+|---|---|
+| `WeightedAdjustedRandIndex` | **WARI** — a temporal-aware extension of ARI that weights errors by their position within segments, giving more importance to errors that disrupt the temporal structure of the segmentation |
+| `WeightedNormalizedMutualInformation` | **WNMI** — a temporal-aware extension of NMI using the same positional weighting scheme as WARI |
+| `StateMatchingScore` | **SMS** — a fine-grained, interpretable metric that uses Hungarian matching to align predicted and true states, then identifies and scores four distinct types of segmentation errors (over-segmentation, under-segmentation, misclassification, and boundary shift), allowing error-specific weighting |
