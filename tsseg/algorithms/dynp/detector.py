@@ -5,7 +5,6 @@ from __future__ import annotations
 import numpy as np
 
 from ..base import BaseSegmenter
-from .. import utils
 from ..ruptures.detection import Dynp
 
 __all__ = ["DynpDetector"]

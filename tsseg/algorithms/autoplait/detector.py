@@ -4,7 +4,6 @@ This module provides an aeon-compatible wrapper for the AutoPlait algorithm.
 import numpy as np
 from ..base import BaseSegmenter
 from .autoplait_c import AutoPlait
-from ..utils import extract_cps
 
 class AutoPlaitDetector(BaseSegmenter):
     """
@@ -14,9 +13,7 @@ class AutoPlaitDetector(BaseSegmenter):
     ----------
     .. [1] Y. Matsubara, Y. Sakurai, and C. Faloutsos, "AutoPlait: automatic mining of
        co-evolving time sequences," SIGMOD, 2014, doi: 10.1145/2588555.2588556.
-    .. [2] S. Gharghabi et al., "Matrix Profile VIII: Domain Agnostic Online Semantic
-       Segmentation at Superhuman Performance Levels," ICDM, 2017, doi: 10.1109/ICDM.2017.21.
-    .. [3] Online Semantic Segmentation project page,
+    .. [2] Online Semantic Segmentation project page,
        https://sites.google.com/site/onlinesemanticsegmentation/ (reference implementation).
     """
     _tags = {

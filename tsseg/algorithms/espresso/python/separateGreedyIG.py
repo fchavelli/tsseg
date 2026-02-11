@@ -10,9 +10,10 @@ from .IGTS.IG_Cal import ig_cal
 from .utils.Clean_TS import clean_ts
 
 try:  # Prefer SciPy when available for robust peak detection
-    from scipy.signal import find_peaks  # type: ignore
+    from scipy.signal import find_peaks, peak_prominences  # type: ignore
 except Exception:  # pragma: no cover - SciPy optional dependency
     find_peaks = None
+    peak_prominences = None
 
 __all__ = ["separate_greedy_ig"]
 
@@ -102,10 +103,10 @@ def _find_peaks(signal: np.ndarray, min_peak_distance: int) -> Tuple[np.ndarray,
     signal = np.asarray(signal, dtype=float)
 
     if find_peaks is not None:
-        peaks, props = find_peaks(signal, distance=min_peak_distance)
-        prominences = props.get("prominences")
-        if prominences is None:
-            prominences = np.zeros_like(peaks, dtype=float)
+        peaks, _ = find_peaks(signal, distance=min_peak_distance)
+        if peaks.size == 0:
+            return peaks, np.array([], dtype=float)
+        prominences = peak_prominences(signal, peaks)[0]
         return peaks, np.asarray(prominences, dtype=float)
 
     # Fallback: detect local maxima and estimate prominence heuristically.

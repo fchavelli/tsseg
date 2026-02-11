@@ -90,7 +90,7 @@ class TSCP2Detector(BaseSegmenter):
         dropout_rate: float = 0.0,
         dense_units: tuple[int, ...] | None = None,
         batch_size: int = 64,
-        epochs: int = 50,
+        epochs: int = 100,
         learning_rate: float = 1e-3,
         loss: str = "nce",
         temperature: float = 0.1,

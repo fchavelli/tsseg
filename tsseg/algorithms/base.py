@@ -336,7 +336,7 @@ class BaseSegmenter(BaseSeriesEstimator):
 
 	# Public API -------------------------------------------------------
 
-	def fit(self, X: Any, y: Any | None = None, axis: int | None = 1) -> "BaseSegmenter":
+	def fit(self, X: Any, y: Any | None = None, axis: int | None = None) -> "BaseSegmenter":
 		if self.get_tag("fit_is_empty"):
 			self.is_fitted = True
 			return self
@@ -358,7 +358,7 @@ class BaseSegmenter(BaseSeriesEstimator):
 		self.is_fitted = True
 		return self
 
-	def predict(self, X: Any, axis: int | None = 1):
+	def predict(self, X: Any, axis: int | None = None):
 		if not self.get_tag("fit_is_empty"):
 			self._check_is_fitted()
 
@@ -368,7 +368,7 @@ class BaseSegmenter(BaseSeriesEstimator):
 		X_inner = self._preprocess_series(X, axis, store_metadata=False)
 		return self._predict(X_inner)
 
-	def fit_predict(self, X: Any, y: Any | None = None, axis: int | None = 1):
+	def fit_predict(self, X: Any, y: Any | None = None, axis: int | None = None):
 		self.fit(X, y, axis=axis)
 		return self.predict(X, axis=axis)
 

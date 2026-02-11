@@ -15,8 +15,9 @@ Unreleased
 * Replaced the surrogate PyTorch ``TSCP2Detector`` with a faithful
     TensorFlow + TCN implementation matching the original baseline.
 * Replaced the ``pyhsmm``-backed ``HdpHsmmDetector`` with a native
-    NumPy/SciPy sticky HDP implementation and preserved a legacy wrapper for
-    reference.
+    NumPy/SciPy sticky HDP implementation. The legacy ``pyhsmm``-backed
+    detectors are deprecated; ``pyhsmm`` and ``pybasicbayes`` are no longer
+    installed by default.
 * Added Sphinx documentation scaffold with GitHub Pages deployment.
 * Documented test suite layout and fixtures.
 * Improved detector axis handling for ``ClaspDetector``.

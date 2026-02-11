@@ -111,7 +111,7 @@ class HdpHsmmDetector(BaseSegmenter):
         Concentration parameter for the top-level Dirichlet Process (global weights).
     init_state_concentration : float, default=6.0
         Concentration parameter for the initial state distribution.
-    n_iter : int, default=20
+    n_iter : int, default=200
         Number of Gibbs sampling iterations.
     n_max_states : int, default=20
         Truncation level for the number of states.
@@ -147,7 +147,7 @@ class HdpHsmmDetector(BaseSegmenter):
         alpha: float = 6.0,
         gamma: float = 6.0,
         init_state_concentration: float = 6.0,
-        n_iter: int = 20,
+        n_iter: int = 200,
         n_max_states: int = 20,
         trunc: int = 100,
         *,

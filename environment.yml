@@ -20,3 +20,5 @@ dependencies:
     - .[torch,prophet,patss,accelerators,docs,aeon,tglad]
     - tensorflow==2.17.0
     - keras-tcn==3.5.0
+    # legacy-hsmm extra (pyhsmm/pybasicbayes) intentionally excluded;
+    # install manually with: pip install -e .[legacy-hsmm] if needed.

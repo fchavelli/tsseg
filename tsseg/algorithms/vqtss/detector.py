@@ -87,9 +87,9 @@ class VQTSSDetector(BaseSegmenter):
         # We need window_size + 1 to have input and shifted target
         seq_len = self.window_size + 1
         
-        X_mean = X.mean(axis=0)
-        X_std = X.std(axis=0) + 1e-8
-        X_norm = (X - X_mean) / X_std
+        self._X_mean = X.mean(axis=0)
+        self._X_std = X.std(axis=0) + 1e-8
+        X_norm = (X - self._X_mean) / self._X_std
         
         X_tensor = torch.tensor(X_norm, dtype=torch.float32)
         
@@ -185,7 +185,8 @@ class VQTSSDetector(BaseSegmenter):
             
         self.model_.eval()
         n_timepoints, n_channels = X.shape
-        X_tensor = torch.tensor(X, dtype=torch.float32)
+        X_norm = (X - self._X_mean) / self._X_std
+        X_tensor = torch.tensor(X_norm, dtype=torch.float32)
         
         # Input shape: (1, Channels, Time)
         inp = X_tensor.unsqueeze(0).permute(0, 2, 1).to(self.device)

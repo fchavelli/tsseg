@@ -37,8 +37,6 @@ install:
 	"$(CONDA)" env create -f environment.yml || (echo "Conda env creation failed, maybe it already exists. Trying to update." && "$(CONDA)" env update -f environment.yml --prune)
 	@echo "--> Activating conda environment and installing tsseg..."
 	@"$(CONDA)" run -n $(CONDA_ENV_NAME) pip install -e .[all]
-	@echo "--> Running autopatch script..."
-	@"$(CONDA)" run -n $(CONDA_ENV_NAME) python install_autopatch.py
 	@echo "--> Installation complete."
 	@echo "--> To activate the environment, run: conda activate $(CONDA_ENV_NAME)"
 

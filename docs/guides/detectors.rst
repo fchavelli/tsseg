@@ -52,8 +52,9 @@ and ``WindowDetector``) were vendored into ``tsseg.algorithms.ruptures`` so
 they are always available without installing an extra dependency. The new
 ``TSCP2Detector`` mirrors the upstream TensorFlow implementation and requires
 the optional ``tscp2`` extra (installs ``tensorflow`` and ``tcn``). ``HdpHsmmDetector`` now implements a
-pure NumPy/SciPy sticky HDP-style segmenter, while
-``LegacyHdpHsmmDetector`` keeps the original ``pyhsmm`` backend for reference.
+pure NumPy/SciPy sticky HDP-style segmenter and no longer requires
+the ``pyhsmm`` dependency. The legacy ``pyhsmm``-backed detectors are
+deprecated and will be removed in a future release.
 When adding new algorithms, ensure they set the appropriate tags and register
 themselves in ``tsseg.algorithms.__all__`` so the documentation and tests can
 discover them.

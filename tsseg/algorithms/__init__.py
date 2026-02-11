@@ -7,7 +7,6 @@ from .time2state.detector import Time2StateDetector
 from .ticc.detector import TiccDetector
 from .patss.detector import PatssDetector
 from .hdp_hsmm.detector import HdpHsmmDetector
-from .hdp_hsmm.legacy_detector import HdpHsmmLegacyDetector
 from .e2usd.detector import E2USDDetector
 from .binseg.detector import BinSegDetector
 from .bottomup.detector import BottomUpDetector
@@ -70,7 +69,6 @@ __all__ = [
     "FLUSSDetector",
     "GreedyGaussianDetector",
     "HdpHsmmDetector",
-    "HdpHsmmLegacyDetector",
     "HidalgoDetector",
     #"HMMDetector",
     "ICIDDetector",

@@ -30,7 +30,7 @@ class KCPDDetector(BaseSegmenter):
         *,
         n_cps: int | None = None,
         pen: float | None = 10,
-        kernel: str = "linear",
+        kernel: str = "rbf",
         min_size: int = 2,
         jump: int = 1,
         cost_params: dict | None = None,

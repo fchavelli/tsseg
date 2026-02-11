@@ -10,23 +10,37 @@ __all__ = ["ig_cal"]
 
 
 def ig_cal(integ_ts: np.ndarray, pos_tt1: np.ndarray, k: int) -> float:
-    """Compute information gain for a proposed segmentation."""
+    """Compute information gain for a proposed segmentation.
+
+    Mirrors the MATLAB ``IG_Cal.m`` logic.  ``integ_ts`` is the cumulative
+    sum produced by ``Clean_TS`` (0-based columns).  ``pos_tt1`` contains
+    candidate split positions **and** the total length as last entry,
+    matching the MATLAB convention ``c = [TT, dataLength]``.
+    """
 
     integ = np.asarray(integ_ts, dtype=float)
     pos_tt = np.sort(np.asarray(pos_tt1, dtype=int))
 
     nu_ts, le_ts = integ.shape
 
+    # Total entropy over the whole series  (MATLAB: Integ_TS(:, Le_TS))
     ts_dist = integ[:, le_ts - 1]
     ig = sh_entropy(ts_dist)
 
-    last_id = 0
-    limit = min(k + 1, pos_tt.size)
-    for idx in range(limit):
-        end = pos_tt[idx]
-        end = min(max(int(end), last_id + 1), le_ts)
-        segment = integ[:, end - 1] - integ[:, last_id]
-        ig -= ((end - last_id) / le_ts) * sh_entropy(segment)
+    # Walk through every segment boundary in pos_tt (including dataLength).
+    # MATLAB is 1-based with last_id starting at 1; in 0-based cumsum space
+    # the segment [a, b) has distribution integ[:, b-1] - integ[:, a-1],
+    # with the convention integ[:, -1] == 0 for the first segment.
+    last_id = 0  # corresponds to MATLAB last_id = 1
+    for idx in range(pos_tt.size):
+        end = int(pos_tt[idx])
+        end = min(max(end, last_id + 1), le_ts)
+        length = end - last_id
+        if last_id == 0:
+            segment = integ[:, end - 1]
+        else:
+            segment = integ[:, end - 1] - integ[:, last_id - 1]
+        ig -= (length / le_ts) * sh_entropy(segment)
         last_id = end
 
     return float(ig)

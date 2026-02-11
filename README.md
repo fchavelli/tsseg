@@ -56,7 +56,6 @@ conda activate tsseg-env
 conda env create -f environment.yml
 conda activate tsseg-env
 pip install -e .[all]
-python install_autopatch.py
 ```
 
 </details>

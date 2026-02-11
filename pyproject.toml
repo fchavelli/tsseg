@@ -42,6 +42,8 @@ torch = ["torch"]
 prophet = ["prophet"]
 patss = [
     "npbad @ git+https://bitbucket.org/len_feremans/pbad_network.git",
+]
+legacy-hsmm = [
     "pybasicbayes @ git+https://github.com/mattjj/pybasicbayes.git",
     "pyhsmm @ git+https://github.com/mattjj/pyhsmm.git",
 ]

@@ -390,10 +390,11 @@ class TireDetector(BaseSegmenter):
         peaks, properties = find_peaks(
             scores,
             distance=max(1, int(self.config.window_size * self.config.peak_distance_fraction)),
+            prominence=0,  # request prominence computation so we can rank peaks
         )
         if peaks.size == 0:
             return peaks.astype(int)
-        prominences = properties.get("prominences", np.ones_like(peaks))
+        prominences = properties["prominences"]
         order = np.argsort(-prominences)
         top_k = peaks[order][: self.n_segments - 1]
         top_k = np.sort(top_k)

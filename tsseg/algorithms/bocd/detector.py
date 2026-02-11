@@ -269,7 +269,7 @@ def _select_change_points(
             break
 
         cp_position = idx + 1  # boundary is after sample idx
-        if cp_position <= 0 or cp_position >= n_samples:
+        if cp_position < min_distance or cp_position > n_samples - min_distance:
             continue
 
         if selected and np.min(np.abs(np.asarray(selected) - cp_position)) < min_distance:

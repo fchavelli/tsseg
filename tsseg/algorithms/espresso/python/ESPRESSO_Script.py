@@ -49,7 +49,7 @@ def espresso(
 
     wcac = np.zeros_like(mp)
     for row in range(mp.shape[0]):
-        _, wcac[row] = calculate_semantic_density_matrix(mp[row], mpi[row], chain_len, subsequence)
+        wcac[row], _ = calculate_semantic_density_matrix(mp[row], mpi[row], chain_len, subsequence)
 
     best_tt, _ = separate_greedy_ig(series, k, wcac, pdist_fraction)
     change_points = np.asarray(best_tt, dtype=int)

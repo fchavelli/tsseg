@@ -79,12 +79,7 @@ ALGORITHM_CONFIGS: Dict[str, AlgorithmConfig] = {
     "FLUSSDetector": AlgorithmConfig(
         dependencies=("stumpy",),
     ),
-    "HdpHsmmDetector": AlgorithmConfig(
-        dependencies=("pyhsmm",),
-    ),
-    "HdpHsmmLegacyDetector": AlgorithmConfig(
-        dependencies=("pyhsmm",),
-    ),
+    "HdpHsmmDetector": DEFAULT_CONFIG,
     "ProphetDetector": AlgorithmConfig(
         dependencies=("prophet",),
     ),
