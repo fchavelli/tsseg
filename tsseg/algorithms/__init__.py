@@ -30,17 +30,31 @@ from .tscp2.detector import TSCP2Detector
 from .vqtss.detector import VQTSSDetector
 from .vsax.detector import VSAXDetector
 from .tglad.detector import TGLADDetector
-from .tirex.detector import (
-    TirexHiddenCPD,
-    TirexCosineCPD,
-    TirexL2CPD,
-    TirexMMDCPD,
-    TirexEnergyCPD,
-    TirexDerivativeCPD,
-    TirexGateRatioCPD,
-    TirexForgetDropCPD,
-    TirexForecastErrorCPD,
-)
+try:
+    from .tirex.detector import (  # noqa: F401
+        TirexHiddenCPD,
+        TirexCosineCPD,
+        TirexL2CPD,
+        TirexMMDCPD,
+        TirexEnergyCPD,
+        TirexDerivativeCPD,
+        TirexGateRatioCPD,
+        TirexForgetDropCPD,
+        TirexForecastErrorCPD,
+    )
+    _TIREX_NAMES = [
+        "TirexHiddenCPD",
+        "TirexCosineCPD",
+        "TirexL2CPD",
+        "TirexMMDCPD",
+        "TirexEnergyCPD",
+        "TirexDerivativeCPD",
+        "TirexGateRatioCPD",
+        "TirexForgetDropCPD",
+        "TirexForecastErrorCPD",
+    ]
+except ImportError:
+    _TIREX_NAMES = []
 
 __all__ = [
     "AmocDetector",
@@ -74,14 +88,5 @@ __all__ = [
     "DynpDetector",
     "VSAXDetector",
     "TGLADDetector",
-    "TirexHiddenCPD",
-    "TirexCosineCPD",
-    "TirexL2CPD",
-    "TirexMMDCPD",
-    "TirexEnergyCPD",
-    "TirexDerivativeCPD",
-    "TirexGateRatioCPD",
-    "TirexForgetDropCPD",
-    "TirexForecastErrorCPD",
     "VQTSSDetector",
-]
+] + _TIREX_NAMES

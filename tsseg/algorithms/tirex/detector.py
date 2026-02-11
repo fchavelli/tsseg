@@ -27,39 +27,52 @@ _SEGMENTATION_ROOT = os.path.join(_PROJECT_ROOT, "tsseg-tirex", "segmentation")
 _TIREX_SRC = os.path.join(_SEGMENTATION_ROOT, "..", "tirex", "src")
 _TIREX_SRC = os.path.normpath(_TIREX_SRC)
 
-for _p in (_SEGMENTATION_ROOT, _TIREX_SRC):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+_TIREX_AVAILABLE = os.path.isdir(_SEGMENTATION_ROOT)
 
-# ── Re-exports ────────────────────────────────────────────────────────
-from segmenter import (  # noqa: E402
-    TirexHiddenCPD,
-    TirexCosineCPD,
-    TirexL2CPD,
-    TirexMMDCPD,
-    TirexEnergyCPD,
-    TirexDerivativeCPD,
-    TirexGateRatioCPD,
-    TirexForgetDropCPD,
-    TirexForecastErrorCPD,
-    TirexStateDetector,
-    TirexStateGMM,
-    TirexStateKMeans,
-    TirexStateHMM,
-)
+if _TIREX_AVAILABLE:
+    for _p in (_SEGMENTATION_ROOT, _TIREX_SRC):
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
 
-__all__ = [
-    "TirexHiddenCPD",
-    "TirexCosineCPD",
-    "TirexL2CPD",
-    "TirexMMDCPD",
-    "TirexEnergyCPD",
-    "TirexDerivativeCPD",
-    "TirexGateRatioCPD",
-    "TirexForgetDropCPD",
-    "TirexForecastErrorCPD",
-    "TirexStateDetector",
-    "TirexStateGMM",
-    "TirexStateKMeans",
-    "TirexStateHMM",
-]
+    # ── Re-exports ────────────────────────────────────────────────────
+    from segmenter import (  # noqa: E402
+        TirexHiddenCPD,
+        TirexCosineCPD,
+        TirexL2CPD,
+        TirexMMDCPD,
+        TirexEnergyCPD,
+        TirexDerivativeCPD,
+        TirexGateRatioCPD,
+        TirexForgetDropCPD,
+        TirexForecastErrorCPD,
+        TirexStateDetector,
+        TirexStateGMM,
+        TirexStateKMeans,
+        TirexStateHMM,
+    )
+
+    __all__ = [
+        "TirexHiddenCPD",
+        "TirexCosineCPD",
+        "TirexL2CPD",
+        "TirexMMDCPD",
+        "TirexEnergyCPD",
+        "TirexDerivativeCPD",
+        "TirexGateRatioCPD",
+        "TirexForgetDropCPD",
+        "TirexForecastErrorCPD",
+        "TirexStateDetector",
+        "TirexStateGMM",
+        "TirexStateKMeans",
+        "TirexStateHMM",
+    ]
+else:
+    import warnings as _warnings
+
+    _warnings.warn(
+        "tsseg-tirex is not installed – TiRex detectors are unavailable. "
+        "Clone the tsseg-tirex repository next to tsseg to enable them.",
+        ImportWarning,
+        stacklevel=2,
+    )
+    __all__ = []
