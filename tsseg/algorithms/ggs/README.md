@@ -1,26 +1,33 @@
 # GGS (Greedy Gaussian Segmentation)
 
-Adapted from the [cvxgrp/GGS](https://github.com/cvxgrp/GGS) repository
-(Stanford Convex Optimization Group). GGS models each segment as a
-multivariate Gaussian and greedily splits the time series to maximise the
-total log-likelihood improvement, with a covariance-regularisation penalty.
+Models each segment as a multivariate Gaussian distribution. Greedily selects
+split points that maximise the total log-likelihood, then optionally refines
+them with a local search.
 
-## Source
+## Key properties
 
-Adapted from [cvxgrp/GGS](https://github.com/cvxgrp/GGS) (BSD 2-Clause
-license, see `LICENSE` in this directory).
+- Type: change point detection
+- Semi-supervised (`n_cps`)
+- Multivariate (models full covariance structure)
+- Greedy with optional refinement
 
-## References
+## Implementation
+
+Adapted from the Stanford Convex Optimization Group's GGS repository.
+
+- Origin: adapted from https://github.com/cvxgrp/GGS
+- Licence: BSD 2-Clause (Copyright (c) 2018, Stanford University Convex Optimization Group)
+- Licence file: `LICENSE` in this directory
+
+## Citation
 
 ```bibtex
 @article{hallac2019greedy,
-  title   = {Greedy {G}aussian Segmentation of Multivariate Time Series},
-  author  = {Hallac, David and Vare, Sagar and Boyd, Stephen and Leskovec, Jure},
+  title   = {Greedy Gaussian Segmentation of Multivariate Time Series},
+  author  = {Hallac, David and Nystrup, Peter and Boyd, Stephen},
   journal = {Advances in Data Analysis and Classification},
   volume  = {13},
-  number  = {3},
   pages   = {727--751},
-  year    = {2019},
-  doi     = {10.1007/s11634-018-0335-0}
+  year    = {2019}
 }
 ```

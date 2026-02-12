@@ -1,14 +1,25 @@
 # TICC (Toeplitz Inverse Covariance-based Clustering)
 
-Wrapper around a local implementation of TICC. The algorithm segments
-multivariate time series by jointly learning Toeplitz-structured inverse
-covariance matrices for each cluster and assigning windows to clusters
+Segments multivariate time series by jointly learning Toeplitz-structured
+inverse covariance matrices for each cluster and assigning windows to clusters
 via an EM-like procedure with a temporal consistency penalty.
 
-Note: TICC is a transductive (fit-and-predict) algorithm — `_predict`
-returns the labels computed during `_fit`.
+## Key properties
 
-## References
+- Type: state detection
+- Semi-supervised (requires `n_states`)
+- Multivariate (models temporal cross-covariance structure)
+- Transductive: `predict` returns the labels computed during `fit`
+
+## Implementation
+
+Taken from the original repository by David Hallac (Stanford). The core solver
+is in `ticc.py`.
+
+- Origin: taken from https://github.com/davidhallac/TICC
+- Licence: not specified in the original repository
+
+## Citation
 
 ```bibtex
 @inproceedings{hallac2017toeplitz,

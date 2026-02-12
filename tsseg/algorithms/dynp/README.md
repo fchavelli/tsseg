@@ -1,25 +1,25 @@
-# Dynamic Programming Segmentation (DynP)
+# DynP (Dynamic Programming Segmentation)
 
-Wrapper around the vendored `ruptures.Dynp` solver. This is the exact
-optimal partitioning algorithm that finds the segmentation minimising the
-total cost over all possible placements of `n_cps` change points. Complexity
-is $O(CQn^2)$ where $C$ is the number of change points, $Q$, the complexity of calling the considered cost function on one sub-signal and $n$ the signal
-length.
+Exact optimal partitioning algorithm. Given a fixed number of change points,
+finds the segmentation that globally minimises the sum of segment costs.
 
-## Parameters
+## Key properties
 
-| Parameter | Description |
-|-----------|-------------|
-| `n_cps`   | Number of change points (required — semi-supervised). |
-| `model`   | Cost function (`"l1"`, `"l2"`, `"rbf"`, etc.). |
-| `min_size` | Minimum segment length. |
+- Type: change point detection
+- Semi-supervised only (requires `n_cps`)
+- Exact (globally optimal for the given cost)
+- Supports multiple cost models: L2, L1, RBF, linear, normal, cosine
+- O(C Q n^2) time, with C the number of change points, Q the complexity of the cost function on one sub-series
+- Univariate and multivariate
 
-## Source
+## Implementation
 
-Vendored from the [ruptures](https://github.com/deepcharles/ruptures) library
-(BSD 2-Clause license).
+Wraps the vendored ruptures `Dynp` solver.
 
-## References
+- Origin: vendored from ruptures v1.1.8
+- Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
+
+## Citation
 
 ```bibtex
 @article{auger1989algorithms,
@@ -30,15 +30,5 @@ Vendored from the [ruptures](https://github.com/deepcharles/ruptures) library
   number  = {1},
   pages   = {39--54},
   year    = {1989}
-}
-
-@article{truong2020selective,
-  title   = {Selective review of offline change point detection methods},
-  author  = {Truong, Charles and Oudre, Laurent and Vayer, Nicolas},
-  journal = {Signal Processing},
-  volume  = {167},
-  pages   = {107299},
-  year    = {2020},
-  doi     = {10.1016/j.sigpro.2019.107299}
 }
 ```

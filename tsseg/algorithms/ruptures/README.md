@@ -1,18 +1,28 @@
 # Vendored Ruptures Components
 
-This directory contains a lightweight, pure-Python subset of the
-[`ruptures`](https://github.com/deepcharles/ruptures) library that tsseg
-uses internally. The goal is to remove the external dependency while
-preserving core change point detection functionality. The code is
-adapted from ruptures v1.1.8 and trimmed to the pieces required by the
-existing detectors:
+Lightweight subset of ruptures v1.1.8 used internally by several
+detectors (BinSeg, BottomUp, DynP, KCPD, PELT, Window). Contains base classes,
+cost functions, utilities and detection algorithms.
 
-- shared estimator and cost base classes
-- cost functions (`l1`, `l2`, `linear`, `rbf`, `cosine`, `normal`)
-- utility helpers (peak detection, path reconstruction, sanity checks)
-- detection algorithms (`Binseg`, `BottomUp`, `Dynp`, `Pelt`, `Window`)
+## Contents
 
-Only limited refactoring was applied to align with the tsseg code style
-and avoid optional SciPy dependencies. When updating this directory,
-please keep a note of the upstream commit and review the LICENSE file in
-ruptures to ensure continued compliance.
+- `base/` -- base classes for cost functions and search methods
+- `costs/` -- cost models: L1, L2, linear, RBF, cosine, normal
+- `detection/` -- search algorithms: Binseg, BottomUp, Dynp, Pelt, Window
+- `utils/` -- utility functions (e.g. pairwise distances)
+- `exceptions.py` -- custom exception classes
+
+## Key properties
+
+- Not a detector itself; provides building blocks for other detectors
+- API-compatible with the upstream ruptures package
+
+## Implementation
+
+Vendored from the ruptures library to avoid an external dependency and to allow
+minor modifications.
+
+- Origin: vendored from ruptures v1.1.8
+- Source: https://github.com/deepcharles/ruptures
+- Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
+- Licence file: `LICENSE` in this directory

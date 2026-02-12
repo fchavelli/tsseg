@@ -1,22 +1,34 @@
 # HDP-HSMM (Hierarchical Dirichlet Process Hidden Semi-Markov Model)
 
-Pure-Python implementation of the HDP-HSMM using Gibbs sampling.
-Each state's emission is modelled with a Normal-Inverse-Wishart prior, and
-state durations follow a Negative-Binomial distribution. The model
-non-parametrically infers the number of states from data.
+Bayesian non-parametric state detection using Gibbs sampling. Each state's
+emission is modelled with a Normal-Inverse-Wishart prior and state durations
+follow a Negative-Binomial distribution. The number of states is inferred
+automatically from the data.
 
-This implementation replaces the earlier dependency on the
-[pyhsmm](https://github.com/mattjj/pyhsmm) package.
+## Key properties
 
-## References
+- Type: state detection
+- Fully unsupervised (non-parametric; infers number of states)
+- Univariate and multivariate
+- Pure Python (no external HMM library required)
+
+## Implementation
+
+New pure-Python implementation of the HDP-HSMM Gibbs sampler, replacing an
+earlier dependency on the `pyhsmm` package. A legacy detector wrapping `pyhsmm`
+is kept in `legacy_detector.py` / `legacy_pyhsmm.py` for reference.
+
+- Origin: new code (replaces earlier pyhsmm-based implementation)
+
+## Citation
 
 ```bibtex
-@inproceedings{johnson2013bayesian,
-  title     = {Bayesian Nonparametric Hidden Semi-{M}arkov Models},
-  author    = {Johnson, Matthew J. and Willsky, Alan S.},
-  booktitle = {Journal of Machine Learning Research},
-  volume    = {14},
-  pages     = {673--701},
-  year      = {2013}
+@article{johnson2013bayesian,
+  title   = {Bayesian Nonparametric Hidden Semi-{M}arkov Models},
+  author  = {Johnson, Matthew J. and Willsky, Alan S.},
+  journal = {Journal of Machine Learning Research},
+  volume  = {14},
+  pages   = {673--701},
+  year    = {2013}
 }
 ```

@@ -1,11 +1,26 @@
 # Time2State
 
-Wrapper around the local Time2State implementation. Time2State learns
-temporal representations via a Causal CNN encoder, then clusters them
-with DPGMM (Dirichlet Process Gaussian Mixture Model) to produce state
+Unsupervised state detection using learned temporal representations. A Causal
+CNN encoder maps sliding windows to an embedding space, then a Dirichlet
+Process Gaussian Mixture Model (DPGMM) clusters the embeddings to produce state
 labels.
 
-## References
+## Key properties
+
+- Type: state detection
+- Unsupervised (`n_states` is an upper bound for DPGMM)
+- Univariate and multivariate
+- Requires PyTorch
+
+## Implementation
+
+Taken from the original repository by Kunpeng Zheng et al. The core encoder and
+clustering logic is in `time2state.py`.
+
+- Origin: taken from https://github.com/Lab-ANT/Time2State
+- Licence: not specified in the original repository
+
+## Citation
 
 ```bibtex
 @article{zheng2023time2state,

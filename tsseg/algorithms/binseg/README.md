@@ -1,54 +1,33 @@
-# BinSeg
+# BinSeg (Binary Segmentation)
 
-**Binary Segmentation** (BinSeg) is one of the oldest and most widely used
-change point detection algorithms.  It works by recursively applying a
-single-change test (e.g. AMOC / CUSUM) and splitting the signal at the most
-significant breakpoint until a stopping criterion is met.
+One of the oldest and most widely used change point detection algorithms.
+Recursively applies a single-change test and splits the signal at the most
+significant change point until a stopping criterion is met.
 
-**Key properties:**
+## Key properties
 
-- Semi-supervised (provide `n_cps`) or unsupervised (provide `penalty` or
-  `epsilon` for automatic selection)
-- Supports multiple cost models: L2 (mean shift), L1, RBF, etc.
-- $O(n \log n)$ time in practice (greedy top-down search)
+- Type: change point detection
+- Semi-supervised (provide `n_cps`) or unsupervised (provide `penalty` or `epsilon`)
+- Supports multiple cost models: L2, L1, RBF, linear, normal, cosine
+- O(n log n) time in practice
 - Univariate and multivariate
-
----
 
 ## Implementation
 
-The active detector (`detector.py`) wraps the **ruptures** Binary Segmentation
-solver, re-implemented locally under `tsseg.algorithms.ruptures`:
+Wraps the vendored ruptures `Binseg` solver.
 
-> Original ruptures library: <https://github.com/deepcharles/ruptures>
->
-> License: **BSD 2-Clause License** — Copyright (c) 2017, ENS Paris-Saclay,
-> CNRS.
+- Origin: vendored from ruptures v1.1.8
+- Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 
----
-
-## References
+## Citation
 
 ```bibtex
-@article{bai1997estimating,
-    title     = {Estimating Multiple Breaks One at a Time},
-    author    = {Bai, Jushan},
-    journal   = {Econometric Theory},
-    volume    = {13},
-    number    = {3},
-    pages     = {315--352},
-    year      = {1997},
-    doi       = {10.1017/S0266466600005831},
-}
-
-@article{fryzlewicz2014wild,
-    title     = {Wild Binary Segmentation for Multiple Change-Point Detection},
-    author    = {Fryzlewicz, Piotr},
-    journal   = {The Annals of Statistics},
-    volume    = {42},
-    number    = {6},
-    pages     = {2243--2281},
-    year      = {2014},
-    doi       = {10.1214/14-AOS1245},
+@article{truong2020selective,
+  title   = {Selective Review of Offline Change Point Detection Methods},
+  author  = {Truong, Charles and Oudre, Laurent and Vayatis, Nicolas},
+  journal = {Signal Processing},
+  volume  = {167},
+  pages   = {107299},
+  year    = {2020}
 }
 ```

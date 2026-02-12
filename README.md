@@ -96,13 +96,22 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 
 | Component | License | Source |
 |---|---|---|
-| `aeon` (base) | BSD-3 | [aeon-toolkit/aeon](https://github.com/aeon-toolkit/aeon) |
+| `aeon` (base, EAgglo, Hidalgo, HMM, IGTS) | BSD-3 | [aeon-toolkit/aeon](https://github.com/aeon-toolkit/aeon) |
 | `ruptures/` (vendored v1.1.8) | BSD-2 | [deepcharles/ruptures](https://github.com/deepcharles/ruptures) |
-| `ggs/` | BSD-2 | [cvxgrp/GGS](https://github.com/cvxgrp/GGS) |
+| `bocd/` | Apache-2.0 | [hildensia/bayesian_changepoint_detection](https://github.com/hildensia/bayesian_changepoint_detection) |
 | `clap/` (ClaSP / CLaP) | BSD-3 | [ermshaua/clasp](https://github.com/ermshaua/clasp) |
+| `ggs/` | BSD-2 | [cvxgrp/GGS](https://github.com/cvxgrp/GGS) |
 | `icid/` | GPLv3 | [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID) |
-| `tglad/vendor/` | Non-Commercial | [hershd23/uGLAD](https://github.com/hershd23/uGLAD) |
+| `patss/` | MIT | [KU Leuven DTAI](https://gitlab.kuleuven.be/u0143709/patss) |
+| `tglad/vendor/` (uGLAD) | Non-Commercial | [Harshs27/tGLAD](https://github.com/Harshs27/tGLAD) |
 | `tirex/` (via tsseg-tirex) | [NXAI Community License](https://github.com/NX-AI/tirex/blob/main/LICENSE) | [NX-AI/tirex](https://github.com/NX-AI/tirex) |
+| `autoplait/` | not specified | [Matsubara et al.](https://sites.google.com/site/onlinesemanticsegmentation/) |
+| `e2usd/` | not specified | [AI4CTS/E2Usd](https://github.com/AI4CTS/E2Usd) |
+| `espresso/` | not specified | [cruiseresearchgroup/ESPRESSO](https://github.com/cruiseresearchgroup/ESPRESSO) |
+| `ticc/` | not specified | [davidhallac/TICC](https://github.com/davidhallac/TICC) |
+| `time2state/` | not specified | [Lab-ANT/Time2State](https://github.com/Lab-ANT/Time2State) |
+| `tire/` | not specified | [De Ryck, De Vos & Bertrand (KU Leuven)](https://github.com/deryckt/TIRE) |
+| `tscp2/` | not specified | [Cruise Research Group](https://github.com/cruiseresearchgroup/TSCP2) |
 
 Each vendored directory contains a LICENSE file with full terms.
 The TiRex integration is built with technology from [NXAI](https://nx-ai.com).

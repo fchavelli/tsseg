@@ -1,24 +1,24 @@
-# Kernel Change Point Detection (KCPD)
+# KCPD (Kernel Change Point Detection)
 
-Wrapper around the vendored `ruptures.KernelCPD` solver. This method
-formulates change point detection as a kernel-based optimisation problem,
-using either dynamic programming (when `n_cps` is given) or a penalised
-approach.
+Kernel-based change point detection. Operates in a Reproducing Kernel Hilbert
+Space and uses either dynamic programming (exact) or a penalised formulation to
+locate change points based on the maximum mean discrepancy between segments.
 
-## Parameters
+## Key properties
 
-| Parameter | Description |
-|-----------|-------------|
-| `n_cps`   | Fixed number of change points (semi-supervised). |
-| `pen`     | Penalty value (unsupervised). |
-| `kernel`  | Kernel type (`"linear"`, `"rbf"`, `"cosine"`). |
+- Type: change point detection
+- Semi-supervised (`n_cps`) or unsupervised (`penalty`)
+- Supports RBF, linear and cosine kernels
+- Univariate and multivariate
 
-## Source
+## Implementation
 
-Vendored from the [ruptures](https://github.com/deepcharles/ruptures) library
-(BSD 2-Clause license).
+Wraps the vendored ruptures kernel-based cost and detection pipeline.
 
-## References
+- Origin: vendored from ruptures v1.1.8
+- Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
+
+## Citation
 
 ```bibtex
 @article{arlot2019kernel,

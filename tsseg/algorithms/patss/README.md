@@ -1,20 +1,32 @@
 # PaTSS (Pattern-based Time Series Segmentation)
 
-Wrapper around a local PaTSS implementation. PaTSS (Pattern-based Time Series Segmentation) performs time series semantic segmentation with gradual state transitions. This is obtained by learning a probability distribution over the different semantic segments.
+State detection algorithm designed to handle gradual state transitions.
+Learns recurring patterns and assigns state labels, accommodating the fact that
+real-world regime changes are not always instantaneous.
 
-## Source
+## Key properties
 
-Adapted from: https://gitlab.kuleuven.be/u0143709/patss
+- Type: state detection
+- Fully unsupervised
+- Univariate and multivariate
+- Handles gradual transitions between states
 
-Licence: MIT Licence
+## Implementation
 
-## Details
+Adapted from the original PaTSS repository by the DTAI research group at
+KU Leuven. The core logic lives in the `algorithms/`, `embedding/` and
+`segmentation/` subdirectories.
 
-See the ClaSP reference and the local `algorithms/` sub-directory for the
-underlying segmentation logic.
+- Origin: adapted from https://gitlab.kuleuven.be/u0143709/patss
+- Licence: MIT (Copyright (c) 2023, KU Leuven, DTAI Research Group)
+- Licence file: `LICENCE` in this directory
 
-## References
+## Citation
 
-Carpentier, Louis, Feremans, Len, Meert, Wannes, Verbeke, Mathias.
-"Replication Data for: Pattern-based Time Series Semantic Segmentation with Gradual State Transitions" (2024)
-https://doi.org/10.48804/G2YRDR, KU Leuven RDR, V1
+```bibtex
+@article{carpentier2024patss,
+  title   = {{PaTSS}: Pattern-based Time Series Segmentation},
+  author  = {Carpentier, Louis and others},
+  year    = {2024}
+}
+```

@@ -1,42 +1,33 @@
-# iCID: Isolation Distributional Kernel Change Interval Detection
+# iCID (Isolation Distributional Kernel Change Interval Detection)
 
-This Python implementation adapts the MATLAB iCID algorithm maintained at [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID). The original source code, authored by Yang Cao (Deakin University, Dec 2023 version 2.0), is licensed under the GNU General Public License version 3.0 (GPLv3) and serves as a demo for the method described in:
+Change point detection based on isolation distributional kernels. Transforms
+the time series through an aNNEspace embedding, computes a dissimilarity score
+between consecutive windows, automatically selects the isolation parameter psi,
+and applies adaptive thresholding to emit change points.
 
-> Yang Cao, Ye Zhu, Kai Ming Ting, Flora Salim, Hong Xian Li, Luxing Yang, and Gang Li. Detecting Change Intervals with Isolation Distributional Kernel. *Journal of Artificial Intelligence Research*, 2024, 79:273–306. [[arXiv](https://arxiv.org/abs/2212.14630)]
+## Key properties
 
-## Algorithm overview
+- Type: change point detection
+- Fully unsupervised (automatic psi selection and adaptive threshold)
+- Univariate and multivariate
+- Uses sklearn for nearest-neighbour computations
 
-iCID detects change intervals in time series through four main steps:
+## Implementation
 
-1. **Distributional Kernel Transformation**: Each observation is mapped into a high-dimensional feature space by measuring proximity to randomly sampled subsets (`aNNEspace`).
-2. **Dissimilarity Scoring**: The transformed series is divided into adjacent windows, and cosine similarity between their mean representations yields a dissimilarity score.
-3. **Automatic `psi` Selection**: Multiple granularities (`psi`) are tested, selecting the one that minimizes approximate entropy over the score series.
-4. **Adaptive Thresholding**: A statistical threshold is applied to highlight candidate change points.
+Adapted from the original MATLAB implementation by Yang Cao (Deakin University).
 
-## Usage
+- Origin: adapted from MATLAB iCID
+- Source: https://github.com/IsolationKernel/iCID
+- Licence: GPLv3 (Copyright (c) 2023, Yang Cao, Deakin University)
+- Licence file: `LICENSE` in this directory
 
-The `ICIDDetector` class follows the `tsseg.algorithms.base.BaseSegmenter` API.
+## Citation
 
-```python
-from tsseg.algorithms.icid.detector import ICIDDetector
-import numpy as np
-
-# Create a toy signal with a change point
-signal = np.concatenate([np.random.rand(200, 2), np.random.rand(200, 2) + 0.5])
-
-detector = ICIDDetector(window=50, alpha=0.5)
-change_points = detector.fit_predict(signal)
-
-print(f"Detected change points: {change_points}")
+```bibtex
+@article{cao2024icid,
+  title   = {Isolation Distributional Kernel Change-Interval Detection},
+  author  = {Cao, Yang and others},
+  journal = {Journal of Artificial Intelligence Research},
+  year    = {2024}
+}
 ```
-
-## Parameters
-
-- `window` (int): Window length for dissimilarity computation.
-- `alpha` (float): Sensitivity factor for thresholding; higher values reduce sensitivity.
-- `t` (int): Number of iterations used to build the feature space.
-
-## References
-
-- Yang Cao et al., *Detecting Change Intervals with Isolation Distributional Kernel*, JAIR 2024. [[arXiv](https://arxiv.org/abs/2212.14630)]
-- Original MATLAB release: [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID) (GPLv3).

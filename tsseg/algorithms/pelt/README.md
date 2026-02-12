@@ -1,24 +1,26 @@
 # PELT (Pruned Exact Linear Time)
 
-Wrapper around the vendored `ruptures.Pelt` solver. PELT applies dynamic
-programming with an optimal pruning rule that reduces average-case complexity
-to $O(n)$ while guaranteeing the same global optimum as the exact DP solver,
-provided the cost function satisfies certain regularity conditions.
+Exact change point detection with an optimal pruning rule that reduces the
+average-case complexity to O(n). Based on dynamic programming with a penalty
+term; the pruning discards candidate split points that are provably
+sub-optimal.
 
-## Parameters
+## Key properties
 
-| Parameter | Description |
-|-----------|-------------|
-| `penalty` | Penalty value controlling the trade-off between fit and number of segments (unsupervised). |
-| `model`   | Cost function (`"l1"`, `"l2"`, `"rbf"`, etc.). |
-| `min_size` | Minimum segment length. |
+- Type: change point detection
+- Fully unsupervised (penalty-based)
+- Supports multiple cost models: L2, L1, RBF, linear, normal, cosine
+- O(n) average time
+- Univariate and multivariate
 
-## Source
+## Implementation
 
-Vendored from the [ruptures](https://github.com/deepcharles/ruptures) library
-(BSD 2-Clause license).
+Wraps the vendored ruptures `Pelt` solver.
 
-## References
+- Origin: vendored from ruptures v1.1.8
+- Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
+
+## Citation
 
 ```bibtex
 @article{killick2012optimal,
@@ -28,7 +30,6 @@ Vendored from the [ruptures](https://github.com/deepcharles/ruptures) library
   volume  = {107},
   number  = {500},
   pages   = {1590--1598},
-  year    = {2012},
-  doi     = {10.1080/01621459.2012.737745}
+  year    = {2012}
 }
 ```
