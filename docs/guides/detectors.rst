@@ -58,3 +58,47 @@ deprecated and will be removed in a future release.
 When adding new algorithms, ensure they set the appropriate tags and register
 themselves in ``tsseg.algorithms.__all__`` so the documentation and tests can
 discover them.
+
+.. _testing-contract:
+
+Estimator checks
+^^^^^^^^^^^^^^^^
+
+Every algorithm in ``__all__`` is automatically validated by the test suite
+in ``tests/algorithms/``.  The checks are inspired by
+``sklearn.utils.estimator_checks.check_estimator`` and ensure that all
+detectors satisfy the ``BaseSegmenter`` API contract.
+
+The test suite verifies **four categories**:
+
+1. **Common contract** (``test_common.py``): ``get_params`` / ``set_params``
+   round-trip, ``clone``, ``fit`` returns ``self``, ``is_fitted`` lifecycle,
+   ``NotFittedError``, ``reset``, ``repr``, pickle round-trip.
+
+2. **Tag contract** (``test_tags.py``): required tags are present and
+   consistent (``returns_dense`` ↔ ``detector_type``).
+
+3. **Prediction contract** (``test_predict.py``): output shape, dtype, value
+   range, determinism, ``fit_predict`` ≡ ``fit`` + ``predict``.
+
+4. **Input validation** (``test_input_validation.py``): invalid types are
+   rejected, capability mismatches raise ``ValueError``.
+
+If your algorithm needs custom constructor arguments or has optional
+dependencies, declare an ``AlgorithmOverride`` in
+``tests/algorithms/conftest.py``:
+
+.. code-block:: python
+
+    from tests.algorithms.conftest import AlgorithmOverride
+
+    ALGORITHM_OVERRIDES["MyNewDetector"] = AlgorithmOverride(
+        init_kwargs={"n_segments": 5},
+        dependencies=("torch",),
+    )
+
+Run the full suite with:
+
+.. code-block:: bash
+
+    pytest tests/algorithms/ -v
