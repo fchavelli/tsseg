@@ -1,6 +1,13 @@
 tsseg.algorithms.random package
 ===============================
 
+Baseline: uniformly random change points / state labels. Lower bound for benchmarks.
+
+| **Type:** state detection
+| **Supervision:** semi-supervised or unsupervised
+
+**Implementation:** *Origin: new code.*
+
 Submodules
 ----------
 

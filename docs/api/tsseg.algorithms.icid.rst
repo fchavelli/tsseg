@@ -1,6 +1,17 @@
 tsseg.algorithms.icid package
 =============================
 
+aNNEspace embedding → dissimilarity score → automatic psi selection → adaptive
+threshold.
+
+| **Type:** change point detection
+| **Supervision:** fully unsupervised
+| **Requires:** sklearn
+
+**Implementation:** Adapted from MATLAB iCID by Yang Cao (Deakin University). GPLv3.
+
+**Reference:** Cao et al. (2024), JAIR.
+
 Submodules
 ----------
 

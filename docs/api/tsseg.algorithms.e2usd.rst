@@ -1,6 +1,16 @@
 tsseg.algorithms.e2usd package
 ==============================
 
+Deep learning: DDEM for temporal representations + DPGMM clustering.
+
+| **Type:** state detection
+| **Supervision:** unsupervised or semi-supervised
+| **Requires:** PyTorch
+
+**Implementation:** Taken from https://github.com/AI4CTS/E2Usd. No licence found.
+
+**Reference:** Chen et al. (2024), WWW.
+
 Submodules
 ----------
 

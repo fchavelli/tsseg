@@ -1,6 +1,14 @@
 tsseg.algorithms.vqtss package
 ==============================
 
+VQ-VAE + InfoNCE contrastive objective for discrete state codes.
+
+| **Type:** state detection
+| **Supervision:** fully unsupervised
+| **Requires:** PyTorch
+
+**Implementation:** *Origin: new code.*
+
 Submodules
 ----------
 

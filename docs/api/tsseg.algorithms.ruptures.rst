@@ -1,10 +1,12 @@
 tsseg.algorithms.ruptures package
 =================================
 
-Vendored subset of the `ruptures <https://github.com/deepcharles/ruptures>`_
-library (v1.1.8, BSD-2).  Provides the change-point detection back-ends used
-by ``BinSegDetector``, ``BottomUpDetector``, ``DynpDetector``,
-``KernelCPDDetector``, ``PeltDetector`` and ``WindowDetector``.
+Lightweight subset of ruptures v1.1.8 used by BinSeg, BottomUp, DynP, KCPD, PELT,
+Window. Contains base classes, cost functions, utilities and detection algorithms.
+Not a detector itself.
+
+**Implementation:** Vendored from `ruptures <https://github.com/deepcharles/ruptures>`_.
+BSD 2-Clause.
 
 Module contents
 ---------------

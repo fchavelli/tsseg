@@ -1,6 +1,16 @@
 tsseg.algorithms.patss package
 ==============================
 
+Designed for gradual state transitions, learns recurring patterns and assigns labels.
+
+| **Type:** state detection
+| **Supervision:** fully unsupervised
+| **Scope:** handles gradual transitions
+
+**Implementation:** Adapted from KU Leuven DTAI group. MIT.
+
+**Reference:** Carpentier et al. (2024).
+
 Subpackages
 -----------
 

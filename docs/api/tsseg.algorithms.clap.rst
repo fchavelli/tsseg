@@ -1,6 +1,20 @@
 tsseg.algorithms.clap package
 =============================
 
+Two related algorithms sharing core routines:
+
+* **ClaSP** (Classification Score Profile): parameter-free CPD using binary
+  classifier scoring. *Type: change point detection.*
+* **CLaP** (Classification Label Profile): extension for state detection using
+  ``aeon`` classifiers. *Type: state detection.*
+
+| **Supervision:** unsupervised or semi-supervised
+| **Scope:** univariate and multivariate
+
+**Implementation:** Adapted from original ClaSP code by Arik Ermshaus. BSD 3-Clause.
+
+**Reference:** Ermshaus, Schäfer & Leser (2023), DMKD.
+
 Submodules
 ----------
 

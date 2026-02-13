@@ -1,6 +1,17 @@
 tsseg.algorithms.tglad package
 ==============================
 
+Compares successive Graphical Lasso precision matrices on sliding windows (Frobenius
+distance).
+
+| **Type:** change point detection
+| **Supervision:** unsupervised
+| **Requires:** PyTorch and networkx
+
+**Implementation:** Wraps vendored uGLAD solver. uGLAD Non-Commercial License.
+
+**Reference:** Shrivastava et al. (2022).
+
 Submodules
 ----------
 

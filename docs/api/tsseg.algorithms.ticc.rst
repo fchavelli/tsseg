@@ -1,6 +1,18 @@
 tsseg.algorithms.ticc package
 =============================
 
+Joint learning of Toeplitz-structured inverse covariance matrices per cluster with
+temporal consistency penalty.
+
+| **Type:** state detection
+| **Supervision:** semi-supervised
+| **Scope:** multivariate, transductive
+
+**Implementation:** Taken from https://github.com/davidhallac/TICC. No licence
+specified.
+
+**Reference:** Hallac, Vare, Boyd & Leskovec (2017), KDD.
+
 Submodules
 ----------
 

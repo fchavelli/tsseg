@@ -1,6 +1,18 @@
 tsseg.algorithms.hdp\_hsmm package
 ==================================
 
+Bayesian non-parametric state detection with Gibbs sampling, Normal-Inverse-Wishart
+emissions, Negative-Binomial durations.
+
+| **Type:** state detection
+| **Supervision:** fully unsupervised
+| **Scope:** pure Python
+
+**Implementation:** New pure-Python Gibbs sampler (replaces earlier pyhsmm
+dependency). *Origin: new code.*
+
+**Reference:** Johnson & Willsky (2013), JMLR.
+
 Submodules
 ----------
 

@@ -11,12 +11,21 @@ live.
 Segments and detectors
 ----------------------
 
-`tsseg.algorithms` exposes detector classes such as
-:class:`~tsseg.algorithms.EspressoDetector` or
-:class:`~tsseg.algorithms.PatssDetector`. Each detector follows the standard
-``fit``/``predict``/``fit_predict`` contract documented in
-:ref:`guides-detectors`. The module also re-exports helpers like
-:class:`~tsseg.algorithms.Time2StateDetector` for state-labelling tasks.
+``tsseg.algorithms`` exposes detector classes for two main tasks:
+
+**Change point detection** — AMOC, BinSeg, BOCD, BottomUp, ClaSP, DynP,
+E-Agglo, ESPRESSO, FLUSS, GGS, iCID, IGTS, KCPD, PELT, Prophet, TIRE,
+TS-CP2, tGLAD, Window.
+
+**State detection** — AutoPlait, CLaP, E2USD, HDP-HSMM, Hidalgo, HMM,
+PaTSS, TICC, Time2State, VQ-TSS, VSAX.
+
+**Both (via TiRex)** — TiRex bridge module (under development).
+
+A *Random* baseline is also included as a lower bound for benchmarks.
+
+Each detector follows the standard ``fit``/``predict``/``fit_predict``
+contract documented in :ref:`guides-detectors`.
 
 Datasets
 --------
