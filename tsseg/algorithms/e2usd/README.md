@@ -1,7 +1,7 @@
 # E2USD (Efficient-yet-Effective Unsupervised State Detection)
 
 Deep learning method for unsupervised state detection. Learns temporal
-representations with a Deformable Dense Encoding Module (DDEM), then clusters
+representations with a Decomposed Dual-view Embedding Module (DDEM), then clusters
 them with a Dirichlet Process Gaussian Mixture Model (DPGMM) to produce state
 labels.
 
