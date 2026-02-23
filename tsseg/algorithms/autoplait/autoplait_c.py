@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -6,6 +7,49 @@ from pathlib import Path
 import numpy as np
 
 ABS_PATH = os.path.dirname(os.path.abspath(__file__))
+
+
+def _find_autoplait_dir() -> Path:
+    """Locate the AutoPlait C directory, trying several strategies.
+
+    Resolution order:
+      1. ``AUTOPLAIT_DIR`` environment variable (explicit override).
+      2. Relative to this source file: ``<package_root>/c/autoplait``
+         (works when the repo is checked-out or editable-installed).
+      3. ``autoplait`` on ``PATH`` — if found, return its parent dir.
+
+    Returns the directory that should contain the ``autoplait`` binary.
+    Raises ``FileNotFoundError`` if nothing is found.
+    """
+    # 1. Env var
+    env = os.environ.get("AUTOPLAIT_DIR")
+    if env:
+        p = Path(env).resolve()
+        if p.is_dir():
+            return p
+
+    # 2. Relative to source  (…/tsseg/algorithms/autoplait -> …/c/autoplait)
+    package_root = Path(ABS_PATH).resolve().parents[2]
+    relative = package_root / "c" / "autoplait"
+    if relative.is_dir() and (relative / "autoplait").is_file():
+        return relative
+
+    # 2b. Also try the directory even if binary is missing (will raise later)
+    if relative.is_dir():
+        return relative
+
+    # 3. Binary on PATH
+    on_path = shutil.which("autoplait")
+    if on_path:
+        return Path(on_path).resolve().parent
+
+    raise FileNotFoundError(
+        "AutoPlait C directory not found. Tried:\n"
+        f"  • $AUTOPLAIT_DIR (not set or invalid)\n"
+        f"  • {relative} (not found)\n"
+        f"  • 'autoplait' on PATH (not found)\n"
+        "Set AUTOPLAIT_DIR=/path/to/c/autoplait or build the binary."
+    )
 
 class AutoPlait:
     """
@@ -30,16 +74,9 @@ class AutoPlait:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             tmp_path = os.path.join(temp_dir, f"AutoPlait-{name}/")
-            package_root = Path(ABS_PATH).resolve().parents[2]
-            autoplait_path = package_root / "c" / "autoplait"
+            autoplait_path = _find_autoplait_dir()
 
             os.makedirs(tmp_path, exist_ok=True)
-            if not autoplait_path.exists():
-                raise FileNotFoundError(
-                    "AutoPlait binary directory not found. Expected at "
-                    f"{autoplait_path}. Ensure the C implementation is built via"
-                    " `make clean autoplait`."
-                )
 
             ts = np.asarray(ts, dtype=float)
             if ts.ndim == 1:
