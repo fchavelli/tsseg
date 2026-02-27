@@ -18,7 +18,12 @@ dependencies:
   # - pytorch-cuda=11.8
   - pip:
     - .[torch,prophet,patss,accelerators,docs,aeon,tglad]
-    - tensorflow==2.17.0
-    - keras-tcn==3.5.0
+    # NOTE: tensorflow / keras-tcn (needed only by TSCP2Detector) are NOT
+    # pinned here to avoid fragile exact-version constraints that break
+    # across platforms.  They are installed automatically by the
+    # `make install` step (pip install -e .[all]) via the [tscp2] extra
+    # defined in pyproject.toml with flexible ranges.
+    # To install them manually:  pip install -e .[tscp2]
+    #
     # legacy-hsmm extra (pyhsmm/pybasicbayes) intentionally excluded;
     # install manually with: pip install -e .[legacy-hsmm] if needed.

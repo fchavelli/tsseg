@@ -60,6 +60,21 @@ pip install -e .[all]
 
 </details>
 
+<details>
+<summary><strong>Lightweight install (no TensorFlow)</strong></summary>
+
+If TensorFlow causes issues on your platform, skip the `[all]` extra and install only the pieces you need:
+
+```bash
+conda env create -f environment.yml
+conda activate tsseg-env
+pip install -e .[torch,prophet,aeon]   # pick only the extras you want
+```
+
+Only `TSCP2Detector` requires TensorFlow (`tsseg[tscp2]`). All other 27+ algorithms work without it.
+
+</details>
+
 ### Optional extras
 
 Most detectors work out of the box. Heavier dependencies are opt-in:
