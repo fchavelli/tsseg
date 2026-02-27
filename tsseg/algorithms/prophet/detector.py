@@ -12,6 +12,22 @@ from prophet import Prophet
 from typing import Callable
 from collections import Counter
 
+# pandas Timestamp (ns resolution) overflows around 2262-04-11.
+# From start="2000-01-01" that leaves ~95 700 days with freq="D".
+# For longer series we fall back to freq="s" to stay within bounds.
+_MAX_DAILY_PERIODS = 90_000  # conservative safety margin
+
+
+def _safe_date_range(n_periods: int) -> pd.DatetimeIndex:
+    """Build a DatetimeIndex that fits within pandas Timestamp limits.
+
+    Uses daily frequency when possible (preserves Prophet's automatic
+    weekly / yearly seasonality), and falls back to seconds for very
+    long series that would overflow the nanosecond Timestamp range.
+    """
+    freq = "D" if n_periods <= _MAX_DAILY_PERIODS else "s"
+    return pd.date_range(start="2000-01-01", periods=n_periods, freq=freq)
+
 class ProphetDetector(BaseSegmenter):
     """Prophet forecaster wrapped as an aeon-compatible change-point detector."""
 
@@ -28,7 +44,7 @@ class ProphetDetector(BaseSegmenter):
     def __init__(
         self,
         *,
-        n_changepoints: int | None = 25,
+        n_changepoints: int | None = 5,
         n_changepoint_func: Callable[[np.ndarray], int] | None = None,
         axis: int = 0,
         multivariate_strategy: str = "ensembling",
@@ -70,7 +86,7 @@ class ProphetDetector(BaseSegmenter):
 
             if dim > 1 and self.multivariate_strategy == "ensembling":
                 # Ensembling strategy: fit Prophet on each dimension and aggregate
-                ds_index = pd.date_range(start="2000-01-01", periods=signal_len, freq="D")
+                ds_index = _safe_date_range(signal_len)
                 all_detected_indices = []
                 
                 for d in range(dim):
@@ -95,8 +111,7 @@ class ProphetDetector(BaseSegmenter):
                     values = signal.flatten()
 
                 df = pd.DataFrame({"y": values})
-                # Use sequential dates to preserve temporal order
-                df["ds"] = pd.date_range(start="2000-01-01", periods=len(df), freq="D")
+                df["ds"] = _safe_date_range(len(df))
 
                 model = Prophet(n_changepoints=n_cp, changepoint_range=1.0)
                 model.fit(df)

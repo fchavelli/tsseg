@@ -36,8 +36,8 @@ class DynpDetector(BaseSegmenter):
     ) -> None:
         if n_cps is None:
             raise ValueError("n_cps must be a positive integer (required by the DP solver).")
-        if int(n_cps) <= 0:
-            raise ValueError("n_cps must be a positive integer.")
+        if int(n_cps) < 0:
+            raise ValueError("n_cps must be a non-negative integer.")
         self.n_cps = int(n_cps)
         self.model = model
         self.min_size = int(min_size)
@@ -75,7 +75,11 @@ class DynpDetector(BaseSegmenter):
     def _predict(self, X):
         if self._estimator is None:
             raise RuntimeError("DynpDetector must be fitted before predict")
+        if self.n_cps == 0:
+            return np.array([], dtype=int)
         signal = self._ensure_2d(X)
+        if signal.shape[0] < self.min_size * (self.n_cps + 1):
+            return np.array([], dtype=int)
         if self._train_signal is None or not np.array_equal(signal, self._train_signal):
             self._estimator.fit(signal)
             self._train_signal = signal

@@ -96,14 +96,20 @@ class EspressoDetector(BaseSegmenter):
                 "For semi-supervised fitting, `n_segments` must be provided "
                 "at initialization."
             )
+        if self.n_segments < 2:
+            # Nothing to fit when the ground truth indicates a single segment.
+            return self
         return self
 
     def _predict(self, X, axis=None):
         axis = self.axis if axis is None else axis
         signal = _ensure_time_major(X, axis=axis)
 
-        if self.n_segments is None or self.n_segments < 2:
-            raise ValueError("n_segments must be provided and >= 2 for prediction")
+        if self.n_segments is None:
+            raise ValueError("n_segments must be provided for prediction")
+        if self.n_segments < 2:
+            # A single segment means zero change points — return empty.
+            return np.asarray([], dtype=int)
 
 
         # ``espresso`` expects channels x time ordering.

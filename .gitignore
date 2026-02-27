@@ -61,3 +61,6 @@ notebooks/
 
 # Demo
 demo/
+
+# Development
+tsseg/algorithms/time2feat/

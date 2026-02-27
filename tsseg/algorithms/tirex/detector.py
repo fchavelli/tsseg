@@ -49,6 +49,9 @@ if _TIREX_AVAILABLE:
         TirexStateGMM,
         TirexStateKMeans,
         TirexStateHMM,
+        TirexStateCLAP,
+        TirexStateCLAPBidir,
+        TirexStateCLAPContrastive,
     )
 
     __all__ = [
@@ -65,6 +68,9 @@ if _TIREX_AVAILABLE:
         "TirexStateGMM",
         "TirexStateKMeans",
         "TirexStateHMM",
+        "TirexStateCLAP",
+        "TirexStateCLAPBidir",
+        "TirexStateCLAPContrastive",
     ]
 else:
     import warnings as _warnings
