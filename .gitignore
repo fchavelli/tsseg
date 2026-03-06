@@ -64,3 +64,6 @@ demo/
 
 # Development
 tsseg/algorithms/time2feat/
+
+# Misc
+tsseg/algorithms/vqtss/test_vqtss_mocap.py
