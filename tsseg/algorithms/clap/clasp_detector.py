@@ -5,6 +5,14 @@ with the tsseg library's API.
 import numpy as np
 from ..base import BaseSegmenter
 from .segmentation import BinaryClaSPSegmentation
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    HasType,
+    Interval,
+    ParamDef,
+    StrOptions,
+)
 
 class ClaspDetector(BaseSegmenter):
     """
@@ -40,6 +48,78 @@ class ClaspDetector(BaseSegmenter):
         "returns_dense": True,
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "n_segments": ParamDef(
+            constraint=[
+                StrOptions({"learn"}),
+                Interval(int, 2, None, Closed.LEFT),
+            ],
+            description="Number of segments ('learn' = auto-detect).",
+        ),
+        "n_change_points": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of change points (injected by supervision pipeline).",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "n_estimators": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of ClaSPs in the ensemble.",
+        ),
+        "window_size": ParamDef(
+            constraint=[
+                StrOptions({"suss", "fft", "acf"}),
+                Interval(int, 1, None, Closed.LEFT),
+            ],
+            description="Window size or auto-detection method.",
+        ),
+        "k_neighbours": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of nearest neighbours for ClaSP.",
+        ),
+        "excl_radius": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Exclusion radius (multiples of window size).",
+        ),
+        "distance": ParamDef(
+            constraint=StrOptions({
+                "znormed_euclidean_distance",
+                "euclidean_distance",
+                "cinvariant_euclidean_distance",
+            }),
+            description="Distance function for k-NN.",
+        ),
+        "score": ParamDef(
+            constraint=StrOptions({"roc_auc"}),
+            description="Scoring function for the profile.",
+        ),
+        "early_stopping": ParamDef(
+            constraint=HasType((bool,)),
+            description="Stop early when no significant split is found.",
+        ),
+        "validation": ParamDef(
+            constraint=StrOptions({"significance_test", "score_threshold"}),
+            description="Validation method for change point significance.",
+        ),
+        "threshold": ParamDef(
+            constraint=[
+                StrOptions({"default"}),
+                Interval(float, 0, 1, Closed.BOTH),
+            ],
+            description="Threshold for validation ('default' or float in [0,1]).",
+        ),
+        "n_jobs": ParamDef(
+            constraint=Interval(int, -1, None, Closed.LEFT),
+            description="Number of parallel jobs (-1 = all CPUs).",
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "window_size < n_samples or isinstance(window_size, str)",
+                "Integer window_size must be < series length.",
+            ),
+        ],
     }
 
     def __init__(self, n_segments="learn", n_change_points=None, n_estimators=10, window_size="suss", k_neighbours=3, excl_radius=5, distance="znormed_euclidean_distance", score="roc_auc",

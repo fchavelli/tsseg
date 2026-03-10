@@ -8,6 +8,14 @@ import pandas as pd
 from numba import njit
 
 from ..base import BaseSegmenter
+from ..param_schema import (
+    Closed,
+    HasType,
+    Interval,
+    Options,
+    ParamDef,
+    StrOptions,
+)
 
 __all__ = ["EAggloDetector"]
 
@@ -91,6 +99,27 @@ class EAggloDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
+    }
+
+    _parameter_schema = {
+        "member": ParamDef(
+            constraint=None,
+            description="Initial cluster membership (None = one cluster per point).",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "alpha": ParamDef(
+            constraint=Interval(float, 0, 2, Closed.RIGHT),
+            description="Exponent for the divergence measure, in (0, 2].",
+        ),
+        "penalty": ParamDef(
+            constraint=[
+                StrOptions({"len_penalty", "mean_diff_penalty"}),
+                HasType((Callable,)),
+            ],
+            description="Penalty function name or callable (None = no penalty).",
+            nullable=True,
+        ),
     }
 
     def __init__(

@@ -8,6 +8,15 @@ import numpy as np
 
 from ..base import BaseSegmenter
 from ..ruptures.detection import Window
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    HasType,
+    Interval,
+    MutuallyExclusive,
+    ParamDef,
+    StrOptions,
+)
 
 __all__ = ["WindowDetector"]
 
@@ -24,6 +33,57 @@ class WindowDetector(BaseSegmenter):
         "python_dependencies": None,
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "width": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Width of the sliding window.",
+            group="windowing",
+        ),
+        "n_cps": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of change points to detect.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "pen": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Penalty threshold.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "epsilon": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Reconstruction error tolerance.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "model": ParamDef(
+            constraint=StrOptions({"l1", "l2", "rbf", "linear", "normal", "cosine"}),
+            description="Ruptures cost model name.",
+        ),
+        "min_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Minimum segment length.",
+        ),
+        "jump": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Sub-sampling factor for candidate breakpoints.",
+        ),
+        "cost_params": ParamDef(
+            constraint=HasType((dict,)),
+            description="Extra kwargs for the cost function.",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "_cross_constraints": [
+            MutuallyExclusive(["n_cps", "pen", "epsilon"], required_count=1),
+            DataDependent(
+                "width <= n_samples",
+                "Window width must be <= series length",
+            ),
+        ],
     }
 
     def __init__(

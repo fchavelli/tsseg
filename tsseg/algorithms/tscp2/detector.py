@@ -8,6 +8,14 @@ from typing import Any, Callable, Dict, TYPE_CHECKING
 import numpy as np
 
 from ..base import BaseSegmenter
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    HasType,
+    Interval,
+    ParamDef,
+    StrOptions,
+)
 
 try:  # pragma: no cover - optional dependency guidance
     import tensorflow as _tf
@@ -73,6 +81,113 @@ class TSCP2Detector(BaseSegmenter):
         "python_dependencies": ["tensorflow", "tcn"],
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "window_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Sliding window size for building pairs.",
+            group="windowing",
+        ),
+        "n_cps": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of change points (None = auto-threshold).",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "similarity_threshold": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.BOTH),
+            description="Similarity threshold for detecting change points.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "stride": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Step between successive window pairs.",
+            group="windowing",
+        ),
+        "code_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Dimension of the learned representation.",
+            group="architecture",
+        ),
+        "nb_filters": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of TCN filters.",
+            group="architecture",
+        ),
+        "kernel_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="TCN kernel size.",
+            group="architecture",
+        ),
+        "nb_stacks": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of TCN stacks.",
+            group="architecture",
+        ),
+        "dropout_rate": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.BOTH),
+            description="Dropout rate.",
+            group="architecture",
+        ),
+        "dense_units": ParamDef(
+            constraint=HasType((tuple,)),
+            description="Units for optional dense layers after TCN.",
+            nullable=True,
+            ui_hidden=True,
+            group="architecture",
+        ),
+        "batch_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Training batch size.",
+            group="training",
+        ),
+        "epochs": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of training epochs.",
+            group="training",
+        ),
+        "learning_rate": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Optimiser learning rate.",
+            group="training",
+        ),
+        "loss": ParamDef(
+            constraint=StrOptions({"nce", "info_nce", "dcl", "fc", "harddcl"}),
+            description="Contrastive loss function.",
+            group="contrastive",
+        ),
+        "temperature": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Temperature for the contrastive loss.",
+            group="contrastive",
+        ),
+        "tau": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Tau parameter (debiased / focal losses).",
+            group="contrastive",
+        ),
+        "beta": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Beta parameter (hard contrastive loss).",
+            group="contrastive",
+        ),
+        "similarity": ParamDef(
+            constraint=StrOptions({"cosine", "dot", "euclidean", "edit"}),
+            description="Similarity function.",
+            group="contrastive",
+        ),
+        "refit_on_predict": ParamDef(
+            constraint=HasType((bool,)),
+            description="Re-train the encoder on the prediction data.",
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "window_size * 2 <= n_samples",
+                "Series must have at least 2 * window_size samples",
+            ),
+        ],
     }
 
     def __init__(

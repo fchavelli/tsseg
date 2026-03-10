@@ -7,6 +7,15 @@ from .clap import CLaP
 from .utils import create_state_labels, extract_cps
 # from ..clap.clasp_detector import ClaspDetector
 from ..clap.segmentation import BinaryClaSPSegmentation
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    HasType,
+    Interval,
+    ParamDef,
+    StrOptions,
+)
+
 
 class ClapDetector(BaseSegmenter):
     """
@@ -75,6 +84,63 @@ class ClapDetector(BaseSegmenter):
         "returns_dense": False,
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "window_size": ParamDef(
+            constraint=[
+                StrOptions({"suss", "fft", "acf"}),
+                Interval(int, 4, None, Closed.LEFT),
+            ],
+            description="Window size or auto-detection method.",
+        ),
+        "classifier": ParamDef(
+            constraint=StrOptions({"rocket", "knn", "svm"}),
+            description="Classifier for state detection.",
+        ),
+        "merge_score": ParamDef(
+            constraint=StrOptions({"cgain", "score"}),
+            description="Scoring function for segment merging.",
+        ),
+        "n_splits": ParamDef(
+            constraint=Interval(int, 2, None, Closed.LEFT),
+            description="Number of cross-validation splits.",
+        ),
+        "n_jobs": ParamDef(
+            constraint=Interval(int, -1, None, Closed.LEFT),
+            description="Number of parallel jobs (-1 = all CPUs).",
+        ),
+        "sample_size": ParamDef(
+            constraint=Interval(int, 10, None, Closed.LEFT),
+            description="Samples for classifier training.",
+        ),
+        "random_state": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Random seed.",
+            nullable=True,
+        ),
+        "n_change_points": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of change points (overrides n_segments).",
+            nullable=True,
+        ),
+        "n_segments": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of segments to detect.",
+            nullable=True,
+        ),
+        "change_points": ParamDef(
+            constraint=HasType((list,)),
+            description="Pre-computed change points for semi-supervised mode.",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "window_size < n_samples or isinstance(window_size, str)",
+                "Integer window_size must be < series length",
+            ),
+        ],
     }
 
     def __init__(self, window_size="suss", classifier="rocket", merge_score="cgain", n_splits=5, n_jobs=1,

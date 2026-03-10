@@ -8,6 +8,12 @@ from typing import Optional
 import numpy as np
 
 from ..base import BaseSegmenter
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    Interval,
+    ParamDef,
+)
 
 __all__ = ["AmocDetector"]
 
@@ -115,6 +121,19 @@ class AmocDetector(BaseSegmenter):
         "semi_supervised": False,
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
+    }
+
+    _parameter_schema = {
+        "min_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Minimum samples on each side of the breakpoint.",
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "min_size * 2 <= n_samples",
+                "Series must have at least 2 × min_size samples.",
+            ),
+        ],
     }
 
     def __init__(self, *, min_size: int = 5, axis: int = 0) -> None:

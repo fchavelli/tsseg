@@ -225,7 +225,24 @@ class BaseSeriesEstimator(BaseAeonEstimator):
 		metadata = self._check_X(X, axis)
 		if store_metadata:
 			self.metadata_ = metadata
+			# Build a data-context dict consumable by param_schema validation.
+			self._data_context = self._build_data_context(X, axis, metadata)
 		return self._convert_X(X, axis)
+
+	@staticmethod
+	def _build_data_context(
+		X: Any, axis: int, metadata: Dict[str, Any]
+	) -> Dict[str, Any]:
+		"""Extract data dimensions as a plain dict for constraint evaluation."""
+		ctx: Dict[str, Any] = {}
+		ctx["n_channels"] = metadata.get("n_channels", 1)
+		if isinstance(X, np.ndarray):
+			ctx["n_samples"] = X.shape[0] if axis == 0 else X.shape[-1]
+		elif hasattr(X, "shape"):
+			ctx["n_samples"] = X.shape[0] if axis == 0 else X.shape[-1]
+		else:
+			ctx["n_samples"] = len(X)
+		return ctx
 
 	def _check_X(self, X: Any, axis: int) -> Dict[str, Any]:
 		if axis not in (0, 1):
@@ -326,10 +343,9 @@ class BaseSegmenter(BaseSeriesEstimator):
 		"python_dependencies": None,
 	}
 
-	# Removed explicit n_segments parameter for flexibility in subclasses.
-	# def __init__(self, axis: int, n_segments: int = 2) -> None:
-	# 	self.n_segments = n_segments
-	# 	super().__init__(axis=axis)
+	# Declarative parameter constraints — override in subclasses.
+	# See :mod:`tsseg.algorithms.param_schema` for the constraint vocabulary.
+	_parameter_schema: Dict[str, Any] = {}
 
 	def __init__(self, axis: int) -> None:
 		super().__init__(axis=axis)
@@ -351,12 +367,32 @@ class BaseSegmenter(BaseSeriesEstimator):
 
 		X_inner = self._preprocess_series(X, axis, store_metadata=True)
 
+		# --- Parameter validation (opt-in via _parameter_schema) ---------
+		self._validate_parameter_schema()
+
 		if y is not None:
 			self._check_y(y)
 
 		self._fit(X=X_inner, y=y)
 		self.is_fitted = True
 		return self
+
+	def _validate_parameter_schema(self) -> None:
+		"""Run declarative parameter validation if a schema is declared.
+
+		Called automatically from :meth:`fit` after preprocessing (so that
+		``_data_context`` is available).  Does nothing when
+		``_parameter_schema`` is empty.
+		"""
+		from .param_schema import validate_params
+
+		data_ctx = getattr(self, "_data_context", None)
+		errors = validate_params(self, data_ctx=data_ctx)
+		if errors:
+			raise ValueError(
+				f"{self.__class__.__name__} parameter validation failed:\n"
+				+ "\n".join(f"  - {e}" for e in errors)
+			)
 
 	def predict(self, X: Any, axis: int | None = None):
 		if not self.get_tag("fit_is_empty"):
@@ -365,7 +401,12 @@ class BaseSegmenter(BaseSeriesEstimator):
 		if axis is None:
 			axis = self.axis
 
-		X_inner = self._preprocess_series(X, axis, store_metadata=False)
+		X_inner = self._preprocess_series(X, axis, store_metadata=True)
+
+		# Validate on predict for fit_is_empty detectors that skip fit()
+		if self.get_tag("fit_is_empty"):
+			self._validate_parameter_schema()
+
 		return self._predict(X_inner)
 
 	def fit_predict(self, X: Any, y: Any | None = None, axis: int | None = None):
@@ -373,6 +414,15 @@ class BaseSegmenter(BaseSeriesEstimator):
 		return self.predict(X, axis=axis)
 
 	# Hooks for subclasses ---------------------------------------------
+
+	@classmethod
+	def get_parameter_schema(cls) -> Dict[str, Any]:
+		"""Return the resolved parameter schema (MRO-merged).
+
+		See :func:`tsseg.algorithms.param_schema.get_parameter_schema`.
+		"""
+		from .param_schema import get_parameter_schema as _get_schema
+		return _get_schema(cls)
 
 	def _fit(self, X: Any, y: Any | None):
 		return self

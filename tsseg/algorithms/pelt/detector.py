@@ -6,6 +6,14 @@ import numpy as np
 
 from ..base import BaseSegmenter
 from ..ruptures.detection import Pelt
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    Interval,
+    ParamDef,
+    StrOptions,
+    HasType,
+)
 
 __all__ = ["PeltDetector"]
 
@@ -21,6 +29,37 @@ class PeltDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
+    }
+
+    _parameter_schema = {
+        "model": ParamDef(
+            constraint=StrOptions({"l1", "l2", "rbf", "linear", "normal", "cosine"}),
+            description="Ruptures cost model name.",
+        ),
+        "min_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Minimum segment length.",
+        ),
+        "jump": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Sub-sampling factor for candidate breakpoints.",
+        ),
+        "penalty": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Penalty value for the PELT stopping criterion.",
+        ),
+        "cost_params": ParamDef(
+            constraint=HasType((dict,)),
+            description="Extra kwargs for cost_factory.",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "min_size * 2 <= n_samples",
+                "min_size is too large for the series length",
+            ),
+        ],
     }
 
     def __init__(

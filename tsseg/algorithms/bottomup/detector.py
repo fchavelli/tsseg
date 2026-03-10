@@ -8,6 +8,14 @@ import numpy as np
 
 from ..base import BaseSegmenter
 from ..ruptures.detection import BottomUp
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    Interval,
+    MutuallyExclusive,
+    ParamDef,
+    StrOptions,
+)
 
 __all__ = ["BottomUpDetector"]
 
@@ -23,6 +31,55 @@ class BottomUpDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "n_cps": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of change points to detect.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "model": ParamDef(
+            constraint=StrOptions({"l1", "l2", "rbf", "linear", "normal", "cosine"}),
+            description="Cost model for segment homogeneity.",
+        ),
+        "min_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Minimum segment length.",
+        ),
+        "jump": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Grid step for candidate change points.",
+        ),
+        "penalty": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Penalty value (must be > 0).",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "epsilon": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Reconstruction budget (must be > 0).",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "cost_params": ParamDef(
+            constraint=None,
+            description="Extra params passed to the cost function.",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "_cross_constraints": [
+            MutuallyExclusive(
+                ["n_cps", "penalty", "epsilon"],
+                required_count=1,
+            ),
+            DataDependent(
+                "min_size * 2 <= n_samples",
+                "Series must have at least 2 × min_size samples.",
+            ),
+        ],
     }
 
     def __init__(

@@ -13,6 +13,14 @@ except ImportError:
 
 from ..base import BaseSegmenter
 from ..utils import multivariate_l2_norm, aggregate_change_points
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    Interval,
+    ParamDef,
+    StrOptions,
+)
+
 
 class FLUSSDetector(BaseSegmenter):
     """FLUSS (Fast Low-cost Unipotent Semantic Segmentation) Segmenter.
@@ -62,6 +70,39 @@ class FLUSSDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "window_size": ParamDef(
+            constraint=Interval(int, 3, None, Closed.LEFT),
+            description="Sliding window size (based on period length).",
+        ),
+        "n_segments": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of segments to find.",
+        ),
+        "exclusion_factor": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Multiplier for segment exclusion zone.",
+        ),
+        "multivariate_strategy": ParamDef(
+            constraint=StrOptions({"ensembling", "l2"}),
+            description="Strategy for multivariate data.",
+        ),
+        "tolerance": ParamDef(
+            constraint=Interval(float, 0, None, Closed.LEFT),
+            description="Tolerance for CP aggregation in ensembling.",
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "window_size < n_samples",
+                "window_size must be less than the series length",
+            ),
+            DataDependent(
+                "n_segments <= n_samples // window_size",
+                "Too many segments for the given series length and window size",
+            ),
+        ],
     }
 
     def __init__(self, window_size=10, n_segments=2, exclusion_factor=5, axis=0, multivariate_strategy="ensembling", tolerance=0.01):

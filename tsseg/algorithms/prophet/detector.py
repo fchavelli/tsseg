@@ -7,6 +7,13 @@ import pandas as pd
 
 from ..base import BaseSegmenter
 from ..utils import multivariate_l2_norm, aggregate_change_points
+from ..param_schema import (
+    Closed,
+    HasType,
+    Interval,
+    ParamDef,
+    StrOptions,
+)
 
 from prophet import Prophet
 from typing import Callable
@@ -39,6 +46,28 @@ class ProphetDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "n_changepoints": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of potential change points.",
+            nullable=True,
+        ),
+        "n_changepoint_func": ParamDef(
+            constraint=HasType((Callable,)),
+            description="Callable that determines n_changepoints from the series.",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "multivariate_strategy": ParamDef(
+            constraint=StrOptions({"ensembling", "l2"}),
+            description="Strategy for multivariate series.",
+        ),
+        "tolerance": ParamDef(
+            constraint=Interval(float, 0, None, Closed.LEFT),
+            description="Tolerance for change-point deduplication.",
+        ),
     }
 
     def __init__(

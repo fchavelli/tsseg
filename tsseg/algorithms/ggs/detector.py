@@ -43,6 +43,12 @@ import numpy.typing as npt
 from sklearn.utils.validation import check_random_state
 
 from ..base import BaseSegmenter
+from ..param_schema import (
+    Closed,
+    HasType,
+    Interval,
+    ParamDef,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -452,6 +458,30 @@ class GreedyGaussianDetector(BaseSegmenter):
         "detector_type": "state_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "k_max": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Maximum number of change points.",
+        ),
+        "lamb": ParamDef(
+            constraint=Interval(float, 0, None, Closed.LEFT),
+            description="Regularisation parameter lambda (>= 0).",
+        ),
+        "max_shuffles": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Maximum number of shuffles.",
+        ),
+        "verbose": ParamDef(
+            constraint=HasType((bool,)),
+            description="Enable verbose output.",
+        ),
+        "random_state": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Random seed.",
+            nullable=True,
+        ),
     }
 
     def __init__(

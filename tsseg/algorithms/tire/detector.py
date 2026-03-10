@@ -11,6 +11,14 @@ from torch.utils.data import DataLoader, TensorDataset
 from scipy.signal import find_peaks
 
 from ..base import BaseSegmenter
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    DependsOn,
+    Interval,
+    ParamDef,
+    StrOptions,
+)
 
 from . import utils
 
@@ -131,6 +139,129 @@ class TireDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "window_size": ParamDef(
+            constraint=Interval(int, 4, None, Closed.LEFT),
+            description="Sliding window size (>= 4).",
+            group="windowing",
+        ),
+        "stride": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Stride between consecutive windows.",
+            group="windowing",
+        ),
+        "domain": ParamDef(
+            constraint=StrOptions({"TD", "FD", "both"}),
+            description="Domain(s) for representation learning.",
+        ),
+        "intermediate_dim_td": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Hidden dim of TD autoencoder (0 = skip).",
+            group="architecture_td",
+        ),
+        "latent_dim_td": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Latent dim of TD autoencoder.",
+            group="architecture_td",
+        ),
+        "nr_shared_td": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Shared latent dims for TD.",
+            group="architecture_td",
+        ),
+        "nr_ae_td": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of parallel TD autoencoders.",
+            group="architecture_td",
+        ),
+        "loss_weight_td": ParamDef(
+            constraint=Interval(float, 0, None, Closed.LEFT),
+            description="Loss weight for TD component.",
+            group="architecture_td",
+        ),
+        "intermediate_dim_fd": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Hidden dim of FD autoencoder (0 = skip).",
+            group="architecture_fd",
+        ),
+        "latent_dim_fd": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Latent dim of FD autoencoder.",
+            group="architecture_fd",
+        ),
+        "nr_shared_fd": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Shared latent dims for FD.",
+            group="architecture_fd",
+        ),
+        "nr_ae_fd": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of parallel FD autoencoders.",
+            group="architecture_fd",
+        ),
+        "loss_weight_fd": ParamDef(
+            constraint=Interval(float, 0, None, Closed.LEFT),
+            description="Loss weight for FD component.",
+            group="architecture_fd",
+        ),
+        "nfft": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="FFT size for frequency-domain windows.",
+            group="architecture_fd",
+        ),
+        "norm_mode": ParamDef(
+            constraint=StrOptions({"window", "timeseries"}),
+            description="Normalization scope.",
+        ),
+        "peak_distance_fraction": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.NEITHER),
+            description="Min fraction of series length between peaks.",
+        ),
+        "max_epochs": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Maximum training epochs.",
+            group="training",
+        ),
+        "patience": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Early-stopping patience (epochs).",
+            group="training",
+        ),
+        "learning_rate": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Optimiser learning rate.",
+            group="training",
+        ),
+        "n_segments": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of segments (overrides peak detection).",
+            nullable=True,
+        ),
+        "random_state": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Random seed.",
+            nullable=True,
+        ),
+        "_cross_constraints": [
+            DependsOn(
+                "stride <= window_size",
+                "stride must be <= window_size",
+            ),
+            DependsOn(
+                "nr_shared_td <= latent_dim_td",
+                "nr_shared_td must be <= latent_dim_td",
+            ),
+            DependsOn(
+                "nr_shared_fd <= latent_dim_fd",
+                "nr_shared_fd must be <= latent_dim_fd",
+            ),
+            DataDependent(
+                "window_size < n_samples",
+                "window_size must be less than series length",
+            ),
+        ],
     }
 
     def __init__(

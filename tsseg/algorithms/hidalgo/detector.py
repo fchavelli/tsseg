@@ -11,6 +11,12 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.utils.validation import check_random_state
 
 from ..base import BaseSegmenter
+from ..param_schema import (
+    Closed,
+    HasType,
+    Interval,
+    ParamDef,
+)
 
 
 class HidalgoDetector(BaseSegmenter):
@@ -90,6 +96,85 @@ class HidalgoDetector(BaseSegmenter):
         "detector_type": "state_detection",
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "metric": ParamDef(
+            constraint=None,
+            description="Distance metric (str or callable for sklearn NearestNeighbors).",
+        ),
+        "K_states": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of manifolds / states.",
+        ),
+        "zeta": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.NEITHER),
+            description="Local homogeneity level, in (0, 1).",
+        ),
+        "q": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of points for local Z interaction.",
+        ),
+        "n_iter": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of Gibbs sampling iterations.",
+        ),
+        "n_replicas": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of random restarts for Gibbs sampling.",
+        ),
+        "burn_in": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.LEFT),
+            description="Fraction of iterations discarded as burn-in, in [0, 1).",
+        ),
+        "fixed_Z": ParamDef(
+            constraint=HasType((bool,)),
+            description="Estimate params with fixed Z.",
+        ),
+        "use_Potts": ParamDef(
+            constraint=HasType((bool,)),
+            description="Use local Potts interaction between Z.",
+        ),
+        "estimate_zeta": ParamDef(
+            constraint=HasType((bool,)),
+            description="Update zeta during sampling.",
+        ),
+        "sampling_rate": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Rate at which to save samples.",
+        ),
+        "a": ParamDef(
+            constraint=None,
+            description="Prior parameter for d (array or None).",
+            nullable=True,
+            ui_hidden=True,
+            group="priors",
+        ),
+        "b": ParamDef(
+            constraint=None,
+            description="Prior parameter for d (array or None).",
+            nullable=True,
+            ui_hidden=True,
+            group="priors",
+        ),
+        "c": ParamDef(
+            constraint=None,
+            description="Prior parameter for p (array or None).",
+            nullable=True,
+            ui_hidden=True,
+            group="priors",
+        ),
+        "f": ParamDef(
+            constraint=None,
+            description="Parameter for zeta (array or None).",
+            nullable=True,
+            ui_hidden=True,
+            group="priors",
+        ),
+        "seed": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Random seed.",
+        ),
     }
 
     def __init__(

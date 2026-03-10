@@ -8,6 +8,14 @@ import numpy as np
 
 from ..base import BaseSegmenter
 from ..ruptures.detection import KernelCPD
+from ..param_schema import (
+    Closed,
+    HasType,
+    Interval,
+    MutuallyExclusive,
+    ParamDef,
+    StrOptions,
+)
 
 __all__ = ["KCPDDetector"]
 
@@ -23,6 +31,42 @@ class KCPDDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "n_cps": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of change points to detect.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "pen": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Penalty value for the stopping criterion.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "kernel": ParamDef(
+            constraint=StrOptions({"linear", "rbf", "cosine"}),
+            description="Kernel used by KernelCPD.",
+        ),
+        "min_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Minimum segment length.",
+        ),
+        "jump": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Sub-sampling factor for candidate breakpoints.",
+        ),
+        "cost_params": ParamDef(
+            constraint=HasType((dict,)),
+            description="Extra kwargs for the kernel cost.",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "_cross_constraints": [
+            MutuallyExclusive(["n_cps", "pen"], required_count=1),
+        ],
     }
 
     def __init__(

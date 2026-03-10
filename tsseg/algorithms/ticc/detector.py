@@ -4,6 +4,13 @@ This module provides an aeon-compatible wrapper for the TICC algorithm.
 import numpy as np
 from ..base import BaseSegmenter
 from .ticc import TICC
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    Interval,
+    ParamDef,
+)
+
 
 class TiccDetector(BaseSegmenter):
     """
@@ -37,6 +44,43 @@ class TiccDetector(BaseSegmenter):
         "returns_dense": False,
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "window_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Sliding window size.",
+        ),
+        "n_states": ParamDef(
+            constraint=Interval(int, 2, None, Closed.LEFT),
+            description="Number of clusters/states to identify.",
+        ),
+        "lambda_parameter": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Sparsity regularisation parameter.",
+        ),
+        "beta": ParamDef(
+            constraint=Interval(float, 0, None, Closed.LEFT),
+            description="Switching penalty for temporal consistency.",
+        ),
+        "maxIters": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Maximum EM iterations.",
+        ),
+        "threshold": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Convergence threshold.",
+        ),
+        "num_proc": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of parallel processes.",
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "window_size < n_samples",
+                "window_size must be less than the series length",
+            ),
+        ],
     }
 
     def __init__(self, window_size=10, n_states=5,

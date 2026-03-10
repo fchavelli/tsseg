@@ -25,6 +25,7 @@ import numpy.typing as npt
 import pandas as pd
 
 from ..base import BaseSegmenter
+from ..param_schema import Closed, Interval, ParamDef
 
 __all__ = ["InformationGainDetector"]
 __maintainer__ = []
@@ -352,6 +353,17 @@ class InformationGainDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "k_max": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Maximum number of change points to find.",
+        ),
+        "step": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Stride for candidate change point locations.",
+        ),
     }
 
     def __init__(

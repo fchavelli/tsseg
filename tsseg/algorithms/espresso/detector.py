@@ -8,6 +8,12 @@ import numpy as np
 
 from ..base import BaseSegmenter
 from .python.ESPRESSO_Script import espresso as _run_espresso
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    Interval,
+    ParamDef,
+)
 
 __all__ = ["EspressoDetector"]
 
@@ -58,6 +64,37 @@ class EspressoDetector(BaseSegmenter):
         "semi_supervised": True,
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "window_size": ParamDef(
+            constraint=Interval(int, 4, None, Closed.LEFT),
+            description="Subsequence length for the matrix profile (>= 4).",
+        ),
+        "chain_len": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Iterations for expanding arc sets.",
+        ),
+        "n_segments": ParamDef(
+            constraint=Interval(int, 2, None, Closed.LEFT),
+            description="Target number of segments (>= 2 required).",
+            nullable=True,
+        ),
+        "peak_distance_fraction": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.NEITHER),
+            description="Min spacing between peaks as fraction of length.",
+        ),
+        "random_state": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Random seed.",
+            nullable=True,
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "window_size < n_samples",
+                "window_size must be < series length.",
+            ),
+        ],
     }
 
     def __init__(

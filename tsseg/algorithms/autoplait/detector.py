@@ -4,6 +4,11 @@ This module provides an aeon-compatible wrapper for the AutoPlait algorithm.
 import numpy as np
 from ..base import BaseSegmenter
 from .autoplait_c import AutoPlait
+from ..param_schema import (
+    Closed,
+    Interval,
+    ParamDef,
+)
 
 class AutoPlaitDetector(BaseSegmenter):
     """
@@ -24,6 +29,14 @@ class AutoPlaitDetector(BaseSegmenter):
         "detector_type": "state_detection",
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "n_cps": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of change points (required if y not provided).",
+            nullable=True,
+        ),
     }
 
     def __init__(self, n_cps=None):

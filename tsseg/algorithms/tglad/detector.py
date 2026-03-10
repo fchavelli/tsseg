@@ -9,6 +9,14 @@ import numpy as np
 
 from ..base import BaseSegmenter
 from .vendor import ensure_vendor_imports
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    DependsOn,
+    HasType,
+    Interval,
+    ParamDef,
+)
 
 
 @dataclass
@@ -84,6 +92,67 @@ class TGLADDetector(BaseSegmenter):
         "python_dependencies": "torch,networkx",
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
+    }
+
+    _parameter_schema = {
+        "window_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of time steps per uGLAD window.",
+            group="windowing",
+        ),
+        "stride": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Step between successive windows.",
+            group="windowing",
+        ),
+        "batch_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Windows processed together by the multitask solver.",
+            group="training",
+        ),
+        "threshold": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Frobenius distance threshold for emitting a change point.",
+        ),
+        "min_spacing": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Minimum distance between emitted change points.",
+            nullable=True,
+        ),
+        "epochs": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of uGLAD training epochs per batch.",
+            group="training",
+        ),
+        "learning_rate": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Optimiser learning rate.",
+            group="training",
+        ),
+        "glad_iterations": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of unrolled GLAD iterations.",
+            group="training",
+        ),
+        "eval_offset": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Eigenvalue regularisation for batch covariance.",
+        ),
+        "verbose": ParamDef(
+            constraint=HasType((bool,)),
+            description="Print progress information.",
+            ui_hidden=True,
+        ),
+        "_cross_constraints": [
+            DependsOn(
+                "stride <= window_size",
+                "stride must be <= window_size",
+            ),
+            DataDependent(
+                "window_size <= n_samples",
+                "Series must have at least window_size samples",
+            ),
+        ],
     }
 
     def __init__(

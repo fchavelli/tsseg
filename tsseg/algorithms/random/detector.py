@@ -5,6 +5,13 @@ from __future__ import annotations
 import numpy as np
 
 from ..base import BaseSegmenter
+from ..param_schema import (
+    Closed,
+    ConditionalRequired,
+    HasType,
+    Interval,
+    ParamDef,
+)
 
 
 class RandomDetector(BaseSegmenter):
@@ -26,6 +33,32 @@ class RandomDetector(BaseSegmenter):
         "semi_supervised": False,
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "semi_supervised": ParamDef(
+            constraint=HasType((bool,)),
+            description="Enable semi-supervised mode.",
+        ),
+        "n_change_points": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Number of change points to emit.",
+            nullable=True,
+        ),
+        "n_states": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of distinct states.",
+            nullable=True,
+        ),
+        "random_state": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Random seed for reproducibility.",
+            nullable=True,
+        ),
+        "_cross_constraints": [
+            ConditionalRequired("n_change_points", "semi_supervised == True"),
+            ConditionalRequired("n_states", "semi_supervised == True"),
+        ],
     }
 
     def __init__(

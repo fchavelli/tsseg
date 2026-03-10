@@ -8,6 +8,16 @@ from scipy.special import gammaln, logsumexp
 from tsseg.algorithms.bocd.bayesian_models import offline_changepoint_detection
 
 
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    Interval,
+    Options,
+    ParamDef,
+    StrOptions,
+)
+
+
 class BOCDDetector(BaseSegmenter):
     """Bayesian change-point detector based on offline inference.
 
@@ -62,6 +72,60 @@ class BOCDDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "hazard_lambda": ParamDef(
+            constraint=Interval(float, 1, None, Closed.LEFT),
+            description="Expected run length (constant hazard = 1/lambda).",
+        ),
+        "mu": ParamDef(
+            constraint=Interval(float, None, None),
+            description="Prior mean of segment observations.",
+        ),
+        "kappa": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Strength of the prior mean (must be > 0).",
+        ),
+        "alpha": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Prior shape of inverse-gamma (must be > 0).",
+        ),
+        "beta": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Prior scale of inverse-gamma (must be > 0).",
+        ),
+        "truncate": ParamDef(
+            constraint=Interval(int, None, 0, Closed.RIGHT),
+            description="Log-probability truncation exponent.",
+        ),
+        "cp_prob_threshold": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.NEITHER),
+            description="Min posterior probability to accept a change point.",
+        ),
+        "min_distance": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Minimum samples between successive change points.",
+        ),
+        "max_cps": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Maximum number of change points to return.",
+            nullable=True,
+        ),
+        "multivariate_strategy": ParamDef(
+            constraint=StrOptions({"l2", "ensembling"}),
+            description="Strategy for multivariate data.",
+        ),
+        "tolerance": ParamDef(
+            constraint=Interval(float, 0, None, Closed.LEFT),
+            description="Tolerance for aggregating CPs in ensembling.",
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "min_distance < n_samples",
+                "min_distance must be smaller than the series length",
+            ),
+        ],
     }
 
     def __init__(

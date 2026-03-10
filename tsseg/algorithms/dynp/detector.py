@@ -6,6 +6,13 @@ import numpy as np
 
 from ..base import BaseSegmenter
 from ..ruptures.detection import Dynp
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    Interval,
+    ParamDef,
+    StrOptions,
+)
 
 __all__ = ["DynpDetector"]
 
@@ -21,6 +28,42 @@ class DynpDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "n_cps": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Number of change points (required, >= 0).",
+        ),
+        "model": ParamDef(
+            constraint=StrOptions({"l1", "l2", "rbf", "linear", "normal", "cosine"}),
+            description="Cost model for segment homogeneity.",
+        ),
+        "min_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Minimum segment length.",
+        ),
+        "jump": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Grid step for candidate change points.",
+        ),
+        "cost_params": ParamDef(
+            constraint=None,
+            description="Extra params passed to the cost function.",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "semi_supervised": ParamDef(
+            constraint=None,
+            description="Tag hint for the supervision pipeline.",
+            ui_hidden=True,
+        ),
+        "_cross_constraints": [
+            DataDependent(
+                "min_size * (n_cps + 1) <= n_samples",
+                "Series must have at least min_size × (n_cps+1) samples.",
+            ),
+        ],
     }
 
     def __init__(

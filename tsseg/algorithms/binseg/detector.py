@@ -12,6 +12,17 @@ from ..utils import extract_cps
 from ..base import BaseSegmenter
 from ..ruptures.detection.binseg import Binseg
 from ..ruptures.base import BaseCost
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    DependsOn,
+    HasType,
+    Interval,
+    MutuallyExclusive,
+    Options,
+    ParamDef,
+    StrOptions,
+)
 
 __all__ = ["BinSegDetector"]
 
@@ -71,6 +82,62 @@ class BinSegDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "n_cps": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of change points to detect.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "model": ParamDef(
+            constraint=StrOptions({"l1", "l2", "rbf", "linear", "normal", "cosine"}),
+            description="Ruptures cost model name.",
+        ),
+        "min_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Minimum segment length.",
+        ),
+        "jump": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Sub-sampling factor for candidate breakpoints.",
+        ),
+        "penalty": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Penalty threshold (mutually exclusive with n_cps/epsilon).",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "epsilon": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Reconstruction error tolerance.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "custom_cost": ParamDef(
+            constraint=HasType((BaseCost,)),
+            description="Pre-instantiated ruptures cost object.",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "cost_params": ParamDef(
+            constraint=HasType((dict,)),
+            description="Extra kwargs for cost_factory.",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "_cross_constraints": [
+            MutuallyExclusive(["n_cps", "penalty", "epsilon"], required_count=1),
+            DataDependent(
+                "n_cps < n_samples",
+                "n_cps must be less than the number of samples",
+            ),
+            DataDependent(
+                "min_size * 2 <= n_samples",
+                "min_size is too large for the series length",
+            ),
+        ],
     }
 
     def __init__(

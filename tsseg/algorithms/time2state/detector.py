@@ -5,6 +5,14 @@ import numpy as np
 import torch
 from ..base import BaseSegmenter
 from .time2state import Time2State, CausalConv_LSE_Adaper, DPGMM, params_LSE
+from ..param_schema import (
+    Closed,
+    DataDependent,
+    DependsOn,
+    HasType,
+    Interval,
+    ParamDef,
+)
 
 class Time2StateDetector(BaseSegmenter):
     """
@@ -59,6 +67,83 @@ class Time2StateDetector(BaseSegmenter):
         "detector_type": "state_detection",
         "capability:unsupervised": True,        # n_states is an upper bound
         "capability:semi_supervised": True,
+    }
+
+    _parameter_schema = {
+        "window_size": ParamDef(
+            constraint=Interval(int, 4, None, Closed.LEFT),
+            description="Sliding window size.",
+            group="windowing",
+        ),
+        "step": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Step size of the sliding window.",
+            group="windowing",
+        ),
+        "n_states": ParamDef(
+            constraint=Interval(int, 2, None, Closed.LEFT),
+            description="Maximum number of states for DPGMM.",
+        ),
+        "alpha": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Concentration parameter for DPGMM.",
+        ),
+        "batch_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Training batch size.",
+            group="training",
+        ),
+        "nb_steps": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of optimisation steps.",
+            group="training",
+        ),
+        "lr": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Learning rate.",
+            group="training",
+        ),
+        "depth": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Depth of the Causal CNN.",
+            group="architecture",
+        ),
+        "out_channels": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Encoder output channels.",
+            group="architecture",
+        ),
+        "reduced_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Size of CNN output before final linear layer.",
+            group="architecture",
+        ),
+        "kernel_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="CNN kernel size.",
+            group="architecture",
+        ),
+        "random_state": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Random seed.",
+            nullable=True,
+        ),
+        "use_gpu": ParamDef(
+            constraint=HasType((bool,)),
+            description="Use GPU if available (None = auto-detect).",
+            nullable=True,
+            ui_hidden=True,
+        ),
+        "_cross_constraints": [
+            DependsOn(
+                "step <= window_size",
+                "step must be <= window_size",
+            ),
+            DataDependent(
+                "window_size * 2 <= n_samples",
+                "Series must have at least 2 * window_size samples",
+            ),
+        ],
     }
 
     def __init__(self, axis=0, window_size=256, step=50, n_states=20, alpha=1e3,
