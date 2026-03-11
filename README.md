@@ -5,6 +5,7 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/tsseg/"><img src="https://img.shields.io/pypi/v/tsseg?style=for-the-badge&logo=pypi&logoColor=white" alt="PyPI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"></a>
   <a href="https://github.com/fchavelli/tsseg/releases/tag/v0.1.0"><img src="https://img.shields.io/github/v/tag/fchavelli/tsseg?label=version&style=for-the-badge&logo=github" alt="Version"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=for-the-badge" alt="Ruff"></a>
@@ -39,6 +40,21 @@ print(f"SMS: {score['score']:.4f}")
 📖 **Documentation:** [fchavelli.github.io/tsseg](https://fchavelli.github.io/tsseg/)
 
 ## Installation
+
+### From PyPI
+
+```bash
+pip install tsseg
+```
+
+With optional extras:
+
+```bash
+pip install tsseg[torch]       # PyTorch-based detectors
+pip install tsseg[all]         # all optional dependencies
+```
+
+### From source
 
 > **Requires:** `conda` in your PATH (or set it in a `.env` file — see `.env.example`).
 

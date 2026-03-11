@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A library for time series segmentation"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
+license = {text = "AGPL-3.0-only"}
 authors = [
     {name = "Félix Chavelli"},
 ]
@@ -23,7 +23,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "License :: OSI Approved :: GNU Affero General Public License v3 (AGPLv3)",
 ]
 dependencies = [
     "numpy",
@@ -40,13 +39,13 @@ dependencies = [
 [project.optional-dependencies]
 torch = ["torch"]
 prophet = ["prophet"]
-patss = [
-    "npbad @ git+https://bitbucket.org/len_feremans/pbad_network.git",
-]
-legacy-hsmm = [
-    "pybasicbayes @ git+https://github.com/mattjj/pybasicbayes.git",
-    "pyhsmm @ git+https://github.com/mattjj/pyhsmm.git",
-]
+# patss extra: requires manual install of npbad (not on PyPI)
+# pip install git+https://bitbucket.org/len_feremans/pbad_network.git
+patss = []
+# legacy-hsmm extra: requires manual install (not on PyPI)
+# pip install git+https://github.com/mattjj/pybasicbayes.git
+# pip install git+https://github.com/mattjj/pyhsmm.git
+legacy-hsmm = []
 accelerators = [
     "numba",
     "cython",
@@ -73,7 +72,7 @@ dev = [
     "pre-commit>=3.7",
 ]
 all = [
-    "tsseg[torch,prophet,patss,accelerators,docs,aeon,tglad,tscp2]",
+    "tsseg[torch,prophet,accelerators,docs,aeon,tglad,tscp2]",
 ]
 tglad = [
     "torch>=2.0",
@@ -84,6 +83,7 @@ tglad = [
 Homepage = "https://github.com/fchavelli/tsseg"
 Repository = "https://github.com/fchavelli/tsseg"
 Documentation = "https://fchavelli.github.io/tsseg/"
+PyPI = "https://pypi.org/project/tsseg/"
 Issues = "https://github.com/fchavelli/tsseg/issues"
 Changelog = "https://github.com/fchavelli/tsseg/blob/main/docs/changelog.rst"
 
@@ -95,7 +95,26 @@ include = ["tsseg*"]
 exclude = ["tests*", "docs*", "examples*"]
 
 [tool.setuptools.package-data]
-"tsseg" = ["**/*"]
+"tsseg" = [
+    "**/*.json",
+    "**/*.yaml",
+    "**/*.yml",
+    "**/*.csv",
+    "**/*.mat",
+    "**/*.txt",
+]
+
+[tool.setuptools.exclude-package-data]
+"*" = [
+    "__pycache__/**",
+    "*.pyc",
+    "*.pyo",
+    "*.nbc",
+    "*.nbi",
+    "*.mlx",
+    "*.m",
+    "*.md",
+]
 
 [tool.ruff]
 line-length = 88
