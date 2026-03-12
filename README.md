@@ -139,8 +139,8 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 | `autoplait/` | not specified | [Matsubara et al.](https://sites.google.com/site/onlinesemanticsegmentation/) |
 | `e2usd/` | not specified | [AI4CTS/E2Usd](https://github.com/AI4CTS/E2Usd) |
 | `espresso/` | not specified | [cruiseresearchgroup/ESPRESSO](https://github.com/cruiseresearchgroup/ESPRESSO) |
-| `ticc/` | not specified | [davidhallac/TICC](https://github.com/davidhallac/TICC) |
-| `time2state/` | not specified | [Lab-ANT/Time2State](https://github.com/Lab-ANT/Time2State) |
+| `ticc/` | BSD-2 | [davidhallac/TICC](https://github.com/davidhallac/TICC) |
+| `time2state/` | MIT | [Lab-ANT/Time2State](https://github.com/Lab-ANT/Time2State) |
 | `tire/` | not specified | [De Ryck, De Vos & Bertrand (KU Leuven)](https://github.com/deryckt/TIRE) |
 | `tscp2/` | not specified | [Cruise Research Group](https://github.com/cruiseresearchgroup/TSCP2) |
 

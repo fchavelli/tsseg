@@ -1,11 +1,13 @@
 from .base import BaseMetric
 from .change_point_detection import F1Score, Covering, HausdorffDistance
 from .bidirectional_covering import BidirectionalCovering
+from .gaussian_f1 import GaussianF1Score
 from .state_detection import AdjustedRandIndex, AdjustedMutualInformation, NormalizedMutualInformation, WeightedAdjustedRandIndex, WeightedNormalizedMutualInformation, StateMatchingScore
 
 __all__ = [
     "BaseMetric",
     "F1Score",
+    "GaussianF1Score",
     "Covering",
     "HausdorffDistance",
     "BidirectionalCovering",

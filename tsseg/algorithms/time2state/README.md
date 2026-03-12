@@ -18,7 +18,7 @@ Taken from the original repository by Kunpeng Zheng et al. The core encoder and
 clustering logic is in `time2state.py`.
 
 - Origin: taken from https://github.com/Lab-ANT/Time2State
-- Licence: not specified in the original repository
+- Licence: MIT License
 
 ## Citation
 
