@@ -1,4 +1,8 @@
-"""Synthetic smoke tests for VSAXDetector."""
+"""Synthetic smoke tests for segmentation detectors.
+
+Shared helpers + behavioural tests that run on easy piecewise-constant
+signals.  Each algorithm class gets its own ``Test*Synthetic`` group.
+"""
 
 import numpy as np
 import pytest
@@ -7,16 +11,34 @@ from tsseg.algorithms.vsax.detector import VSAXDetector
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Helpers (reusable across algorithm test classes)
 # ---------------------------------------------------------------------------
 
-def _make_piecewise_constant(segment_lengths, means, noise_std=0.1, rng=None):
-    """Generate a piecewise-constant signal with Gaussian noise."""
+def _make_piecewise_constant(segment_lengths, means, noise_std=0.1, rng=None,
+                             n_channels=1):
+    """Generate a piecewise-constant signal with Gaussian noise.
+
+    Parameters
+    ----------
+    segment_lengths : list[int]
+    means : list[float] | list[array-like]
+        Per-segment mean.  Scalars for univariate, arrays for multivariate.
+    noise_std : float
+    rng : int | None
+    n_channels : int
+        If > 1 *and* means are scalars, tile the scalar across channels.
+    """
     rng = np.random.default_rng(rng)
     parts = []
     for length, mean in zip(segment_lengths, means):
-        parts.append(rng.normal(loc=mean, scale=noise_std, size=length))
-    return np.concatenate(parts)
+        mean = np.atleast_1d(mean)
+        if mean.shape[0] == 1 and n_channels > 1:
+            mean = np.full(n_channels, mean[0])
+        parts.append(rng.normal(loc=mean, scale=noise_std, size=(length, mean.shape[0])))
+    out = np.concatenate(parts, axis=0)
+    if out.shape[1] == 1:
+        return out.ravel()
+    return out
 
 
 def _ari(labels_true, labels_pred):
@@ -189,3 +211,111 @@ class TestVSAXSynthetic:
         det.fit(X)
         labels = det.predict(X)
         assert labels.shape == (3,)
+
+
+# ===========================================================================
+# VQTSSDetector tests
+# ===========================================================================
+
+torch = pytest.importorskip("torch")
+from tsseg.algorithms.vqtss.detector import VQTSSDetector  # noqa: E402
+
+# Small config shared by all VQTSS tests to keep them fast (<5 s each)
+_VQTSS_FAST = dict(
+    window_size=32,
+    stride=4,
+    hidden_dim=16,
+    num_embeddings=8,
+    epochs=5,
+    batch_size=16,
+    learning_rate=1e-3,
+    random_state=42,
+)
+
+
+class TestVQTSSSynthetic:
+    """Behavioural tests for VQTSSDetector on synthetic data."""
+
+    def test_univariate_two_states(self):
+        """Two clearly separated plateaux → at least 2 distinct states."""
+        X = _make_piecewise_constant(
+            segment_lengths=[100, 100],
+            means=[0.0, 5.0],
+            noise_std=0.2,
+            rng=42,
+        )
+        det = VQTSSDetector(**_VQTSS_FAST)
+        det.fit(X.reshape(-1, 1))
+        labels = det.predict(X.reshape(-1, 1))
+
+        assert labels.shape == (200,)
+        assert len(np.unique(labels)) >= 2, (
+            f"expected ≥2 states, got {len(np.unique(labels))}"
+        )
+
+    def test_multivariate_two_states(self):
+        """Two-channel signal with anti-correlated shifts."""
+        rng = np.random.default_rng(99)
+        n = 100
+        ch1 = np.concatenate([rng.normal(0, 0.2, n), rng.normal(3, 0.2, n)])
+        ch2 = np.concatenate([rng.normal(3, 0.2, n), rng.normal(0, 0.2, n)])
+        X = np.column_stack([ch1, ch2])
+
+        det = VQTSSDetector(**_VQTSS_FAST)
+        det.fit(X)
+        labels = det.predict(X)
+
+        assert labels.shape == (200,)
+        assert len(np.unique(labels)) >= 2
+
+    def test_constant_signal_few_states(self):
+        """Flat signal → should produce very few distinct codes."""
+        X = np.ones((200, 1)) * 3.0
+        det = VQTSSDetector(**_VQTSS_FAST)
+        det.fit(X)
+        labels = det.predict(X)
+
+        assert labels.shape == (200,)
+        # A constant signal should collapse to very few codes
+        n_states = len(np.unique(labels))
+        assert n_states <= 4, f"expected ≤4 states for constant signal, got {n_states}"
+
+    def test_output_length_matches_input(self):
+        """Labels array must have exactly n_timepoints entries."""
+        rng = np.random.default_rng(0)
+        for n in [100, 150, 200]:
+            X = rng.normal(size=(n, 2))
+            det = VQTSSDetector(**_VQTSS_FAST)
+            det.fit(X)
+            labels = det.predict(X)
+            assert labels.shape == (n,), (
+                f"n={n}: expected shape ({n},), got {labels.shape}"
+            )
+
+    def test_deterministic_with_seed(self):
+        """Same random_state → identical predictions."""
+        X = _make_piecewise_constant([80, 80], [0, 4], noise_std=0.2, rng=1)
+        X = X.reshape(-1, 1)
+
+        labels_a = VQTSSDetector(**_VQTSS_FAST).fit(X).predict(X)
+        labels_b = VQTSSDetector(**_VQTSS_FAST).fit(X).predict(X)
+        np.testing.assert_array_equal(labels_a, labels_b)
+
+    def test_multivariate_channels_distinguished(self):
+        """Segments identical on ch1 but different on ch2 → distinct codes."""
+        rng = np.random.default_rng(123)
+        n = 100
+        ch1 = rng.normal(0, 0.1, 2 * n)
+        ch2 = np.concatenate([rng.normal(0, 0.1, n), rng.normal(5, 0.1, n)])
+        X = np.column_stack([ch1, ch2])
+
+        det = VQTSSDetector(**_VQTSS_FAST, smoothness_weight=0.01)
+        det.fit(X)
+        labels = det.predict(X)
+
+        # The dominant code in each half should differ
+        code_first = int(np.median(labels[:40]))
+        code_second = int(np.median(labels[160:]))
+        assert code_first != code_second, (
+            "Segments differ on ch2 but got the same dominant code"
+        )

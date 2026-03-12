@@ -69,19 +69,21 @@ class VectorQuantizerEMA(nn.Module):
 class ResBlock1D(nn.Module):
     def __init__(self, channels, kernel_size=3, dilation=1):
         super().__init__()
-        # Calculate padding to maintain same sequence length
-        # For even kernel sizes, this might be off by 1, so we prefer odd kernel sizes or explicit padding
-        padding = (kernel_size - 1) * dilation // 2
+        # Padding that guarantees L_out == L_in for stride=1:
+        #   L_out = L_in + 2*pad - dilation*(kernel_size - 1)
+        # ⇒ pad = dilation * (kernel_size - 1) // 2   (exact for odd kernels)
+        padding = dilation * (kernel_size - 1) // 2
         self.conv1 = nn.Conv1d(channels, channels, kernel_size, dilation=dilation, padding=padding)
         self.bn1 = nn.BatchNorm1d(channels)
         self.conv2 = nn.Conv1d(channels, channels, kernel_size, dilation=dilation, padding=padding)
         self.bn2 = nn.BatchNorm1d(channels)
+        self.act = nn.GELU()
 
     def forward(self, x):
         residual = x
-        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.act(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
-        return F.relu(out + residual)
+        return self.act(out + residual)
 
 class ModernEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_layers=4):
