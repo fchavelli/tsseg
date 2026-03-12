@@ -146,3 +146,12 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 
 Each vendored directory contains a LICENSE file with full terms.
 The TiRex integration is built with technology from [NXAI](https://nx-ai.com).
+
+## Contributors
+
+- Felix Chavelli (Inria, ENS, Paris)
+- Arik Ermshaus (Humboldt-Universität, Berlin)
+- Fan Yang (The Ohio State University, Columbus)
+- Paul Boniol (Inria, ENS, Paris)
+- Patrick Schäfer (Humboldt-Universität, Berlin)
+- John Paparrizos (The Ohio State University, AUTh, Columbus)
