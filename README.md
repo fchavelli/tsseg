@@ -135,7 +135,6 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 | `icid/` | GPLv3 | [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID) |
 | `patss/` | MIT | [KU Leuven DTAI](https://gitlab.kuleuven.be/u0143709/patss) |
 | `tglad/vendor/` (uGLAD) | Non-Commercial | [Harshs27/tGLAD](https://github.com/Harshs27/tGLAD) |
-| `tirex/` (via tsseg-tirex) | [NXAI Community License](https://github.com/NX-AI/tirex/blob/main/LICENSE) | [NX-AI/tirex](https://github.com/NX-AI/tirex) |
 | `autoplait/` | not specified | [Matsubara et al.](https://sites.google.com/site/onlinesemanticsegmentation/) |
 | `e2usd/` | not specified | [AI4CTS/E2Usd](https://github.com/AI4CTS/E2Usd) |
 | `espresso/` | not specified | [cruiseresearchgroup/ESPRESSO](https://github.com/cruiseresearchgroup/ESPRESSO) |
@@ -145,7 +144,6 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 | `tscp2/` | not specified | [Cruise Research Group](https://github.com/cruiseresearchgroup/TSCP2) |
 
 Each vendored directory contains a LICENSE file with full terms.
-The TiRex integration is built with technology from [NXAI](https://nx-ai.com).
 
 ## Contributors
 
