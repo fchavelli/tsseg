@@ -64,7 +64,7 @@ demo/
 
 # Development
 tsseg/algorithms/time2feat/
-tsseg/algorithms/tirexx/
+tsseg/algorithms/tirex/
 
 # Misc
 tsseg/algorithms/vqtss/test_vqtss_mocap.py
