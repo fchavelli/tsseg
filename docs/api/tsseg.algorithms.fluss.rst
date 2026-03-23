@@ -5,6 +5,7 @@ Matrix-profile-based: derives Arc Curve and detects boundaries at valleys.
 
 | **Type:** change point detection
 | **Supervision:** semi-supervised or unsupervised
+| **Scope:** univariate
 | **Requires:** ``stumpy``
 
 **Implementation:** Wrapper around stumpy. BSD 3-Clause.

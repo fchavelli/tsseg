@@ -5,6 +5,7 @@ Operates in RKHS with MMD between segments. Supports RBF, linear and cosine kern
 
 | **Type:** change point detection
 | **Supervision:** semi-supervised or unsupervised
+| **Scope:** univariate and multivariate
 
 **Implementation:** Vendored from ruptures v1.1.8. BSD 2-Clause.
 

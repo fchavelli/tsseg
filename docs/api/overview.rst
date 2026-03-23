@@ -20,8 +20,6 @@ TS-CP2, tGLAD, Window.
 **State detection** — AutoPlait, CLaP, E2USD, HDP-HSMM, Hidalgo, HMM,
 PaTSS, TICC, Time2State, VQ-TSS, VSAX.
 
-**Both (via TiRex)** — TiRex bridge module (under development).
-
 A *Random* baseline is also included as a lower bound for benchmarks.
 
 Each detector follows the standard ``fit``/``predict``/``fit_predict``

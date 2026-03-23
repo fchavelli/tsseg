@@ -13,7 +13,21 @@ pair.
 
 **Reference:** Keogh, Chu, Hart & Pazzani (2001), ICDM.
 
+Submodules
+----------
+
+tsseg.algorithms.bottomup.detector module
+-----------------------------------------
+
 .. automodule:: tsseg.algorithms.bottomup.detector
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: tsseg.algorithms.bottomup
    :members:
    :show-inheritance:
    :undoc-members:

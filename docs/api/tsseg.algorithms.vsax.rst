@@ -6,9 +6,11 @@ complexity.
 
 | **Type:** state detection
 | **Supervision:** semi-supervised
-| **Scope:** identical SAX words → same state label
+| **Scope:** univariate
 
 **Implementation:** *Origin: new code.*
+
+**Reference:** —
 
 Submodules
 ----------

@@ -9,18 +9,18 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
-* Vendored a lightweight subset of ``ruptures`` and migrated BinSeg, BottomUp,
-  Dynp, and PELT detectors to use it (no external dependency required).
-* Added BottomUp and Dynp detector wrappers with aeon-compatible interfaces.
+* Vendored a lightweight subset of ``ruptures`` v1.1.8 — BinSeg, BottomUp,
+  DynP, KCPD, PELT and Window detectors no longer need an external dependency.
+* Added ``BottomUpDetector`` and ``DynpDetector`` wrappers with aeon-compatible
+  interfaces.
 * Replaced the surrogate PyTorch ``TSCP2Detector`` with a faithful
-    TensorFlow + TCN implementation matching the original baseline.
+  TensorFlow + TCN implementation matching the original baseline.
 * Replaced the ``pyhsmm``-backed ``HdpHsmmDetector`` with a native
-    NumPy/SciPy sticky HDP implementation. The legacy ``pyhsmm``-backed
-    detectors are deprecated; ``pyhsmm`` and ``pybasicbayes`` are no longer
-    installed by default.
-* Added Sphinx documentation scaffold with GitHub Pages deployment.
+  NumPy/SciPy sticky HDP implementation. ``pyhsmm`` and ``pybasicbayes`` are
+  no longer installed by default.
+* Improved ``ClaspDetector`` axis handling.
+* Added Sphinx documentation with GitHub Pages deployment.
 * Documented test suite layout and fixtures.
-* Improved detector axis handling for ``ClaspDetector``.
 
 Earlier releases
 ----------------

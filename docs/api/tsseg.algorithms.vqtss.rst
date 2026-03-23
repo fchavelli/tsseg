@@ -9,6 +9,8 @@ VQ-VAE + InfoNCE contrastive objective for discrete state codes.
 
 **Implementation:** *Origin: new code.*
 
+**Reference:** —
+
 Submodules
 ----------
 

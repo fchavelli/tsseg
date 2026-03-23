@@ -10,9 +10,10 @@ Subpackages
    tsseg.algorithms.amoc
    tsseg.algorithms.autoplait
    tsseg.algorithms.binseg
-   tsseg.algorithms.bottomup
    tsseg.algorithms.bocd
+   tsseg.algorithms.bottomup
    tsseg.algorithms.clap
+   tsseg.algorithms.dynp
    tsseg.algorithms.e2usd
    tsseg.algorithms.eagglo
    tsseg.algorithms.espresso
@@ -29,13 +30,11 @@ Subpackages
    tsseg.algorithms.prophet
    tsseg.algorithms.random
    tsseg.algorithms.ruptures
-   tsseg.algorithms.dynp
    tsseg.algorithms.tglad
    tsseg.algorithms.ticc
-   tsseg.algorithms.tirex
-   tsseg.algorithms.tscp2
    tsseg.algorithms.time2state
    tsseg.algorithms.tire
+   tsseg.algorithms.tscp2
    tsseg.algorithms.vqtss
    tsseg.algorithms.vsax
    tsseg.algorithms.window

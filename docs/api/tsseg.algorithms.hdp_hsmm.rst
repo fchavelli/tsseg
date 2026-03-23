@@ -6,7 +6,7 @@ emissions, Negative-Binomial durations.
 
 | **Type:** state detection
 | **Supervision:** fully unsupervised
-| **Scope:** pure Python
+| **Scope:** univariate and multivariate
 
 **Implementation:** New pure-Python Gibbs sampler (replaces earlier pyhsmm
 dependency). *Origin: new code.*

@@ -45,19 +45,23 @@ Example usage:
    result = f1.compute(y_true, y_pred)
    print(f"F1 score: {result['f1']:.3f}")
 
-Refer to the :ref:`api-index` for detailed class reference. Recently, the
-classic ``ruptures`` change point detectors (``BinSegDetector``,
-``BottomUpDetector``, ``DynpDetector``, ``KernelCPDDetector``, ``PeltDetector``
-and ``WindowDetector``) were vendored into ``tsseg.algorithms.ruptures`` so
-they are always available without installing an extra dependency. The new
-``TSCP2Detector`` mirrors the upstream TensorFlow implementation and requires
-the optional ``tscp2`` extra (installs ``tensorflow`` and ``tcn``). ``HdpHsmmDetector`` now implements a
-pure NumPy/SciPy sticky HDP-style segmenter and no longer requires
-the ``pyhsmm`` dependency. The legacy ``pyhsmm``-backed detectors are
-deprecated and will be removed in a future release.
-When adding new algorithms, ensure they set the appropriate tags and register
-themselves in ``tsseg.algorithms.__all__`` so the documentation and tests can
-discover them.
+Refer to the :ref:`api-index` for the detailed class reference.
+
+Implementation notes
+--------------------
+
+* The classic ``ruptures``-based detectors (``BinSegDetector``,
+  ``BottomUpDetector``, ``DynpDetector``, ``KCPDDetector``, ``PeltDetector``,
+  ``WindowDetector``) are vendored in ``tsseg.algorithms.ruptures`` — no
+  external dependency required.
+* ``TSCP2Detector`` mirrors the upstream TensorFlow implementation and
+  requires the optional ``tscp2`` extra (``tensorflow`` + ``tcn``).
+* ``HdpHsmmDetector`` implements a pure NumPy/SciPy sticky HDP-style
+  segmenter. The legacy ``pyhsmm`` backend is no longer required.
+
+When adding a new algorithm, set the appropriate tags and register the class
+in ``tsseg.algorithms.__all__`` so that documentation and tests discover it
+automatically.
 
 .. _testing-contract:
 

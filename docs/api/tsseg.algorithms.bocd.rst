@@ -11,7 +11,7 @@ dynamic programming, and posterior thresholding.
 **Implementation:** Adapted from hildensia/bayesian_changepoint_detection. Apache
 License 2.0.
 
-**References:** Fearnhead (2006), Statistics and Computing; Adams & MacKay (2007),
+**Reference:** Fearnhead (2006), Statistics and Computing; Adams & MacKay (2007),
 arXiv.
 
 Submodules

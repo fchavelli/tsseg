@@ -6,11 +6,22 @@ points.
 
 | **Type:** change point detection
 | **Supervision:** semi-supervised or unsupervised
-| **Scope:** multiple cost models
+| **Scope:** univariate and multivariate
 
 **Implementation:** Vendored from ruptures v1.1.8. BSD 2-Clause.
 
 **Reference:** Basseville & Nikiforov (1993).
+
+Submodules
+----------
+
+tsseg.algorithms.window.detector module
+---------------------------------------
+
+.. automodule:: tsseg.algorithms.window.detector
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------

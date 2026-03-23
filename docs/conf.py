@@ -47,16 +47,20 @@ exclude_patterns = [
 # Mock optional dependencies so autodoc can import modules without installing
 # heavy libraries on the documentation builder.
 autodoc_mock_imports = [
-    "torch",
-    "networkx",
-    "tensorflow",
+    "claspy",
     "keras",
     "keras_tcn",
-    "tcn",
-    "stumpy",
-    "tslearn",
-    "prophet",
+    "networkx",
     "pmdarima",
+    "prophet",
+    "stumpy",
+    "tcn",
+    "tensorflow",
+    "torch",
+    "tsfm",
+    "tsseg_fm",
+    "tsseg_tirex",
+    "tslearn",
 ]
 
 intersphinx_mapping = {

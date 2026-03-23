@@ -11,6 +11,8 @@ sampling.
 **Implementation:** Adapted from aeon with numerical stability fix (log-domain
 ``sample_p``). BSD 3-Clause.
 
+**Reference:** Allegra, Facco, Denti, Laio & Mira (2020), Scientific Reports.
+
 Submodules
 ----------
 

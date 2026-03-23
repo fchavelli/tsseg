@@ -29,40 +29,16 @@ from .tscp2.detector import TSCP2Detector
 from .vqtss.detector import VQTSSDetector
 from .vsax.detector import VSAXDetector
 from .tglad.detector import TGLADDetector
-try:
-    from .tirex.detector import (  # noqa: F401
-        TirexHiddenCPD,
-        TirexCosineCPD,
-        TirexL2CPD,
-        TirexMMDCPD,
-        TirexEnergyCPD,
-        TirexDerivativeCPD,
-        TirexGateRatioCPD,
-        TirexForgetDropCPD,
-        TirexForecastErrorCPD,
-    )
-    _TIREX_NAMES = [
-        "TirexHiddenCPD",
-        "TirexCosineCPD",
-        "TirexL2CPD",
-        "TirexMMDCPD",
-        "TirexEnergyCPD",
-        "TirexDerivativeCPD",
-        "TirexGateRatioCPD",
-        "TirexForgetDropCPD",
-        "TirexForecastErrorCPD",
-    ]
-except ImportError:
-    _TIREX_NAMES = []
 
 __all__ = [
     "AmocDetector",
     "AutoPlaitDetector",
-    "BOCDDetector",
     "BinSegDetector",
+    "BOCDDetector",
     "BottomUpDetector",
     "ClapDetector",
     "ClaspDetector",
+    "DynpDetector",
     "E2USDDetector",
     "EAggloDetector",
     "EspressoDetector",
@@ -70,21 +46,20 @@ __all__ = [
     "GreedyGaussianDetector",
     "HdpHsmmDetector",
     "HidalgoDetector",
-    #"HMMDetector",
+    "HMMDetector",
     "ICIDDetector",
     "InformationGainDetector",
     "KCPDDetector",
-    "TSCP2Detector",
     "PatssDetector",
+    "PeltDetector",
+    "ProphetDetector",
     "RandomDetector",
+    "TGLADDetector",
     "TiccDetector",
     "Time2StateDetector",
     "TireDetector",
-    "ProphetDetector",
-    "PeltDetector",
-    "WindowDetector",
-    "DynpDetector",
-    "VSAXDetector",
-    "TGLADDetector",
+    "TSCP2Detector",
     "VQTSSDetector",
-] + _TIREX_NAMES
+    "VSAXDetector",
+    "WindowDetector",
+]

@@ -9,6 +9,8 @@ Wraps Facebook Prophet's piecewise-linear trend model to extract change points.
 
 **Implementation:** Wrapper around facebook/prophet. MIT.
 
+**Reference:** Taylor & Letham (2018), The American Statistician.
+
 Submodules
 ----------
 

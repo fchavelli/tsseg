@@ -6,6 +6,7 @@ of pairwise Euclidean distances.
 
 | **Type:** change point detection
 | **Supervision:** fully unsupervised
+| **Scope:** univariate and multivariate
 | **Complexity:** O(n²)
 | **Requires:** numba
 
