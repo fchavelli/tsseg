@@ -40,14 +40,14 @@ print(f"SMS: {score['score']:.4f}")
 
 ## Interactive Demo
 
-An interactive demo of tsseg is available [here](https://huggingface.co/spaces/fchavelli/tsseg), powered by Hugging Face Spaces.
+An interactive demo of tsseg is available [here](https://huggingface.co/spaces/fchavelli/tsseg), powered by Hugging Face Spaces. You can use it directly in your browser to load data, run segmentation algorithms, compare, and evaluate results.
 
 
 <p align="center">
   <img src="assets/demo.png" alt="Screenshot of the tsseg interactive demo" width="400px">
 </p>
 
-You can use it directly in your browser to load data, run segmentation algorithms, compare runs, and evaluate results.
+
 
 ## Installation
 
