@@ -40,7 +40,7 @@ print(f"SMS: {score['score']:.4f}")
 
 ## Interactive Demo
 
-An interactive demo of tsseg is available online on Hugging Face Spaces: [https://huggingface.co/spaces/fchavelli/tsseg](https://huggingface.co/spaces/fchavelli/tsseg)
+An interactive demo of tsseg is available [here](https://huggingface.co/spaces/fchavelli/tsseg), powered by Hugging Face Spaces.
 
 
 <p align="center">
