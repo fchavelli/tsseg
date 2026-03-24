@@ -7,7 +7,6 @@
 <p align="center">
   <a href="https://pypi.org/project/tsseg/"><img src="https://img.shields.io/pypi/v/tsseg?style=for-the-badge&logo=pypi&logoColor=white" alt="PyPI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"></a>
-  <a href="https://github.com/fchavelli/tsseg/releases/tag/v0.1.0"><img src="https://img.shields.io/github/v/tag/fchavelli/tsseg?label=version&style=for-the-badge&logo=github" alt="Version"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=for-the-badge" alt="Ruff"></a>
   <a href="https://fchavelli.github.io/tsseg/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue?style=for-the-badge&logo=github" alt="Documentation"></a>
   <a href="https://github.com/fchavelli/tsseg/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fchavelli/tsseg?color=blue&style=for-the-badge" alt="License"></a>
@@ -38,6 +37,17 @@ print(f"SMS: {score['score']:.4f}")
 ```
 
 📖 **Documentation:** [fchavelli.github.io/tsseg](https://fchavelli.github.io/tsseg/)
+
+## Interactive Demo
+
+An interactive demo of tsseg is available online on Hugging Face Spaces: [https://huggingface.co/spaces/fchavelli/tsseg](https://huggingface.co/spaces/fchavelli/tsseg)
+
+
+<p align="center">
+  <img src="assets/demo.png" alt="Screenshot of the tsseg interactive demo" width="400px">
+</p>
+
+You can use it directly in your browser to load data, run segmentation algorithms, compare runs, and evaluate results.
 
 ## Installation
 
@@ -111,7 +121,7 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
 
 ```bash
 make test       # run the test suite
-make lint       # check style with ruff
+make lint       # check style and linting rules with Ruff
 make docs       # build the documentation locally
 ```
 
