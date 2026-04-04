@@ -31,6 +31,54 @@ __all__ = ["InformationGainDetector"]
 __maintainer__ = []
 
 
+def _augment_univariate(X: npt.ArrayLike) -> np.ndarray:
+    """Augment a univariate series with its complement channel.
+
+    Applies the data transformation from Section 4.4 of [1]_:
+
+    1. **Normalize** each channel so that values sum to 1 (Eq. 12).
+    2. **Append the complement** ``max(c_i) - c_i`` for every channel,
+       doubling the number of columns from *m* to *2m* (Eq. 13).
+
+    For a univariate input this produces a bivariate series where one
+    channel rises whenever the other falls, breaking the constant-entropy
+    degeneracy that prevents information gain from detecting change points
+    in single-channel data.
+
+    Parameters
+    ----------
+    X : array_like, shape (n_timepoints, n_channels)
+        Input time series.
+
+    Returns
+    -------
+    X_aug : np.ndarray, shape (n_timepoints, 2 * n_channels)
+        Augmented time series.
+
+    References
+    ----------
+    .. [1] Sadri, Amin, Yongli Ren, and Flora D. Salim.
+       "Information gain-based metric for recognizing transitions in
+       human activities.", Pervasive and Mobile Computing, 38, 92-109, (2017).
+    """
+    n_samples, n_channels = X.shape
+    X_aug = np.empty((n_samples, 2 * n_channels), dtype=np.float64)
+
+    for i in range(n_channels):
+        c = X[:, i].astype(np.float64)
+        c_min = c.min()
+        c_shifted = c - c_min
+        denom = c_shifted.sum()
+        if denom == 0.0:
+            c_norm = np.zeros_like(c)
+        else:
+            c_norm = c_shifted / denom
+        X_aug[:, i] = c_norm
+        X_aug[:, n_channels + i] = c_norm.max() - c_norm
+
+    return X_aug
+
+
 @dataclass
 class ChangePointResult:
     k: int
@@ -139,10 +187,10 @@ class _IGTS:
 
     .. note::
 
-       GTS does not work very well for univariate series but it can still be
-       used if the original univariate series are augmented by an extra feature
-       dimensions. A technique proposed in the paper [1]_ us to subtract the
-       series from it's largest element and append to the series.
+       For univariate input the caller should augment the series with its
+       complement channel via :func:`_augment_univariate` before calling
+       :meth:`find_change_points`.  The wrapper
+       :class:`InformationGainDetector` does this automatically.
 
     Parameters
     ----------
@@ -246,11 +294,6 @@ class _IGTS:
             include the identity segmentation, i.e. first and last index + 1 values.
         """
         n_samples, n_series = X.shape
-        if n_series == 1:
-            raise ValueError(
-                "Detected univariate series, GTS will not work properly"
-                " in this case. Consider augmenting your series to multivariate."
-            )
         self.intermediate_results_ = []
 
         # by convention initialize with the identity segmentation
@@ -283,24 +326,21 @@ class _IGTS:
 class InformationGainDetector(BaseSegmenter):
     """Information Gain based Temporal Segmentation (GTS) Estimator.
 
-    GTS is a n unsupervised method for segmenting multivariate time series
-    into non-overlapping segments by locating change points that for which
-    the information gain is maximized.
+    GTS is an unsupervised method for segmenting time series into
+    non-overlapping segments by locating change points that maximise the
+    information gain.
 
-    Information gain (IG) is defined as the amount of entropy lost by the segmentation.
-    The aim is to find the segmentation that have the maximum information
-    gain for a specified number of segments.
+    Information gain (IG) is defined as the amount of entropy lost by the
+    segmentation.  The aim is to find the segmentation that has the maximum
+    information gain for a specified number of segments.
 
-    GTS uses top-down search method to greedily find the next change point
-    location that creates the maximum information gain. Once this is found, it
-    repeats the process until it finds ``k_max`` splits of the time series.
+    GTS uses a top-down search to greedily find the next change point that
+    creates the maximum information gain.  Once found, the process repeats
+    until ``k_max`` splits have been made.
 
-    .. note::
-
-       GTS does not work very well for univariate series but it can still be
-       used if the original univariate series are augmented by an extra feature
-       dimensions. A technique proposed in the paper [1]_ us to subtract the
-       series from it's largest element and append to the series.
+    For **univariate** input the series is automatically augmented with its
+    normalised complement channel (Eq. 12-13 of [1]_) so that entropy can
+    vary across segments.
 
     Parameters
     ----------
@@ -346,7 +386,7 @@ class InformationGainDetector(BaseSegmenter):
     """
 
     _tags = {
-        "capability:univariate": False,
+        "capability:univariate": True,
         "capability:multivariate": True,
         "returns_dense": False,
         "fit_is_empty": False,
@@ -399,7 +439,14 @@ class InformationGainDetector(BaseSegmenter):
             The numerical values represent distinct segment labels for each of the
             data points.
         """
-        change_points_ = self._igts.find_change_points(X)
+        # Univariate series need augmentation (complement channel) so that
+        # Shannon entropy can distinguish segments.  See Eq. 12-13 in [1].
+        if X.shape[1] == 1:
+            X_work = _augment_univariate(X)
+        else:
+            X_work = X
+
+        change_points_ = self._igts.find_change_points(X_work)
         self.intermediate_results_ = self._igts.intermediate_results_
         return self.to_clusters(change_points_[1:-1], X.shape[0])
 

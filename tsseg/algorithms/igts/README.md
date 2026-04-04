@@ -8,7 +8,16 @@ histogram of discretised values.
 
 - Type: change point detection
 - Semi-supervised (`n_cps`) or unsupervised (step size controls granularity)
-- Multivariate only
+- Univariate and multivariate
+
+### Univariate support
+
+Shannon entropy over a single channel is constant, so raw univariate input
+cannot produce meaningful information gain.  Following Eq. 12-13 of the
+original paper, univariate series are automatically augmented before the
+search: each channel is normalised and its complement (`max − x`) is appended,
+doubling the number of channels.  This breaks the constant-entropy degeneracy
+and lets the algorithm detect change points in univariate data.
 
 ## Implementation
 

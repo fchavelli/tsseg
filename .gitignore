@@ -68,3 +68,6 @@ tsseg/algorithms/tirex/
 
 # Misc
 tsseg/algorithms/vqtss/test_vqtss_mocap.py
+
+# Papers
+papers/
