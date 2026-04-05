@@ -259,9 +259,19 @@ class TGLADDetector(BaseSegmenter):
         return windows, starts
 
     def _get_partial_correlation_sum(self, precision: np.ndarray) -> float:
-        """Compute sum of upper triangle of partial correlation matrix."""
-        # Formula: rho_ij = -p_ij / sqrt(p_ii * p_jj)
+        """Compute sum of upper triangle of partial correlation matrix.
+
+        For univariate data (D=1) the partial-correlation matrix has no
+        off-diagonal entries, so we fall back to the scalar precision value
+        which still tracks changes in the signal's variance across windows.
+        """
         d = precision.shape[0]
+
+        if d == 1:
+            # Univariate: use scalar precision directly as the summary
+            return float(precision[0, 0])
+
+        # Formula: rho_ij = -p_ij / sqrt(p_ii * p_jj)
         diag = np.diag(precision)
         # Outer product to get denominator matrix
         denom = np.sqrt(np.outer(diag, diag))
