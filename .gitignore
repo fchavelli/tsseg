@@ -67,6 +67,7 @@ demo/
 tsseg/algorithms/time2feat/
 tsseg/algorithms/tirex/
 tsseg/algorithms/snlds/
+tsseg/algorithms/hidalgo/univariate/
 
 # Misc
 tsseg/algorithms/vqtss/test_vqtss_mocap.py

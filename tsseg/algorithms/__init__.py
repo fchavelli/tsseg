@@ -26,11 +26,27 @@ from .pelt.detector import PeltDetector
 from .dynp.detector import DynpDetector
 from .kcpd.detector import KCPDDetector
 from .window.detector import WindowDetector
-from .tscp2.detector import TSCP2Detector
 from .vqtss.detector import VQTSSDetector
 from .vsax.detector import VSAXDetector
-from .snlds.detector import SNLDSDetector
 from .tglad.detector import TGLADDetector
+
+
+# --- Lazy imports for TensorFlow-based detectors to avoid loading TF on ``import tsseg`` ---
+_LAZY_IMPORTS = {
+    "TSCP2Detector": (".tscp2.detector", "TSCP2Detector"),
+    "SNLDSDetector": (".snlds.detector", "SNLDSDetector"),
+}
+
+
+def __getattr__(name: str):
+    if name in _LAZY_IMPORTS:
+        module_path, attr = _LAZY_IMPORTS[name]
+        import importlib
+        mod = importlib.import_module(module_path, __name__)
+        value = getattr(mod, attr)
+        globals()[name] = value  # cache for subsequent accesses
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
     "AmocDetector",
