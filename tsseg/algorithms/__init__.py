@@ -1,5 +1,6 @@
 from .amoc.detector import AmocDetector
 from .autoplait.detector import AutoPlaitDetector
+from .changefinder.detector import ChangeFinderDetector
 from .clap.clap_detector import ClapDetector
 from .clap.clasp_detector import ClaspDetector
 from .espresso.detector import EspressoDetector
@@ -28,6 +29,7 @@ from .window.detector import WindowDetector
 from .tscp2.detector import TSCP2Detector
 from .vqtss.detector import VQTSSDetector
 from .vsax.detector import VSAXDetector
+from .snlds.detector import SNLDSDetector
 from .tglad.detector import TGLADDetector
 
 __all__ = [
@@ -36,6 +38,7 @@ __all__ = [
     "BinSegDetector",
     "BOCDDetector",
     "BottomUpDetector",
+    "ChangeFinderDetector",
     "ClapDetector",
     "ClaspDetector",
     "DynpDetector",
@@ -54,6 +57,7 @@ __all__ = [
     "PeltDetector",
     "ProphetDetector",
     "RandomDetector",
+    "SNLDSDetector",
     "TGLADDetector",
     "TiccDetector",
     "Time2StateDetector",

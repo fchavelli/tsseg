@@ -12,6 +12,7 @@ Subpackages
    tsseg.algorithms.binseg
    tsseg.algorithms.bocd
    tsseg.algorithms.bottomup
+   tsseg.algorithms.changefinder
    tsseg.algorithms.clap
    tsseg.algorithms.dynp
    tsseg.algorithms.e2usd
