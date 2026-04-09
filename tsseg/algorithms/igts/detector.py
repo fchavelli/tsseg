@@ -380,9 +380,7 @@ class _IGTS:
             # find a point which maximizes score
             for candidate in self.get_candidates(n_samples, current_change_points):
                 try_change_points = sorted(set(current_change_points) | {candidate})
-                ig = self._ig_from_cumsum(
-                    cumsum, n_samples, h_total, try_change_points
-                )
+                ig = self._ig_from_cumsum(cumsum, n_samples, h_total, try_change_points)
                 if ig > ig_max:
                     ig_max = ig
                     best_candidate = candidate

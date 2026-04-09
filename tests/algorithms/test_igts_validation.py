@@ -31,6 +31,7 @@ def _tolerance_check(detected, true_cps, tol):
 
 # ── 1. Synthetic univariate ──────────────────────────────────────────────
 
+
 def test_univariate_mean_shift():
     print("=" * 60)
     print("TEST 1: Synthetic univariate (mean shift at 100, 200)")
@@ -59,6 +60,7 @@ def test_univariate_mean_shift():
 
 
 # ── 2. Synthetic multivariate ────────────────────────────────────────────
+
 
 def test_multivariate_mean_shift():
     print("=" * 60)
@@ -89,6 +91,7 @@ def test_multivariate_mean_shift():
 
 # ── 3. Cumsum vs naive entropy ───────────────────────────────────────────
 
+
 def test_cumsum_matches_naive():
     print("=" * 60)
     print("TEST 3: Cumsum entropy matches naive entropy")
@@ -118,6 +121,7 @@ def test_cumsum_matches_naive():
 
 # ── 4. Real MoCap data ──────────────────────────────────────────────────
 
+
 def test_mocap_trial0():
     print("=" * 60)
     print("TEST 4: Real MoCap data — CMU subject 86, trial 0")
@@ -145,10 +149,13 @@ def test_mocap_trial0():
             matched += 1
     recall = matched / n_true if n_true > 0 else 0
     print(f"  Recall@{tol}:     {recall:.2%} ({matched}/{n_true})")
-    print(f"  Result:         {'PASS' if recall >= 0.5 else 'SOFT FAIL (informational)'}")
+    print(
+        f"  Result:         {'PASS' if recall >= 0.5 else 'SOFT FAIL (informational)'}"
+    )
 
 
 # ── 5. Speed comparison ─────────────────────────────────────────────────
+
 
 def test_speed_improvement():
     print("=" * 60)

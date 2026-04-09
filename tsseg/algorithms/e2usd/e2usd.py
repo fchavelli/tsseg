@@ -383,7 +383,6 @@ class DDEM(BasicEncoder):
         cuda,
         gpu,
     ):
-
         network = NetworkDDEM(
             in_channels, channels, depth, reduced_size, out_channels, kernel_size
         )
@@ -563,7 +562,6 @@ class E2USD:
         self.__clustering_component = clustering_component
 
     def fit(self, X, win_size, step):
-
         self.__length = X.shape[0]
         self.fit_encoder(X)
         self.__encode(X, win_size, step)

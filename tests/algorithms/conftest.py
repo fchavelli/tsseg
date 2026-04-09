@@ -35,6 +35,7 @@ def _autoplait_binary_available() -> bool:
         pass
     return shutil.which("autoplait") is not None
 
+
 # ======================================================================
 # Per-algorithm overrides
 # ======================================================================
@@ -73,9 +74,7 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         init_kwargs={"n_cps": None},
         semi_supervised=True,
         skip_reason=(
-            None
-            if _autoplait_binary_available()
-            else "AutoPlait C binary not built"
+            None if _autoplait_binary_available() else "AutoPlait C binary not built"
         ),
     ),
     "DynpDetector": AlgorithmOverride(semi_supervised=True),

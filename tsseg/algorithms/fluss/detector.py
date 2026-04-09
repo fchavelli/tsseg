@@ -221,7 +221,6 @@ class FLUSSDetector(BaseSegmenter):
         return {"profile": self.profile}
 
     def _run_fluss(self, X):
-
         mp = stumpy.stump(X, m=self.window_size)
         self.profile, self.found_cps = stumpy.fluss(
             mp[:, 1],

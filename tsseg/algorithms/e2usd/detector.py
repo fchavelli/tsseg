@@ -164,7 +164,6 @@ class E2USDDetector(BaseSegmenter):
         use_gpu=None,
         random_state=None,
     ):
-
         self.window_size = window_size
         self.step = step
         self.n_states = n_states

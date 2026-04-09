@@ -292,7 +292,6 @@ class TGLADDetector(BaseSegmenter):
     def _compute_precision_batch(
         self, windows: list[np.ndarray]
     ) -> list[_WindowSummary]:
-
         summaries: list[_WindowSummary] = []
         batch: list[np.ndarray] = []
 
