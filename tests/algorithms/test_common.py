@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import pickle
 
-import numpy as np
 import pytest
 from sklearn.exceptions import NotFittedError
 

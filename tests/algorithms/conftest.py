@@ -19,7 +19,6 @@ import numpy as np
 import pytest
 
 import tsseg.algorithms as _algorithms_module
-from tsseg.algorithms.base import BaseSegmenter
 
 # ======================================================================
 # Per-algorithm overrides
@@ -170,7 +169,7 @@ def _segmented_signal(
     """Generate a piecewise-Gaussian signal with known change points."""
     segments, start = [], 0
     for end, mu, sigma in zip(
-        list(change_points) + [n_samples], means, scales
+        list(change_points) + [n_samples], means, scales, strict=True
     ):
         seg = rng.normal(loc=mu, scale=sigma, size=(end - start, mu.shape[0]))
         segments.append(seg)
