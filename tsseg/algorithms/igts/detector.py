@@ -330,7 +330,7 @@ class _IGTS:
         ig : float
         """
         weighted_h = 0.0
-        for start, end in zip(change_points[:-1], change_points[1:]):
+        for start, end in zip(change_points[:-1], change_points[1:], strict=True):
             seg_len = end - start
             if seg_len <= 0:
                 continue

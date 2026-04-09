@@ -99,7 +99,7 @@ class Interval:
         """Return an error message or ``None`` if *value* is valid."""
         if value is None:
             return None  # ``None`` acceptance is handled by ``Options``
-        if not isinstance(value, (int, float)):
+        if not isinstance(value, int | float):
             return f"{name} must be numeric, got {type(value).__name__}"
 
         # Check type (allow int for float intervals)
@@ -554,7 +554,7 @@ def validate_params(
     # Cross-parameter and data-dependent constraints
     cross = schema.get(CROSS_CONSTRAINTS_KEY, [])
     for constraint in cross:
-        if isinstance(constraint, (MutuallyExclusive, ConditionalRequired, DependsOn)):
+        if isinstance(constraint, MutuallyExclusive | ConditionalRequired | DependsOn):
             err = constraint.validate(params)
             if err:
                 errors.append(err)

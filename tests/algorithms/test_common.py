@@ -200,10 +200,10 @@ class TestBaseSegmenterContract:
             a, b = original_params[key], loaded_params[key]
             if isinstance(a, np.ndarray):
                 np.testing.assert_array_equal(a, b, err_msg=f"Param {key!r} differs")
-            elif callable(a) or isinstance(a, (list, tuple)):
+            elif callable(a) or isinstance(a, list | tuple):
                 # Skip deep comparison for callables and complex containers
                 # (e.g. emission functions) — type match is sufficient.
-                assert type(a) == type(b), f"Param {key!r} type differs"
+                assert isinstance(a, type(b)), f"Param {key!r} type differs"
             else:
                 assert a == b, f"Param {key!r} differs: {a!r} != {b!r}"
         assert loaded.is_fitted

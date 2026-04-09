@@ -16,7 +16,6 @@ from tsseg.algorithms.igts.detector import (
     _IGTS,
     _augment_univariate,
     _entropy_from_sums,
-    entropy,
 )
 from tsseg.data.datasets import load_mocap
 
@@ -159,7 +158,6 @@ def test_speed_improvement():
     X_aug = _augment_univariate(X)
 
     # Naive path
-    igts_naive = _IGTS(k_max=3, step=5)
     t0 = time.perf_counter()
     # Use the static method in a loop to simulate naive
     cps_identity = [0, X_aug.shape[0]]
