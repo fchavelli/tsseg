@@ -17,7 +17,9 @@ else:
 
 
 def _missing_dependency(*_args, **_kwargs):  # pragma: no cover - helper for stubs
-    raise ImportError("TensorFlow is required for TS-CP2 losses. Install the 'tscp2' extra.")
+    raise ImportError(
+        "TensorFlow is required for TS-CP2 losses. Install the 'tscp2' extra."
+    )
 
 
 if tf is None:  # pragma: no cover - export stubs when TensorFlow is absent
@@ -25,37 +27,33 @@ if tf is None:  # pragma: no cover - export stubs when TensorFlow is absent
     dot_similarity_vector = dot_similarity_matrix = _missing_dependency  # type: ignore[assignment]
     euclidean_similarity_vector = euclidean_similarity_matrix = _missing_dependency  # type: ignore[assignment]
     edit_similarity_vector = edit_similarity_matrix = _missing_dependency  # type: ignore[assignment]
-    info_nce_loss = debiased_contrastive_loss = focal_contrastive_loss = hard_contrastive_loss = _missing_dependency  # type: ignore[assignment]
+    info_nce_loss = debiased_contrastive_loss = focal_contrastive_loss = (
+        hard_contrastive_loss
+    ) = _missing_dependency  # type: ignore[assignment]
 else:  # pragma: no cover - TensorFlow is available, expose real implementations
 
     def _l2_normalize(x: tf.Tensor) -> tf.Tensor:
         return tf.math.l2_normalize(x, axis=1)
-
 
     def cosine_similarity_vector(x: tf.Tensor, y: tf.Tensor) -> tf.Tensor:
         """Cosine similarity for aligned pairs (shape: [batch])."""
 
         return tf.reduce_sum(_l2_normalize(x) * _l2_normalize(y), axis=1)
 
-
     def cosine_similarity_matrix(x: tf.Tensor, y: tf.Tensor) -> tf.Tensor:
         """Cosine similarity matrix between two batches (shape: [batch, batch])."""
 
         return tf.matmul(_l2_normalize(x), _l2_normalize(y), transpose_b=True)
 
-
     def dot_similarity_vector(x: tf.Tensor, y: tf.Tensor) -> tf.Tensor:
         return tf.reduce_sum(x * y, axis=1)
-
 
     def dot_similarity_matrix(x: tf.Tensor, y: tf.Tensor) -> tf.Tensor:
         return tf.matmul(x, y, transpose_b=True)
 
-
     def euclidean_similarity_vector(x: tf.Tensor, y: tf.Tensor) -> tf.Tensor:
         distance = tf.sqrt(tf.reduce_sum(tf.square(x - y), axis=-1))
         return 1.0 / (1.0 + distance)
-
 
     def euclidean_similarity_matrix(x: tf.Tensor, y: tf.Tensor) -> tf.Tensor:
         x_exp = tf.expand_dims(x, 1)
@@ -63,17 +61,14 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
         distance = tf.sqrt(tf.reduce_sum(tf.square(x_exp - y_exp), axis=-1))
         return 1.0 / (1.0 + distance)
 
-
     edit_similarity_vector = euclidean_similarity_vector
     edit_similarity_matrix = euclidean_similarity_matrix
-
 
     def _mask_off_diagonal(sim: tf.Tensor) -> tf.Tensor:
         n = tf.shape(sim)[0]
         mask = tf.logical_not(tf.eye(n, dtype=tf.bool))
         negatives = tf.boolean_mask(sim, mask)
         return tf.reshape(negatives, (n, n - 1))
-
 
     def info_nce_loss(
         history: tf.Tensor,
@@ -91,7 +86,9 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
 
         numerator = tf.reduce_sum(pos_sim)
         denom = tf.reduce_sum(all_sim, axis=1)
-        logits = tf.math.divide_no_nan(tf.broadcast_to(numerator, tf.shape(denom)), denom)
+        logits = tf.math.divide_no_nan(
+            tf.broadcast_to(numerator, tf.shape(denom)), denom
+        )
 
         criterion = tf.keras.losses.BinaryCrossentropy(
             from_logits=True, reduction=tf.keras.losses.Reduction.SUM
@@ -103,7 +100,6 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
         mean_pos = tf.reduce_mean(pos)
         mean_neg = tf.reduce_mean(neg)
         return loss, mean_pos, mean_neg
-
 
     def debiased_contrastive_loss(
         history: tf.Tensor,
@@ -132,7 +128,6 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
         mean_neg = tf.reduce_mean(neg)
         return loss, mean_pos, mean_neg
 
-
     def focal_contrastive_loss(
         history: tf.Tensor,
         future: tf.Tensor,
@@ -149,7 +144,9 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
         neg = _mask_off_diagonal(sim)
 
         n = tf.shape(history)[0]
-        topk_float = tf.clip_by_value(elimination_topk, 0.0, 0.5) * tf.cast(n, tf.float32)
+        topk_float = tf.clip_by_value(elimination_topk, 0.0, 0.5) * tf.cast(
+            n, tf.float32
+        )
         topk = tf.maximum(1, tf.cast(tf.math.ceil(topk_float), tf.int32))
 
         sorted_neg = tf.sort(neg, direction="DESCENDING", axis=1)
@@ -163,12 +160,13 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
             )
 
         neg_sim = tf.reduce_sum(tf.math.exp(remaining), axis=1)
-        loss = -tf.reduce_mean(tf.math.log(tf.math.divide_no_nan(pos_sim, pos_sim + neg_sim) + 1e-12))
+        loss = -tf.reduce_mean(
+            tf.math.log(tf.math.divide_no_nan(pos_sim, pos_sim + neg_sim) + 1e-12)
+        )
 
         mean_pos = tf.reduce_mean(pos) * temperature
         mean_neg = _safe_mean(remaining) * temperature
         return loss, mean_pos, mean_neg
-
 
     def hard_contrastive_loss(
         history: tf.Tensor,

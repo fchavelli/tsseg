@@ -57,8 +57,10 @@ CROSS_CONSTRAINTS_KEY = "_cross_constraints"
 # Closed-side helper
 # ---------------------------------------------------------------------------
 
+
 class Closed(Enum):
     """Which side(s) of an :class:`Interval` are closed (inclusive)."""
+
     LEFT = auto()
     RIGHT = auto()
     BOTH = auto()
@@ -68,6 +70,7 @@ class Closed(Enum):
 # ---------------------------------------------------------------------------
 # Constraint classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class Interval:
@@ -84,6 +87,7 @@ class Interval:
     closed : Closed
         Which side(s) are inclusive.
     """
+
     type: type
     low: float | int | None
     high: float | int | None
@@ -120,7 +124,9 @@ class Interval:
 
         return None
 
-    def effective_bounds(self, data_ctx: dict[str, Any] | None = None) -> tuple[float | int | None, float | int | None]:
+    def effective_bounds(
+        self, data_ctx: dict[str, Any] | None = None
+    ) -> tuple[float | int | None, float | int | None]:
         """Return ``(low, high)`` with any data-context placeholders resolved."""
         return (self.low, self.high)
 
@@ -143,6 +149,7 @@ class StrOptions:
     options : set[str]
         Allowed string values.
     """
+
     options: frozenset[str]
 
     def __init__(self, options: set[str] | frozenset[str]):
@@ -172,6 +179,7 @@ class Options:
     sentinels : frozenset
         Additional acceptable values (e.g. ``{None}``).
     """
+
     type: type | tuple[type, ...]
     sentinels: frozenset
 
@@ -199,6 +207,7 @@ class HasType:
     types : tuple[type, ...]
         Acceptable types.
     """
+
     types: tuple[type, ...]
 
     def validate(self, value: Any, name: str = "value") -> str | None:
@@ -213,6 +222,7 @@ class HasType:
 # Cross-parameter and data-dependent constraints
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class MutuallyExclusive:
     """Exactly *required_count* parameters among *params* must be non-None.
@@ -224,6 +234,7 @@ class MutuallyExclusive:
     required_count : int
         How many of them must be set (non-None).  Typically ``1``.
     """
+
     params: tuple[str, ...]
     required_count: int = 1
 
@@ -253,6 +264,7 @@ class ConditionalRequired:
         A simple expression evaluated against the parameter dict, e.g.
         ``"semi_supervised == True"``.
     """
+
     param: str
     condition: str
 
@@ -278,6 +290,7 @@ class DependsOn:
     description : str
         Human-readable explanation shown in error messages.
     """
+
     expr: str
     description: str = ""
 
@@ -306,10 +319,16 @@ class DataDependent:
     description : str
         Human-readable explanation.
     """
+
     expr: str
     description: str = ""
 
-    def validate(self, param_values: dict[str, Any], data_ctx: dict[str, Any] | None = None, name: str = "") -> str | None:
+    def validate(
+        self,
+        param_values: dict[str, Any],
+        data_ctx: dict[str, Any] | None = None,
+        name: str = "",
+    ) -> str | None:
         if data_ctx is None:
             return None  # can't check without data context
         merged = {**param_values, **data_ctx}
@@ -322,7 +341,9 @@ class DataDependent:
             return f"Data constraint violated: {desc} (data: {data_ctx})"
         return None
 
-    def resolve_bound(self, param_name: str, data_ctx: dict[str, Any]) -> int | float | None:
+    def resolve_bound(
+        self, param_name: str, data_ctx: dict[str, Any]
+    ) -> int | float | None:
         """Try to extract an upper bound for *param_name* from the expression.
 
         This is a best-effort heuristic used by :func:`get_ui_hints` to
@@ -330,6 +351,7 @@ class DataDependent:
         expression cannot be trivially parsed.
         """
         import re
+
         # Match patterns like "param < n_samples" or "param <= n_samples"
         m = re.match(
             rf"^\s*{re.escape(param_name)}\s*[<]=?\s*(\w[\w\d_]*)\s*$",
@@ -390,6 +412,7 @@ class DataDependent:
 # ParamDef — consolidated descriptor per parameter
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ParamDef:
     """Full descriptor for a single hyper-parameter.
@@ -409,6 +432,7 @@ class ParamDef:
     ui_hidden : bool
         If ``True`` the demo UI should not show this parameter.
     """
+
     constraint: Any = None
     description: str = ""
     group: str = ""
@@ -423,7 +447,11 @@ class ParamDef:
             if self.constraint is None:
                 return None
             # Check if any constraint explicitly allows None
-            constraints = self.constraint if isinstance(self.constraint, list) else [self.constraint]
+            constraints = (
+                self.constraint
+                if isinstance(self.constraint, list)
+                else [self.constraint]
+            )
             for c in constraints:
                 if isinstance(c, Options) and None in c.sentinels:
                     return None
@@ -432,7 +460,9 @@ class ParamDef:
         if self.constraint is None:
             return None  # no constraint declared — anything goes
 
-        constraints = self.constraint if isinstance(self.constraint, list) else [self.constraint]
+        constraints = (
+            self.constraint if isinstance(self.constraint, list) else [self.constraint]
+        )
 
         # OR semantics: value must pass at least one constraint
         errors: list[str] = []
@@ -450,6 +480,7 @@ class ParamDef:
 # ---------------------------------------------------------------------------
 # Schema resolution (MRO-based, like _tags)
 # ---------------------------------------------------------------------------
+
 
 def get_parameter_schema(cls: type) -> dict[str, ParamDef]:
     """Resolve the full parameter schema for *cls* by walking the MRO.
@@ -482,6 +513,7 @@ def get_parameter_schema(cls: type) -> dict[str, ParamDef]:
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
+
 
 def validate_params(
     instance: Any,
@@ -537,6 +569,7 @@ def validate_params(
 # ---------------------------------------------------------------------------
 # UI hint generation
 # ---------------------------------------------------------------------------
+
 
 def get_ui_hints(
     cls: type,
@@ -600,7 +633,11 @@ def get_ui_hints(
             "default": defaults.get(pname),
         }
 
-        constraints = pdef.constraint if isinstance(pdef.constraint, list) else ([pdef.constraint] if pdef.constraint else [])
+        constraints = (
+            pdef.constraint
+            if isinstance(pdef.constraint, list)
+            else ([pdef.constraint] if pdef.constraint else [])
+        )
 
         # Determine primary type, bounds, choices
         for c in constraints:

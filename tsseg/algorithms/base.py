@@ -148,7 +148,9 @@ class BaseAeonEstimator(BaseEstimator, ABC):
 
     def _collect_fitted_params(self, est: Any, deep: bool) -> dict[str, Any]:
         params: dict[str, Any] = {}
-        keys = [attr for attr in dir(est) if attr.endswith("_") and not attr.startswith("_")]
+        keys = [
+            attr for attr in dir(est) if attr.endswith("_") and not attr.startswith("_")
+        ]
         for key in keys:
             try:
                 value = getattr(est, key)
@@ -250,7 +252,10 @@ class BaseSeriesEstimator(BaseAeonEstimator):
             raise ValueError(f"Input axis should be 0 or 1, saw {axis}")
 
         if isinstance(X, np.ndarray):
-            if not (np.issubdtype(X.dtype, np.integer) or np.issubdtype(X.dtype, np.floating)):
+            if not (
+                np.issubdtype(X.dtype, np.integer)
+                or np.issubdtype(X.dtype, np.floating)
+            ):
                 raise ValueError("dtype for np.ndarray must be float or int")
         elif isinstance(X, pd.Series):
             if not pd.api.types.is_numeric_dtype(X):
@@ -279,7 +284,9 @@ class BaseSeriesEstimator(BaseAeonEstimator):
         if isinstance(X, np.ndarray):
             metadata["missing_values"] = np.isnan(X).any()
         else:
-            metadata["missing_values"] = X.isna().any().any() if isinstance(X, pd.DataFrame) else X.isna().any()
+            metadata["missing_values"] = (
+                X.isna().any().any() if isinstance(X, pd.DataFrame) else X.isna().any()
+            )
 
         if metadata["missing_values"] and not self.get_tag("capability:missing_values"):
             raise ValueError(
@@ -353,7 +360,9 @@ class BaseSegmenter(BaseSeriesEstimator):
 
     # Public API -------------------------------------------------------
 
-    def fit(self, X: Any, y: Any | None = None, axis: int | None = None) -> BaseSegmenter:
+    def fit(
+        self, X: Any, y: Any | None = None, axis: int | None = None
+    ) -> BaseSegmenter:
         if self.get_tag("fit_is_empty"):
             self.is_fitted = True
             return self
@@ -423,14 +432,14 @@ class BaseSegmenter(BaseSeriesEstimator):
         See :func:`tsseg.algorithms.param_schema.get_parameter_schema`.
         """
         from .param_schema import get_parameter_schema as _get_schema
+
         return _get_schema(cls)
 
     def _fit(self, X: Any, y: Any | None):
         return self
 
     @abstractmethod
-    def _predict(self, X: Any):
-        ...
+    def _predict(self, X: Any): ...
 
     # Helper utilities -------------------------------------------------
 
@@ -438,14 +447,19 @@ class BaseSegmenter(BaseSeriesEstimator):
         if isinstance(y, np.ndarray):
             if y.ndim > 1:
                 raise ValueError("y input as np.ndarray should be 1D")
-            if not (np.issubdtype(y.dtype, np.integer) or np.issubdtype(y.dtype, np.floating)):
+            if not (
+                np.issubdtype(y.dtype, np.integer)
+                or np.issubdtype(y.dtype, np.floating)
+            ):
                 raise ValueError("y input must contain floats or ints")
         elif isinstance(y, pd.Series):
             if not pd.api.types.is_numeric_dtype(y):
                 raise ValueError("y input as pd.Series must be numeric")
         elif isinstance(y, pd.DataFrame):
             if y.shape[1] > 2:
-                raise ValueError("y input as pd.DataFrame should have a single column series")
+                raise ValueError(
+                    "y input as pd.DataFrame should have a single column series"
+                )
             if not all(pd.api.types.is_numeric_dtype(y[col]) for col in y.columns):
                 raise ValueError("y input as pd.DataFrame must be numeric")
         else:
@@ -467,5 +481,3 @@ class BaseSegmenter(BaseSeriesEstimator):
         for cp in change_points:
             labels[cp:] += 1
         return labels
-
-

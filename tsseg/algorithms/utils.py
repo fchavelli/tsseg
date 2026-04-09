@@ -22,7 +22,12 @@ def multivariate_l2_norm(signal: np.ndarray) -> np.ndarray:
     return np.linalg.norm(signal, axis=1)
 
 
-def aggregate_change_points(all_cps: list[int], n_cp: int, tolerance: int | float = 0, signal_len: int | None = None) -> np.ndarray:
+def aggregate_change_points(
+    all_cps: list[int],
+    n_cp: int,
+    tolerance: int | float = 0,
+    signal_len: int | None = None,
+) -> np.ndarray:
     """
     Aggregate change points from multiple dimensions with tolerance.
 
@@ -52,7 +57,9 @@ def aggregate_change_points(all_cps: list[int], n_cp: int, tolerance: int | floa
     tol_val = 0
     if isinstance(tolerance, float) and tolerance < 1.0:
         if signal_len is None:
-            raise ValueError("signal_len must be provided when tolerance is a fraction.")
+            raise ValueError(
+                "signal_len must be provided when tolerance is a fraction."
+            )
         tol_val = int(tolerance * signal_len)
     else:
         tol_val = int(tolerance)
@@ -126,7 +133,7 @@ def create_state_labels(changepoints, n_timepoints):
     current_label = 0
     for i in range(len(changepoints) - 1):
         start = int(changepoints[i])
-        end = int(changepoints[i+1])
+        end = int(changepoints[i + 1])
         if start < n_timepoints:
             # cap end to n_timepoints
             end = min(end, n_timepoints)

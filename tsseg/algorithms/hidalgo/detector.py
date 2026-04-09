@@ -455,7 +455,7 @@ class HidalgoDetector(BaseSegmenter):
                     exp1 = c1[k] - 1
                     exp2 = c1[K - 1] - 1
 
-                    if exp1 + exp2 <= 1e-9: # Effectively 0
+                    if exp1 + exp2 <= 1e-9:  # Effectively 0
                         stop = True
                     else:
                         rmax = exp1 / (exp1 + exp2)
@@ -474,7 +474,7 @@ class HidalgoDetector(BaseSegmenter):
                         # Calculate log of second term: ((1 - r1) / (1 - rmax)) ** exp2
                         if is_valid and exp2 > 0:
                             if r1 >= 1.0:
-                                is_valid = False # Should be rare with random() < 1.0
+                                is_valid = False  # Should be rare with random() < 1.0
                             else:
                                 # We assume 1-rmax > 0 because if exp2 > 0, rmax < 1
                                 log_frac += exp2 * (np.log(1 - r1) - np.log(1 - rmax))

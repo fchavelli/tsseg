@@ -215,7 +215,9 @@ class BinSegDetector(BaseSegmenter):
         axis = self.axis if axis is None else axis
         signal = _ensure_time_major(X, axis=axis)
 
-        if self._estimator is None or not np.array_equal(signal, getattr(self._estimator, "signal", None)):
+        if self._estimator is None or not np.array_equal(
+            signal, getattr(self._estimator, "signal", None)
+        ):
             self._estimator = self._make_estimator(signal)
 
         bkps = self._estimator.predict(

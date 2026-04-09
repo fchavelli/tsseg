@@ -18,8 +18,8 @@ extensions = [
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.napoleon",           # Google/NumPy docstrings
-    "sphinx.ext.intersphinx",        # cross-project links
+    "sphinx.ext.napoleon",  # Google/NumPy docstrings
+    "sphinx.ext.intersphinx",  # cross-project links
     "sphinx.ext.viewcode",
     "sphinx_autodoc_typehints",
 ]
@@ -30,7 +30,11 @@ html_theme_options = {"collapse_navigation": False}
 html_logo = "_static/logo.png"
 html_static_path = ["_static"]
 
-html_context = {"display_github": True, "github_user": "fchavelli", "github_repo": "tsseg"}
+html_context = {
+    "display_github": True,
+    "github_user": "fchavelli",
+    "github_repo": "tsseg",
+}
 
 # Allow Markdown documents
 myst_enable_extensions = ["colon_fence", "deflist"]

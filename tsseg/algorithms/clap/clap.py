@@ -38,10 +38,16 @@ from .window_size import map_window_size_methods
 
 
 class CLaP:
-
-    def __init__(self, window_size="suss", classifier="rocket", merge_score="cgain", n_splits=5, n_jobs=1,
-                 sample_size=1_000,
-                 random_state=2357):
+    def __init__(
+        self,
+        window_size="suss",
+        classifier="rocket",
+        merge_score="cgain",
+        n_splits=5,
+        n_jobs=1,
+        sample_size=1_000,
+        random_state=2357,
+    ):
         self.window_size = window_size
         self.classifier = classifier
         self.merge_score = merge_score
@@ -74,7 +80,9 @@ class CLaP:
         None
         """
         if not self.is_fitted:
-            raise NotFittedError("CLaP object is not fitted yet. Please fit the object before using this method.")
+            raise NotFittedError(
+                "CLaP object is not fitted yet. Please fit the object before using this method."
+            )
 
     def _create_dataset(self, time_series, change_points, labels):
         sample_size = self.window_size
@@ -87,12 +95,13 @@ class CLaP:
         excl_zone = np.full(time_series.shape[0], fill_value=False, dtype=bool)
 
         for cp in change_points:
-            excl_zone[cp - sample_size // 2 + 1:cp] = True
+            excl_zone[cp - sample_size // 2 + 1 : cp] = True
 
         for idx in range(0, time_series.shape[0] - sample_size + 1, stride):
             if not excl_zone[idx]:
-                window = time_series[idx:idx + sample_size].T
-                if time_series.shape[1] == 1: window = window.flatten()
+                window = time_series[idx : idx + sample_size].T
+                if time_series.shape[1] == 1:
+                    window = window.flatten()
 
                 X.append(window)
                 y.append(state_labels[idx])
@@ -109,14 +118,20 @@ class CLaP:
         if n_splits < 2:
             return np.copy(y), np.copy([y])
 
-        for train_idx, test_idx in KFold(n_splits=n_splits, shuffle=True, random_state=self.random_state).split(X):
+        for train_idx, test_idx in KFold(
+            n_splits=n_splits, shuffle=True, random_state=self.random_state
+        ).split(X):
             X_train, y_train = X[train_idx], y[train_idx]
             X_test, y_test = X[test_idx], y[test_idx]
 
             if self.classifier == "mrhydra":
-                clf = MultiRocketHydraClassifier(n_jobs=self.n_jobs, random_state=self.random_state)
+                clf = MultiRocketHydraClassifier(
+                    n_jobs=self.n_jobs, random_state=self.random_state
+                )
             elif self.classifier == "rocket":
-                clf = RocketClassifier(n_jobs=self.n_jobs, random_state=self.random_state)
+                clf = RocketClassifier(
+                    n_jobs=self.n_jobs, random_state=self.random_state
+                )
             elif self.classifier == "weasel":
                 clf = WEASEL_V2(random_state=self.random_state, n_jobs=self.n_jobs)
             elif self.classifier == "quant":
@@ -124,9 +139,13 @@ class CLaP:
             elif self.classifier == "rdst":
                 clf = RDSTClassifier(random_state=self.random_state, n_jobs=self.n_jobs)
             elif self.classifier == "proximityforest":
-                clf = ProximityForest(n_jobs=self.n_jobs, random_state=self.random_state)
+                clf = ProximityForest(
+                    n_jobs=self.n_jobs, random_state=self.random_state
+                )
             elif self.classifier == "freshprince":
-                clf = FreshPRINCEClassifier(random_state=self.random_state, n_jobs=self.n_jobs)
+                clf = FreshPRINCEClassifier(
+                    random_state=self.random_state, n_jobs=self.n_jobs
+                )
             elif self.classifier == "inception":
                 try:
                     from aeon.classification.deep_learning import (
@@ -157,7 +176,9 @@ class CLaP:
             X_label, y_label = X[args], y[args]
 
             if X_label.shape[0] > self.sample_size:
-                rand_idx = np.random.choice(np.arange(y.shape[0])[args], self.sample_size, replace=False)
+                rand_idx = np.random.choice(
+                    np.arange(y.shape[0])[args], self.sample_size, replace=False
+                )
                 X_label, y_label = X[rand_idx], y[rand_idx]
 
             X_sel.extend(X_label)
@@ -184,7 +205,6 @@ class CLaP:
         W = []
 
         if isinstance(self.window_size, str):
-
             wss = map_window_size_methods(self.window_size)
 
             for dim in range(time_series.shape[1]):
@@ -216,7 +236,9 @@ class CLaP:
         elif self.merge_score == "hamming_loss":
             scorer = lambda y_true, y_pred: -hamming_loss(y_true, y_pred)
         elif self.merge_score == "roc_auc":
-            scorer = lambda y_true, y_pred: roc_auc_score(y_true, y_pred, multi_class="ovo")
+            scorer = lambda y_true, y_pred: roc_auc_score(
+                y_true, y_pred, multi_class="ovo"
+            )
         else:
             raise ValueError(f"The merge score {self.merge_score} is not supported.")
 
@@ -265,15 +287,19 @@ class CLaP:
                     continue
 
                 y_true_bin = np.zeros((y_true.shape[0], n_labels), int)
-                for idx in range(y_true.shape[0]): y_true_bin[idx][y_true[idx] % n_labels] = 1
+                for idx in range(y_true.shape[0]):
+                    y_true_bin[idx][y_true[idx] % n_labels] = 1
                 y_pred_bin = np.zeros((y_true.shape[0], n_labels), int)
-                for idx in range(y_pred.shape[0]): y_pred_bin[idx][y_pred[idx] % n_labels] = 1
+                for idx in range(y_pred.shape[0]):
+                    y_pred_bin[idx][y_pred[idx] % n_labels] = 1
 
                 n_labels = np.unique(_y_true).shape[0]
                 _y_true_bin = np.zeros((_y_true.shape[0], n_labels), int)
-                for idx in range(_y_true.shape[0]): _y_true_bin[idx][_y_true[idx] % n_labels] = 1
+                for idx in range(_y_true.shape[0]):
+                    _y_true_bin[idx][_y_true[idx] % n_labels] = 1
                 _y_pred_bin = np.zeros((_y_true.shape[0], n_labels), int)
-                for idx in range(_y_pred.shape[0]): _y_pred_bin[idx][_y_pred[idx] % n_labels] = 1
+                for idx in range(_y_pred.shape[0]):
+                    _y_pred_bin[idx][_y_pred[idx] % n_labels] = 1
 
                 # if self._classification_gain(y_true, y_pred) > self._classification_gain(_y_true, _y_pred):
                 # if f1_score(y_true, y_pred, average="macro") > f1_score(_y_true, _y_pred, average="macro"):
@@ -283,10 +309,20 @@ class CLaP:
                 # if roc_auc_score(y_true, y_pred_bin, multi_class="ovo") > roc_auc_score(_y_true, _y_pred_bin, multi_class="ovo"):
 
                 ref_true = y_true_bin if self.merge_score == "log_loss" else y_true
-                ref_pred = y_pred_bin if self.merge_score == "log_loss" or self.merge_score == "roc_auc" else y_pred
+                ref_pred = (
+                    y_pred_bin
+                    if self.merge_score == "log_loss" or self.merge_score == "roc_auc"
+                    else y_pred
+                )
 
                 curr_true = _y_true_bin if self.merge_score == "log_loss" else _y_true
-                curr_pred = _y_pred_bin if self.merge_score == "log_loss" or self.merge_score == "roc_auc" and n_labels > 2 else _y_pred
+                curr_pred = (
+                    _y_pred_bin
+                    if self.merge_score == "log_loss"
+                    or self.merge_score == "roc_auc"
+                    and n_labels > 2
+                    else _y_pred
+                )
 
                 if scorer(ref_true, ref_pred) > scorer(curr_true, curr_pred):
                     ignore_cache.add(test_key)

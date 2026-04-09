@@ -93,7 +93,7 @@ def roc_auc_score(y_score, y_true):
     .. [1] "Receiver operating characteristic", Wikipedia, https://en.wikipedia.org/wiki/Receiver_operating_characteristic
     """
     # make y_true a boolean vector
-    y_true = (y_true == 1)
+    y_true = y_true == 1
 
     # sort scores and corresponding truth values (y_true is sorted by design)
     desc_score_indices = np.arange(y_score.shape[0])[::-1]
@@ -105,10 +105,9 @@ def roc_auc_score(y_score, y_true):
     # the indices associated with the distinct values. We also
     # concatenate a value for the end of the curve.
     distinct_value_indices = np.where(np.diff(y_score))[0]
-    threshold_idxs = np.concatenate((
-        distinct_value_indices,
-        np.array([y_true.size - 1])
-    ))
+    threshold_idxs = np.concatenate(
+        (distinct_value_indices, np.array([y_true.size - 1]))
+    )
 
     # accumulate the true positives with decreasing threshold
     tps = np.cumsum(y_true)[threshold_idxs]
@@ -189,6 +188,7 @@ def map_scores(score_name):
     """
     if score_name not in _SCORE_MAPPING:
         raise ValueError(
-            f"{score_name} is not a valid score. Implementations include: {', '.join(_SCORE_MAPPING.keys())}")
+            f"{score_name} is not a valid score. Implementations include: {', '.join(_SCORE_MAPPING.keys())}"
+        )
 
     return _SCORE_MAPPING[score_name]

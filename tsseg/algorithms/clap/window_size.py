@@ -37,18 +37,16 @@ def _suss_score(time_series, window_size, stats):
     roll_min = roll.min().to_numpy()[window_size:]
     roll_max = roll.max().to_numpy()[window_size:]
 
-    X = np.array([
-        roll_mean - ts_mean,
-        roll_std - ts_std,
-        (roll_max - roll_min) - ts_min_max
-    ])
+    X = np.array(
+        [roll_mean - ts_mean, roll_std - ts_std, (roll_max - roll_min) - ts_min_max]
+    )
 
     X = np.sqrt(np.sum(np.square(X), axis=0)) / np.sqrt(window_size)
 
     return np.mean(X)
 
 
-def suss(time_series, lbound=10, threshold=.89):
+def suss(time_series, lbound=10, threshold=0.89):
     """
     Calculate the optimal window size for a time series comparing summary statistics
     of different-sized subsequences with the ones of the entire time series.
@@ -72,14 +70,17 @@ def suss(time_series, lbound=10, threshold=.89):
 
     if time_series.shape[0] < lbound:
         warnings.warn(
-            f"Time series must at least have lbound much data points. Using window_size={time_series.shape[0]}.")
+            f"Time series must at least have lbound much data points. Using window_size={time_series.shape[0]}."
+        )
         return time_series.shape[0]
 
     if time_series.min() == time_series.max():
         warnings.warn(f"Constant time series. Using window_size={lbound}.")
         return lbound
 
-    time_series = (time_series - time_series.min()) / (time_series.max() - time_series.min())
+    time_series = (time_series - time_series.min()) / (
+        time_series.max() - time_series.min()
+    )
 
     ts_mean = np.mean(time_series)
     ts_std = np.std(time_series)
@@ -98,25 +99,29 @@ def suss(time_series, lbound=10, threshold=.89):
 
     # exponential search (to find window size interval)
     while True:
-        window_size = 2 ** exp
+        window_size = 2**exp
 
         if window_size < lbound:
             exp += 1
             continue
 
-        score = 1 - (_suss_score(time_series, window_size, stats) - min_score) / (max_score - min_score)
+        score = 1 - (_suss_score(time_series, window_size, stats) - min_score) / (
+            max_score - min_score
+        )
 
         if score > threshold:
             break
 
         exp += 1
 
-    lbound, ubound = max(lbound, 2 ** (exp - 1)), 2 ** exp + 1
+    lbound, ubound = max(lbound, 2 ** (exp - 1)), 2**exp + 1
 
     # binary search (to find window size in interval)
     while lbound <= ubound:
         window_size = int((lbound + ubound) / 2)
-        score = 1 - (_suss_score(time_series, window_size, stats) - min_score) / (max_score - min_score)
+        score = 1 - (_suss_score(time_series, window_size, stats) - min_score) / (
+            max_score - min_score
+        )
 
         if score < threshold:
             lbound = window_size + 1
@@ -150,7 +155,8 @@ def dominant_fourier_frequency(time_series, lbound=10, ubound=1000):
 
     if time_series.shape[0] < 2 * lbound:
         warnings.warn(
-            f"Time series must at least have 2*lbound much data points. Using window_size={time_series.shape[0]}.")
+            f"Time series must at least have 2*lbound much data points. Using window_size={time_series.shape[0]}."
+        )
         return time_series.shape[0]
 
     fourier = np.fft.fft(time_series)
@@ -169,7 +175,9 @@ def dominant_fourier_frequency(time_series, lbound=10, ubound=1000):
                 magnitudes.append(mag)
 
     if len(magnitudes) == 0:
-        warnings.warn(f"Could not extract valid frequencies. Using window_size={lbound}.")
+        warnings.warn(
+            f"Could not extract valid frequencies. Using window_size={lbound}."
+        )
         return lbound
 
     return window_sizes[np.argmax(magnitudes)]
@@ -200,7 +208,8 @@ def highest_autocorrelation(time_series, lbound=10, ubound=1000):
 
     if time_series.shape[0] < lbound:
         warnings.warn(
-            f"Time series must at least have lbound much data points. Using window_size={time_series.shape[0]}.")
+            f"Time series must at least have lbound much data points. Using window_size={time_series.shape[0]}."
+        )
         return time_series.shape[0]
 
     acf_values = acf(time_series, fft=True, nlags=int(time_series.shape[0] / 2))
@@ -210,7 +219,9 @@ def highest_autocorrelation(time_series, lbound=10, ubound=1000):
     corrs = acf_values[peaks]
 
     if peaks.shape[0] == 0:
-        warnings.warn(f"Could not find any autocorrelation peaks. Using window_size={lbound}.")
+        warnings.warn(
+            f"Could not find any autocorrelation peaks. Using window_size={lbound}."
+        )
         return lbound
 
     return peaks[np.argmax(corrs)]
@@ -219,7 +230,7 @@ def highest_autocorrelation(time_series, lbound=10, ubound=1000):
 _WINDOW_SIZE_MAPPING = {
     "suss": suss,
     "fft": dominant_fourier_frequency,
-    "acf": highest_autocorrelation
+    "acf": highest_autocorrelation,
 }
 
 
@@ -246,6 +257,7 @@ def map_window_size_methods(window_size_method):
     """
     if window_size_method not in _WINDOW_SIZE_MAPPING:
         raise ValueError(
-            f"{window_size_method} is not a valid window size method. Implementations include: {', '.join(_WINDOW_SIZE_MAPPING.keys())}")
+            f"{window_size_method} is not a valid window size method. Implementations include: {', '.join(_WINDOW_SIZE_MAPPING.keys())}"
+        )
 
     return _WINDOW_SIZE_MAPPING[window_size_method]

@@ -30,7 +30,9 @@ def timeseries_self_join_fast(
     matrix_profile = np.full(profile_len, np.inf, dtype=float)
     mp_index = np.zeros(profile_len, dtype=int)
 
-    x, data_len, sumx2, sumx, meanx, sigmax2, sigmax = _fast_find_nn_pre(vector, subsequence_length)
+    x, data_len, sumx2, sumx, meanx, sigmax2, sigmax = _fast_find_nn_pre(
+        vector, subsequence_length
+    )
 
     if isinstance(rng, Generator):
         rng_local = rng
@@ -67,7 +69,9 @@ def timeseries_self_join_fast(
     return np.sqrt(matrix_profile), mp_index
 
 
-def _fast_find_nn_pre(x: np.ndarray, m: int) -> tuple[np.ndarray, int, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def _fast_find_nn_pre(
+    x: np.ndarray, m: int
+) -> tuple[np.ndarray, int, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     n = x.size
     padded = np.pad(x, (0, n), mode="constant")
     X = np.fft.fft(padded)

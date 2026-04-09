@@ -4,12 +4,13 @@ import numpy as np
 
 from .base import BaseMetric
 
-'''
+"""
 F1 & Covering scores
 Code adapted from TSSB (time-series-segmentation-benchmark)
 https://github.com/ermshaua/time-series-segmentation-benchmark/blob/95a62b8e1e4e380313f187544c38f3400c1773e5/tssb/evaluation.py
 Authors: Van den Burg, G.J.J. and Williams, C.K.I. from The Alan Turing Institute
-'''
+"""
+
 
 def labels_to_change_points(labels):
     """
@@ -70,6 +71,7 @@ def _strip_boundaries(change_points: list[int], series_length: int | None) -> li
         filtered.append(point)
     return filtered
 
+
 def _true_positives(y_true: list[int], y_pred: list[int], margin: int) -> int:
     """
     Compute true positives without double counting.
@@ -103,6 +105,7 @@ def _true_positives(y_true: list[int], y_pred: list[int], margin: int) -> int:
         temp_y_pred.remove(closest_pred)
 
     return tp
+
 
 class F1Score(BaseMetric):
     """Computes the F1-score for change point detection."""
@@ -158,7 +161,9 @@ class F1Score(BaseMetric):
             if not (0.0 <= margin <= 1.0):
                 raise ValueError("Float margin must be between 0.0 and 1.0")
             if series_length is None:
-                raise ValueError("Cannot derive absolute margin without a series length")
+                raise ValueError(
+                    "Cannot derive absolute margin without a series length"
+                )
             computed_margin = int(margin * series_length)
             if margin > 0 and computed_margin == 0:
                 warnings.warn(
@@ -204,6 +209,7 @@ class F1Score(BaseMetric):
             "precision": precision,
             "recall": recall,
         }
+
 
 class Covering(BaseMetric):
     """
@@ -294,6 +300,7 @@ class Covering(BaseMetric):
         covering = covering_score / total_length if total_length > 0 else 0.0
 
         return {"score": covering}
+
 
 class HausdorffDistance(BaseMetric):
     """Computes the Hausdorff distance between two sets of change points."""

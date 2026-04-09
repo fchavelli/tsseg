@@ -2,6 +2,7 @@
 This module provides a wrapper for the ClaSP algorithm to integrate it
 with the tsseg library's API.
 """
+
 import numpy as np
 
 from ..base import BaseSegmenter
@@ -41,6 +42,7 @@ class ClaspDetector(BaseSegmenter):
         The indices of the detected change points, sorted in ascending order.
         Available only after calling the `fit` or `fit_predict` method.
     """
+
     _tags = {
         "capability:unequal_length": False,
         "capability:univariate": True,
@@ -86,11 +88,13 @@ class ClaspDetector(BaseSegmenter):
             description="Exclusion radius (multiples of window size).",
         ),
         "distance": ParamDef(
-            constraint=StrOptions({
-                "znormed_euclidean_distance",
-                "euclidean_distance",
-                "cinvariant_euclidean_distance",
-            }),
+            constraint=StrOptions(
+                {
+                    "znormed_euclidean_distance",
+                    "euclidean_distance",
+                    "cinvariant_euclidean_distance",
+                }
+            ),
             description="Distance function for k-NN.",
         ),
         "score": ParamDef(
@@ -124,10 +128,24 @@ class ClaspDetector(BaseSegmenter):
         ],
     }
 
-    def __init__(self, n_segments="learn", n_change_points=None, n_estimators=10, window_size="suss", k_neighbours=3, excl_radius=5, distance="znormed_euclidean_distance", score="roc_auc",
-                 early_stopping=True, validation="significance_test", threshold="default", n_jobs=-1, axis=0):
+    def __init__(
+        self,
+        n_segments="learn",
+        n_change_points=None,
+        n_estimators=10,
+        window_size="suss",
+        k_neighbours=3,
+        excl_radius=5,
+        distance="znormed_euclidean_distance",
+        score="roc_auc",
+        early_stopping=True,
+        validation="significance_test",
+        threshold="default",
+        n_jobs=-1,
+        axis=0,
+    ):
         self.n_segments = n_segments
-        self.n_change_points = n_change_points # Injected by the supervision pipeline
+        self.n_change_points = n_change_points  # Injected by the supervision pipeline
         self.n_estimators = n_estimators
         self.window_size = window_size
         self.k_neighbours = k_neighbours

@@ -12,7 +12,12 @@ def espresso(ts, window_size, n_cps, chain_length=3, eng=None):
         close_eng = True
 
     try:
-        cps = eng.ESPRESSO(matlab.double(ts.tolist()), matlab.double([window_size]), matlab.int64([n_cps]), matlab.double([chain_length]))
+        cps = eng.ESPRESSO(
+            matlab.double(ts.tolist()),
+            matlab.double([window_size]),
+            matlab.int64([n_cps]),
+            matlab.double([chain_length]),
+        )
     except:
         cps = [[]]
 
@@ -23,5 +28,6 @@ def espresso(ts, window_size, n_cps, chain_length=3, eng=None):
     else:
         cps = []
 
-    if close_eng is True: eng.quit()
+    if close_eng is True:
+        eng.quit()
     return np.asarray(cps, dtype=np.int64)

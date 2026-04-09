@@ -1,6 +1,7 @@
 """
 This module provides an aeon-compatible wrapper for the E2USD algorithm.
 """
+
 import numpy as np
 import torch
 
@@ -55,6 +56,7 @@ class E2USDDetector(BaseSegmenter):
     random_state : int, optional
         Random state for reproducibility.
     """
+
     _tags = {
         "X_inner_type": "np.ndarray",
         "fit_is_empty": False,
@@ -63,7 +65,7 @@ class E2USDDetector(BaseSegmenter):
         "capability:multivariate": True,
         "capability:unequal_length": False,
         "detector_type": "state_detection",
-        "capability:unsupervised": True,        # n_states is an upper bound
+        "capability:unsupervised": True,  # n_states is an upper bound
         "capability:semi_supervised": True,
     }
 
@@ -144,10 +146,23 @@ class E2USDDetector(BaseSegmenter):
         ],
     }
 
-    def __init__(self, axis=0, window_size=256, step=50, n_states=20, alpha=1e3,
-                 batch_size=1, nb_steps=20, lr=0.003, depth=1,
-                 out_channels=4, reduced_size=80, kernel_size=3,
-                 use_gpu=None, random_state=None):
+    def __init__(
+        self,
+        axis=0,
+        window_size=256,
+        step=50,
+        n_states=20,
+        alpha=1e3,
+        batch_size=1,
+        nb_steps=20,
+        lr=0.003,
+        depth=1,
+        out_channels=4,
+        reduced_size=80,
+        kernel_size=3,
+        use_gpu=None,
+        random_state=None,
+    ):
 
         self.window_size = window_size
         self.step = step
@@ -183,7 +198,6 @@ class E2USDDetector(BaseSegmenter):
             The target segmentation. If provided, n_states is inferred from y.
         """
 
-
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
             np.random.seed(self.random_state)
@@ -200,19 +214,21 @@ class E2USDDetector(BaseSegmenter):
 
         # 1. Initialize Encoder
         e2usd_params = params.copy()
-        e2usd_params.update({
-            "win_size": self.window_size,
-            "batch_size": self.batch_size,
-            "nb_steps": self.nb_steps,
-            "lr": self.lr,
-            "depth": self.depth,
-            "out_channels": self.out_channels,
-            "reduced_size": self.reduced_size,
-            "kernel_size": self.kernel_size,
-            "cuda": self.use_gpu,
-            "gpu": 0, # Assuming GPU 0 if used
-            "in_channels": n_channels,
-        })
+        e2usd_params.update(
+            {
+                "win_size": self.window_size,
+                "batch_size": self.batch_size,
+                "nb_steps": self.nb_steps,
+                "lr": self.lr,
+                "depth": self.depth,
+                "out_channels": self.out_channels,
+                "reduced_size": self.reduced_size,
+                "kernel_size": self.kernel_size,
+                "cuda": self.use_gpu,
+                "gpu": 0,  # Assuming GPU 0 if used
+                "in_channels": n_channels,
+            }
+        )
         self.encoder_ = E2USD_Adaper(e2usd_params)
 
         # 2. Initialize Clustering component
@@ -242,7 +258,10 @@ class E2USDDetector(BaseSegmenter):
         n_timepoints, _ = X.shape
 
         # Handle short series case
-        if getattr(self, '_short_series_fitted', False) or n_timepoints < self.window_size * 2:
+        if (
+            getattr(self, "_short_series_fitted", False)
+            or n_timepoints < self.window_size * 2
+        ):
             return np.zeros(n_timepoints, dtype=int)
 
         # Initialize the main model with fitted components
@@ -250,7 +269,7 @@ class E2USDDetector(BaseSegmenter):
             win_size=self.window_size,
             step=self.step,
             encoder=self.encoder_,
-            clustering_component=self.clustering_
+            clustering_component=self.clustering_,
         )
 
         # Use the internal methods to predict without re-fitting the encoder

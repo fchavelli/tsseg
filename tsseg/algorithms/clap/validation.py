@@ -106,7 +106,9 @@ def significance_test(clasp, change_point, threshold=1e-15):
     and the method returns True. Otherwise, the change point is considered not significant and the method returns False.
 
     """
-    _, y_pred = cross_val_labels(clasp.knn.offsets, change_point - clasp.lbound, clasp.window_size)
+    _, y_pred = cross_val_labels(
+        clasp.knn.offsets, change_point - clasp.lbound, clasp.window_size
+    )
     _, p = _rank_sums_test(y_pred[:change_point], y_pred[change_point:])
     return p <= threshold
 
@@ -135,7 +137,7 @@ def score_threshold(clasp, change_point, threshold=0.75):
 
 _VALIDATION_MAPPING = {
     "significance_test": significance_test,
-    "score_threshold": score_threshold
+    "score_threshold": score_threshold,
 }
 
 
@@ -160,6 +162,7 @@ def map_validation_tests(validation_method):
     """
     if validation_method not in _VALIDATION_MAPPING:
         raise ValueError(
-            f"{validation_method} is not a valid validation method. Implementations include: {', '.join(_VALIDATION_MAPPING.keys())}")
+            f"{validation_method} is not a valid validation method. Implementations include: {', '.join(_VALIDATION_MAPPING.keys())}"
+        )
 
     return _VALIDATION_MAPPING[validation_method]

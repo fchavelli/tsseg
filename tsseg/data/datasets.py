@@ -25,12 +25,14 @@ GOODBOY.registry = {
 
 # --- Internal utility functions ---
 
+
 def _get_data_path():
     """Returns the path to the data directory within the package."""
-    return files('tsseg.data')
+    return files("tsseg.data")
 
 
 # --- Public API ---
+
 
 def fetch_dataset(filename, unzip=False):
     """
@@ -49,8 +51,10 @@ def fetch_dataset(filename, unzip=False):
         Local path to the data file or the unzipped directory.
     """
     if filename not in GOODBOY.registry:
-        raise ValueError(f"Dataset '{filename}' is not known. "
-                         f"Available files: {list(GOODBOY.registry.keys())}")
+        raise ValueError(
+            f"Dataset '{filename}' is not known. "
+            f"Available files: {list(GOODBOY.registry.keys())}"
+        )
 
     processor = pooch.Unzip() if unzip else None
     fname = GOODBOY.fetch(filename, processor=processor, progressbar=True)
@@ -84,8 +88,11 @@ def load_local_dataset(filename):
 
 
 # --- MoCap Dataset Loader ---
-MOCAP_TRIALS = [f"86_{id}.csv" for id in ['01', '02', '03', '07', '08', '09', '10', '11', '14']]
-MOCAP_COLUMN_NAMES = ['rhumerus_0', 'lhumerus_0', 'rfemur_0', 'lfemur_0', 'label']
+MOCAP_TRIALS = [
+    f"86_{id}.csv" for id in ["01", "02", "03", "07", "08", "09", "10", "11", "14"]
+]
+MOCAP_COLUMN_NAMES = ["rhumerus_0", "lhumerus_0", "rfemur_0", "lfemur_0", "label"]
+
 
 def load_mocap(trial=0, return_X_y=True):
     """
@@ -111,13 +118,17 @@ def load_mocap(trial=0, return_X_y=True):
         try:
             filename = MOCAP_TRIALS[trial]
         except IndexError:
-            raise ValueError(f"Invalid trial index: {trial}. "
-                             f"Must be between 0 and {len(MOCAP_TRIALS) - 1}.") from None
+            raise ValueError(
+                f"Invalid trial index: {trial}. "
+                f"Must be between 0 and {len(MOCAP_TRIALS) - 1}."
+            ) from None
     elif isinstance(trial, str):
         trial_id = f"86_{trial}.csv"
         if trial_id not in MOCAP_TRIALS:
-            raise ValueError(f"Invalid trial ID: '{trial}'. "
-                             f"Available trials: {[t.split('_')[1].split('.')[0] for t in MOCAP_TRIALS]}")
+            raise ValueError(
+                f"Invalid trial ID: '{trial}'. "
+                f"Available trials: {[t.split('_')[1].split('.')[0] for t in MOCAP_TRIALS]}"
+            )
         filename = trial_id
     else:
         raise TypeError(f"Type of 'trial' must be int or str, not {type(trial)}")

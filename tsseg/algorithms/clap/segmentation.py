@@ -81,10 +81,21 @@ class BinaryClaSPSegmentation:
         Visualize the segmentation for the input time series.
     """
 
-    def __init__(self, n_segments="learn", n_estimators=10, window_size="suss", k_neighbours=3,
-                 distance="znormed_euclidean_distance", score="roc_auc",
-                 early_stopping=True, validation="significance_test", threshold="default", excl_radius=5,
-                 n_jobs=-1, random_state=2357):
+    def __init__(
+        self,
+        n_segments="learn",
+        n_estimators=10,
+        window_size="suss",
+        k_neighbours=3,
+        distance="znormed_euclidean_distance",
+        score="roc_auc",
+        early_stopping=True,
+        validation="significance_test",
+        threshold="default",
+        excl_radius=5,
+        n_jobs=-1,
+        random_state=2357,
+    ):
         self.n_segments = n_segments
         self.n_estimators = n_estimators
         self.window_size = window_size
@@ -120,7 +131,8 @@ class BinaryClaSPSegmentation:
         for change_point in [0] + change_points + [self.n_timepoints]:
             left_begin = max(0, change_point - self.min_seg_size)
             right_end = min(self.n_timepoints, change_point + self.min_seg_size)
-            if candidate in range(left_begin, right_end): return False
+            if candidate in range(left_begin, right_end):
+                return False
 
         return True
 
@@ -141,7 +153,8 @@ class BinaryClaSPSegmentation:
         --------
         None
         """
-        if ubound - lbound < 2 * self.min_seg_size: return
+        if ubound - lbound < 2 * self.min_seg_size:
+            return
 
         clasp = ClaSPEnsemble(
             n_estimators=self.n_estimators,
@@ -152,14 +165,20 @@ class BinaryClaSPSegmentation:
             early_stopping=self.early_stopping,
             excl_radius=self.excl_radius,
             n_jobs=self.n_jobs,
-            random_state=self.random_state
-        ).fit(self.time_series[lbound:ubound], validation=self.validation, threshold=self.threshold)
+            random_state=self.random_state,
+        ).fit(
+            self.time_series[lbound:ubound],
+            validation=self.validation,
+            threshold=self.threshold,
+        )
 
         cp = clasp.split(validation=self.validation, threshold=self.threshold)
-        if cp is None: return
+        if cp is None:
+            return
         score = clasp.profile[cp]
 
-        if not self._cp_is_valid(lbound + cp, change_points): return
+        if not self._cp_is_valid(lbound + cp, change_points):
+            return
 
         self.clasp_tree.append(((lbound, ubound), clasp))
         self.queue.put((-score, len(self.clasp_tree) - 1))
@@ -179,7 +198,8 @@ class BinaryClaSPSegmentation:
         """
         if not self.is_fitted:
             raise NotFittedError(
-                "BinaryClaSPSegmentation object is not fitted yet. Please fit the object before using this method.")
+                "BinaryClaSPSegmentation object is not fitted yet. Please fit the object before using this method."
+            )
 
     def fit(self, time_series):
         """
@@ -206,16 +226,25 @@ class BinaryClaSPSegmentation:
             window_sizes = []
 
             for dim in range(time_series.shape[1]):
-                window_sizes.append(max(3, map_window_size_methods(self.window_size)(time_series[:, dim]) // 2))
+                window_sizes.append(
+                    max(
+                        3,
+                        map_window_size_methods(self.window_size)(time_series[:, dim])
+                        // 2,
+                    )
+                )
 
-            self.window_size = int(np.min(window_sizes)) if len(window_sizes) > 0 else 10
+            self.window_size = (
+                int(np.min(window_sizes)) if len(window_sizes) > 0 else 10
+            )
 
         self.min_seg_size = self.window_size * self.excl_radius
 
         if time_series.shape[0] < 2 * self.min_seg_size:
             warnings.warn(
                 "Time series must at least have 2*min_seg_size data points for segmentation. Try setting "
-                "a smaller window size.")
+                "a smaller window size."
+            )
             self.n_segments = 1
             self.window_size = min(self.window_size, time_series.shape[0] // 2)
 
@@ -248,7 +277,7 @@ class BinaryClaSPSegmentation:
                 early_stopping=self.early_stopping,
                 excl_radius=self.excl_radius,
                 n_jobs=self.n_jobs,
-                random_state=self.random_state
+                random_state=self.random_state,
             ).fit(time_series, validation=self.validation, threshold=self.threshold)
 
             cp = clasp.split(validation=self.validation, threshold=self.threshold)
@@ -259,29 +288,39 @@ class BinaryClaSPSegmentation:
 
             profile = clasp.profile
         else:
-            profile = np.full(shape=self.n_timepoints - self.window_size + 1, fill_value=-np.inf, dtype=np.float64)
+            profile = np.full(
+                shape=self.n_timepoints - self.window_size + 1,
+                fill_value=-np.inf,
+                dtype=np.float64,
+            )
 
         change_points = []
         scores = []
 
         for idx in range(self.n_segments - 1):
             # happens if no valid change points exist anymore
-            if self.queue.empty() is True: break
+            if self.queue.empty() is True:
+                break
 
             priority, clasp_tree_idx = self.queue.get()
             (lbound, ubound), clasp = self.clasp_tree[clasp_tree_idx]
 
-            split_idx = clasp.split(validation=self.validation, threshold=self.threshold)
-            if split_idx is None: continue
+            split_idx = clasp.split(
+                validation=self.validation, threshold=self.threshold
+            )
+            if split_idx is None:
+                continue
             cp = lbound + split_idx
 
-            profile[lbound:ubound - self.window_size + 1] = np.max(
-                [profile[lbound:ubound - self.window_size + 1], clasp.profile], axis=0)
+            profile[lbound : ubound - self.window_size + 1] = np.max(
+                [profile[lbound : ubound - self.window_size + 1], clasp.profile], axis=0
+            )
 
             change_points.append(cp)
             scores.append(-priority)
 
-            if len(change_points) == self.n_segments - 1: break
+            if len(change_points) == self.n_segments - 1:
+                break
 
             lrange, rrange = (lbound, cp), (cp, ubound)
 
@@ -289,7 +328,10 @@ class BinaryClaSPSegmentation:
                 self._local_segmentation(*prange, change_points)
 
         sorted_cp_args = np.argsort(change_points)
-        self.change_points, self.scores = np.asarray(change_points)[sorted_cp_args], np.asarray(scores)[sorted_cp_args]
+        self.change_points, self.scores = (
+            np.asarray(change_points)[sorted_cp_args],
+            np.asarray(scores)[sorted_cp_args],
+        )
 
         profile[np.isinf(profile)] = np.nan
         self.profile = pd.Series(profile).interpolate(limit_direction="both").to_numpy()
@@ -317,7 +359,10 @@ class BinaryClaSPSegmentation:
             return self.change_points
 
         seg_idx = np.concatenate(([0], self.change_points, [self.time_series.shape[0]]))
-        return [self.time_series[seg_idx[idx]:seg_idx[idx + 1]] for idx in range(len(seg_idx) - 1)]
+        return [
+            self.time_series[seg_idx[idx] : seg_idx[idx + 1]]
+            for idx in range(len(seg_idx) - 1)
+        ]
 
     def fit_predict(self, time_series, sparse=True):
         """

@@ -1,6 +1,7 @@
 """
 This module provides an aeon-compatible wrapper for the TICC algorithm.
 """
+
 import numpy as np
 
 from ..base import BaseSegmenter
@@ -37,6 +38,7 @@ class TiccDetector(BaseSegmenter):
     axis : int, default=0
         The axis of the input series to segment.
     """
+
     _tags = {
         "capability:univariate": True,
         "capability:multivariate": True,
@@ -84,9 +86,17 @@ class TiccDetector(BaseSegmenter):
         ],
     }
 
-    def __init__(self, window_size=10, n_states=5,
-                 lambda_parameter=11e-2, beta=400, maxIters=100,
-                 threshold=2e-5, num_proc=1, axis=0):
+    def __init__(
+        self,
+        window_size=10,
+        n_states=5,
+        lambda_parameter=11e-2,
+        beta=400,
+        maxIters=100,
+        threshold=2e-5,
+        num_proc=1,
+        axis=0,
+    ):
         self.window_size = window_size
         self.n_states = n_states
         self.lambda_parameter = lambda_parameter
@@ -110,7 +120,7 @@ class TiccDetector(BaseSegmenter):
             beta=self.beta,
             maxIters=self.maxIters,
             threshold=self.threshold,
-            num_proc=self.num_proc
+            num_proc=self.num_proc,
         )
 
         # The fit_transform method trains the model and returns the segmentation
@@ -120,8 +130,8 @@ class TiccDetector(BaseSegmenter):
         # We pad the labels to match the original time series length by repeating the last label.
         n_timepoints = X.shape[0]
         self._state_labels = np.zeros(n_timepoints, dtype=int)
-        self._state_labels[:len(clustered_points)] = clustered_points
-        self._state_labels[len(clustered_points):] = clustered_points[-1]
+        self._state_labels[: len(clustered_points)] = clustered_points
+        self._state_labels[len(clustered_points) :] = clustered_points[-1]
 
         return self
 

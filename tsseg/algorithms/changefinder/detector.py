@@ -232,7 +232,7 @@ class ChangeFinderDetector(BaseSegmenter):
             return x.copy()
         kernel = np.ones(window) / window
         # Use 'full' mode then trim to preserve alignment
-        smoothed = np.convolve(x, kernel, mode="full")[:len(x)]
+        smoothed = np.convolve(x, kernel, mode="full")[: len(x)]
         return smoothed
 
     # ------------------------------------------------------------------
@@ -281,7 +281,8 @@ class ChangeFinderDetector(BaseSegmenter):
         # If n_cps requested but threshold too strict, relax
         if self.n_cps is not None and len(selected) < self.n_cps:
             remaining = [
-                int(p) for p in idx_sorted
+                int(p)
+                for p in idx_sorted
                 if int(p) not in selected
                 and min_dist <= p <= n - min_dist
                 and (not selected or min(abs(p - s) for s in selected) >= min_dist)

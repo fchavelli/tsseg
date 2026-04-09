@@ -130,7 +130,7 @@ class ICIDDetector(BaseSegmenter):
             subIndex = np.random.choice(sn, psi, replace=False)
             tdata = Sdata[subIndex, :]
 
-            dis = pairwise_distances(tdata, data, metric='euclidean')
+            dis = pairwise_distances(tdata, data, metric="euclidean")
             centerIdx = np.argmin(dis, axis=0)
 
             z = np.zeros((psi, n))
@@ -153,7 +153,7 @@ class ICIDDetector(BaseSegmenter):
 
         mdata = []
         for i in range(len(index) - 1):
-            cdata = ndata[index[i]:index[i+1], :]
+            cdata = ndata[index[i] : index[i + 1], :]
             mdata.append(np.mean(cdata, axis=0))
         mdata = np.array(mdata)
 
@@ -162,17 +162,17 @@ class ICIDDetector(BaseSegmenter):
         for i in range(k, len(mdata)):
             # Direct comparison with the previous window_size's embedding
             norm_i = np.linalg.norm(mdata[i, :])
-            norm_prev = np.linalg.norm(mdata[i-1, :])
+            norm_prev = np.linalg.norm(mdata[i - 1, :])
             if norm_i == 0 or norm_prev == 0:
-                cos_sim = 1 # Treat as identical if one is a zero vector
+                cos_sim = 1  # Treat as identical if one is a zero vector
             else:
-                cos_sim = np.dot(mdata[i, :], mdata[i-1, :]) / (norm_i * norm_prev)
+                cos_sim = np.dot(mdata[i, :], mdata[i - 1, :]) / (norm_i * norm_prev)
 
             scores[i] = 1 - cos_sim
 
         Pscore = np.zeros(n_samples)
         for i in range(len(index) - 1):
-            Pscore[index[i]:index[i+1]] = scores[i]
+            Pscore[index[i] : index[i + 1]] = scores[i]
 
         # Normalize the score before returning, as in the original MATLAB
         return minmax_scale(Pscore)

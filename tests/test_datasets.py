@@ -10,6 +10,7 @@ from tsseg.data.datasets import load_mocap
 # MoCap dataset (bundled with the package)
 # ---------------------------------------------------------------------------
 
+
 class TestLoadMocap:
     def test_default_return_X_y(self):
         """Default call returns (X, y) with correct shapes."""

@@ -17,7 +17,7 @@ params = {
     "batch_size": 1,
     "channels": 30,
     "win_size": 256,
-    "win_type": 'rect',
+    "win_type": "rect",
     "depth": 1,
     "nb_steps": 20,
     "in_channels": 1,
@@ -28,7 +28,7 @@ params = {
     "cuda": False,
     "gpu": 0,
     "M": 20,
-    "N": 4
+    "N": 4,
 }
 
 
@@ -146,14 +146,17 @@ class series_decomp(nn.Module):
 
 
 class NetworkDDEM(torch.nn.Module):
-    def __init__(self, in_channels, channels, depth, reduced_size,
-                 out_channels, kernel_size):
+    def __init__(
+        self, in_channels, channels, depth, reduced_size, out_channels, kernel_size
+    ):
         super(NetworkDDEM, self).__init__()
         moving_ks = 5
         self.decompsition = series_decomp(moving_ks)
 
         self.trend_cnn = nn.Conv1d(in_channels, reduced_size, kernel_size=kernel_size)
-        self.seasonal_cnn = nn.Conv1d(in_channels, reduced_size, kernel_size=kernel_size)
+        self.seasonal_cnn = nn.Conv1d(
+            in_channels, reduced_size, kernel_size=kernel_size
+        )
 
         self.trend_cnn.requires_grad_(False)
         self.seasonal_cnn.requires_grad_(False)
@@ -169,17 +172,28 @@ class NetworkDDEM(torch.nn.Module):
 
     def forward(self, x):
         low_specx = torch.fft.rfft(x, dim=-1)
-        low_specx = low_specx[:, :, :self.trade_off_freq]
+        low_specx = low_specx[:, :, : self.trade_off_freq]
         x = torch.fft.irfft(low_specx, dim=-1) * self.trade_off_freq / x.size(-1)
         seasonal_init, trend_init = self.decompsition(x)
 
-        trend_x, seasonal_x = (self.trend_cnn(trend_init)), (self.seasonal_cnn(seasonal_init))
-        trend_x_reduced, seasonal_x_reduced = self.trend_pooling(trend_x), self.seasonal_pooling(seasonal_x)
+        trend_x, seasonal_x = (
+            (self.trend_cnn(trend_init)),
+            (self.seasonal_cnn(seasonal_init)),
+        )
+        trend_x_reduced, seasonal_x_reduced = (
+            self.trend_pooling(trend_x),
+            self.seasonal_pooling(seasonal_x),
+        )
 
-        trend_x_reduced, seasonal_x_reduced = trend_x_reduced.squeeze(2), seasonal_x_reduced.squeeze(2)
+        trend_x_reduced, seasonal_x_reduced = (
+            trend_x_reduced.squeeze(2),
+            seasonal_x_reduced.squeeze(2),
+        )
 
-        trend_x_embedding, seasonal_x_embedding = (self.linear_trend(trend_x_reduced)), (
-            self.linear_seasonal(seasonal_x_reduced))
+        trend_x_embedding, seasonal_x_embedding = (
+            (self.linear_trend(trend_x_reduced)),
+            (self.linear_seasonal(seasonal_x_reduced)),
+        )
 
         embedding = torch.concat([trend_x_embedding, seasonal_x_embedding], dim=-1)
         embedding = self.linear(embedding)
@@ -188,7 +202,6 @@ class NetworkDDEM(torch.nn.Module):
 
 
 class fncc_loss(torch.nn.modules.loss._Loss):
-
     def __init__(self, win_size, M, N, win_type):
         super(fncc_loss, self).__init__()
         self.win_size = win_size
@@ -213,13 +226,19 @@ class fncc_loss(torch.nn.modules.loss._Loss):
         total_seasonal_embeddings = []
 
         for i in range(M):
-            random_pos = np.random.randint(0, high=total_length - length_pos_neg * 2 + 1, size=1)
-            rand_samples = [batch[0, :, i: i + length_pos_neg] for i in range(random_pos[0], random_pos[0] + N)]
+            random_pos = np.random.randint(
+                0, high=total_length - length_pos_neg * 2 + 1, size=1
+            )
+            rand_samples = [
+                batch[0, :, i : i + length_pos_neg]
+                for i in range(random_pos[0], random_pos[0] + N)
+            ]
 
             intra_sample = torch.stack(rand_samples)
 
             embeddings, trend_x_embedding, seasonal_x_embedding = encoder(
-                intra_sample)  # ([4, 4]) N / embedding_channel
+                intra_sample
+            )  # ([4, 4]) N / embedding_channel
             total_embeddings.append(embeddings)
             total_trend_embeddings.append(trend_x_embedding)
             total_seasonal_embeddings.append(seasonal_x_embedding)
@@ -231,12 +250,13 @@ class fncc_loss(torch.nn.modules.loss._Loss):
                     if j <= i:
                         continue
                     else:
-
                         similarity_embedding = torch.bmm(
                             embeddings[i].view(1, 1, size_representation),
-                            embeddings[j].view(1, size_representation, 1))
-                        loss1_term = -torch.mean(torch.nn.functional.logsigmoid(
-                            similarity_embedding))
+                            embeddings[j].view(1, size_representation, 1),
+                        )
+                        loss1_term = -torch.mean(
+                            torch.nn.functional.logsigmoid(similarity_embedding)
+                        )
                         loss1 += loss1_term
 
             center = torch.mean(embeddings, dim=0)
@@ -258,15 +278,26 @@ class fncc_loss(torch.nn.modules.loss._Loss):
                     for jj in range(N):
                         totalnumber += 1
                         similarity_trend = torch.bmm(
-                            total_trend_embeddings[i][ii].view(1, 1, size_representation),
-                            total_trend_embeddings[j][jj].view(1, size_representation, 1))
+                            total_trend_embeddings[i][ii].view(
+                                1, 1, size_representation
+                            ),
+                            total_trend_embeddings[j][jj].view(
+                                1, size_representation, 1
+                            ),
+                        )
                         similarity_seasonal = torch.bmm(
-                            total_seasonal_embeddings[i][ii].view(1, 1, size_representation),
-                            total_seasonal_embeddings[j][jj].view(1, size_representation, 1))
+                            total_seasonal_embeddings[i][ii].view(
+                                1, 1, size_representation
+                            ),
+                            total_seasonal_embeddings[j][jj].view(
+                                1, size_representation, 1
+                            ),
+                        )
 
                         loss2_term = torch.bmm(
                             total_embeddings[i][ii].view(1, 1, size_representation),
-                            total_embeddings[j][jj].view(1, size_representation, 1))
+                            total_embeddings[j][jj].view(1, size_representation, 1),
+                        )
 
                         smi_value = similarity_trend * similarity_seasonal
                         smi.append(smi_value.item())
@@ -297,14 +328,37 @@ class BasicEncoder:
 
 
 class DDEM(BasicEncoder):
-    def __init__(self, win_size, batch_size, nb_steps, lr,
-                 channels, depth, reduced_size, out_channels, kernel_size,
-                 in_channels, cuda, gpu, M, N, win_type):
-        self.network = self.__create_network(in_channels, channels, depth, reduced_size,
-                                             out_channels, kernel_size, cuda, gpu)
+    def __init__(
+        self,
+        win_size,
+        batch_size,
+        nb_steps,
+        lr,
+        channels,
+        depth,
+        reduced_size,
+        out_channels,
+        kernel_size,
+        in_channels,
+        cuda,
+        gpu,
+        M,
+        N,
+        win_type,
+    ):
+        self.network = self.__create_network(
+            in_channels,
+            channels,
+            depth,
+            reduced_size,
+            out_channels,
+            kernel_size,
+            cuda,
+            gpu,
+        )
 
         self.win_type = win_type
-        self.architecture = ''
+        self.architecture = ""
         self.cuda = cuda
         self.gpu = gpu
         self.batch_size = batch_size
@@ -312,20 +366,26 @@ class DDEM(BasicEncoder):
         self.lr = lr
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.loss = fncc_loss(
-            win_size, M, N, win_type
-        )
+        self.loss = fncc_loss(win_size, M, N, win_type)
         params_to_update = [p for p in self.network.parameters() if p.requires_grad]
         self.optimizer = torch.optim.Adam(params_to_update, lr=lr)
 
         self.loss_list = []
 
-    def __create_network(self, in_channels, channels, depth, reduced_size,
-                         out_channels, kernel_size, cuda, gpu):
+    def __create_network(
+        self,
+        in_channels,
+        channels,
+        depth,
+        reduced_size,
+        out_channels,
+        kernel_size,
+        cuda,
+        gpu,
+    ):
 
         network = NetworkDDEM(
-            in_channels, channels, depth, reduced_size, out_channels,
-            kernel_size
+            in_channels, channels, depth, reduced_size, out_channels, kernel_size
         )
         network.double()
         if cuda:
@@ -344,7 +404,6 @@ class DDEM(BasicEncoder):
         )
         i = 0
         while i < self.nb_steps:
-
             for batch in train_generator:
                 if self.cuda:
                     batch = batch.cuda(self.gpu)
@@ -374,34 +433,65 @@ class DDEM(BasicEncoder):
             for batch in test_generator:
                 if self.cuda:
                     batch = batch.cuda(self.gpu)
-                features[
-                count * batch_size: (count + 1) * batch_size
-                ] = self.network(batch)[0].cpu()
+                features[count * batch_size : (count + 1) * batch_size] = self.network(
+                    batch
+                )[0].cpu()
                 count += 1
 
         return features
 
-    def encode_window(self, X, win_size=128, batch_size=500, window_batch_size=10000, step=10):
+    def encode_window(
+        self, X, win_size=128, batch_size=500, window_batch_size=10000, step=10
+    ):
         num_batch, num_channel, length = numpy.shape(X)
         num_window = int((length - win_size) / step) + 1
         embeddings = numpy.empty((num_batch, self.out_channels, num_window))
 
         for b in range(num_batch):
             for i in range(math.ceil(num_window / window_batch_size)):
-                masking = numpy.array([X[b, :, j:j + win_size] for j in range(step * i * window_batch_size,
-                                                                              step * min((i + 1) * window_batch_size,
-                                                                                         num_window), step)])
-                embeddings[b, :, i * window_batch_size: (i + 1) * window_batch_size] = numpy.swapaxes(
-                    self.encode(masking[:], batch_size=batch_size), 0, 1)
+                masking = numpy.array(
+                    [
+                        X[b, :, j : j + win_size]
+                        for j in range(
+                            step * i * window_batch_size,
+                            step * min((i + 1) * window_batch_size, num_window),
+                            step,
+                        )
+                    ]
+                )
+                embeddings[
+                    b, :, i * window_batch_size : (i + 1) * window_batch_size
+                ] = numpy.swapaxes(self.encode(masking[:], batch_size=batch_size), 0, 1)
         return embeddings[0].T
 
-    def set_params(self, compared_length, batch_size, nb_steps, lr,
-                   channels, depth, reduced_size, out_channels, kernel_size,
-                   in_channels, cuda, gpu):
+    def set_params(
+        self,
+        compared_length,
+        batch_size,
+        nb_steps,
+        lr,
+        channels,
+        depth,
+        reduced_size,
+        out_channels,
+        kernel_size,
+        in_channels,
+        cuda,
+        gpu,
+    ):
         self.__init__(
-            compared_length, batch_size,
-            nb_steps, lr, channels, depth,
-            reduced_size, out_channels, kernel_size, in_channels, cuda, gpu
+            compared_length,
+            batch_size,
+            nb_steps,
+            lr,
+            channels,
+            depth,
+            reduced_size,
+            out_channels,
+            kernel_size,
+            in_channels,
+            cuda,
+            gpu,
         )
         return self
 
@@ -409,8 +499,8 @@ class DDEM(BasicEncoder):
 class E2USD_Adaper(BasicEncoderClass):
     def _set_parmas(self, params):
         self.hyperparameters = params
-        if 'compared_length' in self.hyperparameters:
-            del self.hyperparameters['compared_length']
+        if "compared_length" in self.hyperparameters:
+            del self.hyperparameters["compared_length"]
         self.encoder = DDEM(**self.hyperparameters)
 
     def fit(self, X):
@@ -509,7 +599,9 @@ class E2USD:
         self.__embeddings = self.__encoder.encode(X, win_size, step)
 
     def __cluster(self):
-        self.__embedding_label = reorder_label(self.__clustering_component.fit(self.__embeddings))
+        self.__embedding_label = reorder_label(
+            self.__clustering_component.fit(self.__embeddings)
+        )
 
     def __assign_label(self):
         hight = len(set(self.__embedding_label))
@@ -518,7 +610,7 @@ class E2USD:
         vote_matrix = np.zeros((self.__length, hight))
         i = 0
         for l in self.__embedding_label:
-            vote_matrix[i:i + self.__win_size, l] += weight_vector
+            vote_matrix[i : i + self.__win_size, l] += weight_vector
             i += self.__step
         self.__state_seq = np.array([np.argmax(row) for row in vote_matrix])
 
@@ -534,7 +626,7 @@ class E2USD:
         label = []
         total_clusetring = 0
         for i in range(0, self.__length - win_size, step):
-            now_x = X[i:i + win_size]
+            now_x = X[i : i + win_size]
             now_win_embedding = self.__encode_one(now_x)
             if self.last_win_embedding is None:
                 self.last_win_embedding = now_win_embedding

@@ -20,6 +20,7 @@ from tsseg.metrics import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def cp_data():
     """Change-point lists with series_length=50 as last element.
@@ -59,6 +60,7 @@ def state_data_perfect():
 # ---------------------------------------------------------------------------
 # Change-Point Detection metrics
 # ---------------------------------------------------------------------------
+
 
 class TestF1Score:
     """F1Score returns keys: score, precision, recall."""
@@ -114,7 +116,9 @@ class TestBidirectionalCovering:
         y_pred = [0, 15, 30]
         result = BidirectionalCovering(aggregation="arithmetic").compute(y_true, y_pred)
 
-        expected = 0.5 * (result["ground_truth_covering"] + result["prediction_covering"])
+        expected = 0.5 * (
+            result["ground_truth_covering"] + result["prediction_covering"]
+        )
         assert result["score"] == pytest.approx(expected)
 
 
@@ -132,6 +136,7 @@ class TestHausdorffDistance:
 # ---------------------------------------------------------------------------
 # State Detection metrics
 # ---------------------------------------------------------------------------
+
 
 class TestAdjustedRandIndex:
     """ARI returns key: score."""

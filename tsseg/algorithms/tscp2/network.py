@@ -76,10 +76,15 @@ else:
                 kernel_initializer="random_normal",
             )
             self.flatten = tf.keras.layers.Flatten()
-            self.dense_layers = [tf.keras.layers.Dense(int(units), activation="relu") for units in dense_units]
+            self.dense_layers = [
+                tf.keras.layers.Dense(int(units), activation="relu")
+                for units in dense_units
+            ]
             self.projection = tf.keras.layers.Dense(self.code_size)
 
-            dummy = tf.zeros((1, self.window_size, self.input_features), dtype=tf.float32)
+            dummy = tf.zeros(
+                (1, self.window_size, self.input_features), dtype=tf.float32
+            )
             _ = self(dummy, training=False)
 
         def call(self, inputs: tf.Tensor, training: bool = False) -> tf.Tensor:

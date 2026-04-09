@@ -109,12 +109,16 @@ class _ParallelAutoEncoder(nn.Module):
             recon = self.tanh(self.decoder_out(y))
 
             z_shared_all.append(z_shared.unsqueeze(1))
-            z_unshared_all.append(z_unshared.unsqueeze(1) if z_unshared.numel() else None)
+            z_unshared_all.append(
+                z_unshared.unsqueeze(1) if z_unshared.numel() else None
+            )
             reconstructed.append(recon.unsqueeze(1))
 
         z_shared_all = torch.cat(z_shared_all, dim=1)
         if self.latent_dim > self.nr_shared:
-            z_unshared_all = torch.cat([t for t in z_unshared_all if t is not None], dim=1)
+            z_unshared_all = torch.cat(
+                [t for t in z_unshared_all if t is not None], dim=1
+            )
             latent = torch.cat([z_shared_all, z_unshared_all], dim=-1)
         else:
             latent = z_shared_all
@@ -348,7 +352,8 @@ class TireDetector(BaseSegmenter):
             return utils.ts_to_windows(X, 0, window_size, stride)
 
         windows_per_channel = [
-            utils.ts_to_windows(X[:, i], 0, window_size, stride) for i in range(X.shape[1])
+            utils.ts_to_windows(X[:, i], 0, window_size, stride)
+            for i in range(X.shape[1])
         ]
         stacked = np.stack(windows_per_channel)
         return utils.combine_ts(stacked)
@@ -474,11 +479,13 @@ class TireDetector(BaseSegmenter):
         elif self.config.domain == "FD":
             distances = utils.distance(features_fd, self.config.window_size)
         else:
-            beta = np.quantile(utils.distance(features_td, self.config.window_size), 0.95)
-            alpha = np.quantile(utils.distance(features_fd, self.config.window_size), 0.95)
-            combined = np.concatenate(
-                (features_td * alpha, features_fd * beta), axis=1
+            beta = np.quantile(
+                utils.distance(features_td, self.config.window_size), 0.95
             )
+            alpha = np.quantile(
+                utils.distance(features_fd, self.config.window_size), 0.95
+            )
+            combined = np.concatenate((features_td * alpha, features_fd * beta), axis=1)
             combined = utils.matched_filter(combined, self.config.window_size)
             distances = utils.distance(combined, self.config.window_size)
 
@@ -514,12 +521,20 @@ class TireDetector(BaseSegmenter):
 
         if self.n_segments is None or self.n_segments < 2:
             # Return peaks detected with default prominence
-            peaks, _ = find_peaks(scores, distance=max(1, int(self.config.window_size * self.config.peak_distance_fraction)), prominence=0.1)
+            peaks, _ = find_peaks(
+                scores,
+                distance=max(
+                    1, int(self.config.window_size * self.config.peak_distance_fraction)
+                ),
+                prominence=0.1,
+            )
             return peaks.astype(int)
 
         peaks, properties = find_peaks(
             scores,
-            distance=max(1, int(self.config.window_size * self.config.peak_distance_fraction)),
+            distance=max(
+                1, int(self.config.window_size * self.config.peak_distance_fraction)
+            ),
             prominence=0,  # request prominence computation so we can rank peaks
         )
         if peaks.size == 0:

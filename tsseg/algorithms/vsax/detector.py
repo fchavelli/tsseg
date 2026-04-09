@@ -155,7 +155,7 @@ class VSAXDetector(BaseSegmenter):
         cumsum = np.zeros((n + 1, d), dtype=np.float64)
         cumsum[1:] = np.cumsum(series, axis=0)
         cumsum2 = np.zeros((n + 1, d), dtype=np.float64)
-        cumsum2[1:] = np.cumsum(series ** 2, axis=0)
+        cumsum2[1:] = np.cumsum(series**2, axis=0)
 
         candidate_lengths = self._candidate_lengths(n)
         if len(candidate_lengths) == 0:
@@ -189,9 +189,15 @@ class VSAXDetector(BaseSegmenter):
                 rel_bounds = bounds_cache.get(length)
                 if rel_bounds is None:
                     frames = min(self.paa_segments, length)
-                    rel_bounds = np.linspace(0, length, frames + 1).round().astype(np.intp)
+                    rel_bounds = (
+                        np.linspace(0, length, frames + 1).round().astype(np.intp)
+                    )
                 cost, symbol = self._segment_cost_fast(
-                    cumsum, cumsum2, start, d, rel_bounds,
+                    cumsum,
+                    cumsum2,
+                    start,
+                    d,
+                    rel_bounds,
                 )
                 total = cost + self.penalty + dp_cost[end]
                 if total < best_cost:
@@ -203,9 +209,15 @@ class VSAXDetector(BaseSegmenter):
                 # Fallback: consume entire remaining suffix
                 remaining = max_len
                 frames = min(self.paa_segments, remaining)
-                rel_bounds = np.linspace(0, remaining, frames + 1).round().astype(np.intp)
+                rel_bounds = (
+                    np.linspace(0, remaining, frames + 1).round().astype(np.intp)
+                )
                 cost, symbol = self._segment_cost_fast(
-                    cumsum, cumsum2, start, d, rel_bounds,
+                    cumsum,
+                    cumsum2,
+                    start,
+                    d,
+                    rel_bounds,
                 )
                 best_cost = cost + self.penalty
                 best_end = n
@@ -262,10 +274,10 @@ class VSAXDetector(BaseSegmenter):
 
         sizes_2d = sizes[:, np.newaxis].astype(np.float64)
 
-        frame_sums = cumsum[b] - cumsum[a]      # (actual_frames, d)
-        frame_sums2 = cumsum2[b] - cumsum2[a]   # (actual_frames, d)
-        frame_means = frame_sums / sizes_2d     # (actual_frames, d)
-        frame_vars = frame_sums2 / sizes_2d - frame_means ** 2
+        frame_sums = cumsum[b] - cumsum[a]  # (actual_frames, d)
+        frame_sums2 = cumsum2[b] - cumsum2[a]  # (actual_frames, d)
+        frame_means = frame_sums / sizes_2d  # (actual_frames, d)
+        frame_vars = frame_sums2 / sizes_2d - frame_means**2
         np.maximum(frame_vars, 0.0, out=frame_vars)
 
         total_error = float(np.sum(frame_vars * sizes_2d))
@@ -275,9 +287,10 @@ class VSAXDetector(BaseSegmenter):
         # breakpoints: (A-1, d)   frame_means: (actual_frames, d)
         if self._breakpoints.shape[0] > 0:
             sym = (
-                frame_means[:, np.newaxis, :]
-                >= self._breakpoints[np.newaxis, :, :]
-            ).sum(axis=1).astype(np.int32)          # (actual_frames, d)
+                (frame_means[:, np.newaxis, :] >= self._breakpoints[np.newaxis, :, :])
+                .sum(axis=1)
+                .astype(np.int32)
+            )  # (actual_frames, d)
         else:
             sym = np.zeros((actual_frames, n_channels), dtype=np.int32)
 
@@ -325,11 +338,11 @@ class VSAXDetector(BaseSegmenter):
                 dist /= max_dist
             Z = linkage(dist, method="complete")
             clusters = fcluster(
-                Z, t=self.symbol_merge_threshold, criterion="distance",
+                Z,
+                t=self.symbol_merge_threshold,
+                criterion="distance",
             )
-            key_to_cluster = {
-                k: int(clusters[i]) for i, k in enumerate(unique_keys)
-            }
+            key_to_cluster = {k: int(clusters[i]) for i, k in enumerate(unique_keys)}
         else:
             # Exact matching (backward-compatible)
             key_to_cluster = {k: i for i, k in enumerate(unique_keys)}
@@ -383,7 +396,9 @@ class VSAXDetector(BaseSegmenter):
         return lengths
 
     def _enumerate_lengths(
-        self, candidate_lengths: Iterable[int], max_length: int,
+        self,
+        candidate_lengths: Iterable[int],
+        max_length: int,
     ) -> Iterable[int]:
         yielded = False
         for length in candidate_lengths:

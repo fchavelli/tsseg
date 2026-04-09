@@ -34,6 +34,7 @@ def _safe_date_range(n_periods: int) -> pd.DatetimeIndex:
     freq = "D" if n_periods <= _MAX_DAILY_PERIODS else "s"
     return pd.date_range(start="2000-01-01", periods=n_periods, freq=freq)
 
+
 class ProphetDetector(BaseSegmenter):
     """Prophet forecaster wrapped as an aeon-compatible change-point detector."""
 
@@ -77,10 +78,12 @@ class ProphetDetector(BaseSegmenter):
         axis: int = 0,
         multivariate_strategy: str = "ensembling",
         tolerance: int | float = 0.01,
-        #n_segments: int | None = None,
+        # n_segments: int | None = None,
     ) -> None:
         super().__init__(axis=axis)
-        self.n_changepoints = int(n_changepoints) if n_changepoints is not None else None
+        self.n_changepoints = (
+            int(n_changepoints) if n_changepoints is not None else None
+        )
         self.n_changepoint_func = n_changepoint_func
         self.multivariate_strategy = multivariate_strategy
         self.tolerance = tolerance
@@ -128,7 +131,9 @@ class ProphetDetector(BaseSegmenter):
                     indices = df[df["ds"].isin(cp_dates)].index.to_numpy(dtype=int)
                     all_detected_indices.extend(indices)
 
-                pred = aggregate_change_points(all_detected_indices, n_cp, self.tolerance, signal_len=signal_len)
+                pred = aggregate_change_points(
+                    all_detected_indices, n_cp, self.tolerance, signal_len=signal_len
+                )
                 status = "ok"
 
             else:
@@ -163,4 +168,3 @@ class ProphetDetector(BaseSegmenter):
         )
         self.changepoint_strengths_ = np.empty(0, dtype=float)
         return self.changepoints_
-

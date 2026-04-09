@@ -1,6 +1,7 @@
 """
 This module provides an aeon-compatible wrapper for the Time2State algorithm.
 """
+
 import numpy as np
 import torch
 
@@ -59,6 +60,7 @@ class Time2StateDetector(BaseSegmenter):
     random_state : int, optional
         Random state for reproducibility.
     """
+
     _tags = {
         "X_inner_type": "np.ndarray",
         "fit_is_empty": False,
@@ -67,7 +69,7 @@ class Time2StateDetector(BaseSegmenter):
         "capability:multivariate": True,
         "capability:unequal_length": False,
         "detector_type": "state_detection",
-        "capability:unsupervised": True,        # n_states is an upper bound
+        "capability:unsupervised": True,  # n_states is an upper bound
         "capability:semi_supervised": True,
     }
 
@@ -148,10 +150,23 @@ class Time2StateDetector(BaseSegmenter):
         ],
     }
 
-    def __init__(self, axis=0, window_size=256, step=50, n_states=20, alpha=1e3,
-                 batch_size=1, nb_steps=20, lr=0.003, depth=10,
-                 out_channels=4, reduced_size=80, kernel_size=3,
-                 use_gpu=None, random_state=None):
+    def __init__(
+        self,
+        axis=0,
+        window_size=256,
+        step=50,
+        n_states=20,
+        alpha=1e3,
+        batch_size=1,
+        nb_steps=20,
+        lr=0.003,
+        depth=10,
+        out_channels=4,
+        reduced_size=80,
+        kernel_size=3,
+        use_gpu=None,
+        random_state=None,
+    ):
 
         self.window_size = window_size
         self.step = step
@@ -204,19 +219,21 @@ class Time2StateDetector(BaseSegmenter):
 
         # 1. Initialize Encoder
         t2s_params = params_LSE.copy()
-        t2s_params.update({
-            "win_size": self.window_size,
-            "batch_size": self.batch_size,
-            "nb_steps": self.nb_steps,
-            "lr": self.lr,
-            "depth": self.depth,
-            "out_channels": self.out_channels,
-            "reduced_size": self.reduced_size,
-            "kernel_size": self.kernel_size,
-            "cuda": self.use_gpu,
-            "gpu": 0, # Assuming GPU 0 if used
-            "in_channels": n_channels,
-        })
+        t2s_params.update(
+            {
+                "win_size": self.window_size,
+                "batch_size": self.batch_size,
+                "nb_steps": self.nb_steps,
+                "lr": self.lr,
+                "depth": self.depth,
+                "out_channels": self.out_channels,
+                "reduced_size": self.reduced_size,
+                "kernel_size": self.kernel_size,
+                "cuda": self.use_gpu,
+                "gpu": 0,  # Assuming GPU 0 if used
+                "in_channels": n_channels,
+            }
+        )
         self.encoder_ = CausalConv_LSE_Adaper(t2s_params)
 
         # 2. Initialize Clustering component
@@ -248,9 +265,11 @@ class Time2StateDetector(BaseSegmenter):
         X = self._validate_data(X)
         n_timepoints, n_channels = X.shape
 
-
         # Handle short series case from fit or if predict X is short
-        if getattr(self, '_short_series_fitted', False) or n_timepoints <= self.window_size * 2:
+        if (
+            getattr(self, "_short_series_fitted", False)
+            or n_timepoints <= self.window_size * 2
+        ):
             if self.get_tag("returns_dense"):
                 return np.array([], dtype=int)  # No change points for short series
             else:
@@ -261,7 +280,7 @@ class Time2StateDetector(BaseSegmenter):
             win_size=self.window_size,
             step=self.step,
             encoder=self.encoder_,
-            clustering_component=self.clustering_
+            clustering_component=self.clustering_,
         )
 
         # Use the internal methods to predict without re-fitting the encoder
@@ -276,7 +295,7 @@ class Time2StateDetector(BaseSegmenter):
         if self.get_tag("returns_dense"):
             change_points = []
             for i in range(1, len(state_sequence)):
-                if state_sequence[i] != state_sequence[i-1]:
+                if state_sequence[i] != state_sequence[i - 1]:
                     change_points.append(i)
             return np.array(change_points, dtype=int)
         else:

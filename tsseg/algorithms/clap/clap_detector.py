@@ -2,6 +2,7 @@
 This module provides a wrapper for the CLaP algorithm to integrate it
 with the tsseg library's API.
 """
+
 from ..base import BaseSegmenter
 
 # from ..clap.clasp_detector import ClaspDetector
@@ -76,6 +77,7 @@ class ClapDetector(BaseSegmenter):
     change_points_ : np.ndarray
             The change points used for fitting the model.
     """
+
     _tags = {
         "capability:unequal_length": False,
         "capability:univariate": True,
@@ -144,8 +146,20 @@ class ClapDetector(BaseSegmenter):
         ],
     }
 
-    def __init__(self, window_size="suss", classifier="rocket", merge_score="cgain", n_splits=5, n_jobs=1,
-                 sample_size=1_000, random_state=42, axis=0, n_change_points=None, change_points=None, n_segments=None):
+    def __init__(
+        self,
+        window_size="suss",
+        classifier="rocket",
+        merge_score="cgain",
+        n_splits=5,
+        n_jobs=1,
+        sample_size=1_000,
+        random_state=42,
+        axis=0,
+        n_change_points=None,
+        change_points=None,
+        n_segments=None,
+    ):
         self.window_size = window_size
         self.classifier = classifier
         self.merge_score = merge_score
@@ -192,7 +206,7 @@ class ClapDetector(BaseSegmenter):
             n_splits=self.n_splits,
             n_jobs=self.n_jobs,
             sample_size=self.sample_size,
-            random_state=self.random_state
+            random_state=self.random_state,
         )
 
         # Determine change points
@@ -213,9 +227,7 @@ class ClapDetector(BaseSegmenter):
             n_seg_arg = target_n_segments if target_n_segments is not None else "learn"
 
             clasp = BinaryClaSPSegmentation(
-                n_segments=n_seg_arg,
-                n_jobs=self.n_jobs,
-                window_size=self.window_size
+                n_segments=n_seg_arg, n_jobs=self.n_jobs, window_size=self.window_size
             )
             clasp.fit_predict(X)
             self.change_points_ = clasp.change_points

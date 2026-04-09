@@ -1,6 +1,7 @@
 """
 This module provides an aeon-compatible wrapper for the AutoPlait algorithm.
 """
+
 import numpy as np
 
 from ..base import BaseSegmenter
@@ -23,6 +24,7 @@ class AutoPlaitDetector(BaseSegmenter):
     .. [2] Online Semantic Segmentation project page,
        https://sites.google.com/site/onlinesemanticsegmentation/ (reference implementation).
     """
+
     _tags = {
         "capability:univariate": True,
         "capability:multivariate": True,
@@ -107,14 +109,19 @@ class AutoPlaitDetector(BaseSegmenter):
 
         if change_points.size > 0:
             change_points = np.sort(change_points)
-            change_points = change_points[(change_points > 0) & (change_points < n_samples)]
+            change_points = change_points[
+                (change_points > 0) & (change_points < n_samples)
+            ]
 
         expected_segments = change_points.size + 1
         if segment_labels.size < expected_segments:
             pad_value = segment_labels[-1]
             pad_width = expected_segments - segment_labels.size
             segment_labels = np.pad(
-                segment_labels, (0, pad_width), mode="constant", constant_values=pad_value
+                segment_labels,
+                (0, pad_width),
+                mode="constant",
+                constant_values=pad_value,
             )
         elif segment_labels.size > expected_segments:
             segment_labels = segment_labels[:expected_segments]

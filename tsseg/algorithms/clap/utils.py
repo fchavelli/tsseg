@@ -8,6 +8,7 @@ from numba import njit
 ClaSP utilities
 """
 
+
 def check_input_time_series(time_series):
     """
     Check that the input time series is a 1 or 2-dimensional numpy array of numbers.
@@ -64,7 +65,9 @@ def check_excl_radius(k_neighbours, excl_radius):
         If the exclusion radius is smaller than the number of neighbours used.
     """
     if excl_radius <= k_neighbours:
-        raise ValueError("Exclusion radius must be larger than the number of neighbours used.")
+        raise ValueError(
+            "Exclusion radius must be larger than the number of neighbours used."
+        )
 
 
 def numba_cache_safe(func, *args, **kwargs):
@@ -136,6 +139,7 @@ def roll_array(arr, num, fill_value=0):
 
     return result
 
+
 # Normalizes multivariate time series
 def normalize_time_series(ts):
     flatten = False
@@ -149,7 +153,9 @@ def normalize_time_series(ts):
 
         # Min-max normalize channel
         try:
-            channel = np.true_divide(channel - channel.min(), channel.max() - channel.min())
+            channel = np.true_divide(
+                channel - channel.min(), channel.max() - channel.min()
+            )
         except FloatingPointError:
             pass
 
@@ -167,20 +173,18 @@ def normalize_time_series(ts):
 
     return ts
 
+
 """
 CLaP utilities
 """
+
 
 # Create vector of state labels that map to data points
 @njit(fastmath=True, cache=True)
 def create_state_labels(cps, labels, ts_len):
     seg_labels = np.zeros(shape=ts_len, dtype=np.int64)
 
-    segments = np.concatenate((
-        np.array([0]),
-        cps,
-        np.array([ts_len])
-    ))
+    segments = np.concatenate((np.array([0]), cps, np.array([ts_len])))
 
     for idx in range(1, len(segments)):
         seg_start, seg_end = segments[idx - 1], segments[idx]
@@ -195,7 +199,7 @@ def create_sliding_window(time_series, window_size, stride=1):
 
     for idx in range(0, time_series.shape[0], stride):
         if idx + window_size <= time_series.shape[0]:
-            X.append(time_series[idx:idx + window_size])
+            X.append(time_series[idx : idx + window_size])
 
     return np.array(X, dtype=time_series.dtype)
 

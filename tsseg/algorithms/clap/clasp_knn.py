@@ -112,8 +112,15 @@ class ClaSP:
         Split ClaSP into two segments.
     """
 
-    def __init__(self, window_size=10, k_neighbours=3, distance="znormed_euclidean_distance", score="roc_auc",
-                 excl_radius=5, n_jobs=-1):
+    def __init__(
+        self,
+        window_size=10,
+        k_neighbours=3,
+        distance="znormed_euclidean_distance",
+        score="roc_auc",
+        excl_radius=5,
+        n_jobs=-1,
+    ):
         self.window_size = window_size
         self.k_neighbours = k_neighbours
         self.distance = distance
@@ -139,7 +146,9 @@ class ClaSP:
         None
         """
         if not self.is_fitted:
-            raise NotFittedError("ClaSP object is not fitted yet. Please fit the object before using this method.")
+            raise NotFittedError(
+                "ClaSP object is not fitted yet. Please fit the object before using this method."
+            )
 
     def fit(self, time_series, knn=None):
         """
@@ -170,7 +179,9 @@ class ClaSP:
         self.lbound, self.ubound = 0, time_series.shape[0]
 
         if time_series.shape[0] < 2 * self.min_seg_size:
-            raise ValueError("Time series must at least have 2*min_seg_size data points.")
+            raise ValueError(
+                "Time series must at least have 2*min_seg_size data points."
+            )
 
         self.time_series = time_series
 
@@ -179,7 +190,7 @@ class ClaSP:
                 window_size=self.window_size,
                 k_neighbours=self.k_neighbours,
                 distance=self.distance,
-                n_jobs=self.n_jobs
+                n_jobs=self.n_jobs,
             ).fit(time_series)
         else:
             self.knn = knn
@@ -194,14 +205,23 @@ class ClaSP:
 
         for idx in range(n_jobs):
             start = max(idx * bin_size, self.min_seg_size)
-            end = min((idx + 1) * bin_size, self.knn.offsets.shape[0] - self.min_seg_size + self.window_size)
-            if end > start: pranges.append((start, end))
+            end = min(
+                (idx + 1) * bin_size,
+                self.knn.offsets.shape[0] - self.min_seg_size + self.window_size,
+            )
+            if end > start:
+                pranges.append((start, end))
 
         n_threads = get_num_threads()
         set_num_threads(n_jobs)
 
-        self.profile = numba_cache_safe(_parallel_profile, self.knn.offsets, np.array(pranges), self.window_size,
-                                        self.score)
+        self.profile = numba_cache_safe(
+            _parallel_profile,
+            self.knn.offsets,
+            np.array(pranges),
+            self.window_size,
+            self.score,
+        )
 
         set_num_threads(n_threads)
         self.is_fitted = True
@@ -276,7 +296,8 @@ class ClaSP:
 
         if validation is not None:
             validation_test = map_validation_tests(validation)
-            if not validation_test(self, cp, threshold): return None
+            if not validation_test(self, cp, threshold):
+                return None
 
         if sparse is True:
             return cp
@@ -324,9 +345,21 @@ class ClaSPEnsemble(ClaSP):
         Split ClaSP ensemble into two segments.
     """
 
-    def __init__(self, n_estimators=10, window_size=10, k_neighbours=3, distance="znormed_euclidean_distance",
-                 score="roc_auc", early_stopping=True, excl_radius=5, n_jobs=-1, random_state=2357):
-        super().__init__(window_size, k_neighbours, distance, score, excl_radius, n_jobs)
+    def __init__(
+        self,
+        n_estimators=10,
+        window_size=10,
+        k_neighbours=3,
+        distance="znormed_euclidean_distance",
+        score="roc_auc",
+        early_stopping=True,
+        excl_radius=5,
+        n_jobs=-1,
+        random_state=2357,
+    ):
+        super().__init__(
+            window_size, k_neighbours, distance, score, excl_radius, n_jobs
+        )
         self.n_estimators = n_estimators
         self.early_stopping = early_stopping
         self.random_state = random_state
@@ -343,19 +376,27 @@ class ClaSPEnsemble(ClaSP):
         tcs = [(0, self.time_series.shape[0])]
         np.random.seed(self.random_state)
 
-        while len(tcs) < self.n_estimators and self.time_series.shape[0] > 3 * self.min_seg_size:
+        while (
+            len(tcs) < self.n_estimators
+            and self.time_series.shape[0] > 3 * self.min_seg_size
+        ):
             lbound, area = np.random.choice(self.time_series.shape[0], 2, replace=True)
 
             if self.time_series.shape[0] - lbound < area:
                 area = self.time_series.shape[0] - lbound
 
             ubound = lbound + area
-            if ubound - lbound < 2 * self.min_seg_size: continue
+            if ubound - lbound < 2 * self.min_seg_size:
+                continue
             tcs.append((lbound, ubound))
 
-        return np.asarray(sorted(tcs, key=lambda tc: tc[1] - tc[0], reverse=True), dtype=np.int64)
+        return np.asarray(
+            sorted(tcs, key=lambda tc: tc[1] - tc[0], reverse=True), dtype=np.int64
+        )
 
-    def fit(self, time_series, knn=None, validation="significance_test", threshold=1e-15):
+    def fit(
+        self, time_series, knn=None, validation="significance_test", threshold=1e-15
+    ):
         """
         Fits the ClaSP ensemble on the given time series, using temporal constraints to so that
         each ClaSP instance works on different (but possibly overlapping) parts of the time series.
@@ -392,7 +433,9 @@ class ClaSPEnsemble(ClaSP):
         self.min_seg_size = self.window_size * self.excl_radius
 
         if time_series.shape[0] < 2 * self.min_seg_size:
-            raise ValueError("Time series must at least have 2*min_seg_size data points.")
+            raise ValueError(
+                "Time series must at least have 2*min_seg_size data points."
+            )
 
         self.time_series = time_series
         tcs = self._calculate_temporal_constraints()
@@ -402,7 +445,7 @@ class ClaSPEnsemble(ClaSP):
                 window_size=self.window_size,
                 k_neighbours=self.k_neighbours,
                 distance=self.distance,
-                n_jobs=self.n_jobs
+                n_jobs=self.n_jobs,
             ).fit(time_series, temporal_constraints=tcs)
 
         best_score, best_tc, best_clasp = -np.inf, None, None
@@ -413,27 +456,44 @@ class ClaSPEnsemble(ClaSP):
                 k_neighbours=self.k_neighbours,
                 score=self.score_name,
                 excl_radius=self.excl_radius,
-                n_jobs=self.n_jobs
+                n_jobs=self.n_jobs,
             ).fit(time_series[lbound:ubound], knn=knn.constrain(lbound, ubound))
 
-            clasp.profile = (clasp.profile + (ubound - lbound) / time_series.shape[0]) / 2
+            clasp.profile = (
+                clasp.profile + (ubound - lbound) / time_series.shape[0]
+            ) / 2
 
-            if clasp.profile.max() > best_score or best_clasp is None and idx == tcs.shape[0] - 1:
+            if (
+                clasp.profile.max() > best_score
+                or best_clasp is None
+                and idx == tcs.shape[0] - 1
+            ):
                 best_score = clasp.profile.max()
                 best_tc = (lbound, ubound)
                 best_clasp = clasp
             else:
-                if self.early_stopping is True: break
+                if self.early_stopping is True:
+                    break
 
-            if self.early_stopping is True and best_clasp.split(validation=validation, threshold=threshold) is not None:
+            if (
+                self.early_stopping is True
+                and best_clasp.split(validation=validation, threshold=threshold)
+                is not None
+            ):
                 break
 
-        self.profile = np.full(shape=time_series.shape[0] - self.window_size + 1, fill_value=-np.inf, dtype=np.float64)
+        self.profile = np.full(
+            shape=time_series.shape[0] - self.window_size + 1,
+            fill_value=-np.inf,
+            dtype=np.float64,
+        )
 
         if best_clasp is not None:
             self.knn = best_clasp.knn
             self.lbound, self.ubound = best_tc
-            self.profile[self.lbound:self.ubound - self.window_size + 1] = best_clasp.profile
+            self.profile[self.lbound : self.ubound - self.window_size + 1] = (
+                best_clasp.profile
+            )
         else:
             self.knn = knn
             self.lbound, self.ubound = 0, self.time_series.shape[0]

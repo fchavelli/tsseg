@@ -8,6 +8,7 @@ import pandas as pd
 
 try:
     import stumpy
+
     _HAS_STUMPY = True
 except ImportError:
     _HAS_STUMPY = False
@@ -106,9 +107,19 @@ class FLUSSDetector(BaseSegmenter):
         ],
     }
 
-    def __init__(self, window_size=10, n_segments=2, exclusion_factor=5, axis=0, multivariate_strategy="ensembling", tolerance=0.01):
+    def __init__(
+        self,
+        window_size=10,
+        n_segments=2,
+        exclusion_factor=5,
+        axis=0,
+        multivariate_strategy="ensembling",
+        tolerance=0.01,
+    ):
         if not _HAS_STUMPY:
-            raise ImportError("stumpy is not installed. Please install it to use FLUSSDetector.")
+            raise ImportError(
+                "stumpy is not installed. Please install it to use FLUSSDetector."
+            )
         self.window_size = window_size
         self.n_segments = n_segments
         self.exclusion_factor = exclusion_factor
@@ -162,7 +173,9 @@ class FLUSSDetector(BaseSegmenter):
             # Note: n_segments = n_changepoints + 1 (roughly), but FLUSS returns indices.
             # We want n_segments - 1 change points.
             n_cp = self.n_segments - 1
-            self.found_cps = aggregate_change_points(all_detected_indices, n_cp, self.tolerance, signal_len=signal_len)
+            self.found_cps = aggregate_change_points(
+                all_detected_indices, n_cp, self.tolerance, signal_len=signal_len
+            )
 
             # For profiles/scores in multivariate case, it's ambiguous.
             # We could average them, but for now we leave them as None or last dimension.
@@ -214,7 +227,7 @@ class FLUSSDetector(BaseSegmenter):
             mp[:, 1],
             L=self.window_size,
             excl_factor=self.exclusion_factor,
-            n_regimes=self.n_segments, # regimes -> segments for consistency with state detection naming
+            n_regimes=self.n_segments,  # regimes -> segments for consistency with state detection naming
         )
         self.scores = self.profile[self.found_cps]
 

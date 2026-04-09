@@ -223,7 +223,9 @@ class TSCP2Detector(BaseSegmenter):
         if n_cps is not None and similarity_threshold is not None:
             similarity_threshold = None
         if loss not in _LOSS_REGISTRY:
-            raise ValueError(f"Unknown loss '{loss}'. Choose from {sorted(_LOSS_REGISTRY)}")
+            raise ValueError(
+                f"Unknown loss '{loss}'. Choose from {sorted(_LOSS_REGISTRY)}"
+            )
         if similarity not in _SIMILARITY_REGISTRY:
             raise ValueError(
                 f"Unknown similarity '{similarity}'. Choose from {sorted(_SIMILARITY_REGISTRY)}"
@@ -232,7 +234,9 @@ class TSCP2Detector(BaseSegmenter):
         self.similarity = similarity
         self.window_size = int(window_size)
         self.n_cps = None if n_cps is None else int(n_cps)
-        self.similarity_threshold = None if similarity_threshold is None else float(similarity_threshold)
+        self.similarity_threshold = (
+            None if similarity_threshold is None else float(similarity_threshold)
+        )
         self._auto_threshold = self.n_cps is None and self.similarity_threshold is None
         self.stride = max(int(stride), 1)
         self.code_size = int(code_size)
@@ -243,7 +247,9 @@ class TSCP2Detector(BaseSegmenter):
         self.kernel_size = int(kernel_size)
         self.nb_stacks = int(nb_stacks)
         self.dropout_rate = float(dropout_rate)
-        self.dense_units = None if dense_units is None else tuple(int(u) for u in dense_units)
+        self.dense_units = (
+            None if dense_units is None else tuple(int(u) for u in dense_units)
+        )
         self.batch_size = int(batch_size)
         self.epochs = int(epochs)
         self.learning_rate = float(learning_rate)
@@ -269,7 +275,9 @@ class TSCP2Detector(BaseSegmenter):
             raise ValueError("TSCP2Detector expects 1D or 2D arrays")
         return X
 
-    def _build_pairs(self, signal: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _build_pairs(
+        self, signal: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         n_samples, _ = signal.shape
 
         while n_samples <= 2 * self.window_size:
@@ -358,7 +366,9 @@ class TSCP2Detector(BaseSegmenter):
                         **loss_kwargs,
                     )
                 grads = tape.gradient(loss, encoder.trainable_variables)
-                optimiser.apply_gradients(zip(grads, encoder.trainable_variables, strict=False))
+                optimiser.apply_gradients(
+                    zip(grads, encoder.trainable_variables, strict=False)
+                )
                 last_pos = float(pos_sim.numpy())
                 last_neg = float(neg_sim.numpy())
 
@@ -375,9 +385,14 @@ class TSCP2Detector(BaseSegmenter):
         if self._encoder is None:
             raise RuntimeError("TSCP2Detector must be fitted before predict")
         signal = self._ensure_2d(X)
-        if self._train_signal is not None and signal.shape[1] != self._train_signal.shape[1]:
+        if (
+            self._train_signal is not None
+            and signal.shape[1] != self._train_signal.shape[1]
+        ):
             raise ValueError("Input feature dimension differs from the fitted data")
-        if self.refit_on_predict and (self._train_signal is None or not np.array_equal(signal, self._train_signal)):
+        if self.refit_on_predict and (
+            self._train_signal is None or not np.array_equal(signal, self._train_signal)
+        ):
             self._fit(signal)
             signal = self._train_signal
         history, future, centers = self._build_pairs(signal)
@@ -397,7 +412,9 @@ class TSCP2Detector(BaseSegmenter):
             mask = similarities < self.similarity_threshold
             bkps = centers[mask]
         else:
-            raise RuntimeError("No selection criterion available. Fit the detector before predict or set n_cps/similarity_threshold.")
+            raise RuntimeError(
+                "No selection criterion available. Fit the detector before predict or set n_cps/similarity_threshold."
+            )
         bkps = np.unique(bkps.astype(int))
         bkps = bkps[(bkps > 0) & (bkps < signal.shape[0])]
         return bkps

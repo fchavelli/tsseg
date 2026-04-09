@@ -8,11 +8,12 @@ try:
     import types
 
     import numpy as np
+
     # Only patch if not already done by .pth file
-    if 'numpy.core.umath_tests' not in sys.modules:
-        umath_tests = types.ModuleType('numpy.core.umath_tests')
-        umath_tests.inner1d = lambda x, y: np.einsum('ij,ij->i', x, y)
-        sys.modules['numpy.core.umath_tests'] = umath_tests
+    if "numpy.core.umath_tests" not in sys.modules:
+        umath_tests = types.ModuleType("numpy.core.umath_tests")
+        umath_tests.inner1d = lambda x, y: np.einsum("ij,ij->i", x, y)
+        sys.modules["numpy.core.umath_tests"] = umath_tests
 except ImportError:
     pass
 

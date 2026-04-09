@@ -288,7 +288,9 @@ class TGLADDetector(BaseSegmenter):
 
         return float(np.sum(weights))
 
-    def _compute_precision_batch(self, windows: list[np.ndarray]) -> list[_WindowSummary]:
+    def _compute_precision_batch(
+        self, windows: list[np.ndarray]
+    ) -> list[_WindowSummary]:
 
         summaries: list[_WindowSummary] = []
         batch: list[np.ndarray] = []
@@ -315,8 +317,8 @@ class TGLADDetector(BaseSegmenter):
             if idx == 0 or idx >= len(summaries) - 1:
                 summary.score = 0.0
             else:
-                diff_next = W[idx+1] - W[idx]
-                diff_prev = W[idx] - W[idx-1]
+                diff_next = W[idx + 1] - W[idx]
+                diff_prev = W[idx] - W[idx - 1]
                 summary.score = abs(diff_next - diff_prev)
 
         return summaries
@@ -335,9 +337,14 @@ class TGLADDetector(BaseSegmenter):
             verbose=self.verbose,
         )
         precisions = model.precision_
-        return [_WindowSummary(start=0, stop=0, precision=precision, score=0.0) for precision in precisions]
+        return [
+            _WindowSummary(start=0, stop=0, precision=precision, score=0.0)
+            for precision in precisions
+        ]
 
-    def _scores_to_cps(self, summaries: list[_WindowSummary], n_samples: int) -> np.ndarray:
+    def _scores_to_cps(
+        self, summaries: list[_WindowSummary], n_samples: int
+    ) -> np.ndarray:
         change_points: list[int] = []
         min_spacing = self.min_spacing or self.stride
         last_cp = -np.inf

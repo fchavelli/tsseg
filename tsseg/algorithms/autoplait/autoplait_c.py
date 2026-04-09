@@ -51,6 +51,7 @@ def _find_autoplait_dir() -> Path:
         "Set AUTOPLAIT_DIR=/path/to/c/autoplait or build the binary."
     )
 
+
 class AutoPlait:
     """
     To run this method:
@@ -82,7 +83,9 @@ class AutoPlait:
             if ts.ndim == 1:
                 ts = ts[:, np.newaxis]
             if ts.ndim != 2:
-                raise ValueError("AutoPlait expects a 2D array with shape (n_samples, n_features)")
+                raise ValueError(
+                    "AutoPlait expects a 2D array with shape (n_samples, n_features)"
+                )
 
             n_samples, n_features = ts.shape
             data_path = os.path.join(tmp_path, f"{name}.txt")
@@ -192,7 +195,9 @@ class AutoPlait:
                 elif pred.ndim == 2:
                     pred = pred[:, 1]
                 else:
-                    raise RuntimeError(f"Unexpected AutoPlait segment format in {segment_file}")
+                    raise RuntimeError(
+                        f"Unexpected AutoPlait segment format in {segment_file}"
+                    )
                 found_cps.extend(pred)
 
             labels_path = segment_dir / "segment.labels"

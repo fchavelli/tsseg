@@ -11,7 +11,7 @@ params_LSE = {
     "batch_size": 1,
     "channels": 30,
     "win_size": 256,
-    "win_type": 'rect',  # {rect, hanning}
+    "win_type": "rect",  # {rect, hanning}
     "depth": 10,
     "nb_steps": 20,
     "in_channels": 1,
@@ -22,12 +22,12 @@ params_LSE = {
     "cuda": torch.cuda.is_available(),
     "gpu": 0,
     "M": 10,
-    "N": 4
+    "N": 4,
 }
 
 
-def _normalize(X, mode='channel'):
-    if mode == 'channel':
+def _normalize(X, mode="channel"):
+    if mode == "channel":
         for i in range(X.shape[1]):
             max = np.max(X[:, i])
             min = np.min(X[:, i])
@@ -35,7 +35,7 @@ def _normalize(X, mode='channel'):
                 X[:, i] = (X[:, i] - min) / (max - min)
             except ZeroDivisionError:
                 pass
-    elif mode == 'all':
+    elif mode == "all":
         max = np.max(X)
         min = np.min(X)
         X = np.true_divide(X - min, max - min)
@@ -54,9 +54,9 @@ def _all_normalize(data_tensor):
 
 
 def _compact(series):
-    '''
+    """
     Compact Time Series.
-    '''
+    """
     compacted = []
     pre = series[0]
     compacted.append(pre)
@@ -68,9 +68,9 @@ def _compact(series):
 
 
 def _remove_duplication(series):
-    '''
+    """
     Remove duplication.
-    '''
+    """
     result = []
     for e in series:
         if e not in result:
@@ -89,7 +89,6 @@ def _reorder_label(label):
 
 
 class BasicClusteringClass:
-
     def __init__(self, params):
         pass
 
@@ -99,7 +98,6 @@ class BasicClusteringClass:
 
 
 class DPGMM(BasicClusteringClass):
-
     def __init__(self, n_states, alpha=1e3):
         self.alpha = alpha
         if n_states is not None:
@@ -108,12 +106,14 @@ class DPGMM(BasicClusteringClass):
             self.n_states = 20
 
     def fit(self, X):
-        dpgmm = mixture.BayesianGaussianMixture(init_params='kmeans',
-                                                n_components=min(self.n_states, X.shape[0]),
-                                                covariance_type="full",
-                                                weight_concentration_prior=self.alpha,  # alpha
-                                                weight_concentration_prior_type='dirichlet_process',
-                                                max_iter=1000).fit(X)
+        dpgmm = mixture.BayesianGaussianMixture(
+            init_params="kmeans",
+            n_components=min(self.n_states, X.shape[0]),
+            covariance_type="full",
+            weight_concentration_prior=self.alpha,  # alpha
+            weight_concentration_prior_type="dirichlet_process",
+            max_iter=1000,
+        ).fit(X)
         return dpgmm.predict(X)
 
 
@@ -181,10 +181,15 @@ class LSELoss(torch.nn.modules.loss._Loss):
         center_list = []
         loss1 = 0
         for i in range(M):
-            random_pos = np.random.randint(0, high=total_length - length_pos_neg * 2 + 1, size=1)
-            rand_samples = [batch[0, :, i: i + length_pos_neg] for i in range(random_pos[0], random_pos[0] + N)]
+            random_pos = np.random.randint(
+                0, high=total_length - length_pos_neg * 2 + 1, size=1
+            )
+            rand_samples = [
+                batch[0, :, i : i + length_pos_neg]
+                for i in range(random_pos[0], random_pos[0] + N)
+            ]
             # print(random_pos)
-            if self.win_type == 'hanning':
+            if self.win_type == "hanning":
                 embeddings = encoder(hanning_tensor(torch.stack(rand_samples)))
             else:
                 embeddings = encoder(torch.stack(rand_samples))
@@ -199,9 +204,14 @@ class LSELoss(torch.nn.modules.loss._Loss):
                         # loss1 += -torch.mean(torch.nn.functional.logsigmoid(torch.bmm(
                         #     embeddings[i].view(1, 1, size_representation),
                         #     embeddings[j].view(1, size_representation, 1))/self.tau))
-                        loss1 += -torch.mean(torch.nn.functional.logsigmoid(torch.bmm(
-                            embeddings[i].view(1, 1, size_representation),
-                            embeddings[j].view(1, size_representation, 1))))
+                        loss1 += -torch.mean(
+                            torch.nn.functional.logsigmoid(
+                                torch.bmm(
+                                    embeddings[i].view(1, 1, size_representation),
+                                    embeddings[j].view(1, size_representation, 1),
+                                )
+                            )
+                        )
             center = torch.mean(embeddings, dim=0)
             center_list.append(center)
 
@@ -213,9 +223,14 @@ class LSELoss(torch.nn.modules.loss._Loss):
                 # loss2 += -torch.mean(torch.nn.functional.logsigmoid(-torch.bmm(
                 #     center_list[i].view(1, 1, size_representation),
                 #     center_list[j].view(1, size_representation, 1))/self.tau))
-                loss2 += -torch.mean(torch.nn.functional.logsigmoid(-torch.bmm(
-                    center_list[i].view(1, 1, size_representation),
-                    center_list[j].view(1, size_representation, 1))))
+                loss2 += -torch.mean(
+                    torch.nn.functional.logsigmoid(
+                        -torch.bmm(
+                            center_list[i].view(1, 1, size_representation),
+                            center_list[j].view(1, size_representation, 1),
+                        )
+                    )
+                )
 
         loss = loss1 / (M * N * (N - 1) / 2) + loss2 / (M * (M - 1) / 2)
         # loss = loss2/(M*(M-1)/2)
@@ -249,7 +264,7 @@ class Chomp1d(torch.nn.Module):
         self.chomp_size = chomp_size
 
     def forward(self, x):
-        return x[:, :, :-self.chomp_size]
+        return x[:, :, : -self.chomp_size]
 
 
 class SqueezeChannels(torch.nn.Module):
@@ -287,39 +302,48 @@ class CausalConvolutionBlock(torch.nn.Module):
         If ``True``, disables the last activation function.
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size, dilation,
-                 final=False):
+    def __init__(self, in_channels, out_channels, kernel_size, dilation, final=False):
         super(CausalConvolutionBlock, self).__init__()
 
         # Computes left padding so that the applied convolutions are causal
         padding = (kernel_size - 1) * dilation
 
         # First causal convolution
-        conv1 = torch.nn.utils.parametrizations.weight_norm(torch.nn.Conv1d(
-            in_channels, out_channels, kernel_size,
-            padding=padding, dilation=dilation
-        ))
+        conv1 = torch.nn.utils.parametrizations.weight_norm(
+            torch.nn.Conv1d(
+                in_channels,
+                out_channels,
+                kernel_size,
+                padding=padding,
+                dilation=dilation,
+            )
+        )
         # The truncation makes the convolution causal
         chomp1 = Chomp1d(padding)
         relu1 = torch.nn.LeakyReLU()
 
         # Second causal convolution
-        conv2 = torch.nn.utils.parametrizations.weight_norm(torch.nn.Conv1d(
-            out_channels, out_channels, kernel_size,
-            padding=padding, dilation=dilation
-        ))
+        conv2 = torch.nn.utils.parametrizations.weight_norm(
+            torch.nn.Conv1d(
+                out_channels,
+                out_channels,
+                kernel_size,
+                padding=padding,
+                dilation=dilation,
+            )
+        )
         chomp2 = Chomp1d(padding)
         relu2 = torch.nn.LeakyReLU()
 
         # Causal network
-        self.causal = torch.nn.Sequential(
-            conv1, chomp1, relu1, conv2, chomp2, relu2
-        )
+        self.causal = torch.nn.Sequential(conv1, chomp1, relu1, conv2, chomp2, relu2)
 
         # Residual connection
-        self.upordownsample = torch.nn.Conv1d(
-            in_channels, out_channels, 1
-        ) if in_channels != out_channels else None
+        self.upordownsample = (
+            torch.nn.Conv1d(in_channels, out_channels, 1)
+            if in_channels != out_channels
+            else None
+        )
 
         # Final activation function
         self.relu = torch.nn.LeakyReLU() if final else None
@@ -355,8 +379,7 @@ class CausalCNN(torch.nn.Module):
         Kernel size of the applied non-residual convolutions.
     """
 
-    def __init__(self, in_channels, channels, depth, out_channels,
-                 kernel_size):
+    def __init__(self, in_channels, channels, depth, out_channels, kernel_size):
         super(CausalCNN, self).__init__()
 
         layers = []  # List of causal convolution blocks
@@ -364,15 +387,17 @@ class CausalCNN(torch.nn.Module):
 
         for i in range(depth):
             in_channels_block = in_channels if i == 0 else channels
-            layers += [CausalConvolutionBlock(
-                in_channels_block, channels, kernel_size, dilation_size
-            )]
+            layers += [
+                CausalConvolutionBlock(
+                    in_channels_block, channels, kernel_size, dilation_size
+                )
+            ]
             dilation_size *= 2  # Doubles the dilation size at each step
 
         # Last layer
-        layers += [CausalConvolutionBlock(
-            channels, out_channels, kernel_size, dilation_size
-        )]
+        layers += [
+            CausalConvolutionBlock(channels, out_channels, kernel_size, dilation_size)
+        ]
 
         self.network = torch.nn.Sequential(*layers)
 
@@ -408,18 +433,15 @@ class CausalCNNEncoder(torch.nn.Module):
         Kernel size of the applied non-residual convolutions.
     """
 
-    def __init__(self, in_channels, channels, depth, reduced_size,
-                 out_channels, kernel_size):
+    def __init__(
+        self, in_channels, channels, depth, reduced_size, out_channels, kernel_size
+    ):
         super(CausalCNNEncoder, self).__init__()
-        causal_cnn = CausalCNN(
-            in_channels, channels, depth, reduced_size, kernel_size
-        )
+        causal_cnn = CausalCNN(in_channels, channels, depth, reduced_size, kernel_size)
         reduce_size = torch.nn.AdaptiveMaxPool1d(1)
         squeeze = SqueezeChannels()  # Squeezes the third dimension (time)
         linear = torch.nn.Linear(reduced_size, out_channels)
-        self.network = torch.nn.Sequential(
-            causal_cnn, reduce_size, squeeze, linear
-        )
+        self.network = torch.nn.Sequential(causal_cnn, reduce_size, squeeze, linear)
 
     def forward(self, x):
         return self.network(x)
@@ -457,14 +479,37 @@ class BasicEncoder:
 
 
 class CausalConv_LSE(BasicEncoder):
-    def __init__(self, win_size, batch_size, nb_steps, lr,
-                 channels, depth, reduced_size, out_channels, kernel_size,
-                 in_channels, cuda, gpu, M, N, win_type):
-        self.network = self.__create_network(in_channels, channels, depth, reduced_size,
-                                             out_channels, kernel_size, cuda, gpu)
+    def __init__(
+        self,
+        win_size,
+        batch_size,
+        nb_steps,
+        lr,
+        channels,
+        depth,
+        reduced_size,
+        out_channels,
+        kernel_size,
+        in_channels,
+        cuda,
+        gpu,
+        M,
+        N,
+        win_type,
+    ):
+        self.network = self.__create_network(
+            in_channels,
+            channels,
+            depth,
+            reduced_size,
+            out_channels,
+            kernel_size,
+            cuda,
+            gpu,
+        )
 
         self.win_type = win_type
-        self.architecture = ''
+        self.architecture = ""
         self.cuda = cuda
         self.gpu = gpu
         self.batch_size = batch_size
@@ -477,11 +522,19 @@ class CausalConv_LSE(BasicEncoder):
         # self.scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, 0.98, -1)
         self.loss_list = []
 
-    def __create_network(self, in_channels, channels, depth, reduced_size,
-                         out_channels, kernel_size, cuda, gpu):
+    def __create_network(
+        self,
+        in_channels,
+        channels,
+        depth,
+        reduced_size,
+        out_channels,
+        kernel_size,
+        cuda,
+        gpu,
+    ):
         network = CausalCNNEncoder(
-            in_channels, channels, depth, reduced_size, out_channels,
-            kernel_size
+            in_channels, channels, depth, reduced_size, out_channels, kernel_size
         )
         network.double()
         if cuda:
@@ -507,7 +560,7 @@ class CausalConv_LSE(BasicEncoder):
         # Encoder training
         while i < self.nb_steps:
             if verbose:
-                print('Epoch: ', epochs + 1)
+                print("Epoch: ", epochs + 1)
             for batch in train_generator:
                 if self.cuda:
                     batch = batch.cuda(self.gpu)
@@ -553,15 +606,17 @@ class CausalConv_LSE(BasicEncoder):
                     batch = batch.cuda(self.gpu)
                 # if self.win_type=='hanning':
                 #     batch = hanning_tensor(batch)
-                features[
-                count * batch_size: (count + 1) * batch_size
-                ] = self.network(batch).cpu().numpy()
+                features[count * batch_size : (count + 1) * batch_size] = (
+                    self.network(batch).cpu().numpy()
+                )
                 count += 1
 
         self.network = self.network.train()
         return features
 
-    def encode_window(self, X, win_size=128, batch_size=500, window_batch_size=10000, step=10):
+    def encode_window(
+        self, X, win_size=128, batch_size=500, window_batch_size=10000, step=10
+    ):
         """
         Outputs the representations associated to the input by the encoder,
         for each subseries of the input of the given size (sliding window
@@ -591,23 +646,52 @@ class CausalConv_LSE(BasicEncoder):
 
         for b in range(num_batch):
             for i in range(math.ceil(num_window / window_batch_size)):
-                masking = np.array([X[b, :, j:j + win_size] for j in range(step * i * window_batch_size,
-                                                                           step * min((i + 1) * window_batch_size,
-                                                                                      num_window), step)])
-                if self.win_type == 'hanning':
+                masking = np.array(
+                    [
+                        X[b, :, j : j + win_size]
+                        for j in range(
+                            step * i * window_batch_size,
+                            step * min((i + 1) * window_batch_size, num_window),
+                            step,
+                        )
+                    ]
+                )
+                if self.win_type == "hanning":
                     masking = hanning_numpy(masking)
                 # print(masking.shape,step*i*window_batch_size, step*min((i+1)* window_batch_size, num_window))
-                embeddings[b, :, i * window_batch_size: (i + 1) * window_batch_size] = np.swapaxes(
-                    self.encode(masking[:], batch_size=batch_size), 0, 1)
+                embeddings[
+                    b, :, i * window_batch_size : (i + 1) * window_batch_size
+                ] = np.swapaxes(self.encode(masking[:], batch_size=batch_size), 0, 1)
         return embeddings[0].T
 
-    def set_params(self, compared_length, batch_size, nb_steps, lr,
-                   channels, depth, reduced_size, out_channels, kernel_size,
-                   in_channels, cuda, gpu):
+    def set_params(
+        self,
+        compared_length,
+        batch_size,
+        nb_steps,
+        lr,
+        channels,
+        depth,
+        reduced_size,
+        out_channels,
+        kernel_size,
+        in_channels,
+        cuda,
+        gpu,
+    ):
         self.__init__(
-            compared_length, batch_size,
-            nb_steps, lr, channels, depth,
-            reduced_size, out_channels, kernel_size, in_channels, cuda, gpu
+            compared_length,
+            batch_size,
+            nb_steps,
+            lr,
+            channels,
+            depth,
+            reduced_size,
+            out_channels,
+            kernel_size,
+            in_channels,
+            cuda,
+            gpu,
         )
         return self
 
@@ -654,7 +738,7 @@ class Time2State:
 
         # The window size must be an even number.
         if win_size % 2 != 0:
-            raise ValueError('Window size must be even.')
+            raise ValueError("Window size must be even.")
 
         self.__win_size = win_size
         self.__step = step
@@ -735,7 +819,9 @@ class Time2State:
         self.__embeddings = self.__encoder.encode(X, win_size, step)
 
     def __cluster(self):
-        self.__embedding_label = _reorder_label(self.__clustering_component.fit(self.__embeddings))
+        self.__embedding_label = _reorder_label(
+            self.__clustering_component.fit(self.__embeddings)
+        )
 
     def __assign_label(self):
         hight = len(set(self.__embedding_label))
@@ -745,7 +831,7 @@ class Time2State:
         vote_matrix = np.zeros((self.__length, hight))
         i = 0
         for l in self.__embedding_label:
-            vote_matrix[i:i + self.__win_size, l] += weight_vector
+            vote_matrix[i : i + self.__win_size, l] += weight_vector
             i += self.__step
         self.__state_seq = np.array([np.argmax(row) for row in vote_matrix])
         pass

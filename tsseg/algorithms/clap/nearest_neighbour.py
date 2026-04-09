@@ -130,7 +130,18 @@ def _argkmin(dist, k, lbound=0):
 
 
 @njit(fastmath=True, cache=True)
-def _knn(time_series, start, end, window_size, k_neighbours, tcs, dot_first, dot_ref, distance, distance_preprocessing):
+def _knn(
+    time_series,
+    start,
+    end,
+    window_size,
+    k_neighbours,
+    tcs,
+    dot_first,
+    dot_ref,
+    distance,
+    distance_preprocessing,
+):
     """
     Perform k-nearest neighbors search between all pairs of subsequences of `time_series`
     of length `window_size`, based on their Euclidean distance after normalization by mean and
@@ -184,21 +195,27 @@ def _knn(time_series, start, end, window_size, k_neighbours, tcs, dot_first, dot
 
         for dim in range(time_series.shape[1]):
             if order > start:
-                dot_rolled[dim] = np.roll(dot_prev[dim], 1) \
-                                  + time_series[order + window_size - 1, dim] * time_series[
-                                                                                window_size - 1:l + window_size, dim] \
-                                  - time_series[order - 1, dim] * np.roll(time_series[:l, dim], 1)
+                dot_rolled[dim] = (
+                    np.roll(dot_prev[dim], 1)
+                    + time_series[order + window_size - 1, dim]
+                    * time_series[window_size - 1 : l + window_size, dim]
+                    - time_series[order - 1, dim] * np.roll(time_series[:l, dim], 1)
+                )
                 dot_rolled[dim, 0] = dot_ref[dim, order]
 
-            cdists[dim] = distance(order, dot_rolled[dim], window_size, preprocessings[dim])
+            cdists[dim] = distance(
+                order, dot_rolled[dim], window_size, preprocessings[dim]
+            )
 
             # self-join: exclusion zone
             trivialMatchRange = (
                 int(max(0, order - np.round(exclusion_radius, 0))),
-                int(min(order + np.round(exclusion_radius + 1, 0), l))
+                int(min(order + np.round(exclusion_radius + 1, 0), l)),
             )
 
-            cdists[dim][trivialMatchRange[0]:trivialMatchRange[1]] = np.max(cdists[dim])
+            cdists[dim][trivialMatchRange[0] : trivialMatchRange[1]] = np.max(
+                cdists[dim]
+            )
 
         # normalize dists
         for dim in range(cdists.shape[0]):
@@ -207,11 +224,16 @@ def _knn(time_series, start, end, window_size, k_neighbours, tcs, dot_first, dot
         dist = cdists.sum(axis=0) / time_series.shape[1]
 
         for kdx, (lbound, ubound) in enumerate(tcs):
-            if order < lbound or order >= ubound: continue
-            tc_nn = lbound + _argkmin(dist[lbound:ubound - window_size + 1], k_neighbours)
+            if order < lbound or order >= ubound:
+                continue
+            tc_nn = lbound + _argkmin(
+                dist[lbound : ubound - window_size + 1], k_neighbours
+            )
 
-            knns[order - start, kdx * k_neighbours:(kdx + 1) * k_neighbours] = tc_nn
-            dists[order - start, kdx * k_neighbours:(kdx + 1) * k_neighbours] = dist[tc_nn]
+            knns[order - start, kdx * k_neighbours : (kdx + 1) * k_neighbours] = tc_nn
+            dists[order - start, kdx * k_neighbours : (kdx + 1) * k_neighbours] = dist[
+                tc_nn
+            ]
 
         dot_prev = dot_rolled
 
@@ -219,7 +241,15 @@ def _knn(time_series, start, end, window_size, k_neighbours, tcs, dot_first, dot
 
 
 @njit(fastmath=True, cache=True, parallel=True)
-def _parallel_knn(time_series, window_size, k_neighbours, pranges, tcs, distance, distance_preprocessing):
+def _parallel_knn(
+    time_series,
+    window_size,
+    k_neighbours,
+    pranges,
+    tcs,
+    distance,
+    distance_preprocessing,
+):
     """
     Perform k-nearest neighbors search between all pairs of subsequences of `time_series`
     of length `window_size` in parallel with n_jobs threads.
@@ -248,15 +278,29 @@ def _parallel_knn(time_series, window_size, k_neighbours, pranges, tcs, distance
     knns : ndarray of shape (l, m * k_neighbours)
         Array of indices of k nearest neighbors for each subsequence.
     """
-    dot_firsts = np.zeros(shape=(len(pranges), time_series.shape[1], time_series.shape[0] - window_size + 1),
-                          dtype=np.float64)
-    knns = np.zeros(shape=(time_series.shape[0] - window_size + 1, len(tcs) * k_neighbours), dtype=np.int64)
-    dists = np.zeros(shape=(time_series.shape[0] - window_size + 1, len(tcs) * k_neighbours), dtype=np.float64)
+    dot_firsts = np.zeros(
+        shape=(
+            len(pranges),
+            time_series.shape[1],
+            time_series.shape[0] - window_size + 1,
+        ),
+        dtype=np.float64,
+    )
+    knns = np.zeros(
+        shape=(time_series.shape[0] - window_size + 1, len(tcs) * k_neighbours),
+        dtype=np.int64,
+    )
+    dists = np.zeros(
+        shape=(time_series.shape[0] - window_size + 1, len(tcs) * k_neighbours),
+        dtype=np.float64,
+    )
 
     for idx in prange(len(pranges)):
         start, end = pranges[idx]
         for dim in range(time_series.shape[1]):
-            dot_firsts[idx, dim] = _sliding_dot(time_series[start:start + window_size, dim], time_series[:, dim])
+            dot_firsts[idx, dim] = _sliding_dot(
+                time_series[start : start + window_size, dim], time_series[:, dim]
+            )
 
     for idx in prange(len(pranges)):
         start, end = pranges[idx]
@@ -271,7 +315,7 @@ def _parallel_knn(time_series, window_size, k_neighbours, pranges, tcs, distance
             dot_firsts[idx],
             dot_firsts[0],
             distance,
-            distance_preprocessing
+            distance_preprocessing,
         )
 
     return dists, knns
@@ -302,10 +346,12 @@ def cross_val_labels(offsets, split_idx, window_size):
     """
     n_timepoints, k_neighbours = offsets.shape
 
-    y_true = np.concatenate((
-        np.zeros(split_idx, dtype=np.int64),
-        np.ones(n_timepoints - split_idx, dtype=np.int64),
-    ))
+    y_true = np.concatenate(
+        (
+            np.zeros(split_idx, dtype=np.int64),
+            np.ones(n_timepoints - split_idx, dtype=np.int64),
+        )
+    )
 
     knn_labels = np.zeros(shape=(k_neighbours, n_timepoints), dtype=np.int64)
 
@@ -347,7 +393,13 @@ class KSubsequenceNeighbours:
         Return a constrained KSN model for the given temporal constraint.
     """
 
-    def __init__(self, window_size=10, k_neighbours=3, distance="znormed_euclidean_distance", n_jobs=-1):
+    def __init__(
+        self,
+        window_size=10,
+        k_neighbours=3,
+        distance="znormed_euclidean_distance",
+        n_jobs=-1,
+    ):
         self.window_size = window_size
         self.k_neighbours = k_neighbours
         self.distance_name = distance
@@ -377,19 +429,26 @@ class KSubsequenceNeighbours:
         time_series = check_input_time_series(time_series)
 
         if time_series.shape[0] < self.window_size * self.k_neighbours:
-            raise ValueError("Time series must at least have k_neighbours*window_size data points.")
+            raise ValueError(
+                "Time series must at least have k_neighbours*window_size data points."
+            )
 
         self.time_series = time_series
 
         if temporal_constraints is None:
-            self.temporal_constraints = np.asarray([(0, time_series.shape[0])], dtype=int)
+            self.temporal_constraints = np.asarray(
+                [(0, time_series.shape[0])], dtype=int
+            )
         else:
             self.temporal_constraints = temporal_constraints
 
         pranges = []
         n_jobs = self.n_jobs
 
-        while time_series.shape[0] // n_jobs < self.window_size * self.k_neighbours and n_jobs != 1:
+        while (
+            time_series.shape[0] // n_jobs < self.window_size * self.k_neighbours
+            and n_jobs != 1
+        ):
             n_jobs -= 1
 
         bin_size = time_series.shape[0] // n_jobs
@@ -397,14 +456,22 @@ class KSubsequenceNeighbours:
         for idx in range(n_jobs):
             start = idx * bin_size
             end = min((idx + 1) * bin_size, len(time_series) - self.window_size + 1)
-            if end > start: pranges.append((start, end))
+            if end > start:
+                pranges.append((start, end))
 
         n_threads = get_num_threads()
         set_num_threads(n_jobs)
 
-        self.distances, self.offsets = numba_cache_safe(_parallel_knn, time_series, self.window_size, self.k_neighbours,
-                                                        np.array(pranges), List(self.temporal_constraints),
-                                                        self.distance, self.distance_preprocessing)
+        self.distances, self.offsets = numba_cache_safe(
+            _parallel_knn,
+            time_series,
+            self.window_size,
+            self.k_neighbours,
+            np.array(pranges),
+            List(self.temporal_constraints),
+            self.distance,
+            self.distance_preprocessing,
+        )
 
         set_num_threads(n_threads)
         return self
@@ -439,15 +506,22 @@ class KSubsequenceNeighbours:
                 tc_idx = idx
 
         ts = self.time_series[lbound:ubound]
-        distances = self.distances[lbound:ubound - self.window_size + 1,
-                    tc_idx * self.k_neighbours:(tc_idx + 1) * self.k_neighbours]
-        offsets = self.offsets[lbound:ubound - self.window_size + 1,
-                  tc_idx * self.k_neighbours:(tc_idx + 1) * self.k_neighbours] - lbound
+        distances = self.distances[
+            lbound : ubound - self.window_size + 1,
+            tc_idx * self.k_neighbours : (tc_idx + 1) * self.k_neighbours,
+        ]
+        offsets = (
+            self.offsets[
+                lbound : ubound - self.window_size + 1,
+                tc_idx * self.k_neighbours : (tc_idx + 1) * self.k_neighbours,
+            ]
+            - lbound
+        )
 
         knn = KSubsequenceNeighbours(
             window_size=self.window_size,
             k_neighbours=self.k_neighbours,
-            distance=self.distance_name
+            distance=self.distance_name,
         )
 
         knn.time_series = ts

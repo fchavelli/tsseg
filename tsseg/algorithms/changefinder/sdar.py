@@ -32,11 +32,11 @@ class SDAR:
         self.discount = discount
         # State variables initialised on first call to ``update``.
         self._mu: float = 0.0
-        self._C: np.ndarray | None = None      # autocovariances C_1..C_k
-        self._C0: float = 1.0                   # variance C_0
-        self._A: np.ndarray | None = None       # AR coefficients
-        self._sigma: float = 1.0                # residual variance
-        self._buf: np.ndarray | None = None     # ring buffer of last k values
+        self._C: np.ndarray | None = None  # autocovariances C_1..C_k
+        self._C0: float = 1.0  # variance C_0
+        self._A: np.ndarray | None = None  # AR coefficients
+        self._sigma: float = 1.0  # residual variance
+        self._buf: np.ndarray | None = None  # ring buffer of last k values
         self._initialised: bool = False
 
     # ------------------------------------------------------------------

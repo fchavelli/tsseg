@@ -11,13 +11,14 @@ from sklearn.metrics import (
 
 from .base import BaseMetric
 
-'''
+"""
 WARI & WNMI scores
 Code adapted from scikit-learn original implementation
 https://github.com/scikit-learn/scikit-learn/blob/98ed9dc73a86f5f11781a0e21f24c8f47979ec67/sklearn/metrics/cluster/_supervised.py
 Authors: The scikit-learn developers
 SPDX-License-Identifier: BSD-3-Clause
-'''
+"""
+
 
 def _map_predicted_labels(labels_true, labels_pred):
     """
@@ -49,7 +50,7 @@ def _map_predicted_labels(labels_true, labels_pred):
 
     # Determine common length for comparison
     compare_len = min(len(labels_pred.ravel()), len(labels_true.ravel()))
-    if compare_len == 0: # No overlap to compare
+    if compare_len == 0:  # No overlap to compare
         mapping = {label: i for i, label in enumerate(all_unique_pred)}
         mapped_pred_flat = np.array([mapping[val] for val in labels_pred.ravel()])
         return mapped_pred_flat.reshape(original_shape)
@@ -69,7 +70,10 @@ def _map_predicted_labels(labels_true, labels_pred):
 
     # Hungarian algorithm for optimal assignment
     row_ind, col_ind = linear_sum_assignment(cost_matrix)
-    hungarian_map = {unique_pred_comp[i]: unique_true_comp[j] for i, j in zip(row_ind, col_ind, strict=True)}
+    hungarian_map = {
+        unique_pred_comp[i]: unique_true_comp[j]
+        for i, j in zip(row_ind, col_ind, strict=True)
+    }
 
     # Build the final mapping ensuring unique outputs for all unique predicted labels
     final_map = {}
@@ -85,7 +89,7 @@ def _map_predicted_labels(labels_true, labels_pred):
     # 2. Assign remaining unique predicted labels
     next_new_label = 0
     for p_label in all_unique_pred:
-        if p_label not in final_map: # If not assigned yet
+        if p_label not in final_map:  # If not assigned yet
             # Try assigning p_label to itself if available
             if p_label not in used_targets:
                 final_map[p_label] = p_label
@@ -103,11 +107,22 @@ def _map_predicted_labels(labels_true, labels_pred):
 
     return mapped_pred
 
+
 def _error_type(error_label, true_atomicity, p0, p1, t0, t1):
     if true_atomicity == 1:
         # Delay
         # Check if the predicted error label matches either the preceding or succeeding true label.
-        if (t0 is not None and p0 is not None and t0 == error_label and p0 == error_label) or (t1 is not None and p1 is not None and t1 == error_label and p1 == error_label):
+        if (
+            t0 is not None
+            and p0 is not None
+            and t0 == error_label
+            and p0 == error_label
+        ) or (
+            t1 is not None
+            and p1 is not None
+            and t1 == error_label
+            and p1 == error_label
+        ):
             return "delay"
 
         # Isolation
@@ -115,8 +130,8 @@ def _error_type(error_label, true_atomicity, p0, p1, t0, t1):
             return "isolation"
 
     elif true_atomicity == 2:
-    # Transition
-    # True labels contains two different labels.
+        # Transition
+        # True labels contains two different labels.
         return "transition"
 
     elif true_atomicity > 2:
@@ -124,7 +139,10 @@ def _error_type(error_label, true_atomicity, p0, p1, t0, t1):
         # True labels contain more than two different labels.
         return "missing"
 
-def _normalized_block_boundary_distance(true_boundaries, block_start, block_end, n_samples):
+
+def _normalized_block_boundary_distance(
+    true_boundaries, block_start, block_end, n_samples
+):
     """Compute normalized distance to the nearest real change point.
 
     Implements the distance term ``d`` of Algorithm 1: the minimum distance
@@ -154,6 +172,7 @@ def _normalized_block_boundary_distance(true_boundaries, block_start, block_end,
 
     return 2.0 * min_gap / float(n_samples)
 
+
 def _compute_boundaries_symmetrical(labels):
     """
     Computes the indices of the boundaries in the label sequence.
@@ -166,10 +185,11 @@ def _compute_boundaries_symmetrical(labels):
     """
     boundaries = []
     for i in range(1, len(labels)):
-        if labels[i] != labels[i-1]:
-            #boundaries.append(i-1)
+        if labels[i] != labels[i - 1]:
+            # boundaries.append(i-1)
             boundaries.append(i)
     return boundaries
+
 
 def _atomicity(sequence):
     # Remove consecutive duplicates while preserving order
@@ -183,21 +203,28 @@ def _atomicity(sequence):
         sequence_atomicity = 0
     return sequence_atomicity
 
-def _state_matching_score(labels_true, labels_pred, weights, return_mapped=False, return_errors=False):
+
+def _state_matching_score(
+    labels_true, labels_pred, weights, return_mapped=False, return_errors=False
+):
     """
     Computes a new State Matching Score (SMS) based on identifying and classifying
     error segments between true and predicted label sequences after optimal mapping.
     """
     n = len(labels_true)
     if n == 0:
-        return None # Return None for empty input
+        return None  # Return None for empty input
 
     # Map predicted labels to true labels
     mapped_pred = _map_predicted_labels(labels_true, labels_pred)
-    true_boundaries = np.unique([0] + _compute_boundaries_symmetrical(labels_true) + [n])
+    true_boundaries = np.unique(
+        [0] + _compute_boundaries_symmetrical(labels_true) + [n]
+    )
 
     i = 0
-    total_penalty = 0.0 # Renamed from error_score for clarity, represents the sum of penalties
+    total_penalty = (
+        0.0  # Renamed from error_score for clarity, represents the sum of penalties
+    )
     total_error_length = 0
     errors_list = [] if return_errors else None
 
@@ -208,7 +235,11 @@ def _state_matching_score(labels_true, labels_pred, weights, return_mapped=False
             error_label = mapped_pred[i]
             j = i + 1
             # Extend the segment as long as the error persists with the same predicted label
-            while j < n and labels_true[j] != mapped_pred[j] and mapped_pred[j] == error_label:
+            while (
+                j < n
+                and labels_true[j] != mapped_pred[j]
+                and mapped_pred[j] == error_label
+            ):
                 j += 1
             end_index = j - 1
 
@@ -232,7 +263,7 @@ def _state_matching_score(labels_true, labels_pred, weights, return_mapped=False
             err_type = _error_type(error_label, true_atomicity, p0, p1, t0, t1)
 
             segment_penalty = 0.0
-            weight = weights.get(err_type, 1.0) # Default weight if type not in dict
+            weight = weights.get(err_type, 1.0)  # Default weight if type not in dict
 
             if err_type == "delay":
                 segment_penalty = weight * segment_size
@@ -244,18 +275,24 @@ def _state_matching_score(labels_true, labels_pred, weights, return_mapped=False
                 segment_penalty = segment_size * (weight * distance)
 
             elif err_type == "missing":
-                segment_penalty = segment_size * weight * (1.0 + 3.0 * (weight - 1.0) / float(true_atomicity))
+                segment_penalty = (
+                    segment_size
+                    * weight
+                    * (1.0 + 3.0 * (weight - 1.0) / float(true_atomicity))
+                )
 
             total_penalty += segment_penalty
 
             if return_errors:
-                errors_list.append({
-                    'type': err_type,
-                    'start': start_index,
-                    'end': end_index,
-                    'size': segment_size,
-                    'penalty': segment_penalty # Store the calculated penalty for this segment
-                })
+                errors_list.append(
+                    {
+                        "type": err_type,
+                        "start": start_index,
+                        "end": end_index,
+                        "size": segment_size,
+                        "penalty": segment_penalty,  # Store the calculated penalty for this segment
+                    }
+                )
 
             # Move the main loop index past this segment
             i = j
@@ -278,14 +315,22 @@ def _state_matching_score(labels_true, labels_pred, weights, return_mapped=False
     else:
         return score
 
+
 class StateMatchingScore(BaseMetric):
     """Computes the State Matching Score (SMS)."""
 
-    DEFAULT_WEIGHTS = {"delay": 0.1, "transition": 0.3, "isolation": 0.8, "missing": 0.5}
+    DEFAULT_WEIGHTS = {
+        "delay": 0.1,
+        "transition": 0.3,
+        "isolation": 0.8,
+        "missing": 0.5,
+    }
 
     def __init__(self, weights: dict[str, float] | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.weights = dict(weights) if weights is not None else self.DEFAULT_WEIGHTS.copy()
+        self.weights = (
+            dict(weights) if weights is not None else self.DEFAULT_WEIGHTS.copy()
+        )
 
     def compute(
         self,
@@ -329,29 +374,39 @@ class StateMatchingScore(BaseMetric):
         output["score"] = score
         return output
 
+
 class AdjustedRandIndex(BaseMetric):
     """Computes the Adjusted Rand Index (ARI)."""
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
+    def compute(
+        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+    ) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
         return {"score": adjusted_rand_score(labels_true, labels_pred)}
 
+
 class NormalizedMutualInformation(BaseMetric):
     """Computes the Normalized Mutual Information (NMI)."""
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
+    def compute(
+        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+    ) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
         return {"score": normalized_mutual_info_score(labels_true, labels_pred)}
 
+
 class AdjustedMutualInformation(BaseMetric):
     """Computes the Adjusted Mutual Information (AMI)."""
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
+    def compute(
+        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+    ) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
         return {"score": adjusted_mutual_info_score(labels_true, labels_pred)}
+
 
 def _compute_boundary_distances(labels: np.ndarray) -> np.ndarray:
     """Computes distance to nearest boundary."""
@@ -368,11 +423,15 @@ def _compute_boundary_distances(labels: np.ndarray) -> np.ndarray:
 
     return distances
 
+
 def _linear_distance(distances: np.ndarray, alpha: float = 0.1) -> np.ndarray:
     """Linear distance transformation."""
     return 1 + alpha * distances
 
-def weighted_contingency_matrix(labels_true, labels_pred, weights, *, eps=None, sparse=False, dtype=np.float64):
+
+def weighted_contingency_matrix(
+    labels_true, labels_pred, weights, *, eps=None, sparse=False, dtype=np.float64
+):
     """Build a weighted contingency matrix."""
     classes, class_idx = np.unique(labels_true, return_inverse=True)
     clusters, cluster_idx = np.unique(labels_pred, return_inverse=True)
@@ -395,9 +454,12 @@ def weighted_contingency_matrix(labels_true, labels_pred, weights, *, eps=None, 
 
     return contingency
 
+
 def weighted_pair_confusion_matrix(labels_true, labels_pred, weights):
     """Compute the weighted pair confusion matrix."""
-    contingency = weighted_contingency_matrix(labels_true, labels_pred, weights, sparse=True)
+    contingency = weighted_contingency_matrix(
+        labels_true, labels_pred, weights, sparse=True
+    )
 
     total_weight = np.sum(weights)
     row_sum = np.ravel(contingency.sum(axis=1))
@@ -413,9 +475,12 @@ def weighted_pair_confusion_matrix(labels_true, labels_pred, weights):
 
     return C
 
+
 def weighted_adjusted_rand_score(labels_true, labels_pred, weights):
     """Compute the Weighted Adjusted Rand Index (WARI)."""
-    (tn, fp), (fn, tp) = weighted_pair_confusion_matrix(labels_true, labels_pred, weights)
+    (tn, fp), (fn, tp) = weighted_pair_confusion_matrix(
+        labels_true, labels_pred, weights
+    )
 
     tn, fp, fn, tp = int(tn), int(fp), int(fn), int(tp)
 
@@ -428,6 +493,7 @@ def weighted_adjusted_rand_score(labels_true, labels_pred, weights):
 
     return 2.0 * (tp * tn - fn * fp) / denominator
 
+
 class WeightedAdjustedRandIndex(BaseMetric):
     """Computes the Weighted Adjusted Rand Index (WARI)."""
 
@@ -439,7 +505,9 @@ class WeightedAdjustedRandIndex(BaseMetric):
             self.distance_func = distance_func
         self.alpha = alpha
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
+    def compute(
+        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+    ) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
 
@@ -450,10 +518,17 @@ class WeightedAdjustedRandIndex(BaseMetric):
 
         return {"score": wari_score}
 
+
 class WeightedNormalizedMutualInformation(BaseMetric):
     """Computes the Weighted Normalized Mutual Information (WNMI)."""
 
-    def __init__(self, distance_func: str = "linear", alpha: float = 0.1, average_method: str = "arithmetic", **kwargs):
+    def __init__(
+        self,
+        distance_func: str = "linear",
+        alpha: float = 0.1,
+        average_method: str = "arithmetic",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         if distance_func == "linear":
             self.distance_func = lambda d: _linear_distance(d, alpha=self.alpha)
@@ -462,20 +537,27 @@ class WeightedNormalizedMutualInformation(BaseMetric):
         self.alpha = alpha
         self.average_method = average_method
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
+    def compute(
+        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+    ) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
 
         d_true = _compute_boundary_distances(labels_true)
         weights = self.distance_func(d_true)
 
-        wnmi_score = weighted_normalized_mutual_info_score(labels_true, labels_pred, weights, average_method=self.average_method)
+        wnmi_score = weighted_normalized_mutual_info_score(
+            labels_true, labels_pred, weights, average_method=self.average_method
+        )
 
         return {"score": wnmi_score}
 
+
 def weighted_mutual_info_score(labels_true, labels_pred, weights):
     """Compute the Weighted Mutual Information (WMI)."""
-    contingency = weighted_contingency_matrix(labels_true, labels_pred, weights, sparse=True)
+    contingency = weighted_contingency_matrix(
+        labels_true, labels_pred, weights, sparse=True
+    )
 
     # Calculate the MI for the two clusterings
     nzx, nzy, nz_val = sp.find(contingency)
@@ -487,12 +569,12 @@ def weighted_mutual_info_score(labels_true, labels_pred, weights):
     log_contingency_nm = np.log(nz_val)
     log_outer = np.log(pi[nzx]) + np.log(pj[nzy])
 
-    mi = (
-        nz_val * (log_contingency_nm - np.log(contingency_sum))
-        - nz_val * (log_outer - 2 * np.log(contingency_sum))
+    mi = nz_val * (log_contingency_nm - np.log(contingency_sum)) - nz_val * (
+        log_outer - 2 * np.log(contingency_sum)
     )
 
     return mi.sum() / contingency_sum
+
 
 def weighted_entropy(labels, weights):
     """Compute the weighted entropy of a labeling."""
@@ -513,7 +595,10 @@ def weighted_entropy(labels, weights):
     prob = nz_label_weights / total_weight
     return -np.sum(prob * np.log(prob))
 
-def weighted_normalized_mutual_info_score(labels_true, labels_pred, weights, *, average_method="arithmetic"):
+
+def weighted_normalized_mutual_info_score(
+    labels_true, labels_pred, weights, *, average_method="arithmetic"
+):
     """Compute the Weighted Normalized Mutual Information (WNMI)."""
     classes = np.unique(labels_true)
     clusters = np.unique(labels_pred)

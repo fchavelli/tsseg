@@ -70,7 +70,9 @@ class RandomDetector(BaseSegmenter):
         random_state: int | None = None,
     ) -> None:
         if semi_supervised and n_change_points is None:
-            raise ValueError("n_change_points must be provided when semi_supervised=True.")
+            raise ValueError(
+                "n_change_points must be provided when semi_supervised=True."
+            )
         if semi_supervised and n_states is None:
             raise ValueError("n_states must be provided when semi_supervised=True.")
 
@@ -89,7 +91,9 @@ class RandomDetector(BaseSegmenter):
         self.n_states = n_states
         self.random_state = random_state
 
-        base_segments = (self.n_change_points + 1) if self.n_change_points is not None else 2
+        base_segments = (
+            (self.n_change_points + 1) if self.n_change_points is not None else 2
+        )
         base_segments = max(base_segments, 1)
         self.n_segments = max(base_segments, 1)
 
@@ -109,8 +113,8 @@ class RandomDetector(BaseSegmenter):
         """Generate a random segmentation for the provided series."""
         self._rng = np.random.default_rng(self.random_state)
         self._n_timepoints_ = X.shape[0]
-        self.breakpoints_, self.segment_states_, self.state_sequence_ = self._sample_segmentation(
-            self._n_timepoints_
+        self.breakpoints_, self.segment_states_, self.state_sequence_ = (
+            self._sample_segmentation(self._n_timepoints_)
         )
         return self
 
@@ -120,8 +124,8 @@ class RandomDetector(BaseSegmenter):
 
         if self._n_timepoints_ != n_timepoints:
             # Re-sample if prediction data differs from the fitted length.
-            self.breakpoints_, self.segment_states_, self.state_sequence_ = self._sample_segmentation(
-                n_timepoints
+            self.breakpoints_, self.segment_states_, self.state_sequence_ = (
+                self._sample_segmentation(n_timepoints)
             )
             self._n_timepoints_ = n_timepoints
 
@@ -137,7 +141,11 @@ class RandomDetector(BaseSegmenter):
         if n_timepoints <= 0:
             self.n_change_points_drawn_ = 0
             self.n_states_drawn_ = 0
-            return (np.array([], dtype=int), np.array([], dtype=int), np.array([], dtype=int))
+            return (
+                np.array([], dtype=int),
+                np.array([], dtype=int),
+                np.array([], dtype=int),
+            )
 
         rng = self._ensure_rng()
 
@@ -151,7 +159,9 @@ class RandomDetector(BaseSegmenter):
                 raise ValueError(
                     f"Requested {n_cps} change points but only {max_possible_cps} are possible"
                 )
-            breakpoints = np.sort(rng.choice(np.arange(1, n_timepoints), size=n_cps, replace=False))
+            breakpoints = np.sort(
+                rng.choice(np.arange(1, n_timepoints), size=n_cps, replace=False)
+            )
 
         n_segments = n_cps + 1
         n_states = self._resolve_state_count(rng, n_cps, n_segments)
@@ -195,7 +205,9 @@ class RandomDetector(BaseSegmenter):
             if self.n_states is None:
                 raise ValueError("n_states must be set in semi-supervised mode.")
             if n_segments > 1 and self.n_states < 2:
-                raise ValueError("At least two states required when multiple segments exist.")
+                raise ValueError(
+                    "At least two states required when multiple segments exist."
+                )
             return self.n_states
 
         lower = max(1, min(n_cps + 1, 10))
@@ -237,7 +249,9 @@ class RandomDetector(BaseSegmenter):
     ) -> np.ndarray:
         state_sequence = np.empty(n_timepoints, dtype=int)
         boundaries = np.concatenate(([0], breakpoints, [n_timepoints]))
-        for start, end, state in zip(boundaries[:-1], boundaries[1:], segment_states, strict=True):
+        for start, end, state in zip(
+            boundaries[:-1], boundaries[1:], segment_states, strict=True
+        ):
             state_sequence[start:end] = state
         return state_sequence
 

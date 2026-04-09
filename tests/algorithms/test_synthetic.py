@@ -13,8 +13,10 @@ from tsseg.algorithms.vsax.detector import VSAXDetector
 # Helpers (reusable across algorithm test classes)
 # ---------------------------------------------------------------------------
 
-def _make_piecewise_constant(segment_lengths, means, noise_std=0.1, rng=None,
-                             n_channels=1):
+
+def _make_piecewise_constant(
+    segment_lengths, means, noise_std=0.1, rng=None, n_channels=1
+):
     """Generate a piecewise-constant signal with Gaussian noise.
 
     Parameters
@@ -33,7 +35,9 @@ def _make_piecewise_constant(segment_lengths, means, noise_std=0.1, rng=None,
         mean = np.atleast_1d(mean)
         if mean.shape[0] == 1 and n_channels > 1:
             mean = np.full(n_channels, mean[0])
-        parts.append(rng.normal(loc=mean, scale=noise_std, size=(length, mean.shape[0])))
+        parts.append(
+            rng.normal(loc=mean, scale=noise_std, size=(length, mean.shape[0]))
+        )
     out = np.concatenate(parts, axis=0)
     if out.shape[1] == 1:
         return out.ravel()
@@ -71,6 +75,7 @@ def _ari(labels_true, labels_pred):
 # Tests
 # ---------------------------------------------------------------------------
 
+
 class TestVSAXSynthetic:
     """Behavioural tests on easy synthetic series."""
 
@@ -83,8 +88,11 @@ class TestVSAXSynthetic:
             rng=42,
         )
         det = VSAXDetector(
-            min_segment_length=20, max_segment_length=150,
-            penalty=0.5, alphabet_size=6, paa_segments=4,
+            min_segment_length=20,
+            max_segment_length=150,
+            penalty=0.5,
+            alphabet_size=6,
+            paa_segments=4,
         )
         det.fit(X)
         labels = det.predict(X)
@@ -103,8 +111,10 @@ class TestVSAXSynthetic:
             rng=7,
         )
         det = VSAXDetector(
-            min_segment_length=20, max_segment_length=120,
-            penalty=0.3, symbol_merge_threshold=0.3,
+            min_segment_length=20,
+            max_segment_length=120,
+            penalty=0.3,
+            symbol_merge_threshold=0.3,
         )
         det.fit(X)
         labels = det.predict(X)
@@ -121,19 +131,26 @@ class TestVSAXSynthetic:
         """Two-channel signal with anti-correlated shifts."""
         rng = np.random.default_rng(99)
         n_seg = 150
-        ch1 = np.concatenate([
-            rng.normal(0, 0.2, n_seg),
-            rng.normal(3, 0.2, n_seg),
-        ])
-        ch2 = np.concatenate([
-            rng.normal(3, 0.2, n_seg),
-            rng.normal(0, 0.2, n_seg),
-        ])
+        ch1 = np.concatenate(
+            [
+                rng.normal(0, 0.2, n_seg),
+                rng.normal(3, 0.2, n_seg),
+            ]
+        )
+        ch2 = np.concatenate(
+            [
+                rng.normal(3, 0.2, n_seg),
+                rng.normal(0, 0.2, n_seg),
+            ]
+        )
         X = np.column_stack([ch1, ch2])
 
         det = VSAXDetector(
-            min_segment_length=30, max_segment_length=200,
-            penalty=0.5, paa_segments=4, alphabet_size=4,
+            min_segment_length=30,
+            max_segment_length=200,
+            penalty=0.5,
+            paa_segments=4,
+            alphabet_size=4,
         )
         det.fit(X)
         labels = det.predict(X)
@@ -146,16 +163,21 @@ class TestVSAXSynthetic:
         """Two segments identical on ch1 but different on ch2 → distinct states."""
         rng = np.random.default_rng(123)
         n_seg = 120
-        ch1 = rng.normal(0, 0.1, 2 * n_seg)          # same for both halves
-        ch2 = np.concatenate([
-            rng.normal(0, 0.1, n_seg),
-            rng.normal(4, 0.1, n_seg),
-        ])
+        ch1 = rng.normal(0, 0.1, 2 * n_seg)  # same for both halves
+        ch2 = np.concatenate(
+            [
+                rng.normal(0, 0.1, n_seg),
+                rng.normal(4, 0.1, n_seg),
+            ]
+        )
         X = np.column_stack([ch1, ch2])
 
         det = VSAXDetector(
-            min_segment_length=20, max_segment_length=180,
-            penalty=0.4, paa_segments=4, alphabet_size=5,
+            min_segment_length=20,
+            max_segment_length=180,
+            penalty=0.4,
+            paa_segments=4,
+            alphabet_size=5,
         )
         det.fit(X)
         labels = det.predict(X)
@@ -181,8 +203,10 @@ class TestVSAXSynthetic:
         """symbol_merge_threshold=0 should still run without errors."""
         X = _make_piecewise_constant([80, 80, 80], [0, 3, 0], rng=0)
         det = VSAXDetector(
-            min_segment_length=15, max_segment_length=120,
-            penalty=0.5, symbol_merge_threshold=0.0,
+            min_segment_length=15,
+            max_segment_length=120,
+            penalty=0.5,
+            symbol_merge_threshold=0.0,
         )
         det.fit(X)
         labels = det.predict(X)
@@ -193,8 +217,10 @@ class TestVSAXSynthetic:
         """adaptive_breakpoints=False should still produce valid output."""
         X = _make_piecewise_constant([100, 100], [0, 4], rng=1)
         det = VSAXDetector(
-            min_segment_length=20, max_segment_length=150,
-            penalty=0.5, adaptive_breakpoints=False,
+            min_segment_length=20,
+            max_segment_length=150,
+            penalty=0.5,
+            adaptive_breakpoints=False,
         )
         det.fit(X)
         labels = det.predict(X)

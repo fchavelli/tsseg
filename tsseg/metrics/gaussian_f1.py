@@ -57,7 +57,9 @@ def _infer_series_length(cps: Sequence[int]) -> int | None:
     return int(max(cps))
 
 
-def _adaptive_sigma(cps: Sequence[int], index: int, series_length: int | None, *, min_sigma: float = 1.0) -> float:
+def _adaptive_sigma(
+    cps: Sequence[int], index: int, series_length: int | None, *, min_sigma: float = 1.0
+) -> float:
     """Legacy adaptive sigma based on neighbour spacing."""
 
     current = cps[index]
@@ -79,7 +81,9 @@ def _adaptive_sigma(cps: Sequence[int], index: int, series_length: int | None, *
     return float(sigma)
 
 
-def _fixed_sigma(series_length: int | None, *, sigma_fraction: float, min_sigma: float = 1.0) -> float:
+def _fixed_sigma(
+    series_length: int | None, *, sigma_fraction: float, min_sigma: float = 1.0
+) -> float:
     """Sigma shared by all change points, proportional to the series length."""
 
     if series_length is None:
@@ -103,7 +107,9 @@ def _local_sigma(
 
     if adaptive:
         return _adaptive_sigma(cps, index, series_length, min_sigma=min_sigma)
-    return _fixed_sigma(series_length, sigma_fraction=sigma_fraction, min_sigma=min_sigma)
+    return _fixed_sigma(
+        series_length, sigma_fraction=sigma_fraction, min_sigma=min_sigma
+    )
 
 
 def _gaussian_weight(distance: float, sigma: float) -> float:
@@ -280,4 +286,3 @@ class GaussianF1Score(BaseMetric):
             "recall": float(recall),
             "matched_weight": float(matched_weight),
         }
-

@@ -149,7 +149,9 @@ class VQTSSDetector(BaseSegmenter):
             dl_generator = torch.Generator()
             dl_generator.manual_seed(self.random_state)
         loader = DataLoader(
-            dataset, batch_size=self.batch_size, shuffle=True,
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
             generator=dl_generator,
         )
 
@@ -164,7 +166,8 @@ class VQTSSDetector(BaseSegmenter):
 
         optimizer = optim.Adam(self.model_.parameters(), lr=self.learning_rate)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=max(self.epochs, 1),
+            optimizer,
+            T_max=max(self.epochs, 1),
         )
 
         # Pre-build temporal mask for negative exclusion ---------------
@@ -183,7 +186,7 @@ class VQTSSDetector(BaseSegmenter):
         for _epoch in range(self.epochs):
             for (batch_windows,) in loader:
                 seq = batch_windows.to(self.device)  # (B, C, S)
-                inp = seq[:, :, :-1]    # (B, C, W)
+                inp = seq[:, :, :-1]  # (B, C, W)
                 target = seq[:, :, 1:]  # (B, C, W)
 
                 optimizer.zero_grad()
@@ -193,23 +196,22 @@ class VQTSSDetector(BaseSegmenter):
 
                 # --- Per-item InfoNCE (memory: O(B·W²)) ---------------
                 contrastive_loss = self._contrastive_loss(
-                    z_pred, z_target, easy_mask,
+                    z_pred,
+                    z_target,
+                    easy_mask,
                 )
 
                 # --- Smoothness loss ----------------------------------
                 diff = z_q[:, :, 1:] - z_q[:, :, :-1]
                 smooth_loss = diff.pow(2).mean()
 
-                loss = (
-                    contrastive_loss
-                    + vq_loss
-                    + self.smoothness_weight * smooth_loss
-                )
+                loss = contrastive_loss + vq_loss + self.smoothness_weight * smooth_loss
                 loss.backward()
 
                 if self.max_grad_norm > 0:
                     nn.utils.clip_grad_norm_(
-                        self.model_.parameters(), self.max_grad_norm,
+                        self.model_.parameters(),
+                        self.max_grad_norm,
                     )
 
                 optimizer.step()
@@ -260,7 +262,7 @@ class VQTSSDetector(BaseSegmenter):
         """
         B, H, T = z_pred.shape
 
-        z_p = F.normalize(z_pred.permute(0, 2, 1), dim=2)   # (B, T, H)
+        z_p = F.normalize(z_pred.permute(0, 2, 1), dim=2)  # (B, T, H)
         z_t = F.normalize(z_target.permute(0, 2, 1), dim=2)  # (B, T, H)
 
         # Per-item similarity: (B, T, T)
@@ -273,10 +275,7 @@ class VQTSSDetector(BaseSegmenter):
             logits.masked_fill_(mask.unsqueeze(0), float("-inf"))
 
         labels = (
-            torch.arange(T, device=logits.device)
-            .unsqueeze(0)
-            .expand(B, -1)
-            .reshape(-1)
+            torch.arange(T, device=logits.device).unsqueeze(0).expand(B, -1).reshape(-1)
         )
         return F.cross_entropy(logits.reshape(B * T, T), labels)
 

@@ -64,8 +64,12 @@ def calculate_semantic_density_matrix(
         if not np.any(last_arc_set < dontcare):
             break
 
-    min_entries = np.array([min(lst) if lst else idx for idx, lst in enumerate(arc_set)], dtype=float)
-    max_entries = np.array([max(lst) if lst else idx for idx, lst in enumerate(arc_set)], dtype=float)
+    min_entries = np.array(
+        [min(lst) if lst else idx for idx, lst in enumerate(arc_set)], dtype=float
+    )
+    max_entries = np.array(
+        [max(lst) if lst else idx for idx, lst in enumerate(arc_set)], dtype=float
+    )
 
     offset = np.arange(profile_len, dtype=float)
     totmin = float(np.min(np.abs(min_entries - offset), initial=0.0))
@@ -86,7 +90,10 @@ def calculate_semantic_density_matrix(
     # Secondary spectrum: reuse total partner counts as a crude proxy. The MATLAB
     # sources only returned a single value, so presenting both gives parity with
     # the call sites that expect two outputs.
-    partner_counts = np.array([len([p for p in partners if p != dontcare]) for partners in arc_set], dtype=float)
+    partner_counts = np.array(
+        [len([p for p in partners if p != dontcare]) for partners in arc_set],
+        dtype=float,
+    )
 
     return nnmark, partner_counts
 
@@ -118,9 +125,15 @@ def _extract_new_arc_set(
 
     for i in range(profile_len):
         candidate = int(new_arcs[i])
-        if candidate != dontcare and (candidate > i + quarter_win or candidate < i - quarter_win):
+        if candidate != dontcare and (
+            candidate > i + quarter_win or candidate < i - quarter_win
+        ):
             arc_set[i].append(candidate)
-            cost = float(last_arc_cost[i] + last_arc_cost[last_arc_set[i]] if last_arc_set[i] < profile_len else threshold + 1.0)
+            cost = float(
+                last_arc_cost[i] + last_arc_cost[last_arc_set[i]]
+                if last_arc_set[i] < profile_len
+                else threshold + 1.0
+            )
             arc_cost[i].append(cost)
             temp_arc_cost[i] = cost
             temp_arc_set[i] = candidate

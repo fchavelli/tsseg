@@ -49,6 +49,7 @@ _SEGMENTER_BASES = tuple(_SEGMENTER_BASES)
 # Helpers
 # ------------------------------------------------------------------
 
+
 def _fit_instance(instance, ovr, data):
     """Fit an instance on suitable synthetic data."""
     if instance.get_tag("capability:univariate"):
@@ -127,7 +128,10 @@ class TestBaseSegmenterContract:
         if instance.get_tag("capability:univariate"):
             X, y = synthetic_data["univariate"]["X"], synthetic_data["univariate"]["y"]
         else:
-            X, y = synthetic_data["multivariate"]["X"], synthetic_data["multivariate"]["y"]
+            X, y = (
+                synthetic_data["multivariate"]["X"],
+                synthetic_data["multivariate"]["y"],
+            )
         if ovr.semi_supervised:
             apply_supervision(instance, y)
             result = instance.fit(X, y)

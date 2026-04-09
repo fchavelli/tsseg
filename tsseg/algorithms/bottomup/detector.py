@@ -165,6 +165,11 @@ class BottomUpDetector(BaseSegmenter):
         if self._train_signal is None or not np.array_equal(signal, self._train_signal):
             self._estimator.fit(signal)
             self._train_signal = signal
-        bkps = np.asarray(self._estimator.predict(n_bkps=self.n_cps, pen=self.penalty, epsilon=self.epsilon), dtype=int)
+        bkps = np.asarray(
+            self._estimator.predict(
+                n_bkps=self.n_cps, pen=self.penalty, epsilon=self.epsilon
+            ),
+            dtype=int,
+        )
         bkps = bkps[(bkps > 0) & (bkps < signal.shape[0])]
         return np.unique(bkps)

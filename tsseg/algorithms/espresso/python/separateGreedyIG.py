@@ -95,7 +95,9 @@ def _gaussian_smooth(arr: np.ndarray, window: int) -> np.ndarray:
     return smoothed.reshape(arr.shape)
 
 
-def _find_peaks(signal: np.ndarray, min_peak_distance: int) -> tuple[np.ndarray, np.ndarray]:
+def _find_peaks(
+    signal: np.ndarray, min_peak_distance: int
+) -> tuple[np.ndarray, np.ndarray]:
     """Locate peaks and prominences with a SciPy-powered or fallback approach."""
 
     signal = np.asarray(signal, dtype=float)

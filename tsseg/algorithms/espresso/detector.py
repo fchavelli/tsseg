@@ -148,7 +148,6 @@ class EspressoDetector(BaseSegmenter):
             # A single segment means zero change points — return empty.
             return np.asarray([], dtype=int)
 
-
         # ``espresso`` expects channels x time ordering.
         data = signal.T
         change_points = _run_espresso(
@@ -163,7 +162,9 @@ class EspressoDetector(BaseSegmenter):
         change_points = np.asarray(change_points, dtype=int)
         if change_points.size:
             n_timepoints = signal.shape[0]
-            change_points = change_points[(0 < change_points) & (change_points < n_timepoints)]
+            change_points = change_points[
+                (0 < change_points) & (change_points < n_timepoints)
+            ]
             change_points = np.unique(change_points)
 
         self._fitted_change_points = change_points.copy()

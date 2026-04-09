@@ -228,9 +228,7 @@ class BOCDDetector(BaseSegmenter):
 
         normaliser = logsumexp(log_cp_probs[finite_mask])
         cp_probabilities = np.zeros(log_cp_probs.shape[0], dtype=float)
-        cp_probabilities[finite_mask] = np.exp(
-            log_cp_probs[finite_mask] - normaliser
-        )
+        cp_probabilities[finite_mask] = np.exp(log_cp_probs[finite_mask] - normaliser)
 
         return _select_change_points(
             cp_probabilities,
@@ -334,7 +332,10 @@ def _select_change_points(
         if cp_position < min_distance or cp_position > n_samples - min_distance:
             continue
 
-        if selected and np.min(np.abs(np.asarray(selected) - cp_position)) < min_distance:
+        if (
+            selected
+            and np.min(np.abs(np.asarray(selected) - cp_position)) < min_distance
+        ):
             continue
 
         selected.append(cp_position)

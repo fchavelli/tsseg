@@ -78,7 +78,9 @@ class DynpDetector(BaseSegmenter):
         axis: int = 0,
     ) -> None:
         if n_cps is None:
-            raise ValueError("n_cps must be a positive integer (required by the DP solver).")
+            raise ValueError(
+                "n_cps must be a positive integer (required by the DP solver)."
+            )
         if int(n_cps) < 0:
             raise ValueError("n_cps must be a non-negative integer.")
         self.n_cps = int(n_cps)

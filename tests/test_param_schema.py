@@ -26,9 +26,7 @@ import pytest
 # some requiring optional deps like prophet / tensorflow).
 # ---------------------------------------------------------------------------
 
-_ALGO_ROOT = os.path.join(
-    os.path.dirname(__file__), os.pardir, "tsseg", "algorithms"
-)
+_ALGO_ROOT = os.path.join(os.path.dirname(__file__), os.pardir, "tsseg", "algorithms")
 _ALGO_ROOT = os.path.normpath(_ALGO_ROOT)
 
 
@@ -111,9 +109,7 @@ def _load_detector(subpkg: str, filename: str, classname: str):
         except Exception:
             pass
     mod_dotted = f"{dotted}.{filename}"
-    mod = _import_module_from_file(
-        mod_dotted, os.path.join(pkg_dir, f"{filename}.py")
-    )
+    mod = _import_module_from_file(mod_dotted, os.path.join(pkg_dir, f"{filename}.py"))
     return getattr(mod, classname)
 
 
@@ -140,6 +136,7 @@ WindowDetector = _load_detector("window", "detector", "WindowDetector")
 # ======================================================================
 # Unit tests — Interval
 # ======================================================================
+
 
 class TestInterval:
     def test_closed_both(self):
@@ -192,6 +189,7 @@ class TestInterval:
 # Unit tests — StrOptions
 # ======================================================================
 
+
 class TestStrOptions:
     def test_valid(self):
         c = StrOptions({"l1", "l2", "rbf"})
@@ -209,6 +207,7 @@ class TestStrOptions:
 # ======================================================================
 # Unit tests — Options
 # ======================================================================
+
 
 class TestOptions:
     def test_none_sentinel(self):
@@ -228,6 +227,7 @@ class TestOptions:
 # Unit tests — HasType
 # ======================================================================
 
+
 class TestHasType:
     def test_valid(self):
         c = HasType((dict,))
@@ -242,6 +242,7 @@ class TestHasType:
 # ======================================================================
 # Unit tests — MutuallyExclusive
 # ======================================================================
+
 
 class TestMutuallyExclusive:
     def test_one_set(self):
@@ -261,6 +262,7 @@ class TestMutuallyExclusive:
 # Unit tests — DependsOn
 # ======================================================================
 
+
 class TestDependsOn:
     def test_satisfied(self):
         c = DependsOn("stride <= window_size", "stride must be <= window_size")
@@ -275,6 +277,7 @@ class TestDependsOn:
 # Unit tests — ConditionalRequired
 # ======================================================================
 
+
 class TestConditionalRequired:
     def test_condition_met_param_present(self):
         c = ConditionalRequired("n_change_points", "semi_supervised == True")
@@ -282,7 +285,9 @@ class TestConditionalRequired:
 
     def test_condition_met_param_missing(self):
         c = ConditionalRequired("n_change_points", "semi_supervised == True")
-        assert c.validate({"semi_supervised": True, "n_change_points": None}) is not None
+        assert (
+            c.validate({"semi_supervised": True, "n_change_points": None}) is not None
+        )
 
     def test_condition_not_met(self):
         c = ConditionalRequired("n_change_points", "semi_supervised == True")
@@ -292,6 +297,7 @@ class TestConditionalRequired:
 # ======================================================================
 # Unit tests — DataDependent
 # ======================================================================
+
 
 class TestDataDependent:
     def test_no_ctx(self):
@@ -326,6 +332,7 @@ class TestDataDependent:
 # ======================================================================
 # Unit tests — ParamDef
 # ======================================================================
+
 
 class TestParamDef:
     def test_nullable_none(self):
@@ -362,6 +369,7 @@ class TestParamDef:
 # Schema resolution
 # ======================================================================
 
+
 class TestSchemaResolution:
     """Verify that schema keys are a subset of __init__ parameter names."""
 
@@ -393,9 +401,7 @@ class TestSchemaResolution:
         assert "window_size" in schema
         assert "classifier" in schema
 
-    @pytest.mark.skipif(
-        not _can_import("torch"), reason="torch not installed"
-    )
+    @pytest.mark.skipif(not _can_import("torch"), reason="torch not installed")
     def test_tire_schema(self):
         TireDetector = _load_detector("tire", "detector", "TireDetector")
         schema = get_parameter_schema(TireDetector)
@@ -403,9 +409,7 @@ class TestSchemaResolution:
         assert "stride" in schema
         assert CROSS_CONSTRAINTS_KEY in schema
 
-    @pytest.mark.skipif(
-        not _can_import("torch"), reason="torch not installed"
-    )
+    @pytest.mark.skipif(not _can_import("torch"), reason="torch not installed")
     def test_e2usd_schema(self):
         E2USDDetector = _load_detector("e2usd", "detector", "E2USDDetector")
         schema = get_parameter_schema(E2USDDetector)
@@ -516,14 +520,18 @@ class TestSchemaResolution:
 
     @pytest.mark.skipif(not _can_import("torch"), reason="torch not installed")
     def test_time2state_schema(self):
-        Time2StateDetector = _load_detector("time2state", "detector", "Time2StateDetector")
+        Time2StateDetector = _load_detector(
+            "time2state", "detector", "Time2StateDetector"
+        )
         schema = get_parameter_schema(Time2StateDetector)
         assert "window_size" in schema
         assert "n_states" in schema
         assert "depth" in schema
         assert CROSS_CONSTRAINTS_KEY in schema
 
-    @pytest.mark.skipif(not _can_import("tensorflow"), reason="tensorflow not installed")
+    @pytest.mark.skipif(
+        not _can_import("tensorflow"), reason="tensorflow not installed"
+    )
     def test_tscp2_schema(self):
         TSCP2Detector = _load_detector("tscp2", "detector", "TSCP2Detector")
         schema = get_parameter_schema(TSCP2Detector)
@@ -543,6 +551,7 @@ class TestSchemaResolution:
 # ======================================================================
 # validate_params() on real detectors
 # ======================================================================
+
 
 class TestValidateParams:
     """Test validation on real detector instances with valid and invalid params."""
@@ -676,6 +685,7 @@ class TestValidateParams:
 # get_ui_hints()
 # ======================================================================
 
+
 class TestUIHints:
     def test_binseg_hints(self):
         hints = get_ui_hints(BinSegDetector)
@@ -708,8 +718,10 @@ class TestUIHints:
 
     def test_no_schema_returns_empty(self):
         """A class without _parameter_schema should yield empty hints."""
+
         class _Bare:
             pass
+
         hints = get_ui_hints(_Bare)
         assert hints == {}
 
@@ -720,15 +732,22 @@ class TestUIHints:
 
 _PILOT_DETECTORS = []
 
+
 def _get_pilot_detectors():
     """Lazily load pilot detectors to avoid import errors at collection time."""
     global _PILOT_DETECTORS
     if _PILOT_DETECTORS:
         return _PILOT_DETECTORS
     detectors = [
-        BinSegDetector, PeltDetector, BOCDDetector,
-        AmocDetector, AutoPlaitDetector, BottomUpDetector,
-        ClaspDetector, DynpDetector, EspressoDetector,
+        BinSegDetector,
+        PeltDetector,
+        BOCDDetector,
+        AmocDetector,
+        AutoPlaitDetector,
+        BottomUpDetector,
+        ClaspDetector,
+        DynpDetector,
+        EspressoDetector,
         GreedyGaussianDetector,
     ]
     try:
@@ -761,9 +780,14 @@ def _get_pilot_detectors():
     except Exception:
         pass
     # Wave-3 detectors
-    detectors.extend([
-        InformationGainDetector, KCPDDetector, RandomDetector, WindowDetector,
-    ])
+    detectors.extend(
+        [
+            InformationGainDetector,
+            KCPDDetector,
+            RandomDetector,
+            WindowDetector,
+        ]
+    )
     if _can_import("prophet"):
         try:
             detectors.append(_load_detector("prophet", "detector", "ProphetDetector"))
@@ -775,7 +799,9 @@ def _get_pilot_detectors():
         except Exception:
             pass
         try:
-            detectors.append(_load_detector("time2state", "detector", "Time2StateDetector"))
+            detectors.append(
+                _load_detector("time2state", "detector", "Time2StateDetector")
+            )
         except Exception:
             pass
     if _can_import("tensorflow"):
@@ -794,10 +820,7 @@ class TestSchemaConsistency:
         for cls in _get_pilot_detectors():
             schema = get_parameter_schema(cls)
             sig = inspect.signature(cls.__init__)
-            init_params = {
-                p.name for p in sig.parameters.values()
-                if p.name != "self"
-            }
+            init_params = {p.name for p in sig.parameters.values() if p.name != "self"}
             schema_params = {k for k in schema if k != CROSS_CONSTRAINTS_KEY}
             extra = schema_params - init_params
             assert extra == set(), (
@@ -825,6 +848,7 @@ class TestSchemaConsistency:
 # ======================================================================
 # Integration: validation triggered in fit()
 # ======================================================================
+
 
 class TestFitValidation:
     """Verify that BaseSegmenter.fit() triggers param validation."""

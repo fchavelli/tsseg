@@ -41,14 +41,16 @@ def sliding_mean_std(time_series, window_size):
     >>> movmean, movstd = sliding_mean_std(time_series, window_size)
     """
     s = np.concatenate((np.zeros(1, dtype=np.float64), np.cumsum(time_series)))
-    sSq = np.concatenate((np.zeros(1, dtype=np.float64), np.cumsum(time_series ** 2)))
+    sSq = np.concatenate((np.zeros(1, dtype=np.float64), np.cumsum(time_series**2)))
 
     segSum = s[window_size:] - s[:-window_size]
     segSumSq = sSq[window_size:] - sSq[:-window_size]
 
     movmean = segSum / window_size
 
-    movstd = np.sqrt(np.clip(segSumSq / window_size - (segSum / window_size) ** 2, 0, None))
+    movstd = np.sqrt(
+        np.clip(segSumSq / window_size - (segSum / window_size) ** 2, 0, None)
+    )
     movstd = np.where(np.abs(movstd) < 1e-3, 1, movstd)
 
     return [movmean, movstd]
@@ -80,8 +82,17 @@ def znormed_euclidean_distance(idx, dot, window_size, preprocessing, squared=Tru
         The z-normalized Euclidean distances between the subsequence at index `idx` and all other subsequences.
     """
     means, stds = preprocessing
-    dist = 2 * window_size * (1 - (dot - window_size * means * means[idx]) / (window_size * stds * stds[idx]))
-    if squared is True: return dist
+    dist = (
+        2
+        * window_size
+        * (
+            1
+            - (dot - window_size * means * means[idx])
+            / (window_size * stds * stds[idx])
+        )
+    )
+    if squared is True:
+        return dist
     return np.sqrt(dist)
 
 
@@ -103,7 +114,7 @@ def sliding_csum(time_series, window_size):
         A 1-dimensional numpy array containing the difference between the sliding cumulative sum of
         squares of the time series with the current window and that with the previous window.
     """
-    csumsq = np.concatenate((np.zeros(1, dtype=np.float64), np.cumsum(time_series ** 2)))
+    csumsq = np.concatenate((np.zeros(1, dtype=np.float64), np.cumsum(time_series**2)))
     return csumsq[window_size:] - csumsq[:-window_size]
 
 
@@ -132,7 +143,8 @@ def euclidean_distance(idx, dot, window_size, csumsq, squared=True):
         The Euclidean distances between the subsequence at index `idx` and all other subsequences.
     """
     dist = -2 * dot + csumsq + csumsq[idx]
-    if squared is True: return dist
+    if squared is True:
+        return dist
     return np.sqrt(dist)
 
 
@@ -162,10 +174,19 @@ def sliding_csum_dcsum(time_series, window_size):
         The sliding standard deviation of the time series over the window.
     """
     means, stds = sliding_mean_std(time_series, window_size)
-    csumsq = np.concatenate((np.zeros(1, dtype=np.float64), np.cumsum(time_series ** 2)))
-    dcsumsq = np.concatenate((np.zeros(2, dtype=np.float64), np.cumsum((time_series[1:] - time_series[:-1]) ** 2)))
-    return [csumsq[window_size:] - csumsq[:-window_size], dcsumsq[window_size:] - dcsumsq[:-window_size] + 1e-5, means,
-            stds]
+    csumsq = np.concatenate((np.zeros(1, dtype=np.float64), np.cumsum(time_series**2)))
+    dcsumsq = np.concatenate(
+        (
+            np.zeros(2, dtype=np.float64),
+            np.cumsum((time_series[1:] - time_series[:-1]) ** 2),
+        )
+    )
+    return [
+        csumsq[window_size:] - csumsq[:-window_size],
+        dcsumsq[window_size:] - dcsumsq[:-window_size] + 1e-5,
+        means,
+        stds,
+    ]
 
 
 @njit(fastmath=True, cache=True)
@@ -199,16 +220,23 @@ def cinvariant_euclidean_distance(idx, dot, window_size, preprocessing, squared=
     curr_ce = np.repeat(ce[idx], ce.shape[0])
 
     with objmode(cf="float64[:]"):
-        cf = (np.max(np.dstack((ce, curr_ce)), axis=2) / np.min(np.dstack((ce, curr_ce)), axis=2))[0]
+        cf = (
+            np.max(np.dstack((ce, curr_ce)), axis=2)
+            / np.min(np.dstack((ce, curr_ce)), axis=2)
+        )[0]
 
-    if squared is True: return ed * cf
+    if squared is True:
+        return ed * cf
     return np.sqrt(ed) * np.sqrt(cf)
 
 
 _DISTANCE_MAPPING = {
     "znormed_euclidean_distance": (sliding_mean_std, znormed_euclidean_distance),
     "euclidean_distance": (sliding_csum, euclidean_distance),
-    "cinvariant_euclidean_distance": (sliding_csum_dcsum, cinvariant_euclidean_distance)
+    "cinvariant_euclidean_distance": (
+        sliding_csum_dcsum,
+        cinvariant_euclidean_distance,
+    ),
 }
 
 
@@ -239,6 +267,7 @@ def map_distances(distance_name):
     """
     if distance_name not in _DISTANCE_MAPPING:
         raise ValueError(
-            f"{distance_name} is not a valid distance. Implementations include: {', '.join(_DISTANCE_MAPPING.keys())}")
+            f"{distance_name} is not a valid distance. Implementations include: {', '.join(_DISTANCE_MAPPING.keys())}"
+        )
 
     return _DISTANCE_MAPPING[distance_name]

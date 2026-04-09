@@ -539,7 +539,9 @@ class GreedyGaussianDetector(BaseSegmenter):
         change_points_ = self.ggs.find_change_points(X)
 
         labels = np.zeros(X.shape[0], dtype=np.int32)
-        for i, (start, stop) in enumerate(zip(change_points_[:-1], change_points_[1:], strict=True)):
+        for i, (start, stop) in enumerate(
+            zip(change_points_[:-1], change_points_[1:], strict=True)
+        ):
             labels[start:stop] = i
         return labels
 
