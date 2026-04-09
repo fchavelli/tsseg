@@ -124,31 +124,6 @@ def entropy(X: npt.ArrayLike) -> float:
     return -np.sum(p * np.log(p))
 
 
-def _entropy_from_sums(channel_sums: np.ndarray) -> float:
-    """Compute Shannon entropy from precomputed channel sums.
-
-    This is the O(m) version using cumulative sums (Eq. 5-6 of [1]_).
-
-    Parameters
-    ----------
-    channel_sums : np.ndarray, shape (n_channels,)
-        Sum of each channel over the segment.
-
-    Returns
-    -------
-    h : float
-        Shannon entropy of the segment.
-    """
-    total = channel_sums.sum()
-    if total <= 0.0:
-        return 0.0
-    p = channel_sums / total
-    p = p[p > 0.0]
-    if p.size == 0:
-        return 0.0
-    return -float(np.sum(p * np.log(p)))
-
-
 def generate_segments(X: npt.ArrayLike, change_points: list[int]) -> Generator:
     """Generate separate segments from time series based on change points.
 
@@ -209,9 +184,6 @@ class _IGTS:
     GTS uses top-down search method to greedily find the next change point
     location that creates the maximum information gain. Once this is found, it
     repeats the process until it finds `k_max` splits of the time series.
-
-    Uses cumulative sums (Eq. 5-6 of [1]_) so that segment channel sums are
-    computed in O(m) instead of O(mn).
 
     .. note::
 
@@ -302,51 +274,12 @@ class _IGTS:
         ]
         return entropy(X) - sum(segment_entropies) / X.shape[0]
 
-    @staticmethod
-    def _ig_from_cumsum(
-        cumsum: np.ndarray,
-        n_samples: int,
-        h_total: float,
-        change_points: list[int],
-    ) -> float:
-        """Compute information gain using precomputed cumulative sums.
-
-        Implements Eq. 2 with the O(m) segment-sum trick of Eq. 5-6.
-
-        Parameters
-        ----------
-        cumsum : np.ndarray, shape (n_samples + 1, n_channels)
-            Cumulative sum with a leading row of zeros so that
-            ``cumsum[t]`` = sum of X[0:t] along axis 0.
-        n_samples : int
-            Length of the time series.
-        h_total : float
-            Precomputed entropy of the whole series.
-        change_points : list of int
-            Sorted boundary indices including 0 and n_samples.
-
-        Returns
-        -------
-        ig : float
-        """
-        weighted_h = 0.0
-        for start, end in zip(change_points[:-1], change_points[1:]):
-            seg_len = end - start
-            if seg_len <= 0:
-                continue
-            seg_sums = cumsum[end] - cumsum[start]  # O(m)
-            weighted_h += seg_len * _entropy_from_sums(seg_sums)
-        return h_total - weighted_h / n_samples
-
     def find_change_points(self, X: npt.ArrayLike) -> list[int]:
         """Find change points.
 
         Using a top-down search method, iteratively identify at most
         `k_max` change points that increase the information gain score
         the most.
-
-        Uses precomputed cumulative sums (Eq. 5-6) so that each candidate
-        evaluation is O(k·m) instead of O(k·m·n).
 
         Parameters
         ----------
@@ -363,26 +296,18 @@ class _IGTS:
         n_samples, n_series = X.shape
         self.intermediate_results_ = []
 
-        # Precompute cumulative sums — Eq. 5-6.  cumsum[t] = sum(X[0:t]).
-        cumsum = np.zeros((n_samples + 1, n_series), dtype=np.float64)
-        np.cumsum(X, axis=0, out=cumsum[1:])
-
-        # Precompute total entropy once.
-        total_sums = cumsum[n_samples]  # = cumsum[-1]
-        h_total = _entropy_from_sums(total_sums)
-
         # by convention initialize with the identity segmentation
         current_change_points = self.identity(X)
 
         for k in range(self.k_max):
             best_candidate = -1
-            ig_max = -1.0
+            ig_max = -1
             # find a point which maximizes score
             for candidate in self.get_candidates(n_samples, current_change_points):
-                try_change_points = sorted(set(current_change_points) | {candidate})
-                ig = self._ig_from_cumsum(
-                    cumsum, n_samples, h_total, try_change_points
-                )
+                try_change_points = {candidate}
+                try_change_points.update(current_change_points)
+                try_change_points = sorted(try_change_points)
+                ig = self.information_gain_score(X, try_change_points)
                 if ig > ig_max:
                     ig_max = ig
                     best_candidate = candidate
@@ -463,7 +388,7 @@ class InformationGainDetector(BaseSegmenter):
     _tags = {
         "capability:univariate": True,
         "capability:multivariate": True,
-        "returns_dense": True,
+        "returns_dense": False,
         "fit_is_empty": False,
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
@@ -514,16 +439,16 @@ class InformationGainDetector(BaseSegmenter):
             The numerical values represent distinct segment labels for each of the
             data points.
         """
-        # Apply normalise + complement augmentation (Section 4.4, Eq. 12-13)
-        # to all data — required for univariate and handles positive
-        # correlation in multivariate data.
-        X_work = _augment_univariate(X)
+        # Univariate series need augmentation (complement channel) so that
+        # Shannon entropy can distinguish segments.  See Eq. 12-13 in [1].
+        if X.shape[1] == 1:
+            X_work = _augment_univariate(X)
+        else:
+            X_work = X
 
         change_points_ = self._igts.find_change_points(X_work)
         self.intermediate_results_ = self._igts.intermediate_results_
-        # Return sparse change point indices (exclude boundary 0 and N).
-        cps = np.array(sorted(set(change_points_[1:-1])), dtype=int)
-        return cps
+        return self.to_clusters(change_points_[1:-1], X.shape[0])
 
     def __repr__(self) -> str:
         """Return a string representation of the estimator."""

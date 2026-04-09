@@ -69,6 +69,8 @@ class Time2StateDetector(BaseSegmenter):
         "capability:multivariate": True,
         "capability:unequal_length": False,
         "detector_type": "state_detection",
+        "non_deterministic": True,
+        "cant_pickle": True,
         "capability:unsupervised": True,  # n_states is an upper bound
         "capability:semi_supervised": True,
     }

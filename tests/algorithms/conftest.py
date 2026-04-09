@@ -11,14 +11,29 @@ falls back to sensible defaults (default constructor, no special dependencies).
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
 from importlib.util import find_spec
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
 
 import tsseg.algorithms as _algorithms_module
+
+
+def _autoplait_binary_available() -> bool:
+    """Check if the AutoPlait C binary is available."""
+    # Check relative to the package
+    try:
+        pkg_root = Path(__file__).resolve().parents[2]
+        binary = pkg_root / "c" / "autoplait" / "autoplait"
+        if binary.is_file():
+            return True
+    except Exception:
+        pass
+    return shutil.which("autoplait") is not None
 
 # ======================================================================
 # Per-algorithm overrides
@@ -57,11 +72,23 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     "AutoPlaitDetector": AlgorithmOverride(
         init_kwargs={"n_cps": None},
         semi_supervised=True,
+        skip_reason=(
+            None
+            if _autoplait_binary_available()
+            else "AutoPlait C binary not built"
+        ),
     ),
     "DynpDetector": AlgorithmOverride(semi_supervised=True),
     "HidalgoDetector": AlgorithmOverride(semi_supervised=True),
     "VSAXDetector": AlgorithmOverride(semi_supervised=True),
     # --- Need an explicit stopping criterion --------------------------
+    "ClaspDetector": AlgorithmOverride(
+        init_kwargs={
+            "n_change_points": 2,
+            "window_size": 10,
+            "validation": "score_threshold",
+        },
+    ),
     "WindowDetector": AlgorithmOverride(init_kwargs={"n_cps": 2}),
     "EspressoDetector": AlgorithmOverride(
         init_kwargs={"n_segments": 3, "window_size": 10},
@@ -69,10 +96,15 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     # --- Optional heavy dependencies ----------------------------------
     "E2USDDetector": AlgorithmOverride(dependencies=("torch",)),
     "FLUSSDetector": AlgorithmOverride(dependencies=("stumpy",)),
+    "PatssDetector": AlgorithmOverride(dependencies=("npbad",)),
     "ProphetDetector": AlgorithmOverride(dependencies=("prophet",)),
+    "SNLDSDetector": AlgorithmOverride(dependencies=("tensorflow",)),
     "Time2StateDetector": AlgorithmOverride(dependencies=("torch",)),
     "TireDetector": AlgorithmOverride(dependencies=("torch",)),
-    "TGLADDetector": AlgorithmOverride(dependencies=("torch", "networkx")),
+    "TGLADDetector": AlgorithmOverride(
+        dependencies=("torch", "networkx"),
+        init_kwargs={"window_size": 100, "stride": 50, "epochs": 10},
+    ),
     "TSCP2Detector": AlgorithmOverride(dependencies=("tensorflow",)),
     "VQTSSDetector": AlgorithmOverride(
         dependencies=("torch",),
@@ -233,7 +265,6 @@ def algorithm(request):
     automatically.
     """
     name: str = request.param
-    cls = getattr(_algorithms_module, name)
     ovr = _override_for(name)
 
     if ovr.skip_reason:
@@ -241,6 +272,11 @@ def algorithm(request):
     for dep in ovr.dependencies:
         if _dependency_missing(dep):
             pytest.skip(f"Missing optional dependency '{dep}' for {name}")
+
+    try:
+        cls = getattr(_algorithms_module, name)
+    except (ImportError, ModuleNotFoundError) as exc:
+        pytest.skip(f"Cannot import {name}: {exc}")
 
     instance = make_instance(cls, ovr)
     return name, cls, ovr, instance

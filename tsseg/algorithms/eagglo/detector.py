@@ -95,7 +95,7 @@ class EAggloDetector(BaseSegmenter):
         "capability:multivariate": True,
         "fit_is_empty": False,
         "returns_dense": False,
-        "detector_type": "change_point_detection",
+        "detector_type": "state_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
     }

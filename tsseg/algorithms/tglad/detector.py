@@ -68,7 +68,7 @@ class TGLADDetector(BaseSegmenter):
     min_spacing : int, optional
         Minimum distance (in samples) required between two emitted change
         points. Defaults to the stride when ``None``.
-    epochs : int, default=2000
+    epochs : int, default=100
         Number of uGLAD training epochs per batch.
     learning_rate : float, default=0.001
         Optimiser learning rate.
@@ -162,7 +162,7 @@ class TGLADDetector(BaseSegmenter):
         batch_size: int = 8,
         threshold: float = 0.5,
         min_spacing: int | None = None,
-        epochs: int = 2000,
+        epochs: int = 100,
         learning_rate: float = 0.001,
         glad_iterations: int = 5,
         eval_offset: float = 0.1,

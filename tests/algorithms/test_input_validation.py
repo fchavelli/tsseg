@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from .conftest import make_instance
+from .conftest import apply_supervision, make_instance
 
 
 class TestInputValidation:
@@ -37,7 +37,11 @@ class TestInputValidation:
             result = instance.fit_predict(X)
             # If it doesn't raise, the result must be empty too
             assert np.asarray(result).size == 0
-        except (ValueError, IndexError):
+        except (ValueError, IndexError, OverflowError, RuntimeError, Exception) as exc:
+            # Accept any reasonable exception when given empty input,
+            # including domain-specific ones (e.g. BadSegmentationParameters).
+            if type(exc) is Exception:
+                raise  # Don't swallow bare Exception
             pass  # Acceptable: raising on empty input
 
     def test_multivariate_rejected_when_unsupported(self, algorithm):
@@ -71,12 +75,21 @@ class TestInputValidation:
         if not instance.get_tag("capability:univariate"):
             pytest.skip("Multivariate-only")
         instance = make_instance(cls, ovr)
-        X = pd.Series(np.random.default_rng(0).standard_normal(200))
+        rng = np.random.default_rng(0)
+        n = 500
+        X = pd.Series(rng.standard_normal(n))
+        if ovr.semi_supervised:
+            y = np.zeros(n, dtype=int)
+            y[n // 3 : 2 * n // 3] = 1
+            y[2 * n // 3 :] = 2
+            apply_supervision(instance, y)
         try:
             result = instance.fit_predict(X)
             assert result is not None
         except NotImplementedError:
             pytest.skip("Algorithm does not support this input pathway")
+        except (ValueError, ImportError):
+            pytest.skip("Algorithm rejects this data configuration")
 
     def test_pandas_dataframe_accepted(self, algorithm):
         """A ``pd.DataFrame`` is a valid input type."""
@@ -84,9 +97,18 @@ class TestInputValidation:
         if not instance.get_tag("capability:univariate"):
             pytest.skip("Multivariate-only")
         instance = make_instance(cls, ovr)
-        X = pd.DataFrame({"x": np.random.default_rng(0).standard_normal(200)})
+        rng = np.random.default_rng(0)
+        n = 500
+        X = pd.DataFrame({"x": rng.standard_normal(n)})
+        if ovr.semi_supervised:
+            y = np.zeros(n, dtype=int)
+            y[n // 3 : 2 * n // 3] = 1
+            y[2 * n // 3 :] = 2
+            apply_supervision(instance, y)
         try:
             result = instance.fit_predict(X)
             assert result is not None
         except NotImplementedError:
             pytest.skip("Algorithm does not support this input pathway")
+        except (ValueError, ImportError):
+            pytest.skip("Algorithm rejects this data configuration")

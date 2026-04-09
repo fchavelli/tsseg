@@ -161,7 +161,11 @@ class CLaP:
                 raise ValueError(f"The classifier {self.classifier} is not supported.")
 
             y_true[test_idx] = y_test
-            y_pred[test_idx] = clf.fit(X_train, y_train).predict(X_test)
+            # Guard against folds with a single class (aeon requires ≥ 2).
+            if len(np.unique(y_train)) < 2:
+                y_pred[test_idx] = y_train[0]
+            else:
+                y_pred[test_idx] = clf.fit(X_train, y_train).predict(X_test)
 
         return y_true, y_pred
 

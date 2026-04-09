@@ -132,7 +132,7 @@ class HMMDetector(BaseSegmenter):
         "capability:univariate": True,
         "capability:multivariate": False,
         "fit_is_empty": True,
-        "returns_dense": True,
+        "returns_dense": False,
         "detector_type": "state_detection",
         "capability:unsupervised": False,
         "capability:semi_supervised": False,
@@ -163,7 +163,7 @@ class HMMDetector(BaseSegmenter):
             else self._DEFAULT_TRANSITION_MAT.copy()
         )
         self._validate_init()
-        super().__init__(axis=1)
+        super().__init__(axis=0)
 
     def _validate_init(self):
         """Verify the parameters passed to init.

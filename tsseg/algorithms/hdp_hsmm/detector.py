@@ -137,6 +137,7 @@ class HdpHsmmDetector(BaseSegmenter):
         "capability:univariate": True,
         "capability:multivariate": True,
         "detector_type": "state_detection",
+        "non_deterministic": True,
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
     }

@@ -30,6 +30,7 @@ class RandomDetector(BaseSegmenter):
         "fit_is_empty": False,
         "returns_dense": False,
         "detector_type": "state_detection",
+        "non_deterministic": True,
         "semi_supervised": False,
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
