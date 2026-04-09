@@ -28,7 +28,7 @@ X, y_true = load_mocap(trial=0)
 
 # Segment
 segmenter = ClapDetector()
-segmenter.fit(X, axis=0)
+segmenter.fit(X)
 y_pred = segmenter.predict(X)
 
 # Evaluate
