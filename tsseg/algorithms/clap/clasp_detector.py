@@ -3,8 +3,8 @@ This module provides a wrapper for the ClaSP algorithm to integrate it
 with the tsseg library's API.
 """
 import numpy as np
+
 from ..base import BaseSegmenter
-from .segmentation import BinaryClaSPSegmentation
 from ..param_schema import (
     Closed,
     DataDependent,
@@ -13,6 +13,8 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
+from .segmentation import BinaryClaSPSegmentation
+
 
 class ClaspDetector(BaseSegmenter):
     """
@@ -180,5 +182,5 @@ class ClaspDetector(BaseSegmenter):
         """
         # The predict method of BinaryClaSPSegmentation returns the change points.
         self._check_is_fitted()
-        
+
         return self.change_points_

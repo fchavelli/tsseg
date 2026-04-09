@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -36,9 +35,9 @@ class _AmocEngine:
     """Internal helper implementing the AMOC objective."""
 
     min_size: int = 1
-    signal: Optional[np.ndarray] = None
+    signal: np.ndarray | None = None
 
-    def fit(self, signal: np.ndarray) -> "_AmocEngine":
+    def fit(self, signal: np.ndarray) -> _AmocEngine:
         signal = np.asarray(signal, dtype=float)
         if signal.ndim == 1:
             signal = signal[:, np.newaxis]

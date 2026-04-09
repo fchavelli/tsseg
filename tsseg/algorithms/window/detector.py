@@ -7,7 +7,6 @@ import warnings
 import numpy as np
 
 from ..base import BaseSegmenter
-from ..ruptures.detection import Window
 from ..param_schema import (
     Closed,
     DataDependent,
@@ -17,6 +16,7 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
+from ..ruptures.detection import Window
 
 __all__ = ["WindowDetector"]
 
@@ -153,7 +153,7 @@ class WindowDetector(BaseSegmenter):
         estimator.fit(signal)
         self._estimator = estimator
         self._train_signal = signal
-        
+
         return self
 
     def _predict(self, X):

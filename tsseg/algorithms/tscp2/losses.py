@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Callable, Tuple, TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 try:  # pragma: no cover - optional dependency guard
     import tensorflow as _tf
@@ -80,7 +81,7 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
         similarity: Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
         *,
         temperature: float = 0.1,
-    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    ) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         """InfoNCE loss mirroring the original TensorFlow implementation."""
 
         sim = similarity(history, future)
@@ -111,7 +112,7 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
         *,
         temperature: float = 0.1,
         tau_plus: float = 0.1,
-    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    ) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         """Debiased contrastive loss (DCL)."""
 
         sim = similarity(history, future)
@@ -139,7 +140,7 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
         *,
         temperature: float = 0.1,
         elimination_topk: float = 0.1,
-    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    ) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         """Focal contrastive loss that removes the hardest negatives."""
 
         sim = similarity(history, future) / temperature
@@ -177,7 +178,7 @@ else:  # pragma: no cover - TensorFlow is available, expose real implementations
         temperature: float = 0.1,
         tau_plus: float = 0.1,
         beta: float = 0.1,
-    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    ) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         """Hard negative debiased contrastive loss."""
 
         sim = similarity(history, future)

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 import pandas as pd
+from prophet import Prophet
 
 from ..base import BaseSegmenter
-from ..utils import multivariate_l2_norm, aggregate_change_points
 from ..param_schema import (
     Closed,
     HasType,
@@ -14,10 +16,7 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
-
-from prophet import Prophet
-from typing import Callable
-from collections import Counter
+from ..utils import aggregate_change_points, multivariate_l2_norm
 
 # pandas Timestamp (ns resolution) overflows around 2262-04-11.
 # From start="2000-01-01" that leaves ~95 700 days with freq="D".
@@ -117,18 +116,18 @@ class ProphetDetector(BaseSegmenter):
                 # Ensembling strategy: fit Prophet on each dimension and aggregate
                 ds_index = _safe_date_range(signal_len)
                 all_detected_indices = []
-                
+
                 for d in range(dim):
                     dim_values = signal[:, d]
                     df = pd.DataFrame({"y": dim_values, "ds": ds_index})
-                    
+
                     model = Prophet(n_changepoints=n_cp, changepoint_range=1.0)
                     model.fit(df)
-                    
+
                     cp_dates = model.changepoints
                     indices = df[df["ds"].isin(cp_dates)].index.to_numpy(dtype=int)
                     all_detected_indices.extend(indices)
-                
+
                 pred = aggregate_change_points(all_detected_indices, n_cp, self.tolerance, signal_len=signal_len)
                 status = "ok"
 

@@ -1,8 +1,13 @@
+from typing import Any
+
 import numpy as np
-from typing import Dict, Any
-from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score
-from scipy.optimize import linear_sum_assignment
 import scipy.sparse as sp
+from scipy.optimize import linear_sum_assignment
+from sklearn.metrics import (
+    adjusted_mutual_info_score,
+    adjusted_rand_score,
+    normalized_mutual_info_score,
+)
 
 from .base import BaseMetric
 
@@ -64,7 +69,7 @@ def _map_predicted_labels(labels_true, labels_pred):
 
     # Hungarian algorithm for optimal assignment
     row_ind, col_ind = linear_sum_assignment(cost_matrix)
-    hungarian_map = {unique_pred_comp[i]: unique_true_comp[j] for i, j in zip(row_ind, col_ind)}
+    hungarian_map = {unique_pred_comp[i]: unique_true_comp[j] for i, j in zip(row_ind, col_ind, strict=True)}
 
     # Build the final mapping ensuring unique outputs for all unique predicted labels
     final_map = {}
@@ -104,7 +109,7 @@ def _error_type(error_label, true_atomicity, p0, p1, t0, t1):
         # Check if the predicted error label matches either the preceding or succeeding true label.
         if (t0 is not None and p0 is not None and t0 == error_label and p0 == error_label) or (t1 is not None and p1 is not None and t1 == error_label and p1 == error_label):
             return "delay"
-        
+
         # Isolation
         else:
             return "isolation"
@@ -152,10 +157,10 @@ def _normalized_block_boundary_distance(true_boundaries, block_start, block_end,
 def _compute_boundaries_symmetrical(labels):
     """
     Computes the indices of the boundaries in the label sequence.
-    
+
     Parameters:
         labels: numpy array of labels.
-    
+
     Returns:
         List of indices where the label changes.
     """
@@ -278,7 +283,7 @@ class StateMatchingScore(BaseMetric):
 
     DEFAULT_WEIGHTS = {"delay": 0.1, "transition": 0.3, "isolation": 0.8, "missing": 0.5}
 
-    def __init__(self, weights: Dict[str, float] | None = None, **kwargs):
+    def __init__(self, weights: dict[str, float] | None = None, **kwargs):
         super().__init__(**kwargs)
         self.weights = dict(weights) if weights is not None else self.DEFAULT_WEIGHTS.copy()
 
@@ -287,7 +292,7 @@ class StateMatchingScore(BaseMetric):
         y_true: np.ndarray,
         y_pred: np.ndarray,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         labels_true = y_true
         labels_pred = y_pred
 
@@ -302,7 +307,7 @@ class StateMatchingScore(BaseMetric):
             return_errors=return_errors,
         )
 
-        output: Dict[str, Any] = {}
+        output: dict[str, Any] = {}
         if return_mapped and return_errors:
             score, mapped_pred, errors_list = result
             output["mapped_pred"] = mapped_pred
@@ -327,7 +332,7 @@ class StateMatchingScore(BaseMetric):
 class AdjustedRandIndex(BaseMetric):
     """Computes the Adjusted Rand Index (ARI)."""
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> Dict[str, float]:
+    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
         return {"score": adjusted_rand_score(labels_true, labels_pred)}
@@ -335,7 +340,7 @@ class AdjustedRandIndex(BaseMetric):
 class NormalizedMutualInformation(BaseMetric):
     """Computes the Normalized Mutual Information (NMI)."""
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> Dict[str, float]:
+    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
         return {"score": normalized_mutual_info_score(labels_true, labels_pred)}
@@ -343,7 +348,7 @@ class NormalizedMutualInformation(BaseMetric):
 class AdjustedMutualInformation(BaseMetric):
     """Computes the Adjusted Mutual Information (AMI)."""
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> Dict[str, float]:
+    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
         return {"score": adjusted_mutual_info_score(labels_true, labels_pred)}
@@ -354,13 +359,13 @@ def _compute_boundary_distances(labels: np.ndarray) -> np.ndarray:
     boundaries = np.where(np.diff(labels) != 0)[0] + 1
     if len(boundaries) == 0:
         return np.full(n, n)
-    
+
     boundaries = np.concatenate(([0], boundaries, [n]))
-    
+
     distances = np.empty(n)
     for i in range(n):
         distances[i] = np.min(np.abs(i - boundaries))
-        
+
     return distances
 
 def _linear_distance(distances: np.ndarray, alpha: float = 0.1) -> np.ndarray:
@@ -373,13 +378,13 @@ def weighted_contingency_matrix(labels_true, labels_pred, weights, *, eps=None, 
     clusters, cluster_idx = np.unique(labels_pred, return_inverse=True)
     n_classes = classes.shape[0]
     n_clusters = clusters.shape[0]
-    
+
     contingency = sp.coo_matrix(
         (weights, (class_idx, cluster_idx)),
         shape=(n_classes, n_clusters),
         dtype=dtype,
     )
-    
+
     if sparse:
         contingency = contingency.tocsr()
         contingency.sum_duplicates()
@@ -387,31 +392,31 @@ def weighted_contingency_matrix(labels_true, labels_pred, weights, *, eps=None, 
         contingency = contingency.toarray()
         if eps is not None:
             contingency += eps
-            
+
     return contingency
 
 def weighted_pair_confusion_matrix(labels_true, labels_pred, weights):
     """Compute the weighted pair confusion matrix."""
     contingency = weighted_contingency_matrix(labels_true, labels_pred, weights, sparse=True)
-    
+
     total_weight = np.sum(weights)
     row_sum = np.ravel(contingency.sum(axis=1))
     col_sum = np.ravel(contingency.sum(axis=0))
-    
+
     sum_squares = np.sum(contingency.data**2)
-    
+
     C = np.empty((2, 2), dtype=np.float64)
     C[1, 1] = sum_squares - total_weight
     C[0, 1] = contingency.dot(col_sum).sum() - sum_squares
     C[1, 0] = contingency.transpose().dot(row_sum).sum() - sum_squares
     C[0, 0] = total_weight**2 - C[0, 1] - C[1, 0] - sum_squares
-    
+
     return C
 
 def weighted_adjusted_rand_score(labels_true, labels_pred, weights):
     """Compute the Weighted Adjusted Rand Index (WARI)."""
     (tn, fp), (fn, tp) = weighted_pair_confusion_matrix(labels_true, labels_pred, weights)
-    
+
     tn, fp, fn, tp = int(tn), int(fp), int(fn), int(tp)
 
     if fn == 0 and fp == 0:
@@ -420,7 +425,7 @@ def weighted_adjusted_rand_score(labels_true, labels_pred, weights):
     denominator = (tp + fn) * (fn + tn) + (tp + fp) * (fp + tn)
     if denominator == 0:
         return 1.0
-        
+
     return 2.0 * (tp * tn - fn * fp) / denominator
 
 class WeightedAdjustedRandIndex(BaseMetric):
@@ -434,15 +439,15 @@ class WeightedAdjustedRandIndex(BaseMetric):
             self.distance_func = distance_func
         self.alpha = alpha
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> Dict[str, float]:
+    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
-        
+
         d_true = _compute_boundary_distances(labels_true)
         weights = self.distance_func(d_true)
-        
+
         wari_score = weighted_adjusted_rand_score(labels_true, labels_pred, weights)
-        
+
         return {"score": wari_score}
 
 class WeightedNormalizedMutualInformation(BaseMetric):
@@ -457,54 +462,54 @@ class WeightedNormalizedMutualInformation(BaseMetric):
         self.alpha = alpha
         self.average_method = average_method
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> Dict[str, float]:
+    def compute(self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> dict[str, float]:
         labels_true = y_true
         labels_pred = y_pred
-        
+
         d_true = _compute_boundary_distances(labels_true)
         weights = self.distance_func(d_true)
-        
+
         wnmi_score = weighted_normalized_mutual_info_score(labels_true, labels_pred, weights, average_method=self.average_method)
-        
+
         return {"score": wnmi_score}
 
 def weighted_mutual_info_score(labels_true, labels_pred, weights):
     """Compute the Weighted Mutual Information (WMI)."""
     contingency = weighted_contingency_matrix(labels_true, labels_pred, weights, sparse=True)
-    
+
     # Calculate the MI for the two clusterings
     nzx, nzy, nz_val = sp.find(contingency)
     contingency_sum = contingency.sum()
-    
+
     pi = np.ravel(contingency.sum(axis=1))
     pj = np.ravel(contingency.sum(axis=0))
-    
+
     log_contingency_nm = np.log(nz_val)
     log_outer = np.log(pi[nzx]) + np.log(pj[nzy])
-    
+
     mi = (
         nz_val * (log_contingency_nm - np.log(contingency_sum))
         - nz_val * (log_outer - 2 * np.log(contingency_sum))
     )
-    
+
     return mi.sum() / contingency_sum
 
 def weighted_entropy(labels, weights):
     """Compute the weighted entropy of a labeling."""
     _, labels_idx = np.unique(labels, return_inverse=True)
     total_weight = np.sum(weights)
-    
+
     if total_weight == 0:
         return 0.0
-        
+
     label_weights = np.bincount(labels_idx, weights=weights)
-    
+
     # Filter out zero weights to avoid log(0)
     nz_label_weights = label_weights[label_weights > 0]
-    
+
     if nz_label_weights.size == 0:
         return 0.0
-        
+
     prob = nz_label_weights / total_weight
     return -np.sum(prob * np.log(prob))
 
@@ -542,5 +547,5 @@ def weighted_normalized_mutual_info_score(labels_true, labels_pred, weights, *, 
 
     if normalizer == 0.0:
         return 0.0
-        
+
     return mi / normalizer

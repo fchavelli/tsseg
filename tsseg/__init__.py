@@ -4,9 +4,10 @@ tsseg: A Python library for time series segmentation, compatible with aeon.
 
 # Minimal fallback patch for edge cases where .pth file doesn't work
 try:
-    import numpy as np
     import sys
     import types
+
+    import numpy as np
     # Only patch if not already done by .pth file
     if 'numpy.core.umath_tests' not in sys.modules:
         umath_tests = types.ModuleType('numpy.core.umath_tests')

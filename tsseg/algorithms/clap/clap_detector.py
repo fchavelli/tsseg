@@ -3,8 +3,7 @@ This module provides a wrapper for the CLaP algorithm to integrate it
 with the tsseg library's API.
 """
 from ..base import BaseSegmenter
-from .clap import CLaP
-from .utils import create_state_labels, extract_cps
+
 # from ..clap.clasp_detector import ClaspDetector
 from ..clap.segmentation import BinaryClaSPSegmentation
 from ..param_schema import (
@@ -15,11 +14,13 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
+from .clap import CLaP
+from .utils import create_state_labels
 
 
 class ClapDetector(BaseSegmenter):
     """
-    A wrapper for the CLaP (Classification Label Profile) 
+    A wrapper for the CLaP (Classification Label Profile)
     algorithm for time series state detection, compatible with aeon.
 
     Parameters
@@ -207,10 +208,10 @@ class ClapDetector(BaseSegmenter):
             # Edit: issue was inconsistency with base class, solved.
             if self.n_change_points is not None:
                 target_n_segments = int(self.n_change_points) + 1
-            
+
             # If target_n_segments is None, BinaryClaSPSegmentation uses "learn"
             n_seg_arg = target_n_segments if target_n_segments is not None else "learn"
-            
+
             clasp = BinaryClaSPSegmentation(
                 n_segments=n_seg_arg,
                 n_jobs=self.n_jobs,
@@ -218,15 +219,15 @@ class ClapDetector(BaseSegmenter):
             )
             clasp.fit_predict(X)
             self.change_points_ = clasp.change_points
-        
+
         self._clap.fit(X, change_points=self.change_points_)
-        
+
         # All computation is done in fit, pre-calculating the states.
         labels = self._clap.get_segment_labels()
         cps = self._clap.get_change_points()
-        
+
         self.states_ = create_state_labels(cps, labels, self.ts_len_)
-        
+
         return self
 
     def _predict(self, X):
@@ -247,4 +248,3 @@ class ClapDetector(BaseSegmenter):
         """
         # The states are pre-computed and stored in `fit`.
         return self.states_
-    

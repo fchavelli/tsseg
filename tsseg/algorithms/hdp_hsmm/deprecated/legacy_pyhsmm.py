@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from ..base import BaseSegmenter
+from ...base import BaseSegmenter
 
 _HAS_PYHSMM = True
 try:  # pragma: no cover - optional dependency

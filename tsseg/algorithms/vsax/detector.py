@@ -7,7 +7,7 @@ per candidate via prefix sums.
 
 from __future__ import annotations
 
-from typing import Iterable, List, Tuple
+from collections.abc import Iterable
 
 import numpy as np
 from scipy.cluster.hierarchy import fcluster, linkage
@@ -216,7 +216,7 @@ class VSAXDetector(BaseSegmenter):
             dp_symbols[start] = best_symbol  # type: ignore[assignment]
 
         # ----- Reconstruct segments -----
-        segments: List[Tuple[int, int, np.ndarray]] = []
+        segments: list[tuple[int, int, np.ndarray]] = []
         idx = 0
         while idx < n:
             end = int(dp_end[idx])
@@ -238,7 +238,7 @@ class VSAXDetector(BaseSegmenter):
         seg_start: int,
         n_channels: int,
         rel_bounds: np.ndarray,
-    ) -> Tuple[float, np.ndarray]:
+    ) -> tuple[float, np.ndarray]:
         """PAA reconstruction MSE + per-channel SAX symbol via prefix sums.
 
         Cost is O(frames * channels) regardless of segment length.
@@ -290,7 +290,7 @@ class VSAXDetector(BaseSegmenter):
 
     def _cluster_and_label(
         self,
-        segments: List[Tuple[int, int, np.ndarray]],
+        segments: list[tuple[int, int, np.ndarray]],
         n_samples: int,
     ) -> np.ndarray:
         """Assign state labels by clustering similar SAX symbols."""
@@ -299,7 +299,7 @@ class VSAXDetector(BaseSegmenter):
 
         # Collect unique symbols
         sym_map: dict[tuple, int] = {}
-        seg_keys: List[tuple] = []
+        seg_keys: list[tuple] = []
         for _start, _end, sym in segments:
             key = tuple(sym.tolist())
             if key not in sym_map:
@@ -338,7 +338,7 @@ class VSAXDetector(BaseSegmenter):
         state_remap: dict[int, int] = {}
         next_state = 0
         labels = np.empty(n_samples, dtype=int)
-        for (start, end, _sym), key in zip(segments, seg_keys):
+        for (start, end, _sym), key in zip(segments, seg_keys, strict=True):
             raw = key_to_cluster[key]
             if raw not in state_remap:
                 state_remap[raw] = next_state

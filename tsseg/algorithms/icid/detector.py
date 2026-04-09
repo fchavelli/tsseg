@@ -1,7 +1,9 @@
 import numpy as np
-from ..base import BaseSegmenter
-from sklearn.preprocessing import minmax_scale
 from sklearn.metrics import pairwise_distances
+from sklearn.preprocessing import minmax_scale
+
+from ..base import BaseSegmenter
+
 
 class ICIDDetector(BaseSegmenter):
     """
@@ -118,7 +120,7 @@ class ICIDDetector(BaseSegmenter):
         """
         sn, _ = Sdata.shape
         n, _ = data.shape
-        
+
         # Ensure psi is not larger than the number of samples
         if psi > sn:
             psi = sn
@@ -127,14 +129,14 @@ class ICIDDetector(BaseSegmenter):
         for _ in range(t):
             subIndex = np.random.choice(sn, psi, replace=False)
             tdata = Sdata[subIndex, :]
-            
+
             dis = pairwise_distances(tdata, data, metric='euclidean')
             centerIdx = np.argmin(dis, axis=0)
-            
+
             z = np.zeros((psi, n))
             z[centerIdx, np.arange(n)] = 1
             ndata_parts.append(z.T)
-            
+
         return np.hstack(ndata_parts)
 
     def _point_score(self, Y, psi, window_size, t):
@@ -143,7 +145,7 @@ class ICIDDetector(BaseSegmenter):
         Translation of point_score.m.
         """
         ndata = self._aNNEspace(Y, Y, psi, t)
-        
+
         n_samples = Y.shape[0]
         index = np.arange(0, n_samples, window_size)
         if index[-1] != n_samples:
@@ -165,13 +167,13 @@ class ICIDDetector(BaseSegmenter):
                 cos_sim = 1 # Treat as identical if one is a zero vector
             else:
                 cos_sim = np.dot(mdata[i, :], mdata[i-1, :]) / (norm_i * norm_prev)
-            
+
             scores[i] = 1 - cos_sim
 
         Pscore = np.zeros(n_samples)
         for i in range(len(index) - 1):
             Pscore[index[i]:index[i+1]] = scores[i]
-            
+
         # Normalize the score before returning, as in the original MATLAB
         return minmax_scale(Pscore)
 
@@ -195,7 +197,7 @@ class ICIDDetector(BaseSegmenter):
                 # Chebychev distance
                 dist = np.max(np.abs(x_m - x_m[i]), axis=1)
                 C_m[i] = np.sum(dist <= r) / (N - m_val + 1.0)
-            
+
             # Avoid log(0) by adding a small epsilon
             return np.mean(np.log(C_m + 1e-10))
 

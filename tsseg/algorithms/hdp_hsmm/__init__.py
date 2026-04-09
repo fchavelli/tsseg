@@ -13,7 +13,7 @@ def __getattr__(name: str):
             FutureWarning,
             stacklevel=2,
         )
-        from .legacy_detector import HdpHsmmLegacyDetector
+        from .deprecated.legacy_detector import HdpHsmmLegacyDetector
         return HdpHsmmLegacyDetector
     if name == "LegacyHdpHsmmDetector":
         import warnings
@@ -23,6 +23,6 @@ def __getattr__(name: str):
             FutureWarning,
             stacklevel=2,
         )
-        from .legacy_pyhsmm import LegacyHdpHsmmDetector
+        from .deprecated.legacy_pyhsmm import LegacyHdpHsmmDetector
         return LegacyHdpHsmmDetector
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

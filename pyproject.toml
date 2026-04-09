@@ -119,6 +119,16 @@ exclude = ["tests*", "docs*", "examples*"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+# Vendored / third-party code — not our responsibility to lint
+extend-exclude = [
+    "tsseg/algorithms/tglad/vendor/",
+    "tsseg/algorithms/autoplait/deprecated/",
+    "tsseg/algorithms/bocd/old/",
+    "tsseg/algorithms/tire/old/",
+    "tsseg/algorithms/ruptures/",
+    "tsseg/algorithms/hdp_hsmm/",
+    "tsseg/algorithms/patss/",
+]
 
 [tool.ruff.lint]
 select = [
@@ -133,12 +143,26 @@ select = [
 ignore = [
     "E501", # Line too long (handled by formatter)
     "B008", # Do not perform function calls in argument defaults
+    "B028", # No explicit stacklevel (acceptable in internal warnings)
     "N803", # Argument name should be lowercase (math notation often uses X)
     "N806", # Variable in function should be lowercase (math notation often uses X, Y)
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"] # Ignore unused imports in __init__ files
+"tsseg/algorithms/base.py" = ["N802"]              # _check_X, _convert_X
+"tsseg/algorithms/hidalgo/detector.py" = ["N802"]  # sample_Z
+"tsseg/algorithms/autoplait/*" = ["B905", "F821"]  # vendored code
+"tests/*" = ["N802", "B905"]                       # test names with X, zip in test utils
+# Vendored / third-party algorithm code — style issues only
+"tsseg/algorithms/clap/*" = ["E701", "E731", "E741", "B007", "B020", "F821", "N802"]
+"tsseg/algorithms/ticc/*" = ["E711", "E741", "F841", "N802", "B007", "UP030", "UP031"]
+"tsseg/algorithms/tire/*" = ["B007", "F821", "F841"]
+"tsseg/algorithms/espresso/*" = ["E701", "E722", "N999"]
+"tsseg/algorithms/e2usd/*" = ["E741", "N801", "UP008"]
+"tsseg/algorithms/time2state/*" = ["E741", "N801", "N816", "UP008"]
+"tsseg/algorithms/vqtss/*" = ["N812", "UP008"]
+"tsseg/algorithms/icid/*" = ["N802"]
 
 [tool.ruff.format]
 quote-style = "double"

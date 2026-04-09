@@ -5,11 +5,12 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(__file__))
+import math
+
 import numpy
 import numpy as np
-import math
-import torch.nn as nn
 import torch
+import torch.nn as nn
 from sklearn import mixture
 
 params = {
@@ -284,7 +285,7 @@ class fncc_loss(torch.nn.modules.loss._Loss):
         return loss
 
 
-class BasicEncoder():
+class BasicEncoder:
     def encode(self, X):
         pass
 

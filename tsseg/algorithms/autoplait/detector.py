@@ -2,13 +2,15 @@
 This module provides an aeon-compatible wrapper for the AutoPlait algorithm.
 """
 import numpy as np
+
 from ..base import BaseSegmenter
-from .autoplait_c import AutoPlait
 from ..param_schema import (
     Closed,
     Interval,
     ParamDef,
 )
+from .autoplait_c import AutoPlait
+
 
 class AutoPlaitDetector(BaseSegmenter):
     """
@@ -54,7 +56,7 @@ class AutoPlaitDetector(BaseSegmenter):
                 f"{self.__class__.__name__} requires `n_cps` or `y` to be provided. "
                 "It is not capable of pure unsupervised learning without hints."
             )
-        
+
         # If unsupervised and capable, we keep self.n_cps as defined in __init__ (or None if algo handles it)
         return self
 

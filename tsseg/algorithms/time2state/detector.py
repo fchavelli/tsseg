@@ -3,8 +3,8 @@ This module provides an aeon-compatible wrapper for the Time2State algorithm.
 """
 import numpy as np
 import torch
+
 from ..base import BaseSegmenter
-from .time2state import Time2State, CausalConv_LSE_Adaper, DPGMM, params_LSE
 from ..param_schema import (
     Closed,
     DataDependent,
@@ -13,6 +13,8 @@ from ..param_schema import (
     Interval,
     ParamDef,
 )
+from .time2state import DPGMM, CausalConv_LSE_Adaper, Time2State, params_LSE
+
 
 class Time2StateDetector(BaseSegmenter):
     """
@@ -163,7 +165,7 @@ class Time2StateDetector(BaseSegmenter):
         self.reduced_size = reduced_size
         self.kernel_size = kernel_size
         self.random_state = random_state
-        
+
         if use_gpu is None:
             self.use_gpu = torch.cuda.is_available()
         else:
@@ -235,7 +237,7 @@ class Time2StateDetector(BaseSegmenter):
         ----------
         X : np.ndarray of shape (n_timepoints, n_channels) or (n_channels, n_timepoints)
             The time series to segment. Shape depends on self.axis.
-        
+
         Returns
         -------
         np.ndarray
@@ -245,7 +247,7 @@ class Time2StateDetector(BaseSegmenter):
         self._check_is_fitted()
         X = self._validate_data(X)
         n_timepoints, n_channels = X.shape
-        
+
 
         # Handle short series case from fit or if predict X is short
         if getattr(self, '_short_series_fitted', False) or n_timepoints <= self.window_size * 2:
@@ -269,7 +271,7 @@ class Time2StateDetector(BaseSegmenter):
         t2s_model._Time2State__assign_label()
 
         state_sequence = t2s_model.state_seq
-        
+
         # Convert to change points (dense representation)
         if self.get_tag("returns_dense"):
             change_points = []
@@ -279,7 +281,7 @@ class Time2StateDetector(BaseSegmenter):
             return np.array(change_points, dtype=int)
         else:
             return state_sequence
-    
+
     def _validate_data(self, X):
         """Validate and reshape input data according to axis."""
         X = np.asarray(X)
@@ -292,5 +294,5 @@ class Time2StateDetector(BaseSegmenter):
                 X = X.T
         else:
             raise ValueError(f"Input X must be 1D or 2D, got {X.ndim}D")
-        
+
         return X

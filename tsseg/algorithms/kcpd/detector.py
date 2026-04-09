@@ -7,7 +7,6 @@ import warnings
 import numpy as np
 
 from ..base import BaseSegmenter
-from ..ruptures.detection import KernelCPD
 from ..param_schema import (
     Closed,
     HasType,
@@ -16,6 +15,7 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
+from ..ruptures.detection import KernelCPD
 
 __all__ = ["KCPDDetector"]
 

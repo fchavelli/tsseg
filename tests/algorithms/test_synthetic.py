@@ -9,7 +9,6 @@ import pytest
 
 from tsseg.algorithms.vsax.detector import VSAXDetector
 
-
 # ---------------------------------------------------------------------------
 # Helpers (reusable across algorithm test classes)
 # ---------------------------------------------------------------------------
@@ -60,8 +59,6 @@ def _ari(labels_true, labels_pred):
     denom = (tp + fp) * (tp + fn) + (fn + tn) * (fp + tn)
     if denom == 0:
         return 1.0
-    expected = ((tp + fp) * (tp + fn) + (fn + tn) * (fp + tn)) / (n * (n - 1) / 2)
-    index = (tp + tn) / (n * (n - 1) / 2)
     # Hubert-Arabie formulation
     ri = (tp + tn) / (tp + fp + fn + tn)
     eri = ((tp + fp) * (tp + fn) + (fn + tn) * (fp + tn)) / (tp + fp + fn + tn) ** 2

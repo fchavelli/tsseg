@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 
 from ..base import BaseSegmenter
-from .vendor import ensure_vendor_imports
 from ..param_schema import (
     Closed,
     DataDependent,
@@ -17,6 +15,7 @@ from ..param_schema import (
     Interval,
     ParamDef,
 )
+from .vendor import ensure_vendor_imports
 
 
 @dataclass
@@ -29,8 +28,8 @@ class _WindowSummary:
     score: float
 
 
-def _optional_dependencies() -> List[str]:
-    missing: List[str] = []
+def _optional_dependencies() -> list[str]:
+    missing: list[str] = []
     try:
         import torch  # noqa: F401
     except ImportError:  # pragma: no cover - torch is optional
@@ -290,7 +289,6 @@ class TGLADDetector(BaseSegmenter):
         return float(np.sum(weights))
 
     def _compute_precision_batch(self, windows: list[np.ndarray]) -> list[_WindowSummary]:
-        from .vendor.uGLAD.uglad import uGLAD_multitask
 
         summaries: list[_WindowSummary] = []
         batch: list[np.ndarray] = []

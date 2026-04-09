@@ -5,7 +5,6 @@ from __future__ import annotations
 import numpy as np
 
 from ..base import BaseSegmenter
-from ..ruptures.detection import Dynp
 from ..param_schema import (
     Closed,
     DataDependent,
@@ -13,6 +12,7 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
+from ..ruptures.detection import Dynp
 
 __all__ = ["DynpDetector"]
 
@@ -90,7 +90,7 @@ class DynpDetector(BaseSegmenter):
         self._train_signal: np.ndarray | None = None
         self.semi_supervised: bool = semi_supervised
         super().__init__(axis=axis)
-        
+
         # if self.n_cps is not None:
         #     self._tags_dynamic["capability:unsupervised"] = True
 

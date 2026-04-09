@@ -5,6 +5,7 @@ __all__ = ["FLUSSDetector"]
 
 import numpy as np
 import pandas as pd
+
 try:
     import stumpy
     _HAS_STUMPY = True
@@ -12,7 +13,6 @@ except ImportError:
     _HAS_STUMPY = False
 
 from ..base import BaseSegmenter
-from ..utils import multivariate_l2_norm, aggregate_change_points
 from ..param_schema import (
     Closed,
     DataDependent,
@@ -20,6 +20,7 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
+from ..utils import aggregate_change_points, multivariate_l2_norm
 
 
 class FLUSSDetector(BaseSegmenter):
@@ -146,7 +147,7 @@ class FLUSSDetector(BaseSegmenter):
         X = np.asarray(X, dtype=float)
         if X.ndim == 1:
             X = X[:, None]
-        
+
         signal_len, dim = X.shape
 
         if dim > 1 and self.multivariate_strategy == "ensembling":
@@ -156,16 +157,16 @@ class FLUSSDetector(BaseSegmenter):
                 dim_values = X[:, d]
                 cps, _, _ = self._run_fluss(dim_values)
                 all_detected_indices.extend(cps)
-            
+
             # Aggregate results
             # Note: n_segments = n_changepoints + 1 (roughly), but FLUSS returns indices.
             # We want n_segments - 1 change points.
             n_cp = self.n_segments - 1
             self.found_cps = aggregate_change_points(all_detected_indices, n_cp, self.tolerance, signal_len=signal_len)
-            
-            # For profiles/scores in multivariate case, it's ambiguous. 
+
+            # For profiles/scores in multivariate case, it's ambiguous.
             # We could average them, but for now we leave them as None or last dimension.
-            self.profiles = None 
+            self.profiles = None
             self.scores = None
 
         else:
@@ -175,7 +176,7 @@ class FLUSSDetector(BaseSegmenter):
                 signal = multivariate_l2_norm(X)
             else:
                 signal = X.flatten()
-            
+
             self.found_cps, self.profiles, self.scores = self._run_fluss(signal)
 
         return self.found_cps

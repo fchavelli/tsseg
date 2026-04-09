@@ -6,12 +6,10 @@ translated helper routines contained in this package.
 
 from __future__ import annotations
 
-from typing import Tuple
-
 import numpy as np
 
-from .MatrixProfile.timeseriesSelfJoinFast import timeseries_self_join_fast
 from .calculateSemanticDensityMatrix import calculate_semantic_density_matrix
+from .MatrixProfile.timeseriesSelfJoinFast import timeseries_self_join_fast
 from .separateGreedyIG import separate_greedy_ig
 
 __all__ = ["espresso", "compute_mp"]
@@ -63,7 +61,7 @@ def compute_mp(
     subsequence: int,
     *,
     rng: np.random.Generator | int | None = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute matrix profiles for each time series in ``integrated_ts``."""
 
     integrated_ts = np.asarray(integrated_ts, dtype=float)

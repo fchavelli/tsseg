@@ -3,17 +3,18 @@
 import collections
 import errno
 import math
+
 # import matplotlib
 import os
+from multiprocessing import Pool
+
+import numpy as np
+import pandas as pd
 
 # matplotlib.use('Agg')
 # import matplotlib.pyplot as plt
 from sklearn import mixture
 from sklearn.cluster import KMeans
-import pandas as pd
-from multiprocessing import Pool
-
-import numpy as np
 
 
 def getTrainTestSplit(m, num_blocks, num_stacked):
@@ -178,7 +179,7 @@ class ADMMSolver:
         self.rho_update_func = rho_update_func
 
     def ij2symmetric(self, i, j, size):
-        return (size * (size + 1)) / 2 - (size - i) * ((size - i + 1)) / 2 + j - i
+        return (size * (size + 1)) / 2 - (size - i) * (size - i + 1) / 2 + j - i
 
     def upper2Full(self, a):
         n = int((-1 + np.sqrt(1 + 8 * a.shape[0])) / 2)
@@ -325,7 +326,7 @@ class TICC:
         self.num_blocks = self.window_size + 1
         self.biased = biased
         pd.set_option('display.max_columns', 500)
-        np.set_printoptions(formatter={'float': lambda x: "{0:0.4f}".format(x)})
+        np.set_printoptions(formatter={'float': lambda x: f"{x:0.4f}"})
         np.random.seed(102)
 
     def fit_transform(self, series):
@@ -335,7 +336,7 @@ class TICC:
             - input_file: location of the data file
         """
         if self.maxIters <= 0:
-            raise ValueError("maxIters must be > 0, got {}".format(self.maxIters))
+            raise ValueError(f"maxIters must be > 0, got {self.maxIters}")
         self.log_parameters()
 
         # Get data into proper format
@@ -601,7 +602,7 @@ class TICC:
             # Skip this cluster for this iteration if it has fewer than 2 points.
             if cluster_length < 2:
                 continue
-            
+
             if cluster_length != 0:
                 size_blocks = n
                 indices = train_clusters_arr[cluster]

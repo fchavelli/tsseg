@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.special import logsumexp
 
+
 def _log1mexp(a: float) -> float:
     """Compute log(1 - exp(a)) for a <= 0 in a numerically stable way."""
     if a >= 0:

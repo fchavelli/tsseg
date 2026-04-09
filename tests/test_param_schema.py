@@ -12,13 +12,13 @@ Covers:
 
 from __future__ import annotations
 
-import importlib
 import importlib.util as _ilu
 import inspect
 import os
 import sys
-import pytest
+
 import numpy as np
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helper: import a module by file path without triggering the heavy

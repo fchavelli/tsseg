@@ -180,7 +180,7 @@ class _GGS:
         log_likelihood: cumulative log likelihood
         """
         log_likelihood = 0
-        for start, stop in zip(change_points[:-1], change_points[1:]):
+        for start, stop in zip(change_points[:-1], change_points[1:], strict=True):
             segment = data[start:stop, :]
             log_likelihood -= self.log_likelihood(segment)
         return log_likelihood
@@ -348,7 +348,7 @@ class _GGS:
             new_index = -1
             new_value = +1
             # For each segment, find change point and increase in LL
-            for start, stop in zip(change_points[:-1], change_points[1:]):
+            for start, stop in zip(change_points[:-1], change_points[1:], strict=True):
                 segment = data[start:stop, :]
                 ind, val = self.add_new_change_point(segment)
                 if val < new_value:
@@ -539,7 +539,7 @@ class GreedyGaussianDetector(BaseSegmenter):
         change_points_ = self.ggs.find_change_points(X)
 
         labels = np.zeros(X.shape[0], dtype=np.int32)
-        for i, (start, stop) in enumerate(zip(change_points_[:-1], change_points_[1:])):
+        for i, (start, stop) in enumerate(zip(change_points_[:-1], change_points_[1:], strict=True)):
             labels[start:stop] = i
         return labels
 

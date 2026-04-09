@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -36,7 +37,7 @@ __all__ = ["TSCP2Detector"]
 LossFn = Callable[..., tuple[Any, Any, Any]]
 
 
-_LOSS_REGISTRY: Dict[str, LossFn] = {
+_LOSS_REGISTRY: dict[str, LossFn] = {
     "nce": losses.info_nce_loss,
     "info_nce": losses.info_nce_loss,
     "dcl": losses.debiased_contrastive_loss,
@@ -44,14 +45,14 @@ _LOSS_REGISTRY: Dict[str, LossFn] = {
     "harddcl": losses.hard_contrastive_loss,
 }
 
-_SIMILARITY_REGISTRY: Dict[str, Callable[[Any, Any], Any]] = {
+_SIMILARITY_REGISTRY: dict[str, Callable[[Any, Any], Any]] = {
     "cosine": losses.cosine_similarity_dim2,
     "dot": losses.dot_similarity_dim2,
     "euclidean": losses.euclidean_similarity_dim2,
     "edit": losses.edit_similarity_dim2,
 }
 
-_SIMILARITY_DIAG_REGISTRY: Dict[str, Callable[[Any, Any], Any]] = {
+_SIMILARITY_DIAG_REGISTRY: dict[str, Callable[[Any, Any], Any]] = {
     "cosine": losses.cosine_similarity_dim1,
     "dot": losses.dot_similarity_dim1,
     "euclidean": losses.euclidean_similarity_dim1,
@@ -311,8 +312,8 @@ class TSCP2Detector(BaseSegmenter):
         dataset = dataset.batch(self.batch_size, drop_remainder=drop_last)
         return dataset
 
-    def _loss_kwargs(self) -> Dict[str, float]:
-        params: Dict[str, float] = {"temperature": self.temperature}
+    def _loss_kwargs(self) -> dict[str, float]:
+        params: dict[str, float] = {"temperature": self.temperature}
         if self.loss_name in {"dcl", "harddcl"}:
             params["tau_plus"] = self.tau
         if self.loss_name == "fc":
@@ -357,7 +358,7 @@ class TSCP2Detector(BaseSegmenter):
                         **loss_kwargs,
                     )
                 grads = tape.gradient(loss, encoder.trainable_variables)
-                optimiser.apply_gradients(zip(grads, encoder.trainable_variables))
+                optimiser.apply_gradients(zip(grads, encoder.trainable_variables, strict=False))
                 last_pos = float(pos_sim.numpy())
                 last_neg = float(neg_sim.numpy())
 

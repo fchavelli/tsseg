@@ -7,13 +7,13 @@ from typing import Any
 import numpy as np
 
 from ..base import BaseSegmenter
-from .python.ESPRESSO_Script import espresso as _run_espresso
 from ..param_schema import (
     Closed,
     DataDependent,
     Interval,
     ParamDef,
 )
+from .python.ESPRESSO_Script import espresso as _run_espresso
 
 __all__ = ["EspressoDetector"]
 

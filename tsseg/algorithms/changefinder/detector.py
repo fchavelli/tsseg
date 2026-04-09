@@ -20,15 +20,14 @@ import numpy as np
 from scipy.signal import argrelextrema
 
 from ..base import BaseSegmenter
-from ..utils import multivariate_l2_norm, aggregate_change_points
 from ..param_schema import (
     Closed,
     DataDependent,
     Interval,
-    MutuallyExclusive,
     ParamDef,
     StrOptions,
 )
+from ..utils import aggregate_change_points, multivariate_l2_norm
 from .sdar import SDAR
 
 

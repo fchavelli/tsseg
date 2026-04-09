@@ -3,8 +3,8 @@ This module provides an aeon-compatible wrapper for the E2USD algorithm.
 """
 import numpy as np
 import torch
+
 from ..base import BaseSegmenter
-from .e2usd import E2USD, E2USD_Adaper, DPGMM, params
 from ..param_schema import (
     Closed,
     DataDependent,
@@ -13,6 +13,7 @@ from ..param_schema import (
     Interval,
     ParamDef,
 )
+from .e2usd import DPGMM, E2USD, E2USD_Adaper, params
 
 
 class E2USDDetector(BaseSegmenter):
@@ -160,7 +161,7 @@ class E2USDDetector(BaseSegmenter):
         self.reduced_size = reduced_size
         self.kernel_size = kernel_size
         self.random_state = random_state
-        
+
         if use_gpu is None:
             self.use_gpu = torch.cuda.is_available()
         else:
@@ -230,7 +231,7 @@ class E2USDDetector(BaseSegmenter):
         ----------
         X : np.ndarray of shape (n_timepoints, n_channels)
             The time series to segment.
-        
+
         Returns
         -------
         np.ndarray
@@ -259,7 +260,7 @@ class E2USDDetector(BaseSegmenter):
         e2usd_model._E2USD__assign_label()
 
         return e2usd_model.state_seq
-    
+
     def _validate_data(self, X):
         """Validate and reshape input data according to axis."""
         X = np.asarray(X)
@@ -270,5 +271,5 @@ class E2USDDetector(BaseSegmenter):
                 X = X.T
         else:
             raise ValueError(f"Input X must be 1D or 2D, got {X.ndim}D")
-        
+
         return X

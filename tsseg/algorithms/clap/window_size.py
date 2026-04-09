@@ -159,7 +159,7 @@ def dominant_fourier_frequency(time_series, lbound=10, ubound=1000):
     magnitudes = []
     window_sizes = []
 
-    for coef, freq in zip(fourier, freq):
+    for coef, freq in zip(fourier, freq, strict=True):
         if coef and freq > 0:
             window_size = int(1 / freq)
             mag = math.sqrt(coef.real * coef.real + coef.imag * coef.imag)

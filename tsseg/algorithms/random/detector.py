@@ -237,7 +237,7 @@ class RandomDetector(BaseSegmenter):
     ) -> np.ndarray:
         state_sequence = np.empty(n_timepoints, dtype=int)
         boundaries = np.concatenate(([0], breakpoints, [n_timepoints]))
-        for start, end, state in zip(boundaries[:-1], boundaries[1:], segment_states):
+        for start, end, state in zip(boundaries[:-1], boundaries[1:], segment_states, strict=True):
             state_sequence[start:end] = state
         return state_sequence
 

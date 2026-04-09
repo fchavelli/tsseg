@@ -1,11 +1,10 @@
 """Tests for tsseg.data.datasets — dataset loading utilities."""
 
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
 
 from tsseg.data.datasets import load_mocap
-
 
 # ---------------------------------------------------------------------------
 # MoCap dataset (bundled with the package)

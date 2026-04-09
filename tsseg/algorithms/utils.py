@@ -1,5 +1,6 @@
-import numpy as np
 from collections import Counter
+
+import numpy as np
 
 
 def multivariate_l2_norm(signal: np.ndarray) -> np.ndarray:
@@ -44,7 +45,7 @@ def aggregate_change_points(all_cps: list[int], n_cp: int, tolerance: int | floa
     """
     if not all_cps:
         return np.empty(0, dtype=int)
-    
+
     all_cps = sorted(all_cps)
 
     # Resolve tolerance
@@ -55,14 +56,14 @@ def aggregate_change_points(all_cps: list[int], n_cp: int, tolerance: int | floa
         tol_val = int(tolerance * signal_len)
     else:
         tol_val = int(tolerance)
-    
+
     if tol_val == 0:
         # Exact matching
         counts = Counter(all_cps)
         top_candidates = counts.most_common(n_cp)
         pred = sorted([idx for idx, count in top_candidates])
         return np.array(pred, dtype=int)
-    
+
     # Tolerance based clustering
     clusters = []
     if all_cps:
@@ -74,20 +75,20 @@ def aggregate_change_points(all_cps: list[int], n_cp: int, tolerance: int | floa
                 clusters.append(current_cluster)
                 current_cluster = [cp]
         clusters.append(current_cluster)
-    
+
     # Score clusters by size, use median as representative
     cluster_info = []
     for cl in clusters:
         score = len(cl)
         rep = int(np.median(cl))
         cluster_info.append((score, rep))
-    
+
     # Sort by score desc
     cluster_info.sort(key=lambda x: x[0], reverse=True)
-    
+
     # Take top n_cp
     top_clusters = cluster_info[:n_cp]
-    
+
     # Return sorted representatives
     pred = sorted([rep for score, rep in top_clusters])
     return np.array(pred, dtype=int)
@@ -110,18 +111,18 @@ def create_state_labels(changepoints, n_timepoints):
         A 1D array of state labels of shape (n_timepoints,).
     """
     changepoints = np.array(sorted(list(set(changepoints))))
-    
+
     # Ensure start and end points are included
     if 0 not in changepoints:
         changepoints = np.insert(changepoints, 0, 0)
-        
+
     if n_timepoints not in changepoints:
         # use last changepoint if it's larger than n_timepoints
         if changepoints[-1] < n_timepoints:
             changepoints = np.append(changepoints, n_timepoints)
 
     labels = np.zeros(n_timepoints, dtype=int)
-    
+
     current_label = 0
     for i in range(len(changepoints) - 1):
         start = int(changepoints[i])
@@ -131,7 +132,7 @@ def create_state_labels(changepoints, n_timepoints):
             end = min(end, n_timepoints)
             labels[start:end] = current_label
             current_label += 1
-                
+
     return labels
 
 

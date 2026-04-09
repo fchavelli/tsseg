@@ -1,21 +1,20 @@
 """Tests for tsseg.metrics — change-point and state-detection metrics."""
 
-import pytest
 import numpy as np
+import pytest
 
 from tsseg.metrics import (
-    F1Score,
-    Covering,
-    HausdorffDistance,
-    BidirectionalCovering,
-    StateMatchingScore,
-    AdjustedRandIndex,
-    NormalizedMutualInformation,
     AdjustedMutualInformation,
+    AdjustedRandIndex,
+    BidirectionalCovering,
+    Covering,
+    F1Score,
+    HausdorffDistance,
+    NormalizedMutualInformation,
+    StateMatchingScore,
     WeightedAdjustedRandIndex,
     WeightedNormalizedMutualInformation,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.exceptions import NotFittedError
 
 from .clasp_knn import ClaSPEnsemble
-from .utils import check_input_time_series, check_excl_radius
+from .utils import check_excl_radius, check_input_time_series
 from .window_size import map_window_size_methods
 
 
@@ -270,7 +270,7 @@ class BinaryClaSPSegmentation:
 
             priority, clasp_tree_idx = self.queue.get()
             (lbound, ubound), clasp = self.clasp_tree[clasp_tree_idx]
-            
+
             split_idx = clasp.split(validation=self.validation, threshold=self.threshold)
             if split_idx is None: continue
             cp = lbound + split_idx

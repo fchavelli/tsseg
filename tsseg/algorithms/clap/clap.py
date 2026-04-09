@@ -1,8 +1,12 @@
 import hashlib
+
 import numpy as np
 
 try:  # pragma: no cover - optional dependency guard
-    from aeon.classification.convolution_based import MultiRocketHydraClassifier, RocketClassifier
+    from aeon.classification.convolution_based import (
+        MultiRocketHydraClassifier,
+        RocketClassifier,
+    )
     from aeon.classification.dictionary_based import WEASEL_V2
     from aeon.classification.distance_based import ProximityForest
     from aeon.classification.feature_based import FreshPRINCEClassifier
@@ -18,14 +22,19 @@ except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency gua
     _AEON_IMPORT_ERROR = exc
     _AEON_AVAILABLE = False
 
-from .window_size import map_window_size_methods
-from .utils import create_state_labels
-
 from sklearn.exceptions import NotFittedError
-
-from sklearn.metrics import confusion_matrix, f1_score, log_loss, adjusted_mutual_info_score, hamming_loss, \
-    roc_auc_score
+from sklearn.metrics import (
+    adjusted_mutual_info_score,
+    confusion_matrix,
+    f1_score,
+    hamming_loss,
+    log_loss,
+    roc_auc_score,
+)
 from sklearn.model_selection import KFold
+
+from .utils import create_state_labels
+from .window_size import map_window_size_methods
 
 
 class CLaP:
@@ -120,7 +129,9 @@ class CLaP:
                 clf = FreshPRINCEClassifier(random_state=self.random_state, n_jobs=self.n_jobs)
             elif self.classifier == "inception":
                 try:
-                    from aeon.classification.deep_learning import IndividualInceptionClassifier
+                    from aeon.classification.deep_learning import (
+                        IndividualInceptionClassifier,
+                    )
                 except ModuleNotFoundError as exc:
                     raise ModuleNotFoundError(
                         "CLaP with `classifier='inception'` requires the 'aeon' deep learning extras. "

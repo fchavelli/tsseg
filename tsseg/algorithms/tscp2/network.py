@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Sequence, TYPE_CHECKING
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 
 try:  # pragma: no cover - optional dependency guidance
     import tensorflow as _tf

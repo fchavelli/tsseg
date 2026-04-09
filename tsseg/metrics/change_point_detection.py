@@ -1,6 +1,6 @@
 import warnings
+
 import numpy as np
-from typing import List, Dict, Union
 
 from .base import BaseMetric
 
@@ -14,10 +14,10 @@ Authors: Van den Burg, G.J.J. and Williams, C.K.I. from The Alan Turing Institut
 def labels_to_change_points(labels):
     """
     Convert label sequence into change points (CPs).
-    
+
     Parameters:
         labels (list or np.array): Label sequence.
-    
+
     Returns:
         list: Change points (CPs) including start (0) and end (n).
     """
@@ -30,8 +30,8 @@ def labels_to_change_points(labels):
 
 
 def _ensure_boundaries(
-    y_true: List[int], y_pred: List[int]
-) -> tuple[List[int], List[int]]:
+    y_true: list[int], y_pred: list[int]
+) -> tuple[list[int], list[int]]:
     """Ensure both change-point lists include ``0`` and the series length ``T``.
 
     The series length is inferred as ``max(max(y_true), max(y_pred))``.
@@ -46,7 +46,7 @@ def _ensure_boundaries(
     all_points = (y_true or []) + (y_pred or [])
     T = max(all_points)
 
-    def _add_bounds(cps: List[int], T: int) -> List[int]:
+    def _add_bounds(cps: list[int], T: int) -> list[int]:
         s = set(cps)
         s.add(0)
         s.add(T)
@@ -55,7 +55,7 @@ def _ensure_boundaries(
     return _add_bounds(y_true, T), _add_bounds(y_pred, T)
 
 
-def _strip_boundaries(change_points: List[int], series_length: int | None) -> List[int]:
+def _strip_boundaries(change_points: list[int], series_length: int | None) -> list[int]:
     """Remove leading/trailing boundaries from a change-point sequence."""
 
     if not change_points:
@@ -70,7 +70,7 @@ def _strip_boundaries(change_points: List[int], series_length: int | None) -> Li
         filtered.append(point)
     return filtered
 
-def _true_positives(y_true: List[int], y_pred: List[int], margin: int) -> int:
+def _true_positives(y_true: list[int], y_pred: list[int], margin: int) -> int:
     """
     Compute true positives without double counting.
 
@@ -90,18 +90,18 @@ def _true_positives(y_true: List[int], y_pred: List[int], margin: int) -> int:
     for true_cp in sorted(y_true):
         # Find all predictions that are within the margin
         close_preds = [p for p in temp_y_pred if abs(true_cp - p) <= margin]
-        
+
         if not close_preds:
             continue
-        
+
         # Find the closest prediction
         closest_pred = min(close_preds, key=lambda p: abs(true_cp - p))
-        
+
         # We have a match
         tp += 1
         # Remove the matched prediction to avoid double counting
         temp_y_pred.remove(closest_pred)
-        
+
     return tp
 
 class F1Score(BaseMetric):
@@ -109,7 +109,7 @@ class F1Score(BaseMetric):
 
     def __init__(
         self,
-        margin: Union[int, float] = 0.01,
+        margin: int | float = 0.01,
         convert_labels_to_segments: bool = False,
         **kwargs,
     ):
@@ -117,7 +117,7 @@ class F1Score(BaseMetric):
         self.margin = margin
         self.convert_labels_to_segments = convert_labels_to_segments
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
+    def compute(self, y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
         """
         Computes the F1-score, precision, and recall.
 
@@ -220,7 +220,7 @@ class Covering(BaseMetric):
         super().__init__(**kwargs)
         self.convert_labels_to_segments = convert_labels_to_segments
 
-    def _compute_segments(self, cp_indices: List[int]) -> List[tuple[int, int]]:
+    def _compute_segments(self, cp_indices: list[int]) -> list[tuple[int, int]]:
         """
         Convert change points to segment intervals.
 
@@ -230,7 +230,7 @@ class Covering(BaseMetric):
         """
         return [(cp_indices[i], cp_indices[i + 1]) for i in range(len(cp_indices) - 1)]
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
+    def compute(self, y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
         """
         Computes the Covering score.
 
@@ -298,7 +298,7 @@ class Covering(BaseMetric):
 class HausdorffDistance(BaseMetric):
     """Computes the Hausdorff distance between two sets of change points."""
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
+    def compute(self, y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
         """
         Computes the Hausdorff distance.
 
@@ -313,9 +313,9 @@ class HausdorffDistance(BaseMetric):
         y_pred = np.asarray(y_pred)
         if y_true.size == 0 or y_pred.size == 0:
             return {"score": np.inf, "hausdorff_distance": np.inf}
-            
+
         dist_matrix = np.abs(y_true[:, np.newaxis] - y_pred)
-        
+
         h1 = np.max(np.min(dist_matrix, axis=1))
         h2 = np.max(np.min(dist_matrix, axis=0))
 

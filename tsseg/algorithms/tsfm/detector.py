@@ -12,24 +12,24 @@ from __future__ import annotations
 
 try:
     from tsseg_fm import (  # noqa: F401
-        FMHiddenCPD,
-        FMCosimCPD,
         FML2CPD,
         FMMMDCPD,
-        FMEnergyCPD,
-        FMDerivativeCPD,
-        FMStateDetector,
-        FMStateGMM,
-        FMStateKMeans,
-        FMStateHMM,
+        FMAgglomCPD,
+        FMBinSegCPD,
         FMBottomUpCPD,
         FMBottomUpStabCPD,
-        FMDistProfileCPD,
-        FMKernelCPD,
-        FMBinSegCPD,
-        FMDynpCPD,
-        FMAgglomCPD,
         FMClaSPCPD,
+        FMCosimCPD,
+        FMDerivativeCPD,
+        FMDistProfileCPD,
+        FMDynpCPD,
+        FMEnergyCPD,
+        FMHiddenCPD,
+        FMKernelCPD,
+        FMStateDetector,
+        FMStateGMM,
+        FMStateHMM,
+        FMStateKMeans,
     )
 
     __all__ = [

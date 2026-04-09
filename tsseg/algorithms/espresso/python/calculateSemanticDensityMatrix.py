@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Tuple
-
 import numpy as np
 
 __all__ = ["calculate_semantic_density_matrix"]
@@ -14,7 +12,7 @@ def calculate_semantic_density_matrix(
     mp_index: np.ndarray,
     k: int,
     m: int,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Extract semantic density information from matrix profile arcs.
 
     Parameters
@@ -45,8 +43,8 @@ def calculate_semantic_density_matrix(
     if mp.ndim != 1 or indices.ndim != 1:
         raise ValueError("Inputs must be 1D vectors")
 
-    arc_set: List[List[int]] = [[int(idx)] for idx in indices]
-    arc_cost: List[List[float]] = [[float(cost)] for cost in mp]
+    arc_set: list[list[int]] = [[int(idx)] for idx in indices]
+    arc_cost: list[list[float]] = [[float(cost)] for cost in mp]
 
     last_arc_set = indices.copy()
     last_arc_cost = mp.copy()
@@ -96,14 +94,14 @@ def calculate_semantic_density_matrix(
 def _extract_new_arc_set(
     matrix_profile: np.ndarray,
     mp_index: np.ndarray,
-    arc_set: List[List[int]],
-    arc_cost: List[List[float]],
+    arc_set: list[list[int]],
+    arc_cost: list[list[float]],
     threshold: float,
     last_arc_set: np.ndarray,
     last_arc_cost: np.ndarray,
     m: int,
     dontcare: int,
-) -> Tuple[List[List[int]], List[List[float]], np.ndarray, np.ndarray]:
+) -> tuple[list[list[int]], list[list[float]], np.ndarray, np.ndarray]:
     profile_len = mp_index.size
 
     initial_arcs = last_arc_set.copy()

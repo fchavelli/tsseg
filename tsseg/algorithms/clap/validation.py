@@ -63,7 +63,7 @@ def _rank_sums_test(x, y):
         The two-sided p-value indicating the significance of the difference between the samples.
     """
     n1, n2 = len(x), len(y)
-    
+
     if n1 == 0 or n2 == 0:
         return 0.0, 1.0
 

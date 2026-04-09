@@ -1,21 +1,19 @@
 from __future__ import annotations
 
 import numpy as np
-from ..base import BaseSegmenter
-from ..utils import multivariate_l2_norm, aggregate_change_points
 from scipy.special import gammaln, logsumexp
 
 from tsseg.algorithms.bocd.bayesian_models import offline_changepoint_detection
 
-
+from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
     DataDependent,
     Interval,
-    Options,
     ParamDef,
     StrOptions,
 )
+from ..utils import aggregate_change_points, multivariate_l2_norm
 
 
 class BOCDDetector(BaseSegmenter):

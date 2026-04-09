@@ -2,14 +2,15 @@
 This module provides an aeon-compatible wrapper for the TICC algorithm.
 """
 import numpy as np
+
 from ..base import BaseSegmenter
-from .ticc import TICC
 from ..param_schema import (
     Closed,
     DataDependent,
     Interval,
     ParamDef,
 )
+from .ticc import TICC
 
 
 class TiccDetector(BaseSegmenter):
@@ -114,7 +115,7 @@ class TiccDetector(BaseSegmenter):
 
         # The fit_transform method trains the model and returns the segmentation
         clustered_points, _ = self.ticc_.fit_transform(X)
-        
+
         # The TICC algorithm labels each window, resulting in fewer labels than timepoints.
         # We pad the labels to match the original time series length by repeating the last label.
         n_timepoints = X.shape[0]
@@ -132,7 +133,7 @@ class TiccDetector(BaseSegmenter):
         ----------
         X : np.ndarray
             The time series to segment of shape (n_channels, n_timepoints).
-        
+
         Returns
         -------
         np.ndarray

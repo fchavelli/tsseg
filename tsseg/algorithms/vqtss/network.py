@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class VectorQuantizerEMA(nn.Module):
     def __init__(self, num_embeddings, embedding_dim, commitment_cost=0.25, decay=0.99, epsilon=1e-5):
         super(VectorQuantizerEMA, self).__init__()
@@ -14,7 +15,7 @@ class VectorQuantizerEMA(nn.Module):
         self.register_buffer('embeddings', torch.zeros(num_embeddings, embedding_dim))
         self.register_buffer('ema_cluster_size', torch.zeros(num_embeddings))
         self.register_buffer('ema_w', torch.zeros(num_embeddings, embedding_dim))
-        
+
         # Init weights
         self.embeddings.data.uniform_(-1/self.num_embeddings, 1/self.num_embeddings)
         self.ema_w.data.copy_(self.embeddings)
@@ -25,45 +26,45 @@ class VectorQuantizerEMA(nn.Module):
         inputs = inputs.permute(0, 2, 1).contiguous()
         input_shape = inputs.shape
         flat_input = inputs.view(-1, self.embedding_dim)
-        
+
         # Distances
-        distances = (torch.sum(flat_input**2, dim=1, keepdim=True) 
+        distances = (torch.sum(flat_input**2, dim=1, keepdim=True)
                     + torch.sum(self.embeddings**2, dim=1)
                     - 2 * torch.matmul(flat_input, self.embeddings.t()))
-            
+
         encoding_indices = torch.argmin(distances, dim=1).unsqueeze(1)
         encodings = torch.zeros(encoding_indices.shape[0], self.num_embeddings, device=inputs.device)
         encodings.scatter_(1, encoding_indices, 1)
-        
+
         # Quantize
         quantized = torch.matmul(encodings, self.embeddings).view(input_shape)
-        
+
         # Training: Update EMA
         if self.training:
             # Cluster size update
             encodings_sum = encodings.sum(0)
             self.ema_cluster_size.data.mul_(self.decay).add_(encodings_sum, alpha=1 - self.decay)
-            
+
             # Laplace smoothing of cluster size
             n = self.ema_cluster_size.sum()
             cluster_size = (
                 (self.ema_cluster_size + self.epsilon) / (n + self.num_embeddings * self.epsilon) * n
             )
-            
+
             # Weight update
             dw = torch.matmul(encodings.t(), flat_input)
             self.ema_w.data.mul_(self.decay).add_(dw, alpha=1 - self.decay)
-            
+
             # Normalize weights
             self.embeddings.data.copy_(self.ema_w / cluster_size.unsqueeze(1))
-        
+
         # Loss
         e_latent_loss = F.mse_loss(quantized.detach(), inputs)
         loss = self.commitment_cost * e_latent_loss
-        
+
         # Straight Through Estimator
         quantized = inputs + (quantized - inputs).detach()
-        
+
         return loss, quantized.permute(0, 2, 1).contiguous(), encoding_indices.view(input_shape[0], -1)
 
 class ResBlock1D(nn.Module):
@@ -90,10 +91,10 @@ class ModernEncoder(nn.Module):
         super().__init__()
         self.input_proj = nn.Conv1d(input_dim, hidden_dim, 1)
         self.layers = nn.ModuleList([
-            ResBlock1D(hidden_dim, kernel_size=5, dilation=2**i) 
+            ResBlock1D(hidden_dim, kernel_size=5, dilation=2**i)
             for i in range(num_layers)
         ])
-    
+
     def forward(self, x):
         x = self.input_proj(x)
         for layer in self.layers:

@@ -7,8 +7,8 @@ from typing import Literal
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
 from scipy.signal import find_peaks
+from torch.utils.data import DataLoader, TensorDataset
 
 from ..base import BaseSegmenter
 from ..param_schema import (
@@ -19,7 +19,6 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
-
 from . import utils
 
 

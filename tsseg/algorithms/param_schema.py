@@ -25,12 +25,11 @@ Design decisions
 
 from __future__ import annotations
 
-import operator
+from collections.abc import Sequence
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
-from numbers import Integral, Real
-from typing import Any, Callable, Sequence
+from typing import Any
 
 __all__ = [
     # Core constraint objects

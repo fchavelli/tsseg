@@ -1,9 +1,8 @@
 import os
-import pooch
-import numpy as np
-import pandas as pd
-
 from importlib.resources import files
+
+import pandas as pd
+import pooch
 
 # 1. Create a Pooch instance for remote data fetching.
 CACHE_PATH = pooch.os_cache("tsseg")
@@ -113,7 +112,7 @@ def load_mocap(trial=0, return_X_y=True):
             filename = MOCAP_TRIALS[trial]
         except IndexError:
             raise ValueError(f"Invalid trial index: {trial}. "
-                             f"Must be between 0 and {len(MOCAP_TRIALS) - 1}.")
+                             f"Must be between 0 and {len(MOCAP_TRIALS) - 1}.") from None
     elif isinstance(trial, str):
         trial_id = f"86_{trial}.csv"
         if trial_id not in MOCAP_TRIALS:

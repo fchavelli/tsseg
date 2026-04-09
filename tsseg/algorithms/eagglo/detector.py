@@ -12,7 +12,6 @@ from ..param_schema import (
     Closed,
     HasType,
     Interval,
-    Options,
     ParamDef,
     StrOptions,
 )

@@ -445,7 +445,7 @@ class Dataset(torch.utils.data.Dataset):
         return self.dataset[index]
 
 
-class BasicEncoder():
+class BasicEncoder:
     def encode(self, X):
         pass
 

@@ -5,15 +5,15 @@ from __future__ import annotations
 import numpy as np
 
 from ..base import BaseSegmenter
-from ..ruptures.detection import Pelt
 from ..param_schema import (
     Closed,
     DataDependent,
+    HasType,
     Interval,
     ParamDef,
     StrOptions,
-    HasType,
 )
+from ..ruptures.detection import Pelt
 
 __all__ = ["PeltDetector"]
 

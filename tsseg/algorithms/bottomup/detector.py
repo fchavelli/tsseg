@@ -7,7 +7,6 @@ import warnings
 import numpy as np
 
 from ..base import BaseSegmenter
-from ..ruptures.detection import BottomUp
 from ..param_schema import (
     Closed,
     DataDependent,
@@ -16,6 +15,7 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
+from ..ruptures.detection import BottomUp
 
 __all__ = ["BottomUpDetector"]
 
@@ -155,7 +155,7 @@ class BottomUpDetector(BaseSegmenter):
         estimator.fit(signal)
         self._estimator = estimator
         self._train_signal = signal
-            
+
         return self
 
     def _predict(self, X):

@@ -1,6 +1,5 @@
-import numpy as np
-
 import matlab.engine
+import numpy as np
 
 
 def espresso(ts, window_size, n_cps, chain_length=3, eng=None):

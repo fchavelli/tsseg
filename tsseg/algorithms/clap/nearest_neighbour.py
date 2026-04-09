@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 import numpy.fft as fft
-from numba import njit, prange, objmode, get_num_threads, set_num_threads
+from numba import get_num_threads, njit, objmode, prange, set_num_threads
 from numba.typed.typedlist import List
 
 from .distance import map_distances

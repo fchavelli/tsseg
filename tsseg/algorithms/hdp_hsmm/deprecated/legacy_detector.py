@@ -1,5 +1,5 @@
 import numpy as np
-from ..base import BaseSegmenter
+from ...base import BaseSegmenter
 
 # Import pyhsmm after tsseg to ensure compatibility patches are applied
 try:

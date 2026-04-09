@@ -454,15 +454,15 @@ class HidalgoDetector(BaseSegmenter):
                     # --- FIX START: Use log-domain calculation to prevent overflow ---
                     exp1 = c1[k] - 1
                     exp2 = c1[K - 1] - 1
-                    
+
                     if exp1 + exp2 <= 1e-9: # Effectively 0
                         stop = True
                     else:
                         rmax = exp1 / (exp1 + exp2)
-                        
+
                         log_frac = 0.0
                         is_valid = True
-                        
+
                         # Calculate log of first term: (r1 / rmax) ** exp1
                         if exp1 > 0:
                             if r1 <= 0:
@@ -470,7 +470,7 @@ class HidalgoDetector(BaseSegmenter):
                             else:
                                 # We assume rmax > 0 because exp1 > 0 and sum > 0
                                 log_frac += exp1 * (np.log(r1) - np.log(rmax))
-                        
+
                         # Calculate log of second term: ((1 - r1) / (1 - rmax)) ** exp2
                         if is_valid and exp2 > 0:
                             if r1 >= 1.0:
@@ -487,7 +487,7 @@ class HidalgoDetector(BaseSegmenter):
                             elif log_frac > np.log(r2):
                                 stop = True
                     # --- FIX END ---
-                    
+
                     if stop:
                         r1 = r1 * (1.0 - pp + p[k])
                         p[K - 1] += p[k] - r1

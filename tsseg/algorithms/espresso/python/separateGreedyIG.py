@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Tuple
-
 import numpy as np
 
 from .IGTS.IG_Cal import ig_cal
@@ -23,7 +21,7 @@ def separate_greedy_ig(
     num_segms: int,
     cc: np.ndarray,
     pdist_fraction: float,
-) -> Tuple[np.ndarray, float]:
+) -> tuple[np.ndarray, float]:
     """Greedy IG-based segmentation mirroring the MATLAB logic."""
 
     ts = np.asarray(ts, dtype=float)
@@ -97,7 +95,7 @@ def _gaussian_smooth(arr: np.ndarray, window: int) -> np.ndarray:
     return smoothed.reshape(arr.shape)
 
 
-def _find_peaks(signal: np.ndarray, min_peak_distance: int) -> Tuple[np.ndarray, np.ndarray]:
+def _find_peaks(signal: np.ndarray, min_peak_distance: int) -> tuple[np.ndarray, np.ndarray]:
     """Locate peaks and prominences with a SciPy-powered or fallback approach."""
 
     signal = np.asarray(signal, dtype=float)

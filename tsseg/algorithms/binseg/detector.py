@@ -2,27 +2,23 @@
 
 from __future__ import annotations
 
-from typing import Any
 import warnings
+from typing import Any
 
 import numpy as np
 
-from ..utils import extract_cps
-
 from ..base import BaseSegmenter
-from ..ruptures.detection.binseg import Binseg
-from ..ruptures.base import BaseCost
 from ..param_schema import (
     Closed,
     DataDependent,
-    DependsOn,
     HasType,
     Interval,
     MutuallyExclusive,
-    Options,
     ParamDef,
     StrOptions,
 )
+from ..ruptures.base import BaseCost
+from ..ruptures.detection.binseg import Binseg
 
 __all__ = ["BinSegDetector"]
 

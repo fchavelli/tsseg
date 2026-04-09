@@ -17,8 +17,8 @@ References
 
 """
 
+from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import Generator
 
 import numpy as np
 import numpy.typing as npt
@@ -142,7 +142,7 @@ def generate_segments(X: npt.ArrayLike, change_points: list[int]) -> Generator:
     segment: npt.ArrayLike
         A segments from the input time series between two consecutive change points
     """
-    for start, end in zip(change_points[:-1], change_points[1:]):
+    for start, end in zip(change_points[:-1], change_points[1:], strict=True):
         yield X[start:end, :]
 
 
