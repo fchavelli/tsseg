@@ -103,7 +103,7 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     "TireDetector": AlgorithmOverride(dependencies=("torch",)),
     "TGLADDetector": AlgorithmOverride(
         dependencies=("torch", "networkx"),
-        init_kwargs={"window_size": 100, "stride": 50, "epochs": 10},
+        init_kwargs={"window_size": 100, "stride": 50, "epochs": 100},
     ),
     "TSCP2Detector": AlgorithmOverride(dependencies=("tensorflow",)),
     "VQTSSDetector": AlgorithmOverride(

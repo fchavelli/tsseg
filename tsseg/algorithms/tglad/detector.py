@@ -91,6 +91,7 @@ class TGLADDetector(BaseSegmenter):
         "python_dependencies": "torch,networkx",
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
+        "non_deterministic": True,
     }
 
     _parameter_schema = {
