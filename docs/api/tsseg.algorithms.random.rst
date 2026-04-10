@@ -75,6 +75,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.random
-   :members:
    :show-inheritance:
-   :undoc-members:

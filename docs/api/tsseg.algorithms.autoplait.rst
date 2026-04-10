@@ -81,6 +81,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.autoplait
-   :members:
    :show-inheritance:
-   :undoc-members:

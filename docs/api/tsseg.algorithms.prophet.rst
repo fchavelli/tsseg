@@ -88,6 +88,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.prophet
-   :members:
    :show-inheritance:
-   :undoc-members:

@@ -24,7 +24,7 @@ class EAggloDetector(BaseSegmenter):
     Hierarchical agglomerative estimation of multiple change points.
 
     E-Agglo is a non-parametric clustering approach for multivariate timeseries[1]_,
-    where neighboring segments are sequentially merged_ to maximize a goodness-of-fit
+    where neighboring segments are sequentially merged to maximize a goodness-of-fit
     statistic. Unlike most general purpose agglomerative clustering algorithms, this
     procedure preserves the time ordering of the observations.
 
@@ -53,7 +53,7 @@ class EAggloDetector(BaseSegmenter):
     Attributes
     ----------
     merged_ : array_like
-        2D ``array_like`` outlining which clusters were merged_ at each step.
+        2D ``array_like`` outlining which clusters were merged at each step.
     gof_ : float
         goodness-of-fit statistic for current clustering.
     cluster_ : array_like

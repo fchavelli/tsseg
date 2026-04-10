@@ -17,6 +17,7 @@ class ICIDDetector(BaseSegmenter):
     between consecutive windows.
 
     The algorithm works in four main steps:
+
     1.  **aNNEspace Transformation**: Projects the data into a feature space
         using random subsampling to create a distributional kernel.
     2.  **Dissimilarity Scoring**: Computes a point-wise dissimilarity score

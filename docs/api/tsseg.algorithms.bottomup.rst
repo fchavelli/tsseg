@@ -97,6 +97,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.bottomup
-   :members:
    :show-inheritance:
-   :undoc-members:

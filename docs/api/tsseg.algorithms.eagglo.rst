@@ -75,6 +75,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.eagglo
-   :members:
    :show-inheritance:
-   :undoc-members:

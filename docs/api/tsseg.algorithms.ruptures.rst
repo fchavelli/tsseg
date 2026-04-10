@@ -12,6 +12,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.ruptures
-   :members:
    :show-inheritance:
-   :undoc-members:

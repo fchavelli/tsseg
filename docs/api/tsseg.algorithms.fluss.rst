@@ -87,6 +87,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.fluss
-   :members:
    :show-inheritance:
-   :undoc-members:

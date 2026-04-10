@@ -2,19 +2,11 @@
 Information Gain-based Temporal Segmenter.
 
 Information Gain Temporal Segmentation (_IGTS) is a method for segmenting
-multivariate time series based off reducing the entropy in each segment [1]_.
+multivariate time series based off reducing the entropy in each segment.
 
 The amount of entropy lost by the segmentations made is called the Information
 Gain (IG). The aim is to find the segmentations that have the maximum information
 gain for any number of segmentations.
-
-References
-----------
-.. [1] Sadri, Amin, Yongli Ren, and Flora D. Salim.
-    "Information gain-based metric for recognizing transitions in human activities.",
-    Pervasive and Mobile Computing, 38, 92-109, (2017).
-    https://www.sciencedirect.com/science/article/abs/pii/S1574119217300081
-
 """
 
 from collections.abc import Generator
@@ -34,7 +26,7 @@ __maintainer__ = []
 def _augment_univariate(X: npt.ArrayLike) -> np.ndarray:
     """Augment a univariate series with its complement channel.
 
-    Applies the data transformation from Section 4.4 of [1]_:
+    Applies the data transformation from Section 4.4 of the IGTS paper:
 
     1. **Normalize** each channel so that values sum to 1 (Eq. 12).
     2. **Append the complement** ``max(c_i) - c_i`` for every channel,
@@ -57,9 +49,9 @@ def _augment_univariate(X: npt.ArrayLike) -> np.ndarray:
 
     References
     ----------
-    .. [1] Sadri, Amin, Yongli Ren, and Flora D. Salim.
-       "Information gain-based metric for recognizing transitions in
-       human activities.", Pervasive and Mobile Computing, 38, 92-109, (2017).
+    Sadri, Amin, Yongli Ren, and Flora D. Salim.
+    "Information gain-based metric for recognizing transitions in
+    human activities.", Pervasive and Mobile Computing, 38, 92-109, (2017).
     """
     n_samples, n_channels = X.shape
     X_aug = np.empty((n_samples, 2 * n_channels), dtype=np.float64)
@@ -210,7 +202,7 @@ class _IGTS:
     location that creates the maximum information gain. Once this is found, it
     repeats the process until it finds `k_max` splits of the time series.
 
-    Uses cumulative sums (Eq. 5-6 of [1]_) so that segment channel sums are
+    Uses cumulative sums (Eq. 5-6 of the IGTS paper) so that segment channel sums are
     computed in O(m) instead of O(mn).
 
     .. note::
@@ -231,17 +223,12 @@ class _IGTS:
 
     Notes
     -----
-    Based on the work from [1]_.
+    Based on the work from Sadri et al. (2017).
+
     - alt. py implementation: https://github.com/cruiseresearchgroup/IGTS-python
     - MATLAB version: https://github.com/cruiseresearchgroup/IGTS-matlab
     - paper available at:
-
-    References
-    ----------
-    .. [1] Sadri, Amin, Yongli Ren, and Flora D. Salim.
-       "Information gain-based metric for recognizing transitions in human activities.",
-       Pervasive and Mobile Computing, 38, 92-109, (2017).
-       https://www.sciencedirect.com/science/article/abs/pii/S1574119217300081
+      https://www.sciencedirect.com/science/article/abs/pii/S1574119217300081
     """
 
     # init attributes

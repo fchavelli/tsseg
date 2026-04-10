@@ -88,6 +88,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.patss
-   :members:
    :show-inheritance:
-   :undoc-members:

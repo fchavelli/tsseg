@@ -99,6 +99,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.kcpd
-   :members:
    :show-inheritance:
-   :undoc-members:

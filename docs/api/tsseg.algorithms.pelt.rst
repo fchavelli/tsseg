@@ -90,6 +90,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.pelt
-   :members:
    :show-inheritance:
-   :undoc-members:

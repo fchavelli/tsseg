@@ -87,6 +87,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.dynp
-   :members:
    :show-inheritance:
-   :undoc-members:

@@ -67,6 +67,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.amoc
-   :members:
    :show-inheritance:
-   :undoc-members:

@@ -102,6 +102,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.binseg
-   :members:
    :show-inheritance:
-   :undoc-members:

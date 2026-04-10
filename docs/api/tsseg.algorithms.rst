@@ -55,6 +55,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms
-   :members:
    :show-inheritance:
-   :undoc-members:

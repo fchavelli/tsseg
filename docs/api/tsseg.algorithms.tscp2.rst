@@ -149,6 +149,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.tscp2
-   :members:
    :show-inheritance:
-   :undoc-members:

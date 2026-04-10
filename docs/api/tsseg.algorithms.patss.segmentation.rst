@@ -24,6 +24,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.patss.segmentation
-   :members:
    :show-inheritance:
-   :undoc-members:

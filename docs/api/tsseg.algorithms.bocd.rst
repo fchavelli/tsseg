@@ -121,6 +121,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.bocd
-   :members:
    :show-inheritance:
-   :undoc-members:

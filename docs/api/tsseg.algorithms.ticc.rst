@@ -104,6 +104,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.ticc
-   :members:
    :show-inheritance:
-   :undoc-members:

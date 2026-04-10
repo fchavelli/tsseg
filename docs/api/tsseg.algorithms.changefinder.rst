@@ -123,6 +123,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.changefinder
-   :members:
    :show-inheritance:
-   :undoc-members:

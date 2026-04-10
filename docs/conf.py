@@ -51,10 +51,12 @@ exclude_patterns = [
 # Mock optional dependencies so autodoc can import modules without installing
 # heavy libraries on the documentation builder.
 autodoc_mock_imports = [
+    "baselines",
     "claspy",
     "keras",
     "keras_tcn",
     "networkx",
+    "numba",
     "pmdarima",
     "prophet",
     "stumpy",
@@ -62,10 +64,16 @@ autodoc_mock_imports = [
     "tensorflow",
     "torch",
     "tsfm",
+    "tsfresh",
     "tsseg_fm",
     "tsseg_tirex",
     "tslearn",
+    "workflows",
 ]
+
+# Bibliography-style references (.. [1]) in docstrings are not cited inline;
+# suppress the corresponding Sphinx warning.
+suppress_warnings = ["ref.footnote"]
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),

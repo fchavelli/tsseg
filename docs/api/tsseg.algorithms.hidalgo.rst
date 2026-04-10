@@ -109,6 +109,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.hidalgo
-   :members:
    :show-inheritance:
-   :undoc-members:

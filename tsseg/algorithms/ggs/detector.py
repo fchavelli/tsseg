@@ -20,18 +20,11 @@ This design also allows adapting ``_GGS`` to other interfaces.
 
 Notes
 -----
-Based on the work from [1]_.
+Based on the work from Hallac et al. (2019).
 
 - source code adapted based on: https://github.com/cvxgrp/GGS
   Copyright (c) 2018, Stanford University Convex Optimization Group, BSD-2
 - paper available at: https://stanford.edu/~boyd/papers/pdf/ggs.pdf
-
-References
-----------
-.. [1] Hallac, D., Nystrup, P. & Boyd, S.
-   "Greedy Gaussian segmentation of multivariate time series.",
-    Adv Data Anal Classif 13, 727–751 (2019).
-    https://doi.org/10.1007/s11634-018-0335-0
 """
 
 import logging
@@ -106,17 +99,17 @@ class _GGS:
 
     Notes
     -----
-    Based on the work from [1]_.
+    Based on the work from Hallac et al. (2019).
 
     - source code adapted based on: https://github.com/cvxgrp/GGS
     - paper available at: https://stanford.edu/~boyd/papers/pdf/ggs.pdf
 
     References
     ----------
-    .. [1] Hallac, D., Nystrup, P. & Boyd, S.,
-       "Greedy Gaussian segmentation of multivariate time series.",
-       Adv Data Anal Classif 13, 727–751 (2019).
-       https://doi.org/10.1007/s11634-018-0335-0
+    Hallac, D., Nystrup, P. & Boyd, S.,
+    "Greedy Gaussian segmentation of multivariate time series.",
+    Adv Data Anal Classif 13, 727–751 (2019).
+    https://doi.org/10.1007/s11634-018-0335-0
     """
 
     k_max: int = 10

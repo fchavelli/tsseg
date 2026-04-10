@@ -129,6 +129,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.vqtss
-   :members:
    :show-inheritance:
-   :undoc-members:

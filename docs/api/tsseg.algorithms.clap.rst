@@ -192,70 +192,60 @@ tsseg.algorithms.clap.clasp\_knn module
 ---------------------------------------
 
 .. automodule:: tsseg.algorithms.clap.clasp_knn
-   :members:
    :show-inheritance:
-   :undoc-members:
+   :no-index:
 
 tsseg.algorithms.clap.distance module
 -------------------------------------
 
 .. automodule:: tsseg.algorithms.clap.distance
-   :members:
    :show-inheritance:
-   :undoc-members:
+   :no-index:
 
 tsseg.algorithms.clap.nearest\_neighbour module
 -----------------------------------------------
 
 .. automodule:: tsseg.algorithms.clap.nearest_neighbour
-   :members:
    :show-inheritance:
-   :undoc-members:
+   :no-index:
 
 tsseg.algorithms.clap.scoring module
 ------------------------------------
 
 .. automodule:: tsseg.algorithms.clap.scoring
-   :members:
    :show-inheritance:
-   :undoc-members:
+   :no-index:
 
 tsseg.algorithms.clap.segmentation module
 -----------------------------------------
 
 .. automodule:: tsseg.algorithms.clap.segmentation
-   :members:
    :show-inheritance:
-   :undoc-members:
+   :no-index:
 
 tsseg.algorithms.clap.utils module
 ----------------------------------
 
 .. automodule:: tsseg.algorithms.clap.utils
-   :members:
    :show-inheritance:
-   :undoc-members:
+   :no-index:
 
 tsseg.algorithms.clap.validation module
 ---------------------------------------
 
 .. automodule:: tsseg.algorithms.clap.validation
-   :members:
    :show-inheritance:
-   :undoc-members:
+   :no-index:
 
 tsseg.algorithms.clap.window\_size module
 -----------------------------------------
 
 .. automodule:: tsseg.algorithms.clap.window_size
-   :members:
    :show-inheritance:
-   :undoc-members:
+   :no-index:
 
 Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.clap
-   :members:
    :show-inheritance:
-   :undoc-members:

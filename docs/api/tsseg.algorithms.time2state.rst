@@ -126,6 +126,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.time2state
-   :members:
    :show-inheritance:
-   :undoc-members:

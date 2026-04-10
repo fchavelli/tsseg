@@ -131,6 +131,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.e2usd
-   :members:
    :show-inheritance:
-   :undoc-members:

@@ -110,6 +110,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.window
-   :members:
    :show-inheritance:
-   :undoc-members:

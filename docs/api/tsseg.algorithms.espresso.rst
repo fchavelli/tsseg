@@ -89,6 +89,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.espresso
-   :members:
    :show-inheritance:
-   :undoc-members:

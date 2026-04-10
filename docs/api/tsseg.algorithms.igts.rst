@@ -68,6 +68,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.igts
-   :members:
    :show-inheritance:
-   :undoc-members:

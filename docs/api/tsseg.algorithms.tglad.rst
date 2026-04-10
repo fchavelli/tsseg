@@ -104,6 +104,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.tglad
-   :members:
    :show-inheritance:
-   :undoc-members:

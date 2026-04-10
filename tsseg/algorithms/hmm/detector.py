@@ -65,7 +65,7 @@ class HMMDetector(BaseSegmenter):
         Either a list of callables [fx_1, fx_2] with signature fx_1(X) -> float
         or a list of callables and matched keyword arguments for those
         callables [(fx_1, kwarg_1), (fx_2, kwarg_2)] with signature
-        fx_1(X, **kwargs) -> float (or a list with some mixture of the two).
+        ``fx_1(X, **kwargs) -> float`` (or a list with some mixture of the two).
         The callables should take a value and return a probability when passed
         a single observation. All functions should be properly normalized PDFs
         over the same space as the observed data.

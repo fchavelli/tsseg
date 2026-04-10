@@ -56,6 +56,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.patss.embedding
-   :members:
    :show-inheritance:
-   :undoc-members:

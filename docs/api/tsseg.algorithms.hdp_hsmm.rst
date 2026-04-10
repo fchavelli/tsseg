@@ -124,6 +124,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.hdp_hsmm
-   :members:
    :show-inheritance:
-   :undoc-members:

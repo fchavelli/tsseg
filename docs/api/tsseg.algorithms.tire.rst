@@ -161,6 +161,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.tire
-   :members:
    :show-inheritance:
-   :undoc-members:

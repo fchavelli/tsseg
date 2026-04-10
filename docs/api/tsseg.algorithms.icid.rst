@@ -81,6 +81,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.icid
-   :members:
    :show-inheritance:
-   :undoc-members:

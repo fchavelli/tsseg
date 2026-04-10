@@ -107,6 +107,4 @@ Module contents
 ---------------
 
 .. automodule:: tsseg.algorithms.vsax
-   :members:
    :show-inheritance:
-   :undoc-members:
