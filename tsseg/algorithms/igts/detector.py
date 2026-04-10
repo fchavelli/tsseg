@@ -470,7 +470,7 @@ class InformationGainDetector(BaseSegmenter):
 
     _parameter_schema = {
         "k_max": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Maximum number of change points to find.",
         ),
         "step": ParamDef(
@@ -512,6 +512,12 @@ class InformationGainDetector(BaseSegmenter):
             The numerical values represent distinct segment labels for each of the
             data points.
         """
+        # k_max=0 → no change points requested (e.g. guided mode on a
+        # single-segment signal).  Return empty prediction immediately.
+        if self.k_max == 0:
+            self.intermediate_results_ = []
+            return np.array([], dtype=int)
+
         # Apply normalise + complement augmentation (Section 4.4, Eq. 12-13)
         # to all data — required for univariate and handles positive
         # correlation in multivariate data.

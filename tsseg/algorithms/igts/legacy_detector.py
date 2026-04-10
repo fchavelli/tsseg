@@ -397,7 +397,7 @@ class InformationGainDetector(BaseSegmenter):
 
     _parameter_schema = {
         "k_max": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Maximum number of change points to find.",
         ),
         "step": ParamDef(
@@ -439,6 +439,11 @@ class InformationGainDetector(BaseSegmenter):
             The numerical values represent distinct segment labels for each of the
             data points.
         """
+        # k_max=0 → no change points requested.
+        if self.k_max == 0:
+            self.intermediate_results_ = []
+            return self.to_clusters([], X.shape[0])
+
         # Univariate series need augmentation (complement channel) so that
         # Shannon entropy can distinguish segments.  See Eq. 12-13 in [1].
         if X.shape[1] == 1:

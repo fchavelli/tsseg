@@ -636,7 +636,7 @@ class TestValidateParams:
 
     def test_igts_invalid_k_max(self):
         det = InformationGainDetector(k_max=5)
-        det.k_max = 0
+        det.k_max = -1
         errors = validate_params(det)
         assert any("k_max" in e for e in errors)
 
