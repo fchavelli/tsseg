@@ -107,7 +107,7 @@ class ChangeFinderDetector(BaseSegmenter):
             description="Scoring function for outlier scores.",
         ),
         "n_cps": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Number of change points to return.",
             nullable=True,
         ),
@@ -308,7 +308,7 @@ class ChangeFinderDetector(BaseSegmenter):
 
         n_samples, n_channels = data.shape
 
-        if n_samples < self.order + 2:
+        if self.n_cps == 0 or n_samples < self.order + 2:
             return np.empty(0, dtype=np.int64)
 
         if n_channels > 1 and self.multivariate_strategy == "ensembling":
