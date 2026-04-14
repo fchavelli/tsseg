@@ -13,7 +13,7 @@ Segments and detectors
 
 ``tsseg.algorithms`` exposes detector classes for two main tasks:
 
-**Change point detection** — AMOC, BinSeg, BOCD, BottomUp, ClaSP, DynP,
+**Change point detection** — AMOC, BEAST, BinSeg, BOCD, BottomUp, ClaSP, DynP,
 E-Agglo, ESPRESSO, FLUSS, GGS, iCID, IGTS, KCPD, PELT, Prophet, TIRE,
 TS-CP2, tGLAD, Window.
 

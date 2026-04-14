@@ -204,6 +204,10 @@ class TestBaseSegmenterContract:
                 # Skip deep comparison for callables and complex containers
                 # (e.g. emission functions) — type match is sufficient.
                 assert isinstance(a, type(b)), f"Param {key!r} type differs"
+            elif isinstance(a, float) and np.isnan(a):
+                assert isinstance(b, float) and np.isnan(b), (
+                    f"Param {key!r} differs: {a!r} != {b!r}"
+                )
             else:
                 assert a == b, f"Param {key!r} differs: {a!r} != {b!r}"
         assert loaded.is_fitted

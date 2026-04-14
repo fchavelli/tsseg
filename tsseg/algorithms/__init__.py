@@ -27,6 +27,8 @@ from .window.detector import WindowDetector
 # --- Lazy imports for detectors with heavy optional dependencies ---
 # Avoids requiring torch / tensorflow / prophet just to ``import tsseg.algorithms``
 _LAZY_IMPORTS = {
+    # Rbeast (vendorized C extension in c/Rbeast – build with `make`)
+    "BeastDetector": (".beast.detector", "BeastDetector"),
     # PyTorch-based
     "E2USDDetector": (".e2usd.detector", "E2USDDetector"),
     "TGLADDetector": (".tglad.detector", "TGLADDetector"),
@@ -56,6 +58,7 @@ def __getattr__(name: str):
 __all__ = [
     "AmocDetector",
     "AutoPlaitDetector",
+    "BeastDetector",
     "BinSegDetector",
     "BOCDDetector",
     "BottomUpDetector",

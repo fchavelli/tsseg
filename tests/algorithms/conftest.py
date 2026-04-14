@@ -36,6 +36,32 @@ def _autoplait_binary_available() -> bool:
     return shutil.which("autoplait") is not None
 
 
+def _rbeast_available() -> bool:
+    """Check if Rbeast is available (vendorized build or pip install)."""
+    import sys
+
+    # 1. Vendorized build
+    try:
+        pkg_root = Path(__file__).resolve().parents[2]
+        vendor_dir = pkg_root / "c" / "Rbeast" / "py_src"
+        if vendor_dir.is_dir():
+            if str(vendor_dir) not in sys.path:
+                sys.path.insert(0, str(vendor_dir))
+            import Rbeast  # noqa: F401
+
+            return True
+    except (ImportError, Exception):
+        pass
+    # 2. System install
+    try:
+        import Rbeast  # noqa: F401
+
+        return True
+    except ImportError:
+        pass
+    return False
+
+
 # ======================================================================
 # Per-algorithm overrides
 # ======================================================================
@@ -75,6 +101,12 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         semi_supervised=True,
         skip_reason=(
             None if _autoplait_binary_available() else "AutoPlait C binary not built"
+        ),
+    ),
+    # --- Rbeast (vendorized C extension) --------------------------------
+    "BeastDetector": AlgorithmOverride(
+        skip_reason=(
+            None if _rbeast_available() else "Rbeast not built (cd c/Rbeast && make)"
         ),
     ),
     "DynpDetector": AlgorithmOverride(semi_supervised=True),

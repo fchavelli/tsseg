@@ -9,6 +9,7 @@ Subpackages
 
    tsseg.algorithms.amoc
    tsseg.algorithms.autoplait
+   tsseg.algorithms.beast
    tsseg.algorithms.binseg
    tsseg.algorithms.bocd
    tsseg.algorithms.bottomup
