@@ -121,6 +121,7 @@ line-length = 88
 target-version = "py310"
 # Vendored / third-party code — not our responsibility to lint
 extend-exclude = [
+    "c/",
     "tsseg/algorithms/tglad/vendor/",
     "tsseg/algorithms/autoplait/deprecated/",
     "tsseg/algorithms/bocd/old/",

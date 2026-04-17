@@ -31,7 +31,9 @@ def _import_rbeast():
     # 1. Try vendorized build
     _pkg_root = os.path.dirname(os.path.abspath(__file__))
     _vendor_dir = os.path.normpath(
-        os.path.join(_pkg_root, os.pardir, os.pardir, os.pardir, "c", "Rbeast", "py_src")
+        os.path.join(
+            _pkg_root, os.pardir, os.pardir, os.pardir, "c", "Rbeast", "py_src"
+        )
     )
     if os.path.isdir(_vendor_dir):
         if _vendor_dir not in sys.path:
@@ -334,7 +336,7 @@ class BeastDetector(BaseSegmenter):
         n_samples, n_channels = data.shape
 
         md = rb.args()
-        md.whichDimIsTime = 1   # rows = time
+        md.whichDimIsTime = 1  # rows = time
         md.season = self.season
         md.period = self.period
         md.detrend = False
@@ -513,9 +515,7 @@ class BeastDetector(BaseSegmenter):
 
             if len(indices) > 0:
                 # Group consecutive indices: pick the local peak in each run
-                groups = np.split(
-                    indices, np.where(np.diff(indices) > 1)[0] + 1
-                )
+                groups = np.split(indices, np.where(np.diff(indices) > 1)[0] + 1)
                 for group in groups:
                     peak = group[np.argmax(prob[group])]
                     cps.append(int(peak))
