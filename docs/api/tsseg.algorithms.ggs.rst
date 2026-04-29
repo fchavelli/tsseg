@@ -14,7 +14,7 @@ A greedy dynamic-programming search finds an approximate solution in linear time
 The maximum number of change points ``k_max`` is an upper bound; the algorithm
 may return fewer if additional splits do not improve the regularised likelihood.
 
-| **Type:** state detection
+| **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
 

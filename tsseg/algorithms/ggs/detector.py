@@ -448,7 +448,7 @@ class GreedyGaussianDetector(BaseSegmenter):
         "capability:multivariate": True,
         "returns_dense": False,
         "fit_is_empty": False,
-        "detector_type": "state_detection",
+        "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
     }
