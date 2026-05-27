@@ -8,12 +8,6 @@ and benchmarks, plus helpers to load your own data through the unified
 Built-in datasets
 -----------------
 
-.. autosummary::
-   :toctree: _autogen
-   :nosignatures:
-
-   tsseg.data.datasets.load_mocap
-
 Each loader returns a tuple ``(X, y)``:
 
 * ``X`` — a 2-D array of shape ``(n_timepoints, n_channels)``
