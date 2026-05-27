@@ -101,7 +101,7 @@ def strip_submodules_headers(text: str) -> str:
     m = re.search(r"\nSubmodules\n-+\n", text)
     if not m:
         return text
-    head, tail = text[: m.start()], text[m.end():]
+    head, tail = text[: m.start()], text[m.end() :]
     # End of the Submodules block: either ``Module contents`` header or EOF.
     end_m = re.search(r"\nModule contents\n-+\n.*\Z", tail, flags=re.DOTALL)
     if end_m:
