@@ -446,7 +446,7 @@ class GreedyGaussianDetector(BaseSegmenter):
     _tags = {
         "capability:univariate": True,
         "capability:multivariate": True,
-        "returns_dense": False,
+        "returns_dense": True,
         "fit_is_empty": False,
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
