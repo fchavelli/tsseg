@@ -44,7 +44,7 @@ Run the test suite using pytest:
     pytest tests/
 
 When adding a new feature, please include relevant tests in ``tests/``.
-If adding a new algorithm, ensure it passes the common estimator checks (see :doc:`detectors`).
+If adding a new algorithm, ensure it passes the common estimator checks (see :doc:`../detectors/index`).
 
 Algorithm test suite
 ^^^^^^^^^^^^^^^^^^^^

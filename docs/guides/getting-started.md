@@ -47,7 +47,7 @@ print(np.unique(state_labels, return_counts=True))
 ```
 
 Most detectors expose the `fit`, `predict`, and `fit_predict` methods and share
-metadata tags (see [Detectors](detectors)).
+metadata tags (see [Detectors](../detectors/index)).
 
 ## Semi-supervised usage
 
