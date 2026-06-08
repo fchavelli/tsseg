@@ -95,7 +95,7 @@ class EAggloDetector(BaseSegmenter):
         "capability:multivariate": True,
         "fit_is_empty": False,
         "returns_dense": False,
-        "detector_type": "state_detection",
+        "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
     }
@@ -207,9 +207,7 @@ class EAggloDetector(BaseSegmenter):
         return self
 
     def _predict(self, X: pd.DataFrame, y=None):
-        """Transform X and return a transformed version.
-
-        private _transform containing core logic, called from transform
+        """Return detected change point indices.
 
         Parameters
         ----------
@@ -220,9 +218,10 @@ class EAggloDetector(BaseSegmenter):
 
         Returns
         -------
-        cluster
-            numeric representation of cluster membership for each row of X.
+        list[int]
+            Sorted list of change point indices (exclusive of 0 and series length).
         """
+        n = X.shape[0]
         # fit again if indices not seen, but don't store anything
         if not X.index.equals(self._X.index):
             X_full = X.combine_first(self._X)
@@ -238,9 +237,11 @@ class EAggloDetector(BaseSegmenter):
                 "fit_predict(X).",
                 stacklevel=1,
             )
-            return new_eagglo.cluster_
+            estimates = new_eagglo._estimates
+        else:
+            estimates = self._estimates
 
-        return self.cluster_
+        return sorted(int(cp) for cp in estimates if 0 < cp < n)
 
     def _initialize_params(self, X: pd.DataFrame) -> None:
         """Initialize parameters and store to self."""
