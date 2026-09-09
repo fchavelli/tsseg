@@ -139,13 +139,15 @@ If you use ``tsseg`` in academic work, please cite:
 
 .. code-block:: bibtex
 
-   @software{tsseg,
-     author  = {Chavelli, F\'elix and contributors},
-     title   = {tsseg: a Python library for time-series segmentation},
-     year    = {2026},
-     url     = {https://github.com/fchavelli/tsseg},
-     version = {<package version>},
-   }
+@inproceedings{chavelli:hal-05654218,
+  TITLE = {{tsseg: An Interactive Toolkit for Time Series Segmentation}},
+  AUTHOR = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
+  URL = {https://inria.hal.science/hal-05654218},
+  BOOKTITLE = {{ECML-PKDD 2026 - European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases}},
+  ADDRESS = {Naples, Italy},
+  YEAR = {2026},
+  MONTH = Sep
+}
 
 .. note::
 
