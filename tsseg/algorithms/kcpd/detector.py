@@ -58,6 +58,13 @@ class KCPDDetector(BaseSegmenter):
             constraint=Interval(int, 1, None, Closed.LEFT),
             description="Sub-sampling factor for candidate breakpoints.",
         ),
+        "decimation": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description=(
+                "Keep every k-th time point before fitting. Detected change "
+                "points are mapped back to the original time base."
+            ),
+        ),
         "cost_params": ParamDef(
             constraint=HasType((dict,)),
             description="Extra kwargs for the kernel cost.",
@@ -77,6 +84,7 @@ class KCPDDetector(BaseSegmenter):
         kernel: str = "rbf",
         min_size: int = 2,
         jump: int = 1,
+        decimation: int = 1,
         cost_params: dict | None = None,
         axis: int = 0,
     ) -> None:
@@ -96,6 +104,9 @@ class KCPDDetector(BaseSegmenter):
         self.kernel = kernel
         self.min_size = int(min_size)
         self.jump = int(jump)
+        self.decimation = int(decimation)
+        if self.decimation < 1:
+            raise ValueError("decimation must be >= 1")
         self.cost_params = cost_params or {}
         self._estimator: KernelCPD | None = None
         self._train_signal: np.ndarray | None = None
@@ -109,8 +120,19 @@ class KCPDDetector(BaseSegmenter):
             raise ValueError("KernelCPDDetector expects 1D or 2D arrays")
         return array
 
+    def _decimate(self, signal: np.ndarray) -> np.ndarray:
+        """Return every ``decimation``-th row of ``signal``.
+
+        ``min_size`` and ``jump`` apply to the decimated grid, so they are
+        expressed in units of ``decimation`` input time points.
+        """
+
+        if self.decimation <= 1:
+            return signal
+        return np.ascontiguousarray(signal[:: self.decimation])
+
     def _fit(self, X, y=None):
-        signal = self._ensure_2d(X)
+        signal = self._decimate(self._ensure_2d(X))
         estimator = KernelCPD(
             kernel=self.kernel,
             min_size=self.min_size,
@@ -125,11 +147,15 @@ class KCPDDetector(BaseSegmenter):
     def _predict(self, X):
         if self._estimator is None:
             raise RuntimeError("KernelCPDDetector must be fitted before predict")
-        signal = self._ensure_2d(X)
+        full = self._ensure_2d(X)
+        signal = self._decimate(full)
         if self._train_signal is None or not np.array_equal(signal, self._train_signal):
             self._estimator.fit(signal)
             self._train_signal = signal
         bkps = self._estimator.predict(n_bkps=self.n_cps, pen=self.pen)
         bkps = np.asarray(bkps, dtype=int)
         bkps = bkps[(bkps > 0) & (bkps < signal.shape[0])]
+        # Back to the caller's time base.
+        bkps = bkps * self.decimation
+        bkps = bkps[(bkps > 0) & (bkps < full.shape[0])]
         return np.unique(bkps)
