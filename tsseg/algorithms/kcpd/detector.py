@@ -35,7 +35,7 @@ class KCPDDetector(BaseSegmenter):
 
     _parameter_schema = {
         "n_cps": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Number of change points to detect.",
             nullable=True,
             group="stopping_criterion",
@@ -147,6 +147,8 @@ class KCPDDetector(BaseSegmenter):
     def _predict(self, X):
         if self._estimator is None:
             raise RuntimeError("KernelCPDDetector must be fitted before predict")
+        if self.n_cps == 0:
+            return np.array([], dtype=int)
         full = self._ensure_2d(X)
         signal = self._decimate(full)
         if self._train_signal is None or not np.array_equal(signal, self._train_signal):
