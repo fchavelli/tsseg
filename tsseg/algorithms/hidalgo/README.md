@@ -115,8 +115,8 @@ rng = np.random.default_rng(42)
 
 # 100 points in 5D: first 60 on a 2D surface, last 40 in full 5D
 X = np.zeros((100, 5))
-X[:60, :2] = rng.standard_normal((60, 2))      # low-dimensional manifold
-X[60:, :] = rng.standard_normal((40, 5))        # high-dimensional manifold
+X[:60, :2] = rng.standard_normal((60, 2))  # low-dimensional manifold
+X[60:, :] = rng.standard_normal((40, 5))  # high-dimensional manifold
 
 model = HidalgoDetector(K_states=2, n_iter=500, burn_in=0.8, seed=42)
 labels = model.fit_predict(X, axis=0)

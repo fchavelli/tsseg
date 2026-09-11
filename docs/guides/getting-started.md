@@ -35,7 +35,9 @@ from tsseg.algorithms import AutoPlaitDetector
 # Generate a toy signal
 rng = np.random.default_rng(42)
 seg_lengths = [200, 150, 250]
-segments = [rng.normal(mu, 0.2, length) for mu, length in zip([-0.5, 0.8, 0.0], seg_lengths)]
+segments = [
+    rng.normal(mu, 0.2, length) for mu, length in zip([-0.5, 0.8, 0.0], seg_lengths)
+]
 series = np.concatenate(segments)[:, None]  # shape (n_points, n_channels)
 
 # Run the detector

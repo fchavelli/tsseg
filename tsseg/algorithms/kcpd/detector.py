@@ -58,6 +58,17 @@ class KCPDDetector(BaseSegmenter):
             constraint=Interval(int, 1, None, Closed.LEFT),
             description="Sub-sampling factor for candidate breakpoints.",
         ),
+        "pen_scale": ParamDef(
+            constraint=StrOptions({"bic"}),
+            description=(
+                "How ``pen`` is scaled. ``None``: ``pen`` is the absolute penalty. "
+                "``'bic'``: ``pen`` is a coefficient on the BIC penalty "
+                "``log(n) * d`` of the sequence ruptures actually sees (n points "
+                "after decimation, d channels), so one value transfers across "
+                "series of different length and dimension."
+            ),
+            nullable=True,
+        ),
         "decimation": ParamDef(
             constraint=Interval(int, 1, None, Closed.LEFT),
             description=(
@@ -82,6 +93,7 @@ class KCPDDetector(BaseSegmenter):
         n_cps: int | None = None,
         pen: float | None = 10,
         kernel: str = "rbf",
+        pen_scale: str | None = None,
         min_size: int = 2,
         jump: int = 1,
         decimation: int = 1,
@@ -102,6 +114,7 @@ class KCPDDetector(BaseSegmenter):
             )
             self.pen = None
         self.kernel = kernel
+        self.pen_scale = pen_scale
         self.min_size = int(min_size)
         self.jump = int(jump)
         self.decimation = int(decimation)
@@ -131,6 +144,25 @@ class KCPDDetector(BaseSegmenter):
             return signal
         return np.ascontiguousarray(signal[:: self.decimation])
 
+    def _resolved_pen(self, signal: np.ndarray) -> float | None:
+        """Absolute penalty handed to ruptures for this (decimated) ``signal``.
+
+        With ``pen_scale='bic'`` the penalty is ``pen * log(n) * d``. For the
+        linear kernel -- whose cost is the sum of squared deviations from the
+        segment mean -- on unit-variance data, ``log(n) * d`` *is* the BIC penalty
+        of one extra segment (d mean parameters), so ``pen`` is a dimensionless
+        coefficient. ``n`` and ``d`` are those of the sequence ruptures sees, i.e.
+        after decimation: that is the sequence the cost is summed over.
+        """
+        if self.pen is None:
+            return None
+        if self.pen_scale is None:
+            return self.pen
+        if self.pen_scale == "bic":
+            n, d = signal.shape
+            return float(self.pen * np.log(max(n, 2)) * max(d, 1))
+        raise ValueError(f"pen_scale must be None or 'bic', got {self.pen_scale!r}")
+
     def _fit(self, X, y=None):
         signal = self._decimate(self._ensure_2d(X))
         estimator = KernelCPD(
@@ -154,7 +186,9 @@ class KCPDDetector(BaseSegmenter):
         if self._train_signal is None or not np.array_equal(signal, self._train_signal):
             self._estimator.fit(signal)
             self._train_signal = signal
-        bkps = self._estimator.predict(n_bkps=self.n_cps, pen=self.pen)
+        bkps = self._estimator.predict(
+            n_bkps=self.n_cps, pen=self._resolved_pen(signal)
+        )
         bkps = np.asarray(bkps, dtype=int)
         bkps = bkps[(bkps > 0) & (bkps < signal.shape[0])]
         # Back to the caller's time base.
