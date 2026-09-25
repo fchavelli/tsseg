@@ -4,10 +4,7 @@ from .binseg.detector import BinSegDetector
 from .bocd.detector import BOCDDetector
 from .bottomup.detector import BottomUpDetector
 from .changefinder.detector import ChangeFinderDetector
-from .clap.clap_detector import ClapDetector
-from .clap.clasp_detector import ClaspDetector
 from .dynp.detector import DynpDetector
-from .eagglo.detector import EAggloDetector
 from .espresso.detector import EspressoDetector
 from .fluss.detector import FLUSSDetector
 from .ggs.detector import GreedyGaussianDetector
@@ -25,8 +22,12 @@ from .vsax.detector import VSAXDetector
 from .window.detector import WindowDetector
 
 # --- Lazy imports for detectors with heavy optional dependencies ---
-# Avoids requiring torch / tensorflow / prophet just to ``import tsseg.algorithms``
+# Avoids requiring torch / tensorflow / prophet / numba just to ``import tsseg.algorithms``
 _LAZY_IMPORTS = {
+    # Numba-compiled (tsseg[accelerators])
+    "ClapDetector": (".clap.clap_detector", "ClapDetector"),
+    "ClaspDetector": (".clap.clasp_detector", "ClaspDetector"),
+    "EAggloDetector": (".eagglo.detector", "EAggloDetector"),
     # Rbeast (vendorized C extension in c/Rbeast – build with `make`)
     "BeastDetector": (".beast.detector", "BeastDetector"),
     # PyTorch-based

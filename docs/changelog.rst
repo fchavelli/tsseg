@@ -24,6 +24,9 @@ Unreleased
   ``pyhsmm``'s ``WeakLimitHDPHSMM`` (auxiliary self-transitions of Johnson & Willsky,
   right-censored last segment, chain started from the prior, numba forward messages)
   and calibrated defaults.
+* ``numba`` is optional again, as ``tsseg[accelerators]`` announces: ``ClapDetector``,
+  ``ClaspDetector`` and ``EAggloDetector`` are imported lazily (they need numba), and
+  ``HdpHsmmDetector`` falls back to interpreted code without it.
 * ``EAggloDetector`` declares ``returns_dense=True``, consistent with its change point
   output.
 * Improved ``ClaspDetector`` axis handling.

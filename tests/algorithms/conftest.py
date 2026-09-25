@@ -119,12 +119,15 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
             "window_size": 10,
             "validation": "score_threshold",
         },
+        dependencies=("numba",),
     ),
     "WindowDetector": AlgorithmOverride(init_kwargs={"n_cps": 2}),
     "EspressoDetector": AlgorithmOverride(
         init_kwargs={"n_segments": 3, "window_size": 10},
     ),
     # --- Optional heavy dependencies ----------------------------------
+    "ClapDetector": AlgorithmOverride(dependencies=("numba",)),
+    "EAggloDetector": AlgorithmOverride(dependencies=("numba",)),
     "E2USDDetector": AlgorithmOverride(dependencies=("torch",)),
     "FLUSSDetector": AlgorithmOverride(dependencies=("stumpy",)),
     "PatssDetector": AlgorithmOverride(dependencies=("npbad",)),

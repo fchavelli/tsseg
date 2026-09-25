@@ -90,7 +90,7 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
    * - ``tsseg[tscp2]``
      - TensorFlow + TCN layer (``TSCP2Detector``)
    * - ``tsseg[accelerators]``
-     - Numba / Cython speedups
+     - Numba / Cython: needed by CLaP, ClaSP and E-Agglo; speeds up HDP-HSMM
    * - ``tsseg[docs]``
      - Sphinx documentation toolchain
    * - ``tsseg[all]``
