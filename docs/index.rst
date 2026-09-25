@@ -139,15 +139,15 @@ If you use ``tsseg`` in academic work, please cite:
 
 .. code-block:: bibtex
 
-@inproceedings{chavelli:hal-05654218,
-  TITLE = {{tsseg: An Interactive Toolkit for Time Series Segmentation}},
-  AUTHOR = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
-  URL = {https://inria.hal.science/hal-05654218},
-  BOOKTITLE = {{ECML-PKDD 2026 - European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases}},
-  ADDRESS = {Naples, Italy},
-  YEAR = {2026},
-  MONTH = Sep
-}
+   @inproceedings{chavelli:hal-05654218,
+     TITLE = {{tsseg: An Interactive Toolkit for Time Series Segmentation}},
+     AUTHOR = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
+     URL = {https://inria.hal.science/hal-05654218},
+     BOOKTITLE = {{ECML-PKDD 2026 - European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases}},
+     ADDRESS = {Naples, Italy},
+     YEAR = {2026},
+     MONTH = Sep
+   }
 
 .. note::
 

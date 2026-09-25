@@ -1,4 +1,4 @@
-.PHONY: help install clean
+.PHONY: help install clean lint
 
 # Load .env file if it exists and export the variables
 ifneq (,$(wildcard ./.env))
@@ -20,6 +20,7 @@ help:
 	@echo "Usage:"
 	@echo "  make install    Create conda environment and install tsseg."
 	@echo "  make clean      Remove the conda environment."
+	@echo "  make lint       Run the CI lint job (ruff check + ruff format --check)."
 	@echo ""
 	@echo "Configuration:"
 	@echo "  - The Makefile will automatically find 'conda' in your PATH."
@@ -49,3 +50,9 @@ clean:
 	fi
 	"$(CONDA)" env remove -n $(CONDA_ENV_NAME)
 	@echo "--> Done."
+
+# Same commands as the lint job of .github/workflows/ci.yml (ruff version pinned there
+# and in the dev extra: pip install -e .[dev]).
+lint:
+	ruff check .
+	ruff format --check .
