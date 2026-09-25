@@ -20,6 +20,10 @@ Unreleased
 * Replaced the ``pyhsmm``-backed ``HdpHsmmDetector`` with a native
   NumPy/SciPy sticky HDP implementation. ``pyhsmm`` and ``pybasicbayes`` are
   no longer installed by default.
+* Replaced the NumPy ``HdpHsmmDetector`` with a corrected sampler equivalent to
+  ``pyhsmm``'s ``WeakLimitHDPHSMM`` (auxiliary self-transitions of Johnson & Willsky,
+  right-censored last segment, chain started from the prior, numba forward messages)
+  and calibrated defaults.
 * ``EAggloDetector`` declares ``returns_dense=True``, consistent with its change point
   output.
 * Improved ``ClaspDetector`` axis handling.

@@ -4,8 +4,21 @@ __all__ = ["HdpHsmmDetector"]
 
 
 def __getattr__(name: str):
+    if name == "HdpHsmmDetectorV1":
+        import warnings
+
+        warnings.warn(
+            "HdpHsmmDetectorV1 is deprecated and will be removed in "
+            "a future release. Use HdpHsmmDetector instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        from .deprecated.detector_v1 import HdpHsmmDetectorV1
+
+        return HdpHsmmDetectorV1
     if name == "HdpHsmmLegacyDetector":
         import warnings
+
         warnings.warn(
             "HdpHsmmLegacyDetector is deprecated and will be removed in a "
             "future release. Use HdpHsmmDetector instead (pure NumPy/SciPy, "
@@ -14,9 +27,11 @@ def __getattr__(name: str):
             stacklevel=2,
         )
         from .deprecated.legacy_detector import HdpHsmmLegacyDetector
+
         return HdpHsmmLegacyDetector
     if name == "LegacyHdpHsmmDetector":
         import warnings
+
         warnings.warn(
             "LegacyHdpHsmmDetector is deprecated and will be removed in a "
             "future release. Use HdpHsmmDetector instead.",
@@ -24,5 +39,6 @@ def __getattr__(name: str):
             stacklevel=2,
         )
         from .deprecated.legacy_pyhsmm import LegacyHdpHsmmDetector
+
         return LegacyHdpHsmmDetector
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

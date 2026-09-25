@@ -12,16 +12,17 @@ require the number of states to be specified in advance*.  It extends the HMM
 by modelling arbitrary (non-geometric) state durations through explicit duration
 distributions.
 
-The generative model:
+The generative model (Johnson & Willsky, 2013):
 
-- A **Hierarchical Dirichlet Process** draws an infinite discrete distribution
-  over states (truncated at ``n_max_states``).  Concentration parameters
-  ``alpha`` and ``gamma`` control state reuse.
+- A **Hierarchical Dirichlet Process** (weak limit, ``n_max_states`` states) draws the
+  global state weights and the transition distributions; self-transitions are removed,
+  durations being explicit.  ``alpha`` and ``gamma`` control state reuse.
 - Each state has **Normal-Inverse-Wishart** emission parameters, allowing
   multivariate Gaussian observations with learned mean and covariance.
-- Each state has a **Negative-Binomial** duration distribution (shape
-  ``dur_alpha``, rate ``dur_beta``).
-- Inference uses blocked Gibbs sampling over ``n_iter`` iterations.
+- Each state has a shifted **Poisson** duration distribution with a Gamma prior on its
+  rate (negative binomial optional).
+- Inference is blocked Gibbs sampling over ``n_iter`` sweeps, as in the authors'
+  ``pyhsmm``; the segmentation returned is the last sample.
 
 | **Type:** state detection
 | **Supervision:** fully unsupervised
@@ -41,51 +42,79 @@ Parameters
    * - ``alpha``
      - float
      - ``6.0``
-     - Concentration for the DP prior on transitions.
+     - Concentration of the transition distributions around the global weights.
    * - ``gamma``
      - float
      - ``6.0``
-     - Concentration for the top-level DP.
+     - Concentration of the global state weights.
    * - ``init_state_concentration``
      - float
      - ``6.0``
-     - Concentration for the initial state distribution.
+     - Concentration of the initial state distribution.
    * - ``n_iter``
      - int
-     - ``200``
-     - Number of Gibbs sampling iterations.
+     - ``20``
+     - Number of Gibbs sweeps (quality is flat from the second sweep).
    * - ``n_max_states``
      - int
      - ``20``
-     - Truncation level (max states).
+     - Weak-limit truncation of the number of states.
    * - ``trunc``
-     - int
-     - ``100``
-     - Truncation level for duration distributions.
+     - int / None
+     - ``None``
+     - Maximum segment duration in samples; ``None``: no truncation.
    * - ``kappa0``
      - float
      - ``0.25``
-     - Prior strength for NIW.
+     - NIW pseudo-count on the mean.
    * - ``nu0``
      - float / None
      - ``None``
-     - Degrees of freedom for NIW (default: ``obs_dim + 2``).
+     - NIW degrees of freedom (default: ``d + 1 + emission_strength``).
    * - ``prior_mean``
      - float / array
      - ``0.0``
-     - Prior mean for emissions.
+     - NIW prior mean.
    * - ``prior_scale``
      - float / array
      - ``1.0``
-     - Scale matrix for NIW.
+     - Prior expected covariance when ``nu0`` is None, else the inverse-Wishart scale.
+   * - ``emission_strength``
+     - float
+     - ``100.0``
+     - Pseudo-observations behind the prior covariance.
+   * - ``dur_family``
+     - str
+     - ``"poisson"``
+     - Duration distribution, ``"poisson"`` or ``"negbin"``.
    * - ``dur_alpha``
      - float
-     - ``2.0``
-     - Shape for duration Gamma prior.
+     - ``5.0``
+     - Strength of the duration prior (Gamma shape for the Poisson rate).
    * - ``dur_beta``
+     - float / None
+     - ``None``
+     - Gamma rate of the Poisson prior; ``None``: prior mean duration of T/3 (see below).
+   * - ``dur_r``
      - float
-     - ``0.1``
-     - Rate for duration Gamma prior.
+     - ``1.0``
+     - Negative binomial: fixed number of failures.
+   * - ``max_len``
+     - int / None
+     - ``2000``
+     - Longer series are reduced by block means before the fit.
+   * - ``block_features``
+     - str
+     - ``"mean"``
+     - Block features when reducing: ``"mean"`` or ``"meanstd"``.
+   * - ``normalize``
+     - bool
+     - ``True``
+     - z-normalise each channel before the fit.
+   * - ``init``
+     - str
+     - ``"states"``
+     - Chain start: ``"states"`` (drawn from the prior HSMM, as pyhsmm) or ``"params"``.
    * - ``axis``
      - int
      - ``0``
@@ -98,16 +127,19 @@ Usage
 
    from tsseg.algorithms import HdpHsmmDetector
 
-   detector = HdpHsmmDetector(n_iter=200, n_max_states=10)
+   detector = HdpHsmmDetector()
    states = detector.fit_predict(X)
 
-**Implementation:** Pure NumPy/SciPy Gibbs sampler.  *Origin: new code.*  Replaces
-the earlier ``pyhsmm``-backed implementation.
+**Implementation:** NumPy/SciPy Gibbs sampler, forward messages compiled with numba
+when it is installed (``tsseg[accelerators]``; otherwise interpreted, about 100 times
+slower), checked against ``pyhsmm`` and against exact enumeration.  *Origin: new code.*
+Replaces the earlier ``pyhsmm``-backed implementation and the
+first NumPy implementation (``HdpHsmmDetectorV1``, deprecated).
 
-**Reference:** Johnson & Willsky (2013), *Bayesian Nonparametric Hidden
-Semi-Markov Models*, JMLR; Nagano, Nakamura, Nagai, Mochihashi, Kobayashi &
-Kaneko (2019), *Sequence Pattern Extraction by Segmenting Time Series Data
-Using GP-HSMM with HDP*, IEEE RA-L.
+**References:** Johnson & Willsky (2013), *Bayesian Nonparametric Hidden Semi-Markov
+Models*, JMLR 14, for the model and the sampler implemented here; Johnson & Willsky
+(2010), *The Hierarchical Dirichlet Process Hidden Semi-Markov Model*, UAI, the
+conference paper that introduced the model.
 
 API reference
 -------------

@@ -1,134 +1,198 @@
-"""Adaptive HDP-HSMM detector implementing Gibbs sampling."""
+"""HDP-HSMM state detector: the weak-limit Gibbs sampler of Johnson & Willsky (2013).
+
+The model and the sampler follow Johnson & Willsky (2013), which extends Johnson &
+Willsky (2010). The code was checked against the authors' ``pyhsmm`` and against exact
+enumeration of the posterior on small problems.
+"""
 
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional, Tuple
+import math
+import warnings
+from typing import Any
 
 import numpy as np
 from scipy import stats
-from scipy.special import logsumexp, gammaln
 
 from ..base import BaseSegmenter
 
+try:
+    from numba import njit
+except ImportError:  # numba is optional (tsseg[accelerators]): same code, interpreted
+    _HAS_NUMBA = False
 
-EPS = 1e-12
+    def njit(*args, **kwargs):
+        if len(args) == 1 and callable(args[0]) and not kwargs:
+            return args[0]
+        return lambda f: f
+
+else:
+    _HAS_NUMBA = True
 
 
-class _GaussianParams:
-    """Helper for Normal-Inverse-Wishart posterior updates."""
-    def __init__(self, dim: int, kappa0: float, nu0: float, mu0: np.ndarray, psi0: np.ndarray):
-        self.dim = dim
-        self.kappa0 = kappa0
-        self.nu0 = nu0
-        self.mu0 = mu0
-        self.psi0 = psi0
-        
-        # Current parameters
-        self.mean = np.zeros(dim)
-        self.cov = np.eye(dim)
-        self.sample_posterior()
+@njit(cache=True)
+def _forward(cum, logD, logS, logA, logpi, Dmax):
+    """Forward messages of an explicit-duration HSMM, log domain.
 
-    def sample_posterior(self, data: Optional[np.ndarray] = None):
-        if data is None or len(data) == 0:
-            mu_n, kappa_n, nu_n, psi_n = self.mu0, self.kappa0, self.nu0, self.psi0
+    cum   (T+1, K)  cumulative emission log-likelihoods, cum[0] = 0
+    logD  (K, Dmax) log p(duration = d + 1)
+    logS  (K, Dmax) log p(duration >= d + 1)          (right-censored last segment)
+    Returns F (T, K): log p(x_0..t, a segment of state k ends at t)
+            S (T, K): log p(x_0..t-1, a segment of state k starts at t)
+            Fc (K,) : log p(x, the last, censored, segment has state k)
+    """
+    T = cum.shape[0] - 1
+    K = cum.shape[1]
+    F = np.full((T, K), -np.inf)
+    S = np.full((T, K), -np.inf)
+    G = np.empty((K, T))  # S - cum at the start, laid out for the d loop
+    Fc = np.full(K, -np.inf)
+    for t in range(T):
+        if t == 0:
+            for k in range(K):
+                S[0, k] = logpi[k]
         else:
-            n = len(data)
-            x_bar = np.mean(data, axis=0)
-            s_bar = np.zeros((self.dim, self.dim))
-            if n > 1:
-                centered = data - x_bar
-                s_bar = centered.T @ centered
-            
-            kappa_n = self.kappa0 + n
-            nu_n = self.nu0 + n
-            mu_n = (self.kappa0 * self.mu0 + n * x_bar) / kappa_n
-            
-            diff = x_bar - self.mu0
-            psi_n = self.psi0 + s_bar + (self.kappa0 * n / kappa_n) * np.outer(diff, diff)
+            for k in range(K):
+                m = -np.inf
+                for j in range(K):
+                    v = F[t - 1, j] + logA[j, k]
+                    if v > m:
+                        m = v
+                if m > -np.inf:
+                    acc = 0.0
+                    for j in range(K):
+                        acc += math.exp(F[t - 1, j] + logA[j, k] - m)
+                    S[t, k] = m + math.log(acc)
+        for k in range(K):
+            G[k, t] = S[t, k] - cum[t, k]
+        dm = min(t + 1, Dmax)
+        last = t == T - 1
+        for k in range(K):
+            for c in range(2 if last else 1):
+                L = logS if c == 1 else logD
+                m = -np.inf
+                for d in range(dm):
+                    v = G[k, t - d] + L[k, d]
+                    if v > m:
+                        m = v
+                if m > -np.inf:
+                    acc = 0.0
+                    for d in range(dm):
+                        acc += math.exp(G[k, t - d] + L[k, d] - m)
+                    if c == 0:
+                        F[t, k] = cum[t + 1, k] + m + math.log(acc)
+                    else:
+                        Fc[k] = cum[t + 1, k] + m + math.log(acc)
+    return F, S, Fc
 
-        # Sample Covariance from Inverse-Wishart
-        try:
-            self.cov = stats.invwishart.rvs(df=nu_n, scale=psi_n)
-        except:
-            self.cov = np.eye(self.dim) # Fallback
-            
-        # Sample Mean from Normal
-        try:
-            self.mean = stats.multivariate_normal.rvs(mean=mu_n, cov=self.cov / kappa_n)
-        except:
-            self.mean = mu_n
 
-    def log_likelihood(self, X: np.ndarray) -> np.ndarray:
-        try:
-            return stats.multivariate_normal.logpdf(X, mean=self.mean, cov=self.cov)
-        except:
-            return np.zeros(len(X)) - 1e9
+def _sample_log(lp):
+    """Index drawn with probabilities proportional to exp(lp), global numpy RNG."""
+    p = np.exp(lp - lp.max())
+    c = np.cumsum(p)
+    return int(np.searchsorted(c, np.random.random() * c[-1], side="right"))
 
 
-class _PoissonParams:
-    """Helper for Gamma-Poisson posterior updates."""
-    def __init__(self, alpha0: float, beta0: float):
-        self.alpha0 = alpha0
-        self.beta0 = beta0
-        self.lam = 20.0 # Default mean
-        self.sample_posterior()
+def _block_reduce(X, max_len, features):
+    """Block means (and standard deviations) over blocks of ``ceil(T / max_len)`` samples."""
+    T = X.shape[0]
+    f = int(math.ceil(T / max_len))
+    n = int(math.ceil(T / f))
+    pad = n * f - T
+    Xp = np.vstack([X, np.repeat(X[-1:], pad, axis=0)]) if pad else X
+    B = Xp.reshape(n, f, -1)
+    # the padded tail block repeats the last sample: its mean is biased by at most pad/f
+    R = B.mean(1)
+    if features == "meanstd":
+        R = np.hstack([R, B.std(1)])
+    return R, f
 
-    def sample_posterior(self, durations: Optional[List[int]] = None):
-        if durations is None or len(durations) == 0:
-            a_n, b_n = self.alpha0, self.beta0
-        else:
-            n = len(durations)
-            sum_x = sum(durations)
-            a_n = self.alpha0 + sum_x
-            b_n = self.beta0 + n
-        
-        # Sample lambda from Gamma(alpha, rate=beta) -> scale=1/beta
-        self.lam = stats.gamma.rvs(a_n, scale=1.0/b_n)
-        self.lam = max(self.lam, 1e-3)
 
-    def log_pmf(self, durations: np.ndarray) -> np.ndarray:
-        # Poisson PMF: lambda^k * exp(-lambda) / k!
-        # We shift by -1 because durations are >= 1
-        k = durations - 1
-        k = np.maximum(k, 0)
-        return stats.poisson.logpmf(k, self.lam)
+def _znorm(X):
+    sd = X.std(0)
+    sd[sd == 0] = 1.0
+    return (X - X.mean(0)) / sd
 
 
 class HdpHsmmDetector(BaseSegmenter):
-    """Bayesian non-parametric HDP-HSMM detector using Gibbs sampling.
+    """Bayesian non-parametric HDP-HSMM state detector (Gibbs sampling).
 
-    This implementation faithfully reproduces the generative model of the
-    original ``pyhsmm``-based detector (Weak Limit HDP-HSMM with Gaussian
-    emissions and Poisson durations).
+    Weak-limit HDP-HSMM (Johnson & Willsky, 2013) with Gaussian emissions
+    (Normal-Inverse-Wishart prior) and shifted Poisson or negative-binomial
+    durations. The number of states is inferred, up to ``n_max_states``. The
+    segmentation returned is the last Gibbs sample.
 
     Parameters
     ----------
     axis : int, default=0
         Axis along which the time index lies.
     alpha : float, default=6.0
-        Concentration parameter for the Dirichlet Process prior on transitions.
+        Concentration of the transition distributions around the global weights.
     gamma : float, default=6.0
-        Concentration parameter for the top-level Dirichlet Process (global weights).
+        Concentration of the global state weights.
     init_state_concentration : float, default=6.0
-        Concentration parameter for the initial state distribution.
-    n_iter : int, default=200
-        Number of Gibbs sampling iterations.
+        Concentration of the initial state distribution.
+    n_iter : int, default=20
+        Number of Gibbs sweeps.
     n_max_states : int, default=20
-        Truncation level for the number of states.
-    trunc : int, default=100
-        Truncation level for duration distributions.
+        Weak-limit truncation of the number of states.
+    trunc : int or None, default=None
+        Maximum segment duration, in samples of the input series. ``None`` means no
+        truncation.
     kappa0 : float, default=0.25
-        Prior strength for the Normal-Inverse-Wishart distribution.
+        NIW pseudo-count on the mean.
     nu0 : float, optional
-        Degrees of freedom for the NIW prior. Defaults to ``obs_dim + 2``.
+        NIW degrees of freedom. Defaults to ``d + 1 + emission_strength``.
     prior_mean : float or array-like, default=0.0
-        Prior mean for the emissions.
+        NIW prior mean.
     prior_scale : float or array-like, default=1.0
-        Scale matrix for the NIW prior.
-    dur_alpha : float, default=2.0
-        Shape parameter for the duration Gamma prior.
-    dur_beta : float, default=0.1
-        Rate parameter for the duration Gamma prior.
+        Prior expected covariance ``E[Sigma]`` (times the identity if scalar) when ``nu0``
+        is None; the inverse-Wishart scale matrix when ``nu0`` is given. With
+        ``nu0 = d + 2`` the two readings coincide.
+    emission_strength : float, default=100.0
+        Pseudo-observations behind ``E[Sigma]`` when ``nu0`` is None: the inverse-Wishart
+        prior has ``nu0 = d + 1 + emission_strength`` degrees of freedom and scale
+        ``emission_strength * prior_scale``.
+    dur_family : {"poisson", "negbin"}, default="poisson"
+        Duration distribution, shifted to start at 1.
+    dur_alpha : float, default=5.0
+        Poisson: Gamma shape of the prior on the rate (strength of the prior); its mean is
+        set by ``dur_beta``. Negative binomial: strength of the Beta prior on ``p``.
+    dur_beta : float or None, default=None
+        Poisson: Gamma rate of the prior on the rate, in samples of the input series.
+        ``None`` sets the prior mean duration to a third of the series length, the most
+        influential setting of the detector.
+    dur_r : float, default=1.0
+        Negative binomial: fixed number of failures r; the Beta prior on ``p`` has the same
+        mean duration as the Poisson prior.
+    max_len : int or None, default=2000
+        Series longer than this are reduced by block means over ``ceil(T / max_len)``
+        samples before the fit, and the labels are expanded back. ``trunc`` and
+        ``dur_beta`` are converted to blocks. ``None`` disables the reduction; a sweep
+        then costs O(T^2 K) when ``trunc`` is None.
+    block_features : {"mean", "meanstd"}, default="mean"
+        Features of a block when the series is reduced: block means, or block means and
+        standard deviations.
+    normalize : bool, default=True
+        z-normalise each channel (after the reduction) before the fit. The emission prior
+        is expressed in these units.
+    init : {"states", "params"}, default="states"
+        Start of the chain: a state sequence drawn from the prior HSMM, as ``pyhsmm``, or
+        parameters drawn from the prior, as the previous tsseg detector.
+
+    Attributes
+    ----------
+    log_likelihood_ : float
+        ``log p(X | theta)`` at the last sample, state sequence integrated out, on the
+        series actually modelled (reduced and normalised).
+
+    References
+    ----------
+    Johnson, M. J. and Willsky, A. S. (2013). Bayesian Nonparametric Hidden Semi-Markov
+    Models. Journal of Machine Learning Research, 14, 673-701.
+
+    Johnson, M. J. and Willsky, A. S. (2010). The Hierarchical Dirichlet Process Hidden
+    Semi-Markov Model. Conference on Uncertainty in Artificial Intelligence (UAI).
     """
 
     _tags = {
@@ -148,16 +212,23 @@ class HdpHsmmDetector(BaseSegmenter):
         alpha: float = 6.0,
         gamma: float = 6.0,
         init_state_concentration: float = 6.0,
-        n_iter: int = 200,
+        n_iter: int = 20,
         n_max_states: int = 20,
-        trunc: int = 100,
+        trunc: int | None = None,
         *,
         kappa0: float = 0.25,
-        nu0: Optional[float] = None,
+        nu0: float | None = None,
         prior_mean: Any = 0.0,
         prior_scale: Any = 1.0,
-        dur_alpha: float = 2.0,
-        dur_beta: float = 0.1,
+        emission_strength: float = 100.0,
+        dur_family: str = "poisson",
+        dur_alpha: float = 5.0,
+        dur_beta: float | None = None,
+        dur_r: float = 1.0,
+        max_len: int | None = 2000,
+        block_features: str = "mean",
+        normalize: bool = True,
+        init: str = "states",
     ) -> None:
         self.alpha = alpha
         self.gamma = gamma
@@ -169,9 +240,16 @@ class HdpHsmmDetector(BaseSegmenter):
         self.nu0 = nu0
         self.prior_mean = prior_mean
         self.prior_scale = prior_scale
+        self.emission_strength = emission_strength
+        self.dur_family = dur_family
         self.dur_alpha = dur_alpha
         self.dur_beta = dur_beta
-        
+        self.dur_r = dur_r
+        self.max_len = max_len
+        self.block_features = block_features
+        self.normalize = normalize
+        self.init = init
+
         self._states_seq = None
         super().__init__(axis=axis)
 
@@ -183,259 +261,360 @@ class HdpHsmmDetector(BaseSegmenter):
             arr = arr.T
         return arr
 
+    def _check_params(self):
+        for name, value, allowed in (
+            ("dur_family", self.dur_family, ("poisson", "negbin")),
+            ("block_features", self.block_features, ("mean", "meanstd")),
+            ("init", self.init, ("states", "params")),
+        ):
+            if value not in allowed:
+                raise ValueError(f"{name} must be one of {allowed}, got {value!r}")
+        if int(self.n_max_states) < 1:
+            raise ValueError(f"n_max_states must be >= 1, got {self.n_max_states!r}")
+        if int(self.n_iter) < 1:
+            raise ValueError(f"n_iter must be >= 1, got {self.n_iter!r}")
+        for name, value in (
+            ("kappa0", self.kappa0),
+            ("dur_alpha", self.dur_alpha),
+            ("dur_r", self.dur_r),
+        ):
+            if not float(value) > 0:
+                raise ValueError(f"{name} must be > 0, got {value!r}")
+        if self.nu0 is None and not float(self.emission_strength) > 0:
+            raise ValueError(
+                f"emission_strength must be > 0, got {self.emission_strength!r}"
+            )
+        if self.max_len is not None and int(self.max_len) < 1:
+            raise ValueError(f"max_len must be None or >= 1, got {self.max_len!r}")
+        if self.trunc is not None and int(self.trunc) < 1:
+            raise ValueError(f"trunc must be None or >= 1, got {self.trunc!r}")
+
+    # ------------------------------------------------------------------ parameters
+
+    def _emission_prior(self, d):
+        mu0 = (
+            np.full(d, float(self.prior_mean))
+            if np.isscalar(self.prior_mean)
+            else np.asarray(self.prior_mean, float)
+        )
+        sc = (
+            np.eye(d) * float(self.prior_scale)
+            if np.isscalar(self.prior_scale)
+            else np.asarray(self.prior_scale, float)
+        )
+        if sc.ndim == 1:
+            sc = np.diag(sc)
+        if self.nu0 is None:
+            nu0 = d + 1.0 + float(self.emission_strength)
+            psi0 = float(self.emission_strength) * sc
+        else:
+            nu0, psi0 = float(self.nu0), sc
+        return mu0, float(self.kappa0), nu0, psi0
+
+    @staticmethod
+    def _sample_niw(mu0, kappa0, nu0, psi0, n, xbar, scatter):
+        if n > 0:
+            kappa_n, nu_n = kappa0 + n, nu0 + n
+            mu_n = (kappa0 * mu0 + n * xbar) / kappa_n
+            dv = xbar - mu0
+            psi_n = psi0 + scatter + (kappa0 * n / kappa_n) * np.outer(dv, dv)
+        else:
+            mu_n, kappa_n, nu_n, psi_n = mu0, kappa0, nu0, psi0
+        psi_n = 0.5 * (psi_n + psi_n.T)
+        cov = np.atleast_2d(stats.invwishart.rvs(df=nu_n, scale=psi_n))
+        mean = np.random.multivariate_normal(mu_n, cov / kappa_n)
+        return mean, cov
+
+    @staticmethod
+    def _gauss_loglik(X, mean, cov):
+        d = X.shape[1]
+        c = cov + 1e-10 * np.trace(cov) / d * np.eye(d)
+        L = np.linalg.cholesky(c)
+        sol = np.linalg.solve(L, (X - mean).T)
+        return (
+            -0.5 * (sol * sol).sum(0)
+            - np.log(np.diag(L)).sum()
+            - 0.5 * d * np.log(2 * np.pi)
+        )
+
+    def _dur_logs(self, lam_or_p, Dmax):
+        """(logD, logS), each (K, Dmax): log pmf and log survival of d = 1..Dmax."""
+        k = np.arange(Dmax, dtype=float)  # d - 1
+        if self.dur_family == "poisson":
+            lam = lam_or_p[:, None]
+            logD = stats.poisson.logpmf(k[None, :], lam)
+            logS = stats.poisson.logsf(k[None, :] - 1, lam)
+        else:
+            q = 1.0 - lam_or_p[:, None]  # scipy success probability
+            logD = stats.nbinom.logpmf(k[None, :], self.dur_r, q)
+            logS = stats.nbinom.logsf(k[None, :] - 1, self.dur_r, q)
+        return np.ascontiguousarray(logD), np.ascontiguousarray(logS)
+
+    def _dur_sample(self, durs, cens, a0, b0, par):
+        """One duration parameter from its posterior; ``cens`` are censored lengths (>= d),
+        imputed under the current parameter ``par`` of the state."""
+        durs = list(durs)
+        for c in cens:
+            durs.append(self._rvs_ge(c, par))
+        x = np.asarray(durs, float) - 1.0
+        if self.dur_family == "poisson":
+            return max(np.random.gamma(a0 + x.sum(), 1.0 / (b0 + len(x))), 1e-3)
+        return np.random.beta(a0 + x.sum(), b0 + len(x) * self.dur_r)
+
+    def _rvs_ge(self, c, par):
+        """Duration >= c under the duration parameter ``par``."""
+        if self.dur_family == "poisson":
+            mean, sd = par + 1, math.sqrt(par + 1)
+        else:
+            q = 1.0 - par
+            mean = 1 + self.dur_r * par / q
+            sd = math.sqrt(self.dur_r * par) / q
+        hi = int(max(c, mean) + 50 * sd + 50)
+        d = np.arange(c, hi + 1)
+        if self.dur_family == "poisson":
+            lp = stats.poisson.logpmf(d - 1, par)
+        else:
+            lp = stats.nbinom.logpmf(d - 1, self.dur_r, 1.0 - par)
+        if not np.isfinite(lp.max()):
+            return int(c)
+        return int(d[_sample_log(lp)])
+
+    # ------------------------------------------------------------------ fit
+
     def _fit(self, X, y=None):
+        self._check_params()
+        if not _HAS_NUMBA:
+            warnings.warn(
+                "numba is not installed: HdpHsmmDetector runs its messages in pure "
+                "Python, much slower (pip install tsseg[accelerators])",
+                RuntimeWarning,
+                stacklevel=2,
+            )
         X = self._prepare_signal(X)
-        T, dim = X.shape
-        
-        # 1. Initialize Hyperparameters & Priors
-        nu0 = self.nu0 if self.nu0 is not None else dim + 2
-        
-        if np.isscalar(self.prior_mean):
-            mu0 = np.full(dim, self.prior_mean)
-        else:
-            mu0 = np.asarray(self.prior_mean)
-            
-        if np.isscalar(self.prior_scale):
-            psi0 = np.eye(dim) * self.prior_scale
-        else:
-            psi0 = np.asarray(self.prior_scale)
-            if psi0.ndim == 1:
-                psi0 = np.diag(psi0)
-
-        # 2. Initialize Parameters
-        # Observation models (Gaussian)
-        obs_params = [_GaussianParams(dim, self.kappa0, nu0, mu0, psi0) 
-                      for _ in range(self.n_max_states)]
-        
-        # Duration models (Poisson)
-        dur_params = [_PoissonParams(self.dur_alpha, self.dur_beta) 
-                      for _ in range(self.n_max_states)]
-        
-        # Global weights beta ~ Dir(gamma/K, ..., gamma/K)
-        beta = np.random.dirichlet(np.ones(self.n_max_states) * (self.gamma / self.n_max_states))
-        
-        # Transition matrix A
-        # A[j, :] ~ Dir(alpha * beta)
-        # For HSMM, A[j, j] = 0. We renormalize beta for each row to exclude self.
-        A = np.zeros((self.n_max_states, self.n_max_states))
-        for j in range(self.n_max_states):
-            # Exclude self-transition
-            dist = np.delete(beta, j)
-            if dist.sum() > 0:
-                dist /= dist.sum()
-            else:
-                dist = np.ones(self.n_max_states - 1) / (self.n_max_states - 1)
-            
-            # Sample (ensure params > 0)
-            param = self.alpha * dist
-            param = np.maximum(param, 1e-10)
-            row_rest = np.random.dirichlet(param)
-            A[j] = np.insert(row_rest, j, 0.0)
-
-        # Initial probs pi
-        pi = np.random.dirichlet(np.ones(self.n_max_states) * (self.init_state_concentration / self.n_max_states))
-
-        # 3. Gibbs Sampling Loop
-        # Initial random state sequence
-        z = np.random.randint(0, self.n_max_states, size=T)
-        
-        for it in range(self.n_iter):
-            # --- A. Resample State Sequence (HSMM Forward-Backward) ---
-            log_liks = np.zeros((T, self.n_max_states))
-            for k in range(self.n_max_states):
-                log_liks[:, k] = obs_params[k].log_likelihood(X)
-            
-            d_range = np.arange(1, self.trunc + 1)
-            log_durs = np.zeros((self.trunc, self.n_max_states))
-            for k in range(self.n_max_states):
-                log_durs[:, k] = dur_params[k].log_pmf(d_range)
-
-            z = self._sample_hsmm_states(T, self.n_max_states, log_liks, log_durs, np.log(A + EPS), np.log(pi + EPS))
-            
-            # --- B. Update Parameters ---
-            segments = self._extract_segments(z)
-            
-            # Update Obs Params
-            for k in range(self.n_max_states):
-                mask = (z == k)
-                data_k = X[mask]
-                obs_params[k].sample_posterior(data_k)
-            
-            # Update Dur Params
-            for k in range(self.n_max_states):
-                durs_k = [dur for (state, dur) in segments if state == k]
-                dur_params[k].sample_posterior(durs_k)
-            
-            # Update Transitions & Global Weights (HDP)
-            # 1. Count transitions n_jk
-            trans_counts = np.zeros((self.n_max_states, self.n_max_states), dtype=int)
-            for i in range(len(segments) - 1):
-                u = segments[i][0]
-                v = segments[i+1][0]
-                trans_counts[u, v] += 1
-            
-            # 2. Sample auxiliary variables m_jk (number of tables)
-            # m_jk ~ Sum_{i=1}^{n_jk} Bernoulli( alpha*beta_k / (alpha*beta_k + i - 1) )
-            m_counts = np.zeros((self.n_max_states, self.n_max_states), dtype=int)
-            for j in range(self.n_max_states):
-                for k in range(self.n_max_states):
-                    if j == k: continue
-                    n_jk = trans_counts[j, k]
-                    if n_jk == 0:
-                        m_counts[j, k] = 0
-                    else:
-                        # Vectorized sampling of m_jk
-                        # prob for i-th customer (0-indexed here): alpha*beta_k / (alpha*beta_k + i)
-                        # i goes from 0 to n_jk - 1
-                        indices = np.arange(n_jk)
-                        denom = self.alpha * beta[k] + indices
-                        probs = (self.alpha * beta[k]) / denom
-                        m_counts[j, k] = np.random.binomial(1, probs).sum()
-
-            # 3. Update beta
-            # beta ~ Dir(gamma/K + m_dot_k)
-            m_dot_k = m_counts.sum(axis=0)
-            beta_param = (self.gamma / self.n_max_states) + m_dot_k
-            beta = np.random.dirichlet(beta_param)
-            
-            # 4. Update A
-            # A_j ~ Dir(alpha * beta + n_j)
-            # Enforce HSMM constraint (A_jj = 0) by projecting beta
-            for j in range(self.n_max_states):
-                beta_rest = np.delete(beta, j)
-                if beta_rest.sum() > 0:
-                    beta_rest /= beta_rest.sum()
-                else:
-                    beta_rest = np.ones(self.n_max_states - 1) / (self.n_max_states - 1)
-                
-                counts_rest = np.delete(trans_counts[j], j)
-                
-                posterior_param = self.alpha * beta_rest + counts_rest
-                posterior_param = np.maximum(posterior_param, 1e-10)
-                
-                row_rest = np.random.dirichlet(posterior_param)
-                A[j] = np.insert(row_rest, j, 0.0)
-
-            # Update pi (Initial distribution)
-            if len(segments) > 0:
-                first_state = segments[0][0]
-                pi_counts = np.zeros(self.n_max_states)
-                pi_counts[first_state] += 1
-                pi = np.random.dirichlet((self.init_state_concentration / self.n_max_states) + pi_counts)
-
-        self._states_seq = z
+        T0 = X.shape[0]
+        if T0 == 0:
+            raise ValueError("HdpHsmmDetector needs a non-empty series")
+        self._factor = 1
+        if self.max_len is not None and T0 > self.max_len:
+            X, self._factor = _block_reduce(X, int(self.max_len), self.block_features)
+        if self.normalize:
+            X = _znorm(X)
+        z = self._gibbs(X, self._factor)
+        self._states_seq = np.repeat(z, self._factor)[:T0]
         return self
 
-    def _sample_hsmm_states(self, T, K, log_liks, log_durs, log_A, log_pi):
-        """
-        Forward-Backward sampling for HSMM.
-        """
-        # Cumsum likelihoods for fast segment scoring
-        cum_log_liks = np.vstack([np.zeros((1, K)), np.cumsum(log_liks, axis=0)])
+    def _gibbs(self, X, factor=1):
+        T, d = X.shape
+        K = self.n_max_states
+        # no truncation by default; trunc is in samples of the input series
+        Dmax = T if self.trunc is None else int(min(T, math.ceil(self.trunc / factor)))
+        mu0, kappa0, nu0, psi0 = self._emission_prior(d)
 
-        # Forward Pass (log-domain)
-        alpha = np.full((T, K), -np.inf)
-        
-        # Initialization
-        for k in range(K):
-            max_d = min(T, self.trunc)
-            d_vals = np.arange(1, max_d + 1)
-            seg_liks = cum_log_liks[d_vals, k] - cum_log_liks[0, k]
-            alpha[d_vals - 1, k] = log_pi[k] + log_durs[d_vals - 1, k] + seg_liks
+        # Prior mean duration m = T/3, the most influential setting. A Poisson duration
+        # has a standard deviation of sqrt(m): m is not a bound, but it sets the scale of
+        # the segmentation.
+        m = max(2.0, T / 3.0)
+        if self.dur_family == "poisson":
+            a0 = float(self.dur_alpha)
+            b0 = float(self.dur_beta) * factor if self.dur_beta is not None else a0 / m
+        else:
+            b0 = float(self.dur_alpha) + 2.0  # E[p/(1-p)] = a0 / (b0 - 1)
+            a0 = (b0 - 1.0) * (m - 1.0) / float(self.dur_r)
 
-        # Recursion
-        for t in range(T):
-            if t > 0:
-                prev_alpha = alpha[t-1]
-                log_start_prob = logsumexp(prev_alpha[:, None] + log_A, axis=0)
-                
-                max_d = min(T - t, self.trunc)
-                d_vals = np.arange(1, max_d + 1)
-                end_times = t + d_vals - 1
-                
-                for k in range(K):
-                    seg_liks = cum_log_liks[t + d_vals, k] - cum_log_liks[t, k]
-                    new_vals = log_start_prob[k] + log_durs[d_vals - 1, k] + seg_liks
-                    alpha[end_times, k] = np.logaddexp(alpha[end_times, k], new_vals)
+        # initial parameters from the prior
+        emis = [
+            self._sample_niw(mu0, kappa0, nu0, psi0, 0, None, None) for _ in range(K)
+        ]
+        if self.dur_family == "poisson":
+            dpar = np.maximum(np.random.gamma(a0, 1.0 / b0, size=K), 1e-3)
+        else:
+            dpar = np.random.beta(a0, b0, size=K)
+        beta = np.random.dirichlet(np.full(K, self.gamma / K))
+        beta = np.maximum(beta, 1e-300)
+        beta /= beta.sum()
+        full = np.array([self._dirichlet(self.alpha * beta) for _ in range(K)])
+        A = self._hsmm_rows(full, beta)
+        pi0 = self._dirichlet(np.full(K, self.init_state_concentration / K))
 
-        # Backward Sampling
-        z = np.zeros(T, dtype=int)
-        t = T - 1
-        
-        # Sample final state
-        probs = np.exp(alpha[t] - logsumexp(alpha[t]))
-        probs /= probs.sum()
-        state = np.random.choice(K, p=probs)
-        
-        while t >= 0:
-            z[t] = state 
-            
-            # Sample duration d
-            possible_d = np.arange(1, min(t + 1, self.trunc) + 1)
-            log_probs = []
-            
-            for d in possible_d:
-                start_t = t - d + 1
-                seg_lik = cum_log_liks[t+1, state] - cum_log_liks[start_t, state]
-                dur_prob = log_durs[d-1, state]
-                
-                if start_t == 0:
-                    prev_prob = log_pi[state]
-                else:
-                    prev_alpha = alpha[start_t - 1]
-                    prev_prob = logsumexp(prev_alpha + log_A[:, state])
-                
-                log_probs.append(seg_lik + dur_prob + prev_prob)
-            
-            log_probs = np.array(log_probs)
-            probs = np.exp(log_probs - logsumexp(log_probs))
-            probs /= (probs.sum() + EPS)
-            
-            d = np.random.choice(possible_d, p=probs)
-            
-            # Fill z
-            z[t-d+1 : t+1] = state
-            
-            # Sample previous state
-            if t - d >= 0:
-                prev_t = t - d
-                prev_alpha = alpha[prev_t]
-                log_prev_probs = prev_alpha + log_A[:, state]
-                prev_probs = np.exp(log_prev_probs - logsumexp(log_prev_probs))
-                prev_probs /= (prev_probs.sum() + EPS)
-                state = np.random.choice(K, p=prev_probs)
-            
-            t -= d
+        # start from a state sequence drawn from the prior, as pyhsmm;
+        # init="params" (the previous tsseg start) ends in too fine segmentations
+        z = segs = None
+        if self.init == "states":
+            z, segs = self._generate(T, pi0, A, dpar)
+        for _ in range(self.n_iter):
+            if z is not None:
+                emis, dpar, beta, full, A, pi0 = self._resample_params(
+                    X,
+                    z,
+                    segs,
+                    emis,
+                    dpar,
+                    beta,
+                    full,
+                    A,
+                    pi0,
+                    mu0,
+                    kappa0,
+                    nu0,
+                    psi0,
+                    a0,
+                    b0,
+                )
+            # --- states
+            logB = np.column_stack([self._gauss_loglik(X, *emis[k]) for k in range(K)])
+            cum = np.vstack([np.zeros((1, K)), np.cumsum(logB, axis=0)])
+            logD, logS = self._dur_logs(dpar, Dmax)
+            with np.errstate(divide="ignore"):
+                logA, logpi = np.log(A), np.log(pi0)
+            F, S, Fc = _forward(cum, logD, logS, logA, logpi, Dmax)
+            if not np.isfinite(Fc).any():
+                raise ValueError(
+                    "no segmentation of the series has a positive probability "
+                    "under the model: increase trunc or n_max_states"
+                )
+            self.log_likelihood_ = float(np.logaddexp.reduce(Fc))
+            z, segs = self._backward(F, S, Fc, cum, logD, logS, logA, Dmax)
 
         return z
 
-    def _extract_segments(self, z):
-        """Convert state sequence to (state, duration) list."""
-        segments = []
-        if len(z) == 0:
-            return segments
-        curr = z[0]
-        count = 0
-        for val in z:
-            if val == curr:
-                count += 1
+    def _resample_params(
+        self, X, z, segs, emis, dpar, beta, full, A, pi0, mu0, kappa0, nu0, psi0, a0, b0
+    ):
+        T = X.shape[0]
+        K = self.n_max_states
+        # --- emissions
+        for k in range(K):
+            Xk = X[z == k]
+            n = len(Xk)
+            if n:
+                xb = Xk.mean(0)
+                C = Xk - xb
+                emis[k] = self._sample_niw(mu0, kappa0, nu0, psi0, n, xb, C.T @ C)
             else:
-                segments.append((curr, count))
-                curr = val
-                count = 1
-        segments.append((curr, count))
-        return segments
+                emis[k] = self._sample_niw(mu0, kappa0, nu0, psi0, 0, None, None)
+
+        # --- durations (the last segment is right-censored)
+        for k in range(K):
+            full_d = [L for (s, L) in segs[:-1] if s == k]
+            cens = [segs[-1][1]] if segs[-1][0] == k else []
+            dpar[k] = self._dur_sample(full_d, cens, a0, b0, dpar[k])
+
+        # --- transitions, global weights
+        n = np.zeros((K, K))
+        for (u, _), (v, _) in zip(segs[:-1], segs[1:], strict=True):
+            n[u, v] += 1
+        beta, full, A = self._resample_transitions(n, full, beta, T)
+        first = np.zeros(K)
+        first[segs[0][0]] = 1
+        pi0 = self._dirichlet(self.init_state_concentration / K + first)
+
+        return emis, dpar, beta, full, A, pi0
+
+    def _generate(self, T, pi0, A, dpar):
+        """State sequence drawn from the prior HSMM (pyhsmm ``generate_states``)."""
+        z = np.empty(T, dtype=np.int64)
+        segs, t, p = [], 0, pi0
+        while t < T:
+            if not p.sum() > 0:
+                # no other state to go to (n_max_states = 1): the segment runs to the end
+                k, L = segs[-1]
+                z[t:] = k
+                segs[-1] = (k, L + T - t)
+                break
+            k = int(
+                np.searchsorted(
+                    np.cumsum(p), np.random.random() * p.sum(), side="right"
+                )
+            )
+            if self.dur_family == "poisson":
+                L = 1 + np.random.poisson(dpar[k])
+            else:
+                L = 1 + np.random.negative_binomial(self.dur_r, 1.0 - dpar[k])
+            L = int(min(L, T - t))
+            z[t : t + L] = k
+            segs.append((k, L))
+            t += L
+            p = A[k]
+        return z, segs
+
+    def _resample_transitions(self, n, full, beta, T):
+        """Weak-limit HDP transitions of an HSMM (Johnson & Willsky 2013, eqs. 46-49).
+
+        ``n`` counts the transitions between consecutive segments (zero diagonal),
+        ``full`` holds the rows pi_j ~ Dir(alpha beta) including their self-transition
+        mass. Each exit from j is preceded by a geometric number of virtual
+        self-transitions, support {0, 1, ...}, success 1 - pi_jj: their sum is one negative
+        binomial draw. Capped: success >= 1/(T+1), sum <= T.
+        """
+        K = n.shape[0]
+        aug = n.copy()
+        exits = n.sum(1)
+        for j in range(K):
+            if exits[j] > 0:
+                p = max(1.0 - full[j, j], 1.0 / (T + 1))
+                aug[j, j] = min(np.random.negative_binomial(int(exits[j]), p), T)
+        mtab = np.zeros((K, K))
+        for j in range(K):
+            for k in range(K):
+                c = int(aug[j, k])
+                if c:
+                    conc = self.alpha * beta[k]
+                    mtab[j, k] = (
+                        np.random.random(c) < conc / (conc + np.arange(c))
+                    ).sum()
+        beta = self._dirichlet(self.gamma / K + mtab.sum(0))
+        full = np.array([self._dirichlet(self.alpha * beta + aug[j]) for j in range(K)])
+        return beta, full, self._hsmm_rows(full, beta)
+
+    @staticmethod
+    def _dirichlet(a):
+        g = np.random.gamma(np.maximum(a, 1e-10))
+        s = g.sum()
+        if not s > 0:
+            g = np.maximum(a, 1e-10)
+            s = g.sum()
+        return g / s
+
+    @staticmethod
+    def _hsmm_rows(full, beta):
+        """HSMM transition rows: diagonal removed, renormalised; a row whose off-diagonal
+        mass underflows falls back to the global weights of the other states."""
+        A = full.copy()
+        np.fill_diagonal(A, 0.0)
+        s = A.sum(1)
+        for j in np.flatnonzero(~(s > 1e-300)):
+            A[j] = beta
+            A[j, j] = 0.0
+            s[j] = A[j].sum()
+        s[~(s > 0)] = 1.0  # no other state to go to (K = 1): the row stays zero
+        return A / s[:, None]
+
+    @staticmethod
+    def _backward(F, S, Fc, cum, logD, logS, logA, Dmax):
+        T, K = F.shape
+        z = np.empty(T, dtype=np.int64)
+        segs = []
+        k = _sample_log(Fc)
+        t, censored = T, True
+        while t > 0:
+            dm = min(t, Dmax)
+            dd = np.arange(1, dm + 1)
+            s = t - dd
+            Ld = (logS if censored else logD)[k, :dm]
+            lp = S[s, k] + Ld + cum[t, k] - cum[s, k]
+            L = int(dd[_sample_log(lp)])
+            z[t - L : t] = k
+            segs.append((k, L))
+            t -= L
+            censored = False
+            if t > 0:
+                k = _sample_log(F[t - 1] + logA[:, k])
+        segs.reverse()
+        return z, segs
 
     def _predict(self, X):
         if self._states_seq is None:
-            # If not fitted, return zeros or raise
             return np.zeros(len(X), dtype=int)
-        # In a proper Bayesian setting, we should run inference on test data
-        # holding parameters fixed. For this detector, we assume transductive
-        # usage (fit on X, predict on X) or we just return the fitted sequence.
-        # If X is different from training X, we should technically run the 
-        # forward-backward pass with fixed params.
-        # For simplicity/fidelity to the "fit_predict" pattern of pyhsmm usage:
         return self._states_seq
 
     def get_fitted_params(self):
