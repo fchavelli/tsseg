@@ -20,6 +20,8 @@ Unreleased
 * Replaced the ``pyhsmm``-backed ``HdpHsmmDetector`` with a native
   NumPy/SciPy sticky HDP implementation. ``pyhsmm`` and ``pybasicbayes`` are
   no longer installed by default.
+* ``EAggloDetector`` declares ``returns_dense=True``, consistent with its change point
+  output.
 * Improved ``ClaspDetector`` axis handling.
 * Added Sphinx documentation with GitHub Pages deployment.
 * Documented test suite layout and fixtures.
