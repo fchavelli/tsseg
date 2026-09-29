@@ -21,7 +21,18 @@ __all__ = ["KCPDDetector"]
 
 
 class KCPDDetector(BaseSegmenter):
-    """Kernel change point detector using dynamic programming or PELT."""
+    """Kernel change point detector using dynamic programming or PELT.
+
+    Deprecated: ``KCPDDetector`` is not a method of its own. It runs the solvers
+    of :class:`~tsseg.algorithms.PeltDetector` (with ``pen``) and
+    :class:`~tsseg.algorithms.DynpDetector` (with ``n_cps``) on a kernel cost,
+    and will be removed in a future release. Use
+    ``PeltDetector(model=kernel, penalty=pen, jump=1)`` or
+    ``DynpDetector(model=kernel, n_cps=n_cps, jump=1)``, with ``model="l2"`` for
+    the linear kernel. For ``decimation=k``, pass ``X[::k]`` and multiply the
+    change points by ``k``; for ``pen_scale="bic"``, use a penalty of
+    ``pen * log(n) * d``.
+    """
 
     _tags = {
         "capability:univariate": True,
@@ -82,6 +93,15 @@ class KCPDDetector(BaseSegmenter):
             nullable=True,
             ui_hidden=True,
         ),
+        "backend": ParamDef(
+            constraint=StrOptions({"auto", "numba", "python"}),
+            description=(
+                "Solver for the kernel costs (rbf, cosine). ``auto``: the numba "
+                "solver, O(n) memory, when numba is installed, else Python with "
+                "the n x n Gram matrix. Same segmentation either way."
+            ),
+            ui_hidden=True,
+        ),
         "_cross_constraints": [
             MutuallyExclusive(["n_cps", "pen"], required_count=1),
         ],
@@ -98,8 +118,17 @@ class KCPDDetector(BaseSegmenter):
         jump: int = 1,
         decimation: int = 1,
         cost_params: dict | None = None,
+        backend: str = "auto",
         axis: int = 0,
     ) -> None:
+        warnings.warn(
+            "KCPDDetector is deprecated and will be removed in a future release: "
+            "it is PeltDetector (pen) or DynpDetector (n_cps) with a kernel cost. "
+            "Use PeltDetector(model=kernel, penalty=pen, jump=1) or "
+            "DynpDetector(model=kernel, n_cps=n_cps, jump=1) ('l2' for 'linear').",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.n_cps = None if n_cps is None else int(n_cps)
         self.pen = None if pen is None else float(pen)
         has_n_cps = n_cps is not None
@@ -121,6 +150,7 @@ class KCPDDetector(BaseSegmenter):
         if self.decimation < 1:
             raise ValueError("decimation must be >= 1")
         self.cost_params = cost_params or {}
+        self.backend = backend
         self._estimator: KernelCPD | None = None
         self._train_signal: np.ndarray | None = None
         super().__init__(axis=axis)
@@ -170,6 +200,7 @@ class KCPDDetector(BaseSegmenter):
             min_size=self.min_size,
             jump=self.jump,
             params=self.cost_params,
+            backend=self.backend,
         )
         estimator.fit(signal)
         self._estimator = estimator

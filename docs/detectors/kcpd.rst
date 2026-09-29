@@ -3,6 +3,16 @@ KCPD
 
 KCPD — Kernel Change Point Detection.
 
+.. warning::
+   **Deprecated.** ``KCPDDetector`` is not a method of its own: it runs the solvers of
+   :doc:`pelt` (with ``pen``) and :doc:`dynp` (with ``n_cps``) on a kernel
+   cost, and will be removed in a future release. Use
+   ``PeltDetector(model="rbf", penalty=pen, jump=1)`` or
+   ``DynpDetector(model="rbf", n_cps=k, jump=1)`` (``model="l2"`` for the
+   linear kernel). For ``decimation=k``, pass ``X[::k]`` and multiply the
+   change points by ``k``; for ``pen_scale="bic"``, use a penalty of
+   ``pen * log(n) * d``.
+
 Description
 -----------
 
@@ -78,8 +88,10 @@ Usage
    detector = KCPDDetector(kernel="rbf", pen=10)
    labels = detector.fit_predict(X)
 
-**Implementation:** Vendored from ruptures v1.1.8 (C implementation).  BSD
-2-Clause.
+**Implementation:** vendored from ruptures v1.1.8, whose ``KernelCPD`` is a C
+implementation of PELT and DynP for kernel costs. tsseg runs its vendored
+Python ``Pelt`` / ``Dynp`` instead, or, for the ``rbf`` and ``cosine`` kernels,
+a numba transcription of that C code (``backend``). BSD 2-Clause.
 
 **Reference:** Celisse, Marot, Pierre-Jean & Rigaill (2018), Computational
 Statistics and Data Analysis; Arlot, Celisse & Harchaoui (2019), JMLR.

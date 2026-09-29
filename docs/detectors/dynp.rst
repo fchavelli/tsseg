@@ -53,6 +53,12 @@ Parameters
      - dict / None
      - ``None``
      - Extra arguments for the cost function.
+   * - ``backend``
+     - str
+     - ``"auto"``
+     - Solver for the kernel costs (``"rbf"``, ``"cosine"``): ``"auto"`` uses
+       the numba one, in O(n) memory, when numba is installed; ``"numba"`` and
+       ``"python"`` force either. Same segmentation on both paths.
    * - ``axis``
      - int
      - ``0``
@@ -68,7 +74,11 @@ Usage
    detector = DynpDetector(n_cps=3, model="l2")
    labels = detector.fit_predict(X)
 
-**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.
+**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.  With the
+``"rbf"`` or ``"cosine"`` cost (kernel change point detection, ruptures'
+``KernelCPD``), the solver is a numba transcription of ruptures' C code: it
+updates the kernel sums sample by sample instead of storing the
+:math:`n \times n` Gram matrix.
 
 **Reference:** Auger & Lawrence (1989), Bulletin of Mathematical Biology.
 

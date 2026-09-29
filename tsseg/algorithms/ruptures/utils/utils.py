@@ -6,6 +6,19 @@ from itertools import tee
 from math import ceil
 
 
+#: Candidates within this relative gap of the minimum are tied, and the first of
+#: them (the earliest change point) wins. The same segmentation computed in two
+#: summation orders differs by rounding, orders of magnitude below this gap, so
+#: the Python and numba solvers break exact ties alike.
+TIE_RTOL = 1e-9
+
+
+def tie_limit(best: float) -> float:
+    """Largest value still tied with the minimum ``best``."""
+
+    return best + TIE_RTOL * max(1.0, abs(best))
+
+
 def pairwise(iterable):
     """Yield consecutive pairs from ``iterable``."""
 

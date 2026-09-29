@@ -1,5 +1,11 @@
 # KCPD (Kernel Change Point Detection)
 
+> **Deprecated.** `KCPDDetector` is `PeltDetector` (with `pen`) or `DynpDetector`
+> (with `n_cps`) on a kernel cost, and will be removed in a future release. Use
+> `PeltDetector(model="rbf", penalty=pen, jump=1)` or
+> `DynpDetector(model="rbf", n_cps=k, jump=1)` (`model="l2"` for the linear
+> kernel); decimate the input yourself for `decimation`.
+
 Kernel-based change point detection. Operates in a Reproducing Kernel Hilbert
 Space and uses either dynamic programming (exact) or a penalised formulation to
 locate change points based on the maximum mean discrepancy between segments.
@@ -13,7 +19,10 @@ locate change points based on the maximum mean discrepancy between segments.
 
 ## Implementation
 
-Wraps the vendored ruptures kernel-based cost and detection pipeline.
+Wraps the vendored ruptures kernel-based cost and detection pipeline: the same
+solvers as `PeltDetector` (with `pen`) and `DynpDetector` (with `n_cps`) on a
+kernel cost (`linear` is the `l2` cost), plus `decimation` and `pen_scale`. The
+`rbf` and `cosine` kernels run in O(n) memory with numba, as in those detectors.
 
 - Origin: vendored from ruptures v1.1.8
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)

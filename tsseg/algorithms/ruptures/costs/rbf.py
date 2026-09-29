@@ -3,20 +3,33 @@
 from __future__ import annotations
 
 import numpy as np
+from scipy.spatial.distance import pdist, squareform
 
 from ..base import BaseCost
 from ..exceptions import NotEnoughPoints
 
 
-def _pairwise_sq_euclidean(X: np.ndarray) -> np.ndarray:
-    norms = np.sum(X * X, axis=1, keepdims=True)
-    dist2 = norms + norms.T - 2.0 * (X @ X.T)
-    np.maximum(dist2, 0.0, out=dist2)
-    return dist2
+def median_sq_dist(signal: np.ndarray) -> float:
+    """Median of the positive pairwise squared distances, 0.0 if there are none.
+
+    In O(n) memory with numba; otherwise over ``pdist``, O(n^2).
+    """
+    from .. import ekcpd
+
+    if ekcpd.AVAILABLE:
+        return ekcpd.median_sq_dist(signal)
+    dist2 = pdist(signal, "sqeuclidean")
+    dist2 = dist2[dist2 > 0]
+    return float(np.median(dist2)) if dist2.size else 0.0
 
 
 class CostRbf(BaseCost):
-    """Kernel cost using an RBF kernel."""
+    """Kernel cost using an RBF kernel.
+
+    ``gamma=None`` applies the median heuristic: 1 / median of the positive
+    squared distances between distinct samples. It is set by :meth:`fit`
+    without the Gram matrix, which only :meth:`error` builds.
+    """
 
     model = "rbf"
 
@@ -31,14 +44,15 @@ class CostRbf(BaseCost):
         if self.signal is None:
             raise RuntimeError("Cost not fitted")
         if self._gram is None:
-            dist2 = _pairwise_sq_euclidean(self.signal)
-            gamma = self.gamma
-            if gamma is None:
-                median = np.median(dist2[dist2 > 0]) if np.any(dist2 > 0) else 1.0
-                gamma = 1.0 / median if median != 0 else 1.0
-                self.gamma = gamma
-            self._gram = np.exp(-gamma * dist2)
+            if self.gamma is None:
+                self._set_gamma()
+            dist2 = squareform(pdist(self.signal, "sqeuclidean"))
+            self._gram = np.exp(-self.gamma * dist2)
         return self._gram
+
+    def _set_gamma(self) -> None:
+        median = median_sq_dist(self.signal)
+        self.gamma = 1.0 / median if median != 0 else 1.0
 
     def fit(self, signal: np.ndarray) -> "CostRbf":
         if signal.ndim == 1:
@@ -47,7 +61,7 @@ class CostRbf(BaseCost):
             self.signal = signal
         self._gram = None
         if self.gamma is None:
-            _ = self.gram
+            self._set_gamma()
         return self
 
     def error(self, start: int, end: int) -> float:

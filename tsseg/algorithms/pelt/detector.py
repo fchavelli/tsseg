@@ -60,6 +60,15 @@ class PeltDetector(BaseSegmenter):
             nullable=True,
             ui_hidden=True,
         ),
+        "backend": ParamDef(
+            constraint=StrOptions({"auto", "numba", "python"}),
+            description=(
+                "Solver for the kernel costs (rbf, cosine). ``auto``: the numba "
+                "solver, O(n) memory, when numba is installed, else Python with "
+                "the n x n Gram matrix. Same segmentation either way."
+            ),
+            ui_hidden=True,
+        ),
         "_cross_constraints": [
             DataDependent(
                 "min_size * 2 <= n_samples",
@@ -76,6 +85,7 @@ class PeltDetector(BaseSegmenter):
         jump: int = 5,
         penalty: float = 10.0,
         cost_params: dict | None = None,
+        backend: str = "auto",
         axis: int = 0,
     ) -> None:
         self.penalty = float(penalty)
@@ -83,6 +93,7 @@ class PeltDetector(BaseSegmenter):
         self.min_size = int(min_size)
         self.jump = int(jump)
         self.cost_params = cost_params or {}
+        self.backend = backend
         self._estimator: Pelt | None = None
         self._train_signal: np.ndarray | None = None
         self._change_points: np.ndarray | None = None
@@ -103,6 +114,7 @@ class PeltDetector(BaseSegmenter):
             min_size=self.min_size,
             jump=self.jump,
             params=self.cost_params,
+            backend=self.backend,
         )
         estimator.fit(signal)
         self._estimator = estimator

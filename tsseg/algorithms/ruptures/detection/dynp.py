@@ -7,11 +7,16 @@ from functools import lru_cache
 from ..base import BaseCost, BaseEstimator
 from ..costs import cost_factory
 from ..exceptions import BadSegmentationParameters
-from ..utils import sanity_check
+from ..utils import sanity_check, tie_limit
 
 
 class Dynp(BaseEstimator):
-    """Dynamic programming change point detection."""
+    """Dynamic programming change point detection.
+
+    ``backend``: as for :class:`Pelt`, the kernel costs (``rbf``, ``cosine``)
+    run with the numba solver of ``ruptures.ekcpd`` under ``"auto"`` when
+    numba is installed.
+    """
 
     def __init__(
         self,
@@ -20,6 +25,7 @@ class Dynp(BaseEstimator):
         min_size: int = 2,
         jump: int = 5,
         params: dict | None = None,
+        backend: str = "auto",
     ) -> None:
         if custom_cost is not None and isinstance(custom_cost, BaseCost):
             self.cost = custom_cost
@@ -30,6 +36,7 @@ class Dynp(BaseEstimator):
                 self.cost = cost_factory(model=model, **params)
         self.min_size = max(min_size, self.cost.min_size)
         self.jump = jump
+        self.backend = backend
         self.n_samples: int | None = None
 
     @lru_cache(maxsize=None)
@@ -60,7 +67,9 @@ class Dynp(BaseEstimator):
             partition = dict(left)
             partition[(bkp, end)] = right[(bkp, end)]
             sub_partitions.append(partition)
-        return min(sub_partitions, key=lambda d: sum(d.values()))
+        values = [sum(partition.values()) for partition in sub_partitions]
+        limit = tie_limit(min(values))
+        return next(p for p, v in zip(sub_partitions, values) if v <= limit)
 
     def fit(self, signal) -> "Dynp":
         self.cost.fit(signal)
@@ -76,6 +85,10 @@ class Dynp(BaseEstimator):
             min_size=self.min_size,
         ):
             raise BadSegmentationParameters
+        from .. import ekcpd  # numba, imported on first use
+
+        if ekcpd.use_numba(self.cost, self.backend):
+            return ekcpd.dynp(self.cost, n_bkps, self.min_size, self.jump)
         partition = self.seg(0, self.n_samples, n_bkps)
         return sorted(end for _, end in partition.keys())
 

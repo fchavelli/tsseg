@@ -22,6 +22,7 @@ class KernelCPD(BaseEstimator):
         min_size: int = 2,
         jump: int = 1,
         params: dict | None = None,
+        backend: str = "auto",
     ) -> None:
         if kernel not in {"linear", "rbf", "cosine"}:
             raise ValueError(f"Unsupported kernel '{kernel}'")
@@ -36,6 +37,7 @@ class KernelCPD(BaseEstimator):
         self.kernel = kernel
         self.min_size = max(min_size, self.cost.min_size)
         self.jump = max(jump, 1)
+        self.backend = backend
         self.n_samples: int | None = None
         self.signal: np.ndarray | None = None
 
@@ -67,6 +69,7 @@ class KernelCPD(BaseEstimator):
                 custom_cost=self.cost,
                 min_size=self.min_size,
                 jump=self.jump,
+                backend=self.backend,
             )
             estimator.fit(self.signal)
             return estimator.predict(n_bkps=n_bkps)
@@ -77,6 +80,7 @@ class KernelCPD(BaseEstimator):
             custom_cost=self.cost,
             min_size=self.min_size,
             jump=self.jump,
+            backend=self.backend,
         )
         estimator.fit(self.signal)
         return estimator.predict(pen=pen)

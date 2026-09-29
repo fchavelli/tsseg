@@ -11,6 +11,21 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``PeltDetector``, ``DynpDetector`` and ``KCPDDetector`` run the ``rbf`` and
+  ``cosine`` kernel costs with a numba transcription of the C solvers of ruptures'
+  ``KernelCPD``: O(n) memory instead of the n x n Gram matrix, and the same
+  segmentation as the Python path. ``backend="auto"`` picks it when numba is
+  installed; ``"numba"`` and ``"python"`` force either path.
+* ``CostRbf``: the median heuristic no longer counts the distance of a sample to
+  itself, whose rounding residues shifted gamma by about 1e-4, and no longer
+  builds the Gram matrix.
+* ``Pelt`` and ``Dynp`` break exact ties the same way on both paths: the first
+  candidate within a relative ``1e-9`` of the minimum, i.e. the earliest change
+  point.
+* ``KCPDDetector`` is deprecated (``FutureWarning``): it is ``PeltDetector`` or
+  ``DynpDetector`` with a kernel cost (``model="rbf"``, ``"cosine"``, or ``"l2"``
+  for the linear kernel).
+
 0.2.0 (2026-09-26)
 ------------------
 

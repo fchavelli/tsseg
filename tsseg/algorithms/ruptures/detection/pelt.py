@@ -5,11 +5,17 @@ from __future__ import annotations
 from ..base import BaseCost, BaseEstimator
 from ..costs import cost_factory
 from ..exceptions import BadSegmentationParameters
-from ..utils import sanity_check
+from ..utils import sanity_check, tie_limit
 
 
 class Pelt(BaseEstimator):
-    """PELT change point detection algorithm."""
+    """PELT change point detection algorithm.
+
+    ``backend``: ``"auto"`` runs the kernel costs (``rbf``, ``cosine``) with the
+    numba solver of ``ruptures.ekcpd`` when numba is installed, in O(n) memory
+    instead of the Gram matrix, and everything else in Python; ``"numba"`` and
+    ``"python"`` force either path.
+    """
 
     def __init__(
         self,
@@ -18,6 +24,7 @@ class Pelt(BaseEstimator):
         min_size: int = 2,
         jump: int = 5,
         params: dict | None = None,
+        backend: str = "auto",
     ) -> None:
         if custom_cost is not None and isinstance(custom_cost, BaseCost):
             self.cost = custom_cost
@@ -28,6 +35,7 @@ class Pelt(BaseEstimator):
                 self.cost = cost_factory(model=model, **params)
         self.min_size = max(min_size, self.cost.min_size)
         self.jump = jump
+        self.backend = backend
         self.n_samples: int | None = None
 
     def _seg(self, pen: float):
@@ -54,7 +62,10 @@ class Pelt(BaseEstimator):
                 tmp = partitions[t].copy()
                 tmp[(t, bkp)] = self.cost.error(t, bkp) + pen
                 subproblems.append((t, tmp, sum(tmp.values())))
-            _, partitions[bkp], best_value = min(subproblems, key=lambda item: item[2])
+            limit = tie_limit(min(value for _, _, value in subproblems))
+            _, partitions[bkp], best_value = next(
+                item for item in subproblems if item[2] <= limit
+            )
             for t, _, value in subproblems:
                 if value > best_value + pen:
                     prune_at.setdefault(t, bkp + self.min_size)
@@ -77,6 +88,10 @@ class Pelt(BaseEstimator):
             min_size=self.min_size,
         ):
             raise BadSegmentationParameters
+        from .. import ekcpd  # numba, imported on first use
+
+        if ekcpd.use_numba(self.cost, self.backend):
+            return ekcpd.pelt(self.cost, pen, self.min_size, self.jump)
         partition = self._seg(pen)
         return sorted(end for _, end in partition.keys())
 

@@ -55,6 +55,12 @@ Parameters
      - dict / None
      - ``None``
      - Extra keyword arguments for the cost factory.
+   * - ``backend``
+     - str
+     - ``"auto"``
+     - Solver for the kernel costs (``"rbf"``, ``"cosine"``): ``"auto"`` uses
+       the numba one, in O(n) memory, when numba is installed; ``"numba"`` and
+       ``"python"`` force either. Same segmentation on both paths.
    * - ``axis``
      - int
      - ``0``
@@ -70,7 +76,11 @@ Usage
    detector = PeltDetector(model="l2", penalty=10)
    labels = detector.fit_predict(X)
 
-**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.
+**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.  With the
+``"rbf"`` or ``"cosine"`` cost (kernel change point detection, ruptures'
+``KernelCPD``), the solver is a numba transcription of ruptures' C code: it
+updates the kernel sums sample by sample instead of storing the
+:math:`n \times n` Gram matrix.
 
 **Reference:** Killick, Fearnhead & Eckley (2012), *Optimal detection of
 changepoints with a linear computational cost*, JASA.
