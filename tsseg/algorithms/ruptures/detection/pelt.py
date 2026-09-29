@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from math import floor
-
 from ..base import BaseCost, BaseEstimator
 from ..costs import cost_factory
 from ..exceptions import BadSegmentationParameters
@@ -37,29 +35,29 @@ class Pelt(BaseEstimator):
             raise RuntimeError("Estimator not fitted")
         partitions: dict[int, dict[tuple[int, int], float]] = {0: {(0, 0): 0.0}}
         admissible: list[int] = []
-        indices = [k for k in range(0, self.n_samples, self.jump) if k >= self.min_size]
-        indices.append(self.n_samples)
-        for bkp in indices:
-            new_adm = floor((bkp - self.min_size) / self.jump) * self.jump
-            admissible.append(new_adm)
+        # A start t dominated at endpoint s can only be replaced by a segment
+        # starting at s, which is legal from s + min_size on: t is pruned from
+        # there, not at once (fix of upstream ruptures PR #383; pruning at s
+        # returned sub-optimal segmentations whenever min_size > 1).
+        prune_at: dict[int, int] = {}
+        endpoints = [k for k in range(0, self.n_samples, self.jump) if k >= self.min_size]
+        endpoints.append(self.n_samples)
+        starts = iter([0] + endpoints[:-1])
+        next_start = next(starts, None)
+        for bkp in endpoints:
+            while next_start is not None and next_start <= bkp - self.min_size:
+                admissible.append(next_start)
+                next_start = next(starts, None)
+            admissible = [t for t in admissible if t not in prune_at or bkp < prune_at[t]]
             subproblems = []
             for t in admissible:
-                left = partitions.get(t)
-                if left is None:
-                    continue
-                right_cost = self.cost.error(t, bkp) + pen
-                tmp = left.copy()
-                tmp[(t, bkp)] = right_cost
-                subproblems.append(tmp)
-            if not subproblems:
-                continue
-            partitions[bkp] = min(subproblems, key=lambda d: sum(d.values()))
-            best = partitions[bkp]
-            admissible = [
-                t
-                for t, partition in zip(admissible, subproblems)
-                if sum(partition.values()) <= sum(best.values()) + pen
-            ]
+                tmp = partitions[t].copy()
+                tmp[(t, bkp)] = self.cost.error(t, bkp) + pen
+                subproblems.append((t, tmp, sum(tmp.values())))
+            _, partitions[bkp], best_value = min(subproblems, key=lambda item: item[2])
+            for t, _, value in subproblems:
+                if value > best_value + pen:
+                    prune_at.setdefault(t, bkp + self.min_size)
         best_partition = partitions[self.n_samples]
         best_partition.pop((0, 0), None)
         return best_partition

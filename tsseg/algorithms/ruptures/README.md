@@ -23,6 +23,8 @@ Vendored from the ruptures library to avoid an external dependency and to allow
 minor modifications.
 
 - Origin: vendored from ruptures v1.1.8
+- Change: `Pelt` delays pruning by `min_size`, as in upstream
+  [PR #383](https://github.com/deepcharles/ruptures/pull/383) (not merged yet)
 - Source: https://github.com/deepcharles/ruptures
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 - Licence file: `LICENSE` in this directory

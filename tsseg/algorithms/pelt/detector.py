@@ -19,7 +19,13 @@ __all__ = ["PeltDetector"]
 
 
 class PeltDetector(BaseSegmenter):
-    """Wrapper around the vendored ruptures :class:`Pelt` estimator."""
+    """Wrapper around the vendored ruptures :class:`Pelt` estimator.
+
+    For a univariate signal with ``model="l1"``, upstream ruptures now ships
+    ``L1Potts``, an exact and much faster solver of the same penalised problem
+    with ``min_size=1`` and ``jump=1``; it is not vendored here. See
+    https://github.com/deepcharles/ruptures/blob/master/src/ruptures/detection/l1potts.py
+    """
 
     _tags = {
         "capability:univariate": True,

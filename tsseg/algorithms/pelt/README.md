@@ -18,7 +18,15 @@ sub-optimal.
 Wraps the vendored ruptures `Pelt` solver.
 
 - Origin: vendored from ruptures v1.1.8
+- Change: pruning is delayed by `min_size` (fix of upstream
+  [ruptures PR #383](https://github.com/deepcharles/ruptures/pull/383)); before
+  it, PELT could return a sub-optimal segmentation when `min_size > 1`
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
+
+For a univariate signal with `model="l1"`, upstream ruptures now ships
+[`L1Potts`](https://github.com/deepcharles/ruptures/blob/master/src/ruptures/detection/l1potts.py)
+(Storath, Weinmann & Unser, 2017), an exact and much faster solver of the same
+penalised problem with `min_size=1` and `jump=1`. It is not vendored in tsseg.
 
 ## Citation
 
