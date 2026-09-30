@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from itertools import tee
-from math import ceil, isfinite
+from math import ceil, isfinite, log
 
 import numpy as np
 
@@ -56,6 +56,23 @@ def tie_unit(cost) -> float:
     if cost.model == "l2":
         whole = max(whole, 1e-16 * float(np.square(signal).sum()))
     return whole / n
+
+
+def bic_penalty(coefficient: float, cost) -> float:
+    """``coefficient * log(n) * tie_unit(cost)``: a penalty in units of the
+    typical cost of one sample of the fitted ``cost``'s signal.
+
+    For l2 on unit-variance channels, the unit is d and ``log(n) * d`` is the
+    BIC penalty of one more segment (d means); for l1, the absolute deviations
+    from the median per sample, summed over the channels; for the kernel costs,
+    bounded by 1 per sample, 1. One coefficient then applies across lengths,
+    dimensions, scales and costs. A cost of 0 (a constant signal) gives the
+    unit 1: any positive penalty then returns the signal whole.
+    """
+
+    unit = tie_unit(cost)
+    n = cost.signal.shape[0]
+    return float(coefficient) * log(max(n, 2)) * (unit if unit > 0 else 1.0)
 
 
 def pairwise(iterable):

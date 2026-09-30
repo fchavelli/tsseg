@@ -25,6 +25,10 @@ Wraps the vendored ruptures `Binseg` solver.
   (`backend="python"`).
 - Ties: gains closer than 1e-9 of the segments' costs are tied; the last change
   point of a segment and the first segment win, as upstream among exact ties.
+- Penalty: `pen_scale="bic"` makes `penalty` a coefficient on `log(n) * u`, u the
+  cost of one sample of the whole signal (`ruptures.utils.bic_penalty`): d for
+  `l2` on unit-variance channels, where it is the BIC penalty, 1 for the kernel
+  costs. One value then applies across lengths, dimensions and costs.
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 
 ## Citation

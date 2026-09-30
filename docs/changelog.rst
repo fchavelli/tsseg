@@ -37,6 +37,12 @@ Unreleased
   first or last window.
 * The vendored ruptures costs convert the signal to float64 in ``fit``: float32
   signals were costed in float32, and ``CostCosine`` failed on integers.
+* ``pen_scale="bic"`` in ``PeltDetector``, ``BinSegDetector``,
+  ``BottomUpDetector`` and ``WindowDetector``: the penalty is a coefficient on
+  ``log(n) * u``, u the cost of one sample of the whole signal (d for ``l2`` on
+  unit-variance channels, where it is the BIC penalty; the mean absolute
+  deviation for ``l1``; 1 for the kernel costs), so that one value applies
+  across lengths, dimensions and costs.
 * ``KCPDDetector`` is deprecated (``FutureWarning``): it is ``PeltDetector`` or
   ``DynpDetector`` with a kernel cost (``model="rbf"``, ``"cosine"``, or ``"l2"``
   for the linear kernel).

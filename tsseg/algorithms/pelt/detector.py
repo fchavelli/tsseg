@@ -14,6 +14,7 @@ from ..param_schema import (
     StrOptions,
 )
 from ..ruptures.detection import Pelt
+from ..ruptures.utils import bic_penalty
 
 __all__ = ["PeltDetector"]
 
@@ -54,6 +55,18 @@ class PeltDetector(BaseSegmenter):
             constraint=Interval(float, 0, None, Closed.NEITHER),
             description="Penalty value for the PELT stopping criterion.",
         ),
+        "pen_scale": ParamDef(
+            constraint=StrOptions({"bic"}),
+            description=(
+                "How ``penalty`` is scaled. ``None``: it is the penalty. ``'bic'``: "
+                "a coefficient on ``log(n) * u``, u the cost of one sample of the "
+                "whole signal (d for l2 on unit-variance channels, where it is the "
+                "BIC penalty; 1 for the kernel costs), so that one value applies "
+                "across lengths, dimensions and costs."
+            ),
+            nullable=True,
+            group="stopping_criterion",
+        ),
         "cost_params": ParamDef(
             constraint=HasType((dict,)),
             description="Extra kwargs for cost_factory.",
@@ -85,11 +98,15 @@ class PeltDetector(BaseSegmenter):
         min_size: int = 2,
         jump: int = 5,
         penalty: float = 10.0,
+        pen_scale: str | None = None,
         cost_params: dict | None = None,
         backend: str = "auto",
         axis: int = 0,
     ) -> None:
+        if pen_scale not in (None, "bic"):
+            raise ValueError(f"pen_scale must be None or 'bic', got {pen_scale!r}")
         self.penalty = float(penalty)
+        self.pen_scale = pen_scale
         self.model = model
         self.min_size = int(min_size)
         self.jump = int(jump)
@@ -123,6 +140,13 @@ class PeltDetector(BaseSegmenter):
         self._change_points = None
         return self
 
+    def _resolved_penalty(self) -> float | None:
+        """``penalty``, or with ``pen_scale="bic"`` the penalty it scales
+        (:func:`~tsseg.algorithms.ruptures.utils.bic_penalty`)."""
+        if self.penalty is None or self.pen_scale is None:
+            return self.penalty
+        return bic_penalty(self.penalty, self._estimator.cost)
+
     def _predict(self, X):
         if self._estimator is None:
             raise RuntimeError("PeltDetector must be fitted before predict")
@@ -130,7 +154,7 @@ class PeltDetector(BaseSegmenter):
         if self._train_signal is None or not np.array_equal(signal, self._train_signal):
             self._estimator.fit(signal)
             self._train_signal = signal
-        bkps = np.asarray(self._estimator.predict(self.penalty), dtype=int)
+        bkps = np.asarray(self._estimator.predict(self._resolved_penalty()), dtype=int)
         bkps = bkps[(bkps > 0) & (bkps < signal.shape[0])]
         bkps = np.unique(bkps)
         self._change_points = bkps

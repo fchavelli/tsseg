@@ -16,6 +16,7 @@ from ..param_schema import (
     StrOptions,
 )
 from ..ruptures.detection import BottomUp
+from ..ruptures.utils import bic_penalty
 
 __all__ = ["BottomUpDetector"]
 
@@ -55,6 +56,18 @@ class BottomUpDetector(BaseSegmenter):
         "penalty": ParamDef(
             constraint=Interval(float, 0, None, Closed.NEITHER),
             description="Penalty value (must be > 0).",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "pen_scale": ParamDef(
+            constraint=StrOptions({"bic"}),
+            description=(
+                "How ``penalty`` is scaled. ``None``: it is the penalty. ``'bic'``: "
+                "a coefficient on ``log(n) * u``, u the cost of one sample of the "
+                "whole signal (d for l2 on unit-variance channels, where it is the "
+                "BIC penalty; 1 for the kernel costs), so that one value applies "
+                "across lengths, dimensions and costs."
+            ),
             nullable=True,
             group="stopping_criterion",
         ),
@@ -100,11 +113,14 @@ class BottomUpDetector(BaseSegmenter):
         min_size: int = 2,
         jump: int = 5,
         penalty: float | None = 10,
+        pen_scale: str | None = None,
         epsilon: float | None = None,
         cost_params: dict | None = None,
         backend: str = "auto",
         axis: int = 0,
     ) -> None:
+        if pen_scale not in (None, "bic"):
+            raise ValueError(f"pen_scale must be None or 'bic', got {pen_scale!r}")
         self.n_cps = None if n_cps is None else int(n_cps)
         penalty_value = penalty
         epsilon_value = epsilon
@@ -141,6 +157,7 @@ class BottomUpDetector(BaseSegmenter):
         self.min_size = int(min_size)
         self.jump = int(jump)
         self.penalty = penalty_value
+        self.pen_scale = pen_scale
         self.epsilon = epsilon_value
         self.cost_params = cost_params or {}
         self.backend = backend
@@ -171,6 +188,13 @@ class BottomUpDetector(BaseSegmenter):
 
         return self
 
+    def _resolved_penalty(self) -> float | None:
+        """``penalty``, or with ``pen_scale="bic"`` the penalty it scales
+        (:func:`~tsseg.algorithms.ruptures.utils.bic_penalty`)."""
+        if self.penalty is None or self.pen_scale is None:
+            return self.penalty
+        return bic_penalty(self.penalty, self._estimator.cost)
+
     def _predict(self, X):
         if self._estimator is None:
             raise RuntimeError("BottomUpDetector must be fitted before predict")
@@ -180,7 +204,7 @@ class BottomUpDetector(BaseSegmenter):
             self._train_signal = signal
         bkps = np.asarray(
             self._estimator.predict(
-                n_bkps=self.n_cps, pen=self.penalty, epsilon=self.epsilon
+                n_bkps=self.n_cps, pen=self._resolved_penalty(), epsilon=self.epsilon
             ),
             dtype=int,
         )

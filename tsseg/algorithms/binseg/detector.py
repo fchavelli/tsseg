@@ -19,6 +19,7 @@ from ..param_schema import (
 )
 from ..ruptures.base import BaseCost
 from ..ruptures.detection.binseg import Binseg
+from ..ruptures.utils import bic_penalty
 
 __all__ = ["BinSegDetector"]
 
@@ -57,6 +58,10 @@ class BinSegDetector(BaseSegmenter):
         Penalty threshold supplied to ``predict``. Mutually exclusive with
         ``n_cps`` and ``epsilon``. Provide at least one of ``n_cps``, ``penalty``
         or ``epsilon``.
+    pen_scale : {None, "bic"}, default=None
+        ``"bic"``: ``penalty`` is a coefficient on ``log(n) * u``, u the cost of
+        one sample of the whole signal (d for ``"l2"`` on unit-variance
+        channels, where it is the BIC penalty; 1 for the kernel costs).
     epsilon : float or None, default=None
         Reconstruction error tolerance. Mutually exclusive with ``n_cps`` and
         ``penalty``.
@@ -109,6 +114,18 @@ class BinSegDetector(BaseSegmenter):
             nullable=True,
             group="stopping_criterion",
         ),
+        "pen_scale": ParamDef(
+            constraint=StrOptions({"bic"}),
+            description=(
+                "How ``penalty`` is scaled. ``None``: it is the penalty. ``'bic'``: "
+                "a coefficient on ``log(n) * u``, u the cost of one sample of the "
+                "whole signal (d for l2 on unit-variance channels, where it is the "
+                "BIC penalty; 1 for the kernel costs), so that one value applies "
+                "across lengths, dimensions and costs."
+            ),
+            nullable=True,
+            group="stopping_criterion",
+        ),
         "epsilon": ParamDef(
             constraint=Interval(float, 0, None, Closed.NEITHER),
             description="Reconstruction error tolerance.",
@@ -158,12 +175,15 @@ class BinSegDetector(BaseSegmenter):
         min_size: int = 2,
         jump: int = 5,
         penalty: float | None = 10,
+        pen_scale: str | None = None,
         epsilon: float | None = None,
         custom_cost: BaseCost | None = None,
         cost_params: dict | None = None,
         backend: str = "auto",
         axis: int = 0,
     ) -> None:
+        if pen_scale not in (None, "bic"):
+            raise ValueError(f"pen_scale must be None or 'bic', got {pen_scale!r}")
         self.n_cps = None if n_cps is None else int(n_cps)
 
         penalty_value = penalty
@@ -201,6 +221,7 @@ class BinSegDetector(BaseSegmenter):
         self.min_size = int(min_size)
         self.jump = int(jump)
         self.penalty = penalty_value
+        self.pen_scale = pen_scale
         self.epsilon = epsilon_value
         self.custom_cost = custom_cost
         self.cost_params = cost_params or {}
@@ -228,6 +249,13 @@ class BinSegDetector(BaseSegmenter):
 
         return self
 
+    def _resolved_penalty(self) -> float | None:
+        """``penalty``, or with ``pen_scale="bic"`` the penalty it scales
+        (:func:`~tsseg.algorithms.ruptures.utils.bic_penalty`)."""
+        if self.penalty is None or self.pen_scale is None:
+            return self.penalty
+        return bic_penalty(self.penalty, self._estimator.cost)
+
     def _predict(self, X, axis=None):
         axis = self.axis if axis is None else axis
         signal = _ensure_time_major(X, axis=axis)
@@ -239,7 +267,7 @@ class BinSegDetector(BaseSegmenter):
 
         bkps = self._estimator.predict(
             n_bkps=self.n_cps,
-            pen=self.penalty,
+            pen=self._resolved_penalty(),
             epsilon=self.epsilon,
         )
         n_samples = self._estimator.n_samples or signal.shape[0]

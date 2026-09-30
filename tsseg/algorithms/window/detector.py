@@ -17,6 +17,7 @@ from ..param_schema import (
     StrOptions,
 )
 from ..ruptures.detection import Window
+from ..ruptures.utils import bic_penalty
 
 __all__ = ["WindowDetector"]
 
@@ -50,6 +51,18 @@ class WindowDetector(BaseSegmenter):
         "pen": ParamDef(
             constraint=Interval(float, 0, None, Closed.NEITHER),
             description="Penalty threshold.",
+            nullable=True,
+            group="stopping_criterion",
+        ),
+        "pen_scale": ParamDef(
+            constraint=StrOptions({"bic"}),
+            description=(
+                "How ``pen`` is scaled. ``None``: it is the penalty. ``'bic'``: "
+                "a coefficient on ``log(n) * u``, u the cost of one sample of the "
+                "whole signal (d for l2 on unit-variance channels, where it is the "
+                "BIC penalty; 1 for the kernel costs), so that one value applies "
+                "across lengths, dimensions and costs."
+            ),
             nullable=True,
             group="stopping_criterion",
         ),
@@ -102,6 +115,7 @@ class WindowDetector(BaseSegmenter):
         width: int = 100,
         n_cps: int | None = None,
         pen: float | None = None,
+        pen_scale: str | None = None,
         epsilon: float | None = None,
         model: str = "l2",
         min_size: int = 2,
@@ -110,6 +124,8 @@ class WindowDetector(BaseSegmenter):
         backend: str = "auto",
         axis: int = 0,
     ) -> None:
+        if pen_scale not in (None, "bic"):
+            raise ValueError(f"pen_scale must be None or 'bic', got {pen_scale!r}")
         criteria = [n_cps is not None, pen is not None, epsilon is not None]
         if not any(criteria):
             raise ValueError("Configure at least one stopping criterion")
@@ -135,6 +151,7 @@ class WindowDetector(BaseSegmenter):
         self.width = int(width)
         self.n_cps = None if n_cps is None else int(n_cps)
         self.pen = None if penalty_value is None else float(penalty_value)
+        self.pen_scale = pen_scale
         self.epsilon = None if epsilon_value is None else float(epsilon_value)
         self.model = model
         self.min_size = int(min_size)
@@ -169,6 +186,13 @@ class WindowDetector(BaseSegmenter):
 
         return self
 
+    def _resolved_penalty(self) -> float | None:
+        """``pen``, or with ``pen_scale="bic"`` the penalty it scales
+        (:func:`~tsseg.algorithms.ruptures.utils.bic_penalty`)."""
+        if self.pen is None or self.pen_scale is None:
+            return self.pen
+        return bic_penalty(self.pen, self._estimator.cost)
+
     def _predict(self, X):
         if self._estimator is None:
             raise RuntimeError("WindowDetector must be fitted before predict")
@@ -178,7 +202,7 @@ class WindowDetector(BaseSegmenter):
             self._train_signal = signal
         bkps = self._estimator.predict(
             n_bkps=self.n_cps,
-            pen=self.pen,
+            pen=self._resolved_penalty(),
             epsilon=self.epsilon,
         )
         bkps = np.asarray(bkps, dtype=int)

@@ -24,6 +24,10 @@ Wraps the vendored ruptures `BottomUp` solver.
   (`backend="python"`).
 - Ties: merge gains closer than 1e-9 of the segments' costs are tied; the
   leftmost merge is done first, as upstream among exact ties.
+- Penalty: `pen_scale="bic"` makes `penalty` a coefficient on `log(n) * u`, u the
+  cost of one sample of the whole signal (`ruptures.utils.bic_penalty`): d for
+  `l2` on unit-variance channels, where it is the BIC penalty, 1 for the kernel
+  costs. One value then applies across lengths, dimensions and costs.
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 
 ## Citation

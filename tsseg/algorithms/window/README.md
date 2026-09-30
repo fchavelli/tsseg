@@ -28,6 +28,10 @@ Wraps the vendored ruptures `Window` solver.
   array wrapping around at its ends, as upstream (`argrelmax(mode="wrap")`);
   until 0.2.0 the neighbourhood was cut at the ends, which let a score falling
   away from the first or last window be a peak, hence a change point there.
+- Penalty: `pen_scale="bic"` makes `pen` a coefficient on `log(n) * u`, u the
+  cost of one sample of the whole signal (`ruptures.utils.bic_penalty`): d for
+  `l2` on unit-variance channels, where it is the BIC penalty, 1 for the kernel
+  costs. One value then applies across lengths, dimensions and costs.
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 
 ## Citation

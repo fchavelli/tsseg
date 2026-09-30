@@ -50,6 +50,14 @@ Parameters
      - float / None
      - ``None``
      - Penalty threshold.
+   * - ``pen_scale``
+     - str / None
+     - ``None``
+     - ``"bic"``: ``pen`` is a coefficient on :math:`\log(n)\,u`, *u* the cost
+       of one sample of the whole signal: *d* for ``"l2"`` on unit-variance
+       channels (the BIC penalty of one more segment), the mean absolute
+       deviation for ``"l1"``, 1 for the kernel costs. One value then applies
+       across lengths, dimensions and costs.
    * - ``epsilon``
      - float / None
      - ``None``

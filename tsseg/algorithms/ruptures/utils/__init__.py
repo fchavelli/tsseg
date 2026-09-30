@@ -3,6 +3,7 @@
 from .bnode import Bnode
 from .utils import (
     TIE_RTOL,
+    bic_penalty,
     pairwise,
     sanity_check,
     tie_limit,
@@ -15,6 +16,7 @@ from .peaks import argrelmax_1d
 
 __all__ = [
     "TIE_RTOL",
+    "bic_penalty",
     "tie_limit",
     "tie_tol",
     "tie_unit",
