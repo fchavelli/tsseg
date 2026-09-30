@@ -99,7 +99,7 @@ def binseg_split(x, start, end, min_size, jump, kind, gamma, norms, unit):
 
 
 @njit(cache=True)
-def window_scores(x, inds, width, kind, gamma, norms):
+def window_scores(x, inds, width, kind, gamma, norms, block):
     """``Window.fit``'s scores, cost(window) - (cost(left half) + cost(right
     half)) around each index, and cost(window), the scale of their rounding."""
     half = width // 2
@@ -110,9 +110,9 @@ def window_scores(x, inds, width, kind, gamma, norms):
         idx = inds[k]
         start = idx - half
         end = idx + half
-        whole = segment_cost(x, start, end, kind, gamma, norms, buf)
-        parts = segment_cost(x, start, idx, kind, gamma, norms, buf)
-        parts += segment_cost(x, idx, end, kind, gamma, norms, buf)
+        whole = segment_cost(x, start, end, kind, gamma, norms, buf, block)
+        parts = segment_cost(x, start, idx, kind, gamma, norms, buf, block)
+        parts += segment_cost(x, idx, end, kind, gamma, norms, buf, block)
         score[k] = whole - parts
         scale[k] = whole
     return score, scale

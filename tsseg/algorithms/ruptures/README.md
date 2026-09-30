@@ -45,13 +45,15 @@ minor modifications.
   and `cosine` costs (`backend="auto"`, the default, uses it when numba is
   installed): the whole search of `Pelt` and `Dynp`, for the kernel costs a
   transcription of the C solvers of upstream `KernelCPD`
-  (`ekcpd_pelt_computation.c`, `ekcpd_computation.c`) that keeps their `jump`,
-  pruning and unclipped kernels; the splits of `Binseg`, by sweeps; the segment
-  costs of `BottomUp` and `Window`. The kernel costs never build the n x n Gram
-  matrix, and the `l1` and `l2` costs of one segment sum in numpy's order, bit
-  for bit. The `l1` and `l2` sweeps run on the channels far from 0
-  (|median| > 4 std) shifted by their median, so that a signal at 1e8 keeps its
-  digits. Both backends return the same segmentation
+  (`ekcpd_pelt_computation.c`, `ekcpd_computation.c`) with the semantics of the
+  Python solvers (`jump` grid, pruning delayed by `min_size`, unclipped
+  kernels); the splits of `Binseg`, by sweeps; the segment costs of `BottomUp`
+  and `Window`. The kernel costs never build the n x n Gram matrix, and the `l1`
+  and `l2` costs of one segment sum in numpy's order, bit for bit (pairwise
+  within buffers of 8192 values up to numpy 2.2, over the whole array since:
+  `accel.numpy_block` finds which). The `l1` and `l2` sweeps run on the
+  channels far from 0 (|median| > 4 std) shifted by their median, so that a
+  signal at 1e8 keeps its digits. Both backends return the same segmentation
 - Source: https://github.com/deepcharles/ruptures
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 - Licence file: `LICENSE` in this directory

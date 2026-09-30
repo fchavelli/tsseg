@@ -17,11 +17,13 @@ run on a copy of the signal whose channels far from 0 are shifted to it
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import numpy as np
 
 from ..exceptions import BadSegmentationParameters, NotEnoughPoints
 from ..utils import tie_unit
-from ._costs import COSINE, L1, L2, RBF, row_norms, segment_cost
+from ._costs import COSINE, L1, L2, RBF, np_sum, row_norms, segment_cost
 from ._greedy import binseg_split, window_scores
 from ._jit import AVAILABLE
 from ._median import median_sq_dist
@@ -36,6 +38,7 @@ __all__ = [
     "dynp",
     "kind_of",
     "median_sq_dist",
+    "numpy_block",
     "pelt",
     "shifted",
     "use_numba",
@@ -96,6 +99,26 @@ def shifted(x: np.ndarray) -> np.ndarray:
     return np.ascontiguousarray(x - shift)
 
 
+@lru_cache(maxsize=None)
+def numpy_block() -> int:
+    """The ``block`` of ``np_sum`` that sums as the installed numpy does.
+
+    numpy sums a contiguous float64 array pairwise within buffers of 8192
+    values added up in sequence (numpy 2.2 and before), or pairwise over the
+    whole array (later versions): which one is found by summing, both ways, a
+    probe whose two sums round differently. 0 (the whole array) if neither
+    matches, the segment costs then differing from numpy's by rounding only.
+    """
+    rng = np.random.default_rng(0)
+    size = 3 * 8192 + 1000
+    probe = rng.standard_normal(size) * 10.0 ** rng.integers(-8, 9, size)
+    expected = float(np.add.reduce(probe))
+    for block in (8192, 0):
+        if np_sum(probe, 0, size, block) == expected:
+            return block
+    return 0
+
+
 class Signal:
     """The signal of a fitted cost, prepared for the numba kernels."""
 
@@ -122,7 +145,14 @@ class Signal:
                 raise NotEnoughPoints
             self._errors[key] = float(
                 segment_cost(
-                    self.x, start, end, self.kind, self.gamma, self.norms, self._buf
+                    self.x,
+                    start,
+                    end,
+                    self.kind,
+                    self.gamma,
+                    self.norms,
+                    self._buf,
+                    numpy_block(),
                 )
             )
         return self._errors[key]
@@ -147,7 +177,9 @@ class Signal:
         inds = np.asarray(inds, dtype=np.int64)
         if inds.size and width // 2 < self.min_size:
             raise NotEnoughPoints
-        return window_scores(self.x, inds, width, self.kind, self.gamma, self.norms)
+        return window_scores(
+            self.x, inds, width, self.kind, self.gamma, self.norms, numpy_block()
+        )
 
 
 def pelt(cost, pen: float, min_size: int, jump: int) -> list[int]:

@@ -3,8 +3,9 @@
 Two ways to evaluate them:
 
 * ``segment_cost``: one segment, from scratch. For l1 and l2 it repeats numpy's
-  arithmetic, summation order included (``np_sum``), so that on a C-contiguous
-  float64 signal it returns the costs of the Python path bit for bit;
+  arithmetic, summation order included (``np_sum``, with the ``block`` of the
+  installed numpy, ``accel.numpy_block``), so that on a C-contiguous float64
+  signal it returns the costs of the Python path bit for bit;
 * sweeps (``acc_*``, ``kernel_extend``): one sample at a time, for all the
   segments that share a start or an end, at O(1) per segment for l2 (Welford),
   O(log n) for l1 (two heaps) and O(n) for the kernels, where ``segment_cost``
@@ -22,11 +23,6 @@ L1 = 0
 L2 = 1
 RBF = 2
 COSINE = 3
-
-# numpy sums float64 arrays pairwise within buffers of this many elements
-# (NPY_BUFSIZE) and adds up the buffers in sequence.
-_NPY_BUFSIZE = 8192
-
 
 @njit(cache=True)
 def _sq_dist(x, i, j):
@@ -140,16 +136,21 @@ def _pairwise(a, lo, n):
 
 
 @njit(cache=True)
-def np_sum(a, lo, n):
-    """``np.add.reduce(a[lo:lo + n])``, bit for bit."""
+def np_sum(a, lo, n, block):
+    """``np.add.reduce(a[lo:lo + n])``, bit for bit: numpy sums a contiguous
+    float64 array pairwise within buffers of ``block`` values, added up in
+    sequence (numpy < 2.3: NPY_BUFSIZE, 8192), or pairwise over the whole
+    array (``block`` = 0: numpy >= 2.3)."""
+    if block <= 0:
+        return _pairwise(a, lo, n)
     total = 0.0
-    for start in range(lo, lo + n, _NPY_BUFSIZE):
-        total += _pairwise(a, start, min(_NPY_BUFSIZE, lo + n - start))
+    for start in range(lo, lo + n, block):
+        total += _pairwise(a, start, min(block, lo + n - start))
     return total
 
 
 @njit(cache=True)
-def _l2_segment(x, s, e, buf):
+def _l2_segment(x, s, e, buf, block):
     """``x[s:e].var(axis=0).sum() * (e - s)`` in numpy's order: over axis 0, a
     C-contiguous array is summed row after row, a single column pairwise."""
     n = e - s
@@ -157,11 +158,11 @@ def _l2_segment(x, s, e, buf):
     if d == 1:
         for i in range(n):
             buf[i] = x[s + i, 0]
-        mean = np_sum(buf, 0, n) / n
+        mean = np_sum(buf, 0, n, block) / n
         for i in range(n):
             dev = buf[i] - mean
             buf[i] = dev * dev
-        return (np_sum(buf, 0, n) / n) * n
+        return (np_sum(buf, 0, n, block) / n) * n
     for c in range(d):
         acc = 0.0
         for i in range(s, e):
@@ -172,11 +173,11 @@ def _l2_segment(x, s, e, buf):
             dev = x[i, c] - mean
             acc += dev * dev
         buf[c] = acc / n
-    return np_sum(buf, 0, d) * n
+    return np_sum(buf, 0, d, block) * n
 
 
 @njit(cache=True)
-def _l1_segment(x, s, e, buf):
+def _l1_segment(x, s, e, buf, block):
     """``abs(x[s:e] - median(x[s:e], axis=0)).sum()`` in numpy's order: the
     median is exact, the sum runs over the deviations in row-major order."""
     n = e - s
@@ -195,7 +196,7 @@ def _l1_segment(x, s, e, buf):
     for i in range(n):
         for c in range(d):
             buf[i * d + c] = abs(x[s + i, c] - med[c])
-    return np_sum(buf, 0, n * d)
+    return np_sum(buf, 0, n * d, block)
 
 
 @njit(cache=True)
@@ -215,12 +216,13 @@ def _kernel_segment(x, s, e, kind, gamma, norms):
 
 
 @njit(cache=True)
-def segment_cost(x, s, e, kind, gamma, norms, buf):
-    """Cost of [s, e); ``buf`` holds at least (e - s) * d values."""
+def segment_cost(x, s, e, kind, gamma, norms, buf, block):
+    """Cost of [s, e); ``buf`` holds at least (e - s) * d values, ``block`` is
+    that of ``np_sum``."""
     if kind == L2:
-        return _l2_segment(x, s, e, buf)
+        return _l2_segment(x, s, e, buf, block)
     if kind == L1:
-        return _l1_segment(x, s, e, buf)
+        return _l1_segment(x, s, e, buf, block)
     return _kernel_segment(x, s, e, kind, gamma, norms)
 
 

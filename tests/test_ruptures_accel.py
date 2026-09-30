@@ -340,11 +340,24 @@ def test_window_backends_raise_alike():
     assert a == b == "NotEnoughPoints"
 
 
+def test_np_sum_is_numpy_sum_bit_for_bit():
+    """numpy sums pairwise within buffers of 8192 values up to 2.2, over the
+    whole array since: ``numpy_block`` finds which, whatever the version."""
+    from tsseg.algorithms.ruptures.accel._costs import np_sum
+
+    block = accel.numpy_block()
+    assert block in (8192, 0)
+    rng = np.random.default_rng(6)
+    for n in (7, 128, 8192, 8193, 16385, 20000, 100003):
+        a = rng.standard_normal(n) * 10.0 ** rng.integers(-6, 7, n)
+        assert np_sum(a, 0, n, block) == np.add.reduce(a)
+        assert np_sum(a, 3, n - 5, block) == np.add.reduce(a[3 : n - 2])
+
+
 @pytest.mark.parametrize("model", ["l1", "l2"])
 def test_segment_costs_are_numpy_bit_for_bit(model):
     """On a C-contiguous float64 signal, the numba costs of one segment sum in
-    numpy's order (pairwise by buffers of 8192 values) and equal the Python
-    ones exactly."""
+    numpy's order (``np_sum``) and equal the Python ones exactly."""
     rng = np.random.default_rng(3)
     for d, n in ((1, 20000), (3, 500), (9, 1200)):
         x = rng.normal(rng.normal(0, 3), 2.0, (n, d))
