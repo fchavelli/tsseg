@@ -20,6 +20,7 @@ class CostLinear(BaseCost):
         self.min_size = 2
 
     def fit(self, signal: np.ndarray) -> "CostLinear":
+        signal = np.asarray(signal, dtype=np.float64)  # whatever the input dtype
         if signal.ndim <= 1:
             raise ValueError("Linear cost expects at least two columns (target + covariates)")
         self.signal = signal[:, 0].reshape(-1, 1)

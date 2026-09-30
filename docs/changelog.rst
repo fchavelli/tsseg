@@ -11,17 +11,32 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
-* ``PeltDetector``, ``DynpDetector`` and ``KCPDDetector`` run the ``rbf`` and
-  ``cosine`` kernel costs with a numba transcription of the C solvers of ruptures'
-  ``KernelCPD``: O(n) memory instead of the n x n Gram matrix, and the same
-  segmentation as the Python path. ``backend="auto"`` picks it when numba is
-  installed; ``"numba"`` and ``"python"`` force either path.
+* The vendored ruptures solvers have a numba backend for the ``l1``, ``l2``,
+  ``rbf`` and ``cosine`` costs, with the same segmentation as the Python path:
+  ``backend="auto"`` (the default) picks it when numba is installed, ``"numba"``
+  and ``"python"`` force either path, in ``PeltDetector``, ``DynpDetector``,
+  ``BinSegDetector``, ``BottomUpDetector``, ``WindowDetector`` and
+  ``KCPDDetector``. The kernel costs no longer build the n x n Gram matrix (for
+  PELT and DynP, a transcription of the C solvers of ruptures' ``KernelCPD``);
+  DynP no longer memoises O((n / jump)^2) sub-problems; BinSeg finds the best
+  split of a segment in one sweep from each end.
 * ``CostRbf``: the median heuristic no longer counts the distance of a sample to
   itself, whose rounding residues shifted gamma by about 1e-4, and no longer
   builds the Gram matrix.
-* ``Pelt`` and ``Dynp`` break exact ties the same way on both paths: the first
-  candidate within a relative ``1e-9`` of the minimum, i.e. the earliest change
-  point.
+* Ties: every vendored solver treats values closer than ``1e-9`` of the costs
+  involved (at least of the signal's cost per sample, ``tie_unit``) as equal, and
+  decides between them by position as upstream decides between exactly equal
+  values: earliest change point (PELT, DynP), last change point of a segment and
+  first segment (BinSeg), leftmost merge (BottomUp), no peak on a plateau and
+  latest tied peak first (Window); a value tied with ``pen`` or ``epsilon``
+  stops, and PELT keeps a start tied with its pruning bound (pruning less never
+  loses the optimum).
+* ``WindowDetector`` searches its peaks as ruptures does
+  (``argrelmax(mode="wrap")``): the vendored peak search cut the neighbourhood
+  of a score at the ends of the signal, and could add a change point next to the
+  first or last window.
+* The vendored ruptures costs convert the signal to float64 in ``fit``: float32
+  signals were costed in float32, and ``CostCosine`` failed on integers.
 * ``KCPDDetector`` is deprecated (``FutureWarning``): it is ``PeltDetector`` or
   ``DynpDetector`` with a kernel cost (``model="rbf"``, ``"cosine"``, or ``"l2"``
   for the linear kernel).

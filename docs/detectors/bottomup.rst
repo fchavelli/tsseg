@@ -59,6 +59,13 @@ Parameters
      - dict / None
      - ``None``
      - Extra parameters passed to the cost function.
+   * - ``backend``
+     - str
+     - ``"auto"``
+     - Backend of the ``"l1"``, ``"l2"``, ``"rbf"`` and ``"cosine"`` costs:
+       ``"auto"`` uses numba when it is installed (the kernel costs then in
+       O(n) memory, without the :math:`n \times n` Gram matrix); ``"numba"``
+       and ``"python"`` force either. Same segmentation on both paths.
    * - ``axis``
      - int
      - ``0``
@@ -78,7 +85,12 @@ Usage
    detector = BottomUpDetector(model="l2", penalty=10)
    labels = detector.fit_predict(X)
 
-**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.
+**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.  With the
+``"l1"``, ``"l2"``, ``"rbf"`` or ``"cosine"`` cost and numba installed, the
+segment costs are computed in numba: the kernel costs without the
+:math:`n \times n` Gram matrix, ``"l1"`` and ``"l2"`` bit for bit as numpy
+computes them. Merge gains closer than :math:`10^{-9}` of the segments' costs
+are tied, and the leftmost merge is done first, on both backends.
 
 **Reference:** Keogh, Chu, Hart & Pazzani (2001), ICDM; Fryzlewicz (2007), JASA.
 

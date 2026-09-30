@@ -7,15 +7,17 @@ from functools import lru_cache
 from ..base import BaseCost, BaseEstimator
 from ..costs import cost_factory
 from ..exceptions import BadSegmentationParameters
-from ..utils import sanity_check, tie_limit
+from ..utils import sanity_check, tie_limit, tie_unit
 
 
 class Dynp(BaseEstimator):
     """Dynamic programming change point detection.
 
-    ``backend``: as for :class:`Pelt`, the kernel costs (``rbf``, ``cosine``)
-    run with the numba solver of ``ruptures.ekcpd`` under ``"auto"`` when
-    numba is installed.
+    ``backend``: as for :class:`Pelt`, the costs ``l1``, ``l2``, ``rbf`` and
+    ``cosine`` run with the numba solver of ``ruptures.accel`` under ``"auto"``
+    when numba is installed. The Python path memoises one entry per pair of
+    grid points, O((n / jump)^2) memory whatever the cost; the numba one keeps
+    O(n_bkps * n).
     """
 
     def __init__(
@@ -68,12 +70,13 @@ class Dynp(BaseEstimator):
             partition[(bkp, end)] = right[(bkp, end)]
             sub_partitions.append(partition)
         values = [sum(partition.values()) for partition in sub_partitions]
-        limit = tie_limit(min(values))
+        limit = tie_limit(min(values), (end - start) * self._unit)
         return next(p for p, v in zip(sub_partitions, values) if v <= limit)
 
     def fit(self, signal) -> "Dynp":
         self.cost.fit(signal)
         self.n_samples = signal.shape[0]
+        self._unit = tie_unit(self.cost)
         self.seg.cache_clear()
         return self
 
@@ -85,10 +88,10 @@ class Dynp(BaseEstimator):
             min_size=self.min_size,
         ):
             raise BadSegmentationParameters
-        from .. import ekcpd  # numba, imported on first use
+        from .. import accel  # numba, imported on first use
 
-        if ekcpd.use_numba(self.cost, self.backend):
-            return ekcpd.dynp(self.cost, n_bkps, self.min_size, self.jump)
+        if accel.use_numba(self.cost, self.backend):
+            return accel.dynp(self.cost, n_bkps, self.min_size, self.jump)
         partition = self.seg(0, self.n_samples, n_bkps)
         return sorted(end for _, end in partition.keys())
 

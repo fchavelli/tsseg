@@ -14,10 +14,10 @@ def median_sq_dist(signal: np.ndarray) -> float:
 
     In O(n) memory with numba; otherwise over ``pdist``, O(n^2).
     """
-    from .. import ekcpd
+    from .. import accel
 
-    if ekcpd.AVAILABLE:
-        return ekcpd.median_sq_dist(signal)
+    if accel.AVAILABLE:
+        return accel.median_sq_dist(signal)
     dist2 = pdist(signal, "sqeuclidean")
     dist2 = dist2[dist2 > 0]
     return float(np.median(dist2)) if dist2.size else 0.0
@@ -55,6 +55,7 @@ class CostRbf(BaseCost):
         self.gamma = 1.0 / median if median != 0 else 1.0
 
     def fit(self, signal: np.ndarray) -> "CostRbf":
+        signal = np.asarray(signal, dtype=np.float64)  # whatever the input dtype
         if signal.ndim == 1:
             self.signal = signal.reshape(-1, 1)
         else:

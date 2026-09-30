@@ -77,6 +77,16 @@ class WindowDetector(BaseSegmenter):
             nullable=True,
             ui_hidden=True,
         ),
+        "backend": ParamDef(
+            constraint=StrOptions({"auto", "numba", "python"}),
+            description=(
+                "Backend of the costs l1, l2, rbf and cosine. ``auto``: numba "
+                "when it is installed (the kernel costs then in O(n) memory, "
+                "without the n x n Gram matrix), else Python. Same segmentation "
+                "either way."
+            ),
+            ui_hidden=True,
+        ),
         "_cross_constraints": [
             MutuallyExclusive(["n_cps", "pen", "epsilon"], required_count=1),
             DataDependent(
@@ -97,6 +107,7 @@ class WindowDetector(BaseSegmenter):
         min_size: int = 2,
         jump: int = 5,
         cost_params: dict | None = None,
+        backend: str = "auto",
         axis: int = 0,
     ) -> None:
         criteria = [n_cps is not None, pen is not None, epsilon is not None]
@@ -129,6 +140,7 @@ class WindowDetector(BaseSegmenter):
         self.min_size = int(min_size)
         self.jump = int(jump)
         self.cost_params = cost_params or {}
+        self.backend = backend
         self._estimator: Window | None = None
         self._train_signal: np.ndarray | None = None
         super().__init__(axis=axis)
@@ -149,6 +161,7 @@ class WindowDetector(BaseSegmenter):
             min_size=self.min_size,
             jump=self.jump,
             params=self.cost_params,
+            backend=self.backend,
         )
         estimator.fit(signal)
         self._estimator = estimator

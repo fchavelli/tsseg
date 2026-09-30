@@ -17,6 +17,14 @@ significant change point until a stopping criterion is met.
 Wraps the vendored ruptures `Binseg` solver.
 
 - Origin: vendored from ruptures v1.1.8
+- Costs `l1`, `l2`, `rbf`, `cosine`: with numba installed (`backend="auto"`),
+  the best split of a segment is computed in numba (`ruptures/accel/`) from one
+  sweep from each end, in O(n) (`l2`), O(n log n) (`l1`) or O(n^2) (kernels)
+  instead of two cost evaluations per candidate, and the kernel costs without
+  the n x n Gram matrix. It returns the same change points as the Python path
+  (`backend="python"`).
+- Ties: gains closer than 1e-9 of the segments' costs are tied; the last change
+  point of a segment and the first segment win, as upstream among exact ties.
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 
 ## Citation

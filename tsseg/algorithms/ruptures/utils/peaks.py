@@ -5,14 +5,23 @@ from __future__ import annotations
 import numpy as np
 
 
-def argrelmax_1d(values: np.ndarray, order: int) -> np.ndarray:
+def argrelmax_1d(
+    values: np.ndarray, order: int, tol: np.ndarray | None = None
+) -> np.ndarray:
     """Return indices of relative maxima within ``values``.
 
-    This minimal implementation mirrors :func:`scipy.signal.argrelmax` for the
-    one-dimensional case which is sufficient for the window detector.
+    Mirrors ``scipy.signal.argrelmax(values, order=order, mode="wrap")``, the
+    call of upstream ruptures' ``Window``: a maximum exceeds the ``order``
+    values on each side of it, the array wrapping around at its ends (an
+    ``order`` of at least ``values.size`` compares a value with itself, so that
+    there is no maximum).
+
+    ``tol``: per-value tie tolerances. A maximum must then exceed each of its
+    neighbours by more than the larger of their two tolerances, so that values
+    equal up to rounding form a plateau, which has no maximum.
     """
 
-    if order <= 0:
+    if order < 1:
         raise ValueError("order must be a positive integer")
     if values.ndim != 1:
         raise ValueError("values must be one-dimensional")
@@ -21,12 +30,12 @@ def argrelmax_1d(values: np.ndarray, order: int) -> np.ndarray:
     if n == 0:
         return np.array([], dtype=int)
 
-    order = min(order, max(1, n - 1))
-    maxima = []
-    for idx in range(n):
-        left = max(0, idx - order)
-        right = min(n, idx + order + 1)
-        current = values[idx]
-        if np.all(current > values[left:idx]) and np.all(current > values[idx + 1 : right]):
-            maxima.append(idx)
-    return np.asarray(maxima, dtype=int)
+    if tol is None:
+        tol = np.zeros(n)
+    locs = np.arange(n)
+    maxima = np.ones(n, dtype=bool)
+    for shift in range(1, order + 1):
+        for other in (locs + shift, locs - shift):
+            gap = np.maximum(tol, np.take(tol, other, mode="wrap"))
+            maxima &= values > np.take(values, other, mode="wrap") + gap
+    return np.flatnonzero(maxima)

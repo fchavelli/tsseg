@@ -28,10 +28,30 @@ minor modifications.
 - Change: `CostRbf` sets its median heuristic in `fit` without the Gram matrix,
   over the distances between distinct samples (rounding residues of the Gram's
   diagonal used to enter it), and builds the Gram from `pdist`, as upstream
-- Addition: `ekcpd.py`, a numba transcription of the C solvers of upstream
-  `KernelCPD` (`ekcpd_pelt_computation.c`, `ekcpd_computation.c`), run by `Pelt`
-  and `Dynp` for the `rbf` and `cosine` costs; it keeps their `jump`, pruning and
-  unclipped kernels, so both paths return the same segmentation
+- Change: every solver treats values closer than `utils.TIE_RTOL` (1e-9) of the
+  costs involved as equal, and decides between them by position, as upstream
+  decides between exactly equal values: first candidate (`Pelt`, `Dynp`), last
+  change point of a segment and first segment (`Binseg`), leftmost merge
+  (`BottomUp`), no peak on a plateau and latest tied peak first (`Window`); a
+  value tied with `pen` or `epsilon` stops, and `Pelt` keeps a start tied with
+  its pruning bound. The gap follows the scale of the signal
+  (`utils.tie_unit`, the cost of one sample)
+- Change: `Window` searches its peaks as upstream does, `argrelmax(mode="wrap")`
+  (`utils.argrelmax_1d` used to cut the neighbourhood of a score at the ends,
+  and could return a change point next to the first or last window)
+- Change: the costs convert the signal to float64 in `fit` (upstream computes
+  `l1` and `l2` in the input's dtype, and `CostCosine` failed on integers)
+- Addition: `accel/`, a numba backend of the solvers for the `l1`, `l2`, `rbf`
+  and `cosine` costs (`backend="auto"`, the default, uses it when numba is
+  installed): the whole search of `Pelt` and `Dynp`, for the kernel costs a
+  transcription of the C solvers of upstream `KernelCPD`
+  (`ekcpd_pelt_computation.c`, `ekcpd_computation.c`) that keeps their `jump`,
+  pruning and unclipped kernels; the splits of `Binseg`, by sweeps; the segment
+  costs of `BottomUp` and `Window`. The kernel costs never build the n x n Gram
+  matrix, and the `l1` and `l2` costs of one segment sum in numpy's order, bit
+  for bit. The `l1` and `l2` sweeps run on the channels far from 0
+  (|median| > 4 std) shifted by their median, so that a signal at 1e8 keeps its
+  digits. Both backends return the same segmentation
 - Source: https://github.com/deepcharles/ruptures
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 - Licence file: `LICENSE` in this directory

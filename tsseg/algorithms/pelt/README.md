@@ -21,11 +21,15 @@ Wraps the vendored ruptures `Pelt` solver.
 - Change: pruning is delayed by `min_size` (fix of upstream
   [ruptures PR #383](https://github.com/deepcharles/ruptures/pull/383)); before
   it, PELT could return a sub-optimal segmentation when `min_size > 1`
-- Kernel costs (`rbf`, `cosine`): with numba installed (`backend="auto"`), the
-  solver is a numba transcription of the C code of ruptures' `KernelCPD`
-  (`ruptures/ekcpd.py`), which updates the kernel sums sample by sample in O(n)
-  memory instead of reading them off the n x n Gram matrix. It returns the same
-  segmentation as the Python path (`backend="python"`).
+- Costs `l1`, `l2`, `rbf`, `cosine`: with numba installed (`backend="auto"`),
+  the whole search runs in numba (`ruptures/accel/`). For the kernel costs it is
+  a transcription of the C code of ruptures' `KernelCPD`, which updates the
+  kernel sums sample by sample in O(n) memory instead of reading them off the
+  n x n Gram matrix; for `l1` and `l2`, the costs of the segments that end at t
+  come from one sweep back from t. It returns the same segmentation as the
+  Python path (`backend="python"`).
+- Ties: candidates closer than 1e-9 of the costs involved are tied, and the
+  earliest change point wins, on both backends.
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 
 For a univariate signal with `model="l1"`, upstream ruptures now ships

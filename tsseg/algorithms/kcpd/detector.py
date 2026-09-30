@@ -96,9 +96,10 @@ class KCPDDetector(BaseSegmenter):
         "backend": ParamDef(
             constraint=StrOptions({"auto", "numba", "python"}),
             description=(
-                "Solver for the kernel costs (rbf, cosine). ``auto``: the numba "
-                "solver, O(n) memory, when numba is installed, else Python with "
-                "the n x n Gram matrix. Same segmentation either way."
+                "Backend of the costs l1, l2, rbf and cosine. ``auto``: numba "
+                "when it is installed (the kernel costs then in O(n) memory, "
+                "without the n x n Gram matrix), else Python. Same segmentation "
+                "either way."
             ),
             ui_hidden=True,
         ),

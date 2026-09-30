@@ -70,6 +70,13 @@ Parameters
      - dict / None
      - ``None``
      - Extra keyword arguments for the cost factory.
+   * - ``backend``
+     - str
+     - ``"auto"``
+     - Backend of the ``"l1"``, ``"l2"``, ``"rbf"`` and ``"cosine"`` costs:
+       ``"auto"`` uses numba when it is installed (the kernel costs then in
+       O(n) memory, without the :math:`n \times n` Gram matrix); ``"numba"``
+       and ``"python"`` force either. Same segmentation on both paths.
    * - ``axis``
      - int
      - ``0``
@@ -90,7 +97,16 @@ Usage
    detector = WindowDetector(width=50, model="l2", pen=np.log(n) * d * sigma**2)
    labels = detector.fit_predict(X)
 
-**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.
+**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.  With the
+``"l1"``, ``"l2"``, ``"rbf"`` or ``"cosine"`` cost and numba installed, the
+window scores and segment costs are computed in numba: the kernel costs without
+the :math:`n \times n` Gram matrix, ``"l1"`` and ``"l2"`` bit for bit as numpy
+computes them. Scores closer than :math:`10^{-9}` of the windows' costs are
+tied: a peak must exceed its neighbours by more than that, and the latest of
+tied peaks is taken first, on both backends. Peaks are searched as upstream
+searches them (``scipy.signal.argrelmax`` with ``mode="wrap"``); until 0.2.0 the
+neighbourhood of a score was cut at the ends of the signal instead, which could
+add a change point next to the first or last window.
 
 **Reference:** Basseville & Nikiforov (1993), *Detection of Abrupt Changes*,
 Prentice Hall.

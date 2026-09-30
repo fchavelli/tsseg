@@ -17,11 +17,15 @@ finds the segmentation that globally minimises the sum of segment costs.
 Wraps the vendored ruptures `Dynp` solver.
 
 - Origin: vendored from ruptures v1.1.8
-- Kernel costs (`rbf`, `cosine`): with numba installed (`backend="auto"`), the
-  solver is a numba transcription of the C code of ruptures' `KernelCPD`
-  (`ruptures/ekcpd.py`), which updates the kernel sums sample by sample in O(n)
-  memory instead of reading them off the n x n Gram matrix. It returns the same
-  segmentation as the Python path (`backend="python"`).
+- Costs `l1`, `l2`, `rbf`, `cosine`: with numba installed (`backend="auto"`),
+  the dynamic programme runs in numba (`ruptures/accel/`) in O(n_cps n) memory,
+  where the Python path memoises one sub-problem per pair of grid points, i.e.
+  O((n / jump)^2) memory whatever the cost. The kernel costs follow the C code
+  of ruptures' `KernelCPD`: kernel sums updated sample by sample, no n x n Gram
+  matrix. It returns the same segmentation as the Python path
+  (`backend="python"`).
+- Ties: candidates closer than 1e-9 of the costs involved are tied, and the
+  earliest change point wins, on both backends.
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 
 ## Citation

@@ -70,6 +70,16 @@ class BottomUpDetector(BaseSegmenter):
             nullable=True,
             ui_hidden=True,
         ),
+        "backend": ParamDef(
+            constraint=StrOptions({"auto", "numba", "python"}),
+            description=(
+                "Backend of the costs l1, l2, rbf and cosine. ``auto``: numba "
+                "when it is installed (the kernel costs then in O(n) memory, "
+                "without the n x n Gram matrix), else Python. Same segmentation "
+                "either way."
+            ),
+            ui_hidden=True,
+        ),
         "_cross_constraints": [
             MutuallyExclusive(
                 ["n_cps", "penalty", "epsilon"],
@@ -92,6 +102,7 @@ class BottomUpDetector(BaseSegmenter):
         penalty: float | None = 10,
         epsilon: float | None = None,
         cost_params: dict | None = None,
+        backend: str = "auto",
         axis: int = 0,
     ) -> None:
         self.n_cps = None if n_cps is None else int(n_cps)
@@ -132,6 +143,7 @@ class BottomUpDetector(BaseSegmenter):
         self.penalty = penalty_value
         self.epsilon = epsilon_value
         self.cost_params = cost_params or {}
+        self.backend = backend
         self._estimator: BottomUp | None = None
         self._train_signal: np.ndarray | None = None
         super().__init__(axis=axis)
@@ -151,6 +163,7 @@ class BottomUpDetector(BaseSegmenter):
             min_size=self.min_size,
             jump=self.jump,
             params=self.cost_params,
+            backend=self.backend,
         )
         estimator.fit(signal)
         self._estimator = estimator

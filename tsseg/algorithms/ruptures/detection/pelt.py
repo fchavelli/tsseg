@@ -5,16 +5,17 @@ from __future__ import annotations
 from ..base import BaseCost, BaseEstimator
 from ..costs import cost_factory
 from ..exceptions import BadSegmentationParameters
-from ..utils import sanity_check, tie_limit
+from ..utils import sanity_check, tie_limit, tie_unit
 
 
 class Pelt(BaseEstimator):
     """PELT change point detection algorithm.
 
-    ``backend``: ``"auto"`` runs the kernel costs (``rbf``, ``cosine``) with the
-    numba solver of ``ruptures.ekcpd`` when numba is installed, in O(n) memory
-    instead of the Gram matrix, and everything else in Python; ``"numba"`` and
-    ``"python"`` force either path.
+    ``backend``: ``"auto"`` runs the costs ``l1``, ``l2``, ``rbf`` and ``cosine``
+    with the numba solver of ``ruptures.accel`` when numba is installed (the
+    kernel costs then in O(n) memory instead of the Gram matrix), and every
+    other cost in Python; ``"numba"`` and ``"python"`` force either path. Both
+    return the same segmentation.
     """
 
     def __init__(
@@ -62,12 +63,18 @@ class Pelt(BaseEstimator):
                 tmp = partitions[t].copy()
                 tmp[(t, bkp)] = self.cost.error(t, bkp) + pen
                 subproblems.append((t, tmp, sum(tmp.values())))
-            limit = tie_limit(min(value for _, _, value in subproblems))
+            limit = tie_limit(
+                min(value for _, _, value in subproblems), bkp * self._unit
+            )
             _, partitions[bkp], best_value = next(
                 item for item in subproblems if item[2] <= limit
             )
+            # A start tied with the bound is kept: pruning less never loses the
+            # optimum, and values summed in two orders (Python's sum is
+            # compensated, the numba one is not) prune alike.
+            bound = tie_limit(best_value + pen, bkp * self._unit)
             for t, _, value in subproblems:
-                if value > best_value + pen:
+                if value > bound:
                     prune_at.setdefault(t, bkp + self.min_size)
         best_partition = partitions[self.n_samples]
         best_partition.pop((0, 0), None)
@@ -76,6 +83,7 @@ class Pelt(BaseEstimator):
     def fit(self, signal) -> "Pelt":
         self.cost.fit(signal)
         self.n_samples = signal.shape[0]
+        self._unit = tie_unit(self.cost)
         return self
 
     def predict(self, pen: float):
@@ -88,10 +96,10 @@ class Pelt(BaseEstimator):
             min_size=self.min_size,
         ):
             raise BadSegmentationParameters
-        from .. import ekcpd  # numba, imported on first use
+        from .. import accel  # numba, imported on first use
 
-        if ekcpd.use_numba(self.cost, self.backend):
-            return ekcpd.pelt(self.cost, pen, self.min_size, self.jump)
+        if accel.use_numba(self.cost, self.backend):
+            return accel.pelt(self.cost, pen, self.min_size, self.jump)
         partition = self._seg(pen)
         return sorted(end for _, end in partition.keys())
 

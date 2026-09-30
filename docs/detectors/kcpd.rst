@@ -90,8 +90,8 @@ Usage
 
 **Implementation:** vendored from ruptures v1.1.8, whose ``KernelCPD`` is a C
 implementation of PELT and DynP for kernel costs. tsseg runs its vendored
-Python ``Pelt`` / ``Dynp`` instead, or, for the ``rbf`` and ``cosine`` kernels,
-a numba transcription of that C code (``backend``). BSD 2-Clause.
+Python ``Pelt`` / ``Dynp`` instead, or their numba backend (``backend``), which
+for the ``rbf`` and ``cosine`` kernels transcribes that C code. BSD 2-Clause.
 
 **Reference:** Celisse, Marot, Pierre-Jean & Rigaill (2018), Computational
 Statistics and Data Analysis; Arlot, Celisse & Harchaoui (2019), JMLR.

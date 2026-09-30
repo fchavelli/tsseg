@@ -36,6 +36,7 @@ class CostCosine(BaseCost):
         return self._gram
 
     def fit(self, signal: np.ndarray) -> "CostCosine":
+        signal = np.asarray(signal, dtype=np.float64)  # whatever the input dtype
         if signal.ndim == 1:
             self.signal = signal.reshape(-1, 1)
         else:

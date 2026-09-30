@@ -56,9 +56,10 @@ Parameters
    * - ``backend``
      - str
      - ``"auto"``
-     - Solver for the kernel costs (``"rbf"``, ``"cosine"``): ``"auto"`` uses
-       the numba one, in O(n) memory, when numba is installed; ``"numba"`` and
-       ``"python"`` force either. Same segmentation on both paths.
+     - Backend of the ``"l1"``, ``"l2"``, ``"rbf"`` and ``"cosine"`` costs:
+       ``"auto"`` uses numba when it is installed (the kernel costs then in
+       O(n) memory, without the :math:`n \times n` Gram matrix); ``"numba"``
+       and ``"python"`` force either. Same segmentation on both paths.
    * - ``axis``
      - int
      - ``0``
@@ -75,10 +76,14 @@ Usage
    labels = detector.fit_predict(X)
 
 **Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.  With the
-``"rbf"`` or ``"cosine"`` cost (kernel change point detection, ruptures'
-``KernelCPD``), the solver is a numba transcription of ruptures' C code: it
-updates the kernel sums sample by sample instead of storing the
-:math:`n \times n` Gram matrix.
+``"l1"``, ``"l2"``, ``"rbf"`` or ``"cosine"`` cost and numba installed, the
+dynamic programme runs in numba in :math:`O(K n)` memory, where the Python path
+memoises one sub-problem per pair of grid points, :math:`O((n / \text{jump})^2)`
+whatever the cost. For the kernel costs (kernel change point detection,
+ruptures' ``KernelCPD``) it transcribes ruptures' C code, which updates the
+kernel sums sample by sample instead of storing the :math:`n \times n` Gram
+matrix. Candidates closer than :math:`10^{-9}` of the costs involved are tied,
+and the earliest change point wins, on both backends.
 
 **Reference:** Auger & Lawrence (1989), Bulletin of Mathematical Biology.
 

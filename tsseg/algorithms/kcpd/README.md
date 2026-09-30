@@ -21,8 +21,9 @@ locate change points based on the maximum mean discrepancy between segments.
 
 Wraps the vendored ruptures kernel-based cost and detection pipeline: the same
 solvers as `PeltDetector` (with `pen`) and `DynpDetector` (with `n_cps`) on a
-kernel cost (`linear` is the `l2` cost), plus `decimation` and `pen_scale`. The
-`rbf` and `cosine` kernels run in O(n) memory with numba, as in those detectors.
+kernel cost (`linear` is the `l2` cost), plus `decimation` and `pen_scale`. With
+numba, as in those detectors, the search runs in numba and the `rbf` and
+`cosine` kernels in O(n) memory.
 
 - Origin: vendored from ruptures v1.1.8
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)

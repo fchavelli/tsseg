@@ -17,6 +17,13 @@ lowest cost increase until a stopping criterion is reached.
 Wraps the vendored ruptures `BottomUp` solver.
 
 - Origin: vendored from ruptures v1.1.8
+- Costs `l1`, `l2`, `rbf`, `cosine`: with numba installed (`backend="auto"`),
+  the segment costs are computed in numba (`ruptures/accel/`): the kernel costs
+  without the n x n Gram matrix, `l1` and `l2` bit for bit as numpy computes
+  them. It returns the same change points as the Python path
+  (`backend="python"`).
+- Ties: merge gains closer than 1e-9 of the segments' costs are tied; the
+  leftmost merge is done first, as upstream among exact ties.
 - Licence: BSD 2-Clause (Copyright (c) 2017-2023, Charles Truong, Laurent Oudre, Nicolas Vayatis)
 
 ## Citation

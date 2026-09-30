@@ -20,6 +20,7 @@ class CostNormal(BaseCost):
         self.min_size = 2
 
     def fit(self, signal: np.ndarray) -> "CostNormal":
+        signal = np.asarray(signal, dtype=np.float64)  # whatever the input dtype
         if signal.ndim == 1:
             self.signal = signal.reshape(-1, 1)
         else:

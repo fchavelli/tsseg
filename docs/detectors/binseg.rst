@@ -63,6 +63,13 @@ Parameters
      - dict / None
      - ``None``
      - Additional keyword arguments forwarded to the cost factory.
+   * - ``backend``
+     - str
+     - ``"auto"``
+     - Backend of the ``"l1"``, ``"l2"``, ``"rbf"`` and ``"cosine"`` costs:
+       ``"auto"`` uses numba when it is installed (the kernel costs then in
+       O(n) memory, without the :math:`n \times n` Gram matrix); ``"numba"``
+       and ``"python"`` force either. Same segmentation on both paths.
    * - ``axis``
      - int
      - ``0``
@@ -82,7 +89,14 @@ Usage
    detector = BinSegDetector(model="l2", penalty=10)
    labels = detector.fit_predict(X)
 
-**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.
+**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.  With the
+``"l1"``, ``"l2"``, ``"rbf"`` or ``"cosine"`` cost and numba installed, the best
+split of a segment comes from one sweep from each end, in :math:`O(n)`
+(``"l2"``), :math:`O(n \log n)` (``"l1"``) or :math:`O(n^2)` (kernels) instead
+of two cost evaluations per candidate, and the kernel costs without the
+:math:`n \times n` Gram matrix. Gains closer than :math:`10^{-9}` of the
+segments' costs are tied: the last change point of a segment and the first
+segment win, on both backends.
 
 **Reference:** Bai (1997), Econometric Theory; Fryzlewicz (2014), The Annals of
 Statistics.

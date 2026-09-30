@@ -65,6 +65,10 @@ class BinSegDetector(BaseSegmenter):
     cost_params : dict, optional
         Additional keyword arguments forwarded to ``cost_factory`` when
         building the cost from ``model``.
+    backend : {"auto", "numba", "python"}, default="auto"
+        Backend of the costs ``l1``, ``l2``, ``rbf`` and ``cosine``: numba when
+        it is installed under ``"auto"``, the kernel costs then without the
+        n x n Gram matrix. Same change points either way.
     axis : int, default=0
         Axis representing time in the input array.
 
@@ -123,6 +127,16 @@ class BinSegDetector(BaseSegmenter):
             nullable=True,
             ui_hidden=True,
         ),
+        "backend": ParamDef(
+            constraint=StrOptions({"auto", "numba", "python"}),
+            description=(
+                "Backend of the costs l1, l2, rbf and cosine. ``auto``: numba "
+                "when it is installed (the kernel costs then in O(n) memory, "
+                "without the n x n Gram matrix), else Python. Same segmentation "
+                "either way."
+            ),
+            ui_hidden=True,
+        ),
         "_cross_constraints": [
             MutuallyExclusive(["n_cps", "penalty", "epsilon"], required_count=1),
             DataDependent(
@@ -147,6 +161,7 @@ class BinSegDetector(BaseSegmenter):
         epsilon: float | None = None,
         custom_cost: BaseCost | None = None,
         cost_params: dict | None = None,
+        backend: str = "auto",
         axis: int = 0,
     ) -> None:
         self.n_cps = None if n_cps is None else int(n_cps)
@@ -189,6 +204,7 @@ class BinSegDetector(BaseSegmenter):
         self.epsilon = epsilon_value
         self.custom_cost = custom_cost
         self.cost_params = cost_params or {}
+        self.backend = backend
         self._estimator: Binseg | None = None
         self._fitted_change_points: np.ndarray | None = None
         super().__init__(axis=axis)
@@ -200,6 +216,7 @@ class BinSegDetector(BaseSegmenter):
             min_size=self.min_size,
             jump=self.jump,
             params=self.cost_params or None,
+            backend=self.backend,
         )
         estimator.fit(signal)
         return estimator
