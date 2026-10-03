@@ -86,6 +86,14 @@ def test_n_cps_overrides_the_scaled_penalty():
     assert det.fit_predict(x).size == 2
 
 
+@pytest.mark.parametrize("cls", [BinSegDetector, BottomUpDetector, WindowDetector])
+@pytest.mark.parametrize("model", MODELS)
+def test_n_cps_zero_keeps_the_signal_whole(cls, model):
+    # guided runs on a series without change points (some of HAS and TSSB)
+    det = cls(n_cps=0, model=model, min_size=2, jump=5)
+    assert det.fit_predict(_signal(3)).size == 0
+
+
 def test_unknown_pen_scale():
     with pytest.raises(ValueError, match="pen_scale"):
         PeltDetector(penalty=1.0, pen_scale="aic")

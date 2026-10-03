@@ -43,7 +43,7 @@ class WindowDetector(BaseSegmenter):
             group="windowing",
         ),
         "n_cps": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Number of change points to detect.",
             nullable=True,
             group="stopping_criterion",
