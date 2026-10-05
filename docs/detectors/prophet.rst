@@ -6,24 +6,33 @@ Prophet — trend change point detection via Facebook Prophet.
 Description
 -----------
 
-This detector wraps Facebook Prophet's piecewise-linear trend model.  Prophet
-specifies a large number of *potential* change points uniformly placed in the
-first 80 % of the time series, then applies an L1-regularised (sparse) prior on
-the rate-change magnitudes so that most potential points go unused.  The
-detector extracts the locations of the *significant* rate changes from the
-fitted model.
+This detector returns the change points of Facebook Prophet's piecewise-linear
+trend.  Prophet lets the trend's rate change at a set of *potential* change
+points, with an L1-regularised (sparse, Laplace) prior on the rate-change
+magnitudes ``delta`` so that most potential points go unused.  The detector
+places ``n_candidates`` potential change points evenly over the series and
+scores each one by its fitted ``|delta|`` relative to the median ``|delta|``
+over the candidates.  It returns the ``n_changepoints`` strongest when this
+number is given, otherwise those whose score exceeds ``delta_threshold`` (a
+relative form of TCPDBench's rule).  Two returned change
+points are at least ``tolerance`` apart, since a level shift between two
+candidates shows as two opposite rate changes on consecutive candidates.
 
 Key parameters:
 
-- ``n_changepoints`` — number of *potential* change points.
-- ``changepoint_prior_scale`` (tunable inside ``cost_params``) — controls trend
-  flexibility (default 0.05; increase for a more flexible trend).
-- ``changepoint_range`` (tunable inside ``cost_params``) — fraction of the
-  history where change points are allowed (default 0.8).
+- ``n_changepoints`` — number of change points to return (semi-supervised);
+  ``None`` thresholds the rate changes instead.
+- ``n_candidates`` — number of evenly spaced potential change points; their
+  spacing bounds the localisation accuracy.
+- ``changepoint_prior_scale`` — scale of the Laplace prior: larger values
+  give sharper trend changes, closer to the true change points.  The default
+  (500) was calibrated for change point detection on TSB-SEG, far above
+  Prophet's forecasting default (0.05).
+- ``max_points`` — longer series are reduced to block means before the fit.
 
 | **Type:** change point detection
-| **Supervision:** semi-supervised (``n_changepoints`` recommended)
-| **Scope:** univariate (multivariate via ensembling)
+| **Supervision:** semi-supervised (``n_changepoints``) or unsupervised
+| **Scope:** univariate (multivariate via ensembling or L2 norm)
 | **Requires:** ``prophet`` and ``cmdstanpy``
 
 Parameters
@@ -39,20 +48,44 @@ Parameters
      - Description
    * - ``n_changepoints``
      - int / None
-     - ``5``
-     - Number of potential change points.
+     - ``None``
+     - Number of change points to return; ``None`` selects them by
+       ``delta_threshold``.
    * - ``n_changepoint_func``
      - callable / None
      - ``None``
      - Callable that determines ``n_changepoints`` from the series.
+   * - ``n_candidates``
+     - int
+     - ``200``
+     - Number of evenly spaced potential change points.
+   * - ``changepoint_prior_scale``
+     - float
+     - ``500.0``
+     - Scale of the Laplace prior on the rate changes.
+   * - ``delta_threshold``
+     - float
+     - ``3.0``
+     - Minimum score (``|delta|`` over its median) of a change point when
+       ``n_changepoints`` is ``None``.
+   * - ``seasonality``
+     - bool
+     - ``False``
+     - Fit Prophet's yearly, weekly and daily seasonalities.
    * - ``multivariate_strategy``
      - str
-     - ``"ensembling"``
-     - Strategy for multivariate series (``"ensembling"`` or ``"l2"``).
+     - ``"l2"``
+     - ``"ensembling"`` (one model per channel, scores averaged over the
+       channels) or ``"l2"`` (one model on the L2 norm).
    * - ``tolerance``
      - float
-     - ``0.01``
-     - Tolerance for change-point deduplication.
+     - ``0.02``
+     - Minimum distance between two change points (fraction of the length
+       when below 1, samples otherwise).
+   * - ``max_points``
+     - int / None
+     - ``2000``
+     - Series longer than this are reduced to block means before the fit.
    * - ``axis``
      - int
      - ``0``
@@ -66,7 +99,7 @@ Usage
    from tsseg.algorithms import ProphetDetector
 
    detector = ProphetDetector(n_changepoints=10)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** Wrapper around ``facebook/prophet``.  MIT.
 

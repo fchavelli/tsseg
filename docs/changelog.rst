@@ -11,6 +11,18 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``ProphetDetector`` now places ``n_candidates`` evenly spaced candidates, fits
+  Prophet's rate changes ``delta`` and returns the ``n_changepoints`` largest
+  ``|delta|`` relative to their median, or, when ``n_changepoints`` is ``None``
+  (the new default), those above ``delta_threshold`` (a relative form of
+  TCPDBench's rule), at least ``tolerance`` apart. New parameters
+  ``n_candidates``, ``changepoint_prior_scale`` (500 by default, calibrated on
+  TSB-SEG), ``delta_threshold``, ``seasonality`` (off by default) and
+  ``max_points`` (longer series are reduced to block means before the fit);
+  ``n_changepoints`` now accepts 0; ``multivariate_strategy`` defaults to
+  ``"l2"``, and ``"ensembling"`` averages the per-channel scores instead of
+  voting.
+
 * The vendored ruptures solvers have a numba backend for the ``l1``, ``l2``,
   ``rbf`` and ``cosine`` costs, with the same segmentation as the Python path:
   ``backend="auto"`` (the default) picks it when numba is installed, ``"numba"``
