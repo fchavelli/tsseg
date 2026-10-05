@@ -131,7 +131,15 @@ class _ParallelAutoEncoder(nn.Module):
 
 
 class TireDetector(BaseSegmenter):
-    """TIRE (Time-Invariant Representation) change point detector."""
+    """TIRE (Time-Invariant Representation) change point detector.
+
+    The change score of every time step is the prominence of the dissimilarity
+    between consecutive learned representations, relative to the highest one.
+    With ``n_segments`` the ``n_segments - 1`` most prominent peaks are
+    returned; otherwise every peak whose relative prominence reaches
+    ``prominence_threshold``. Two returned peaks are at least
+    ``peak_distance_fraction`` of the series length apart (0: no constraint).
+    """
 
     _tags = {
         "capability:univariate": True,
@@ -219,8 +227,12 @@ class TireDetector(BaseSegmenter):
             description="Normalization scope.",
         ),
         "peak_distance_fraction": ParamDef(
-            constraint=Interval(float, 0, 1, Closed.NEITHER),
-            description="Min fraction of series length between peaks.",
+            constraint=Interval(float, 0, 1, Closed.LEFT),
+            description="Min distance between peaks, as a fraction of the series length (0: none).",
+        ),
+        "prominence_threshold": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.BOTH),
+            description="Min peak prominence (relative to the highest) when n_segments is None.",
         ),
         "max_epochs": ParamDef(
             constraint=Interval(int, 1, None, Closed.LEFT),
@@ -284,12 +296,13 @@ class TireDetector(BaseSegmenter):
         loss_weight_fd: float = 1.0,
         nfft: int = 30,
         norm_mode: Literal["window", "timeseries"] = "timeseries",
-        peak_distance_fraction: float = 0.01,
+        peak_distance_fraction: float = 0.0,
         max_epochs: int = 20,
         patience: int = 5,
         learning_rate: float = 1e-3,
         *,
         n_segments: int | None = None,
+        prominence_threshold: float = 0.5,
         axis: int = 0,
         random_state: int | None = None,
     ) -> None:
@@ -319,6 +332,7 @@ class TireDetector(BaseSegmenter):
         self.learning_rate = learning_rate
         self.random_state = random_state
         self.n_segments = n_segments
+        self.prominence_threshold = prominence_threshold
 
         self.config = _TireConfig(
             window_size=window_size,
@@ -518,23 +532,18 @@ class TireDetector(BaseSegmenter):
         if X.ndim == 1:
             X = X[:, np.newaxis]
         scores = self._run_pipeline(X)
+        self.change_scores_ = scores
+        distance = max(1, int(round(self.peak_distance_fraction * X.shape[0])))
 
         if self.n_segments is None or self.n_segments < 2:
-            # Return peaks detected with default prominence
             peaks, _ = find_peaks(
-                scores,
-                distance=max(
-                    1, int(self.config.window_size * self.config.peak_distance_fraction)
-                ),
-                prominence=0.1,
+                scores, distance=distance, prominence=self.prominence_threshold
             )
             return peaks.astype(int)
 
         peaks, properties = find_peaks(
             scores,
-            distance=max(
-                1, int(self.config.window_size * self.config.peak_distance_fraction)
-            ),
+            distance=distance,
             prominence=0,  # request prominence computation so we can rank peaks
         )
         if peaks.size == 0:

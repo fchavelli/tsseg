@@ -160,14 +160,14 @@ Each vendored directory contains a LICENSE file with full terms.
 If you use this work, please consider citing the associated paper:
 
 ```bibtex
-@inproceedings{chavelli:hal-05654218,
-  TITLE = {{tsseg: An Interactive Toolkit for Time Series Segmentation}},
-  AUTHOR = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
-  URL = {https://inria.hal.science/hal-05654218},
-  BOOKTITLE = {{ECML-PKDD 2026 - European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases}},
-  ADDRESS = {Naples, Italy},
-  YEAR = {2026},
-  MONTH = Sep
+@inproceedings{tsseg2026,
+  title     = {tsseg: An Interactive Toolkit for Time Series Segmentation},
+  author    = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
+  booktitle = {Machine Learning and Knowledge Discovery in Databases},
+  year      = {2027},
+  pages     = {391--394},
+  publisher = {Springer Nature Switzerland},
+  doi       = {10.1007/978-3-032-37685-5_41}
 }
 ```
 

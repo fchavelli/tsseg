@@ -11,6 +11,12 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``TireDetector``: the minimum distance between two change points is
+  ``peak_distance_fraction`` times the series length, as documented; the default is 0 (no
+  constraint). The prominence threshold of
+  the unsupervised mode is the ``prominence_threshold`` parameter,
+  0.5 by default.
+
 * ``ProphetDetector`` now places ``n_candidates`` evenly spaced candidates, fits
   Prophet's rate changes ``delta`` and returns the ``n_changepoints`` largest
   ``|delta|`` relative to their median, or, when ``n_changepoints`` is ``None``

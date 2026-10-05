@@ -11,7 +11,9 @@ autoencoders in both the time domain (TD) and frequency domain (FD).  The
 *shared* latent dimensions across autoencoders capture the time-invariant signal
 statistics while the *private* dimensions capture time-varying noise.  A
 dissimilarity curve is computed from the shared representations and peaks in
-this curve indicate change points.
+this curve indicate change points: the ``n_segments - 1`` most prominent ones
+when ``n_segments`` is given, otherwise every peak whose prominence, relative
+to the highest one, reaches ``prominence_threshold``.
 
 By tuning the loss weights and latent dimensions for each domain you can
 control whether the detector focuses on amplitude changes (TD) or spectral
@@ -95,8 +97,14 @@ Parameters
      - Normalisation scope (``"window"`` or ``"timeseries"``).
    * - ``peak_distance_fraction``
      - float
-     - ``0.01``
-     - Min fraction of series length between peaks.
+     - ``0.0``
+     - Minimum distance between two change points, as a fraction of the
+       series length (0: no constraint).
+   * - ``prominence_threshold``
+     - float
+     - ``0.5``
+     - Minimum prominence of a peak, relative to the highest one, when
+       ``n_segments`` is ``None``.
    * - ``max_epochs``
      - int
      - ``20``
