@@ -1,12 +1,10 @@
-import os
-
 import numpy as np
 import numpy.fft as fft
 from numba import get_num_threads, njit, objmode, prange, set_num_threads
 from numba.typed.typedlist import List
 
 from .distance import map_distances
-from .utils import check_input_time_series, numba_cache_safe
+from .utils import check_input_time_series, numba_cache_safe, resolve_n_jobs
 
 
 @njit(fastmath=True, cache=True)
@@ -404,7 +402,7 @@ class KSubsequenceNeighbours:
         self.k_neighbours = k_neighbours
         self.distance_name = distance
         self.distance_preprocessing, self.distance = map_distances(distance)
-        self.n_jobs = os.cpu_count() if n_jobs < 1 else n_jobs
+        self.n_jobs = resolve_n_jobs(n_jobs)
 
     def fit(self, time_series, temporal_constraints=None):
         """
