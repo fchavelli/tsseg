@@ -68,6 +68,11 @@ Unreleased
 * ``KCPDDetector`` is deprecated (``FutureWarning``): it is ``PeltDetector`` or
   ``DynpDetector`` with a kernel cost (``model="rbf"``, ``"cosine"``, or ``"l2"``
   for the linear kernel).
+* ``PatssDetector`` runs with scikit-learn 1.8, which removed
+  ``LogisticRegression(multi_class=...)`` and raised a ``TypeError``: the
+  one-vs-rest elastic-net logistic regression of PaTSS is now
+  ``OneVsRestClassifier(LogisticRegression(...))``, the same model (predicted
+  probabilities equal to 1e-15 under scikit-learn 1.6).
 
 0.2.0 (2026-09-26)
 ------------------
