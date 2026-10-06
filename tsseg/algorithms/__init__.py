@@ -18,7 +18,6 @@ from .patss.detector import PatssDetector
 from .pelt.detector import PeltDetector
 from .random.detector import RandomDetector
 from .ticc.detector import TiccDetector
-from .vsax.detector import VSAXDetector
 from .window.detector import WindowDetector
 
 # --- Lazy imports for detectors with heavy optional dependencies ---
@@ -35,7 +34,6 @@ _LAZY_IMPORTS = {
     "TGLADDetector": (".tglad.detector", "TGLADDetector"),
     "Time2StateDetector": (".time2state.detector", "Time2StateDetector"),
     "TireDetector": (".tire.detector", "TireDetector"),
-    "VQTSSDetector": (".vqtss.detector", "VQTSSDetector"),
     # TensorFlow-based
     "TSCP2Detector": (".tscp2.detector", "TSCP2Detector"),
     "SNLDSDetector": (".snlds.detector", "SNLDSDetector"),
@@ -88,7 +86,5 @@ __all__ = [
     "Time2StateDetector",
     "TireDetector",
     "TSCP2Detector",
-    "VQTSSDetector",
-    "VSAXDetector",
     "WindowDetector",
 ]

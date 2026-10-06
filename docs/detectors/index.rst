@@ -60,8 +60,6 @@ State detection
    snlds
    ticc
    time2state
-   vqtss
-   vsax
 
 Baseline
 --------

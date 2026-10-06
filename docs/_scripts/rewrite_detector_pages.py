@@ -55,8 +55,6 @@ DISPLAY: dict[str, str] = {
     "time2state": "Time2State",
     "tire": "TIRE",
     "tscp2": "TS-CP2",
-    "vqtss": "VQ-TSS",
-    "vsax": "vSAX",
     "window": "Window",
 }
 
