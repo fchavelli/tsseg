@@ -27,7 +27,7 @@ _LAZY_IMPORTS = {
     "ClapDetector": (".clap.clap_detector", "ClapDetector"),
     "ClaspDetector": (".clap.clasp_detector", "ClaspDetector"),
     "EAggloDetector": (".eagglo.detector", "EAggloDetector"),
-    # Rbeast (vendorized C extension in c/Rbeast – build with `make`)
+    # Rbeast (tsseg[beast])
     "BeastDetector": (".beast.detector", "BeastDetector"),
     # PyTorch-based
     "E2USDDetector": (".e2usd.detector", "E2USDDetector"),

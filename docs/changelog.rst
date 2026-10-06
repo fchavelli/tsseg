@@ -84,6 +84,14 @@ Unreleased
   first or last window.
 * The vendored ruptures costs convert the signal to float64 in ``fit``: float32
   signals were costed in float32, and ``CostCosine`` failed on integers.
+* ``BeastDetector`` uses the ``Rbeast`` package from PyPI, version 0.1.25 or
+  later (new extra ``tsseg[beast]``), instead of the copy of Rbeast 0.1.15
+  vendored in ``c/Rbeast``, which never returned on univariate series longer
+  than about 4,600 points. Change points were one sample late (Rbeast counts
+  time from 1); they are now the index of the first sample of the new segment.
+  ``mcmc_seed`` defaults to 1: with 0, Rbeast draws a random seed and the
+  output changed from one call to the next.
+
 * ``pen_scale="bic"`` in ``PeltDetector``, ``BinSegDetector``,
   ``BottomUpDetector`` and ``WindowDetector``: the penalty is a coefficient on
   ``log(n) * u``, u the cost of one sample of the whole signal (d for ``l2`` on

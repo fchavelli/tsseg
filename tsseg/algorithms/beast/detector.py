@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import os
-import sys
+from importlib import metadata
 
 import numpy as np
 
@@ -19,45 +18,34 @@ from ..utils import aggregate_change_points, multivariate_l2_norm
 __all__ = ["BeastDetector"]
 
 
+_MIN_RBEAST = (0, 1, 25)
+
+
 def _import_rbeast():
-    """Import Rbeast, preferring the vendorized build in ``c/Rbeast``.
+    """Import Rbeast (``pip install tsseg[beast]``), version 0.1.25 or later.
 
-    Resolution order:
-      1. Vendorized build: ``<package_root>/c/Rbeast/py_src`` (compiled .so).
-      2. System-installed ``Rbeast`` (``pip install Rbeast``).
-
-    To build the vendoized version, run ``make`` in ``c/Rbeast/``.
+    Older releases never return on univariate series longer than about 4,600
+    points (observed with 0.1.15).
     """
-    # 1. Try vendorized build
-    _pkg_root = os.path.dirname(os.path.abspath(__file__))
-    _vendor_dir = os.path.normpath(
-        os.path.join(
-            _pkg_root, os.pardir, os.pardir, os.pardir, "c", "Rbeast", "py_src"
-        )
-    )
-    if os.path.isdir(_vendor_dir):
-        if _vendor_dir not in sys.path:
-            sys.path.insert(0, _vendor_dir)
-        try:
-            import Rbeast as rb  # noqa: N813
-
-            return rb
-        except ImportError:
-            pass
-
-    # 2. System install
     try:
         import Rbeast as rb  # noqa: N813
-
-        return rb
-    except ImportError:
-        pass
-
-    raise ImportError(
-        "BeastDetector requires Rbeast. Either:\n"
-        "  • Build the vendorized version: cd c/Rbeast && make\n"
-        "  • Or install from PyPI:         pip install Rbeast"
-    )
+    except ImportError as exc:
+        raise ImportError(
+            "BeastDetector requires Rbeast: pip install tsseg[beast]"
+        ) from exc
+    try:
+        found = metadata.version("Rbeast")
+    except metadata.PackageNotFoundError:
+        found = None
+    if found is not None:
+        parts = tuple(int(p) for p in found.split(".")[:3] if p.isdigit())
+        if parts < _MIN_RBEAST:
+            raise ImportError(
+                f"BeastDetector requires Rbeast >= 0.1.25 (found {found}): older "
+                "releases hang on univariate series longer than about 4,600 points. "
+                "pip install -U Rbeast"
+            )
+    return rb
 
 
 class BeastDetector(BaseSegmenter):
@@ -69,9 +57,8 @@ class BeastDetector(BaseSegmenter):
     from the posterior distribution, with each time step receiving a
     probability of being a change point.
 
-    This detector wraps the ``Rbeast`` C library. A vendorized copy of the C
-    source is shipped in ``c/Rbeast/`` and can be compiled with ``make``.
-    Alternatively, ``pip install Rbeast`` works (requires numpy < 2).
+    This detector wraps the ``Rbeast`` package (``pip install tsseg[beast]``,
+    Rbeast 0.1.25 or later).
 
     Parameters
     ----------
@@ -104,8 +91,9 @@ class BeastDetector(BaseSegmenter):
         Number of MCMC chains to run.
     mcmc_thin : int, default=5
         Thinning factor for the MCMC chains.
-    mcmc_seed : int, default=0
-        Random seed for reproducibility. ``0`` means no fixed seed.
+    mcmc_seed : int, default=1
+        Seed of the MCMC sampler. ``0`` lets Rbeast pick a random seed, so the
+        output changes from one call to the next.
     cp_prob_threshold : float, default=0.1
         Minimum posterior probability of being a change point for a time
         step to be selected.
@@ -185,7 +173,7 @@ class BeastDetector(BaseSegmenter):
         ),
         "mcmc_seed": ParamDef(
             constraint=Interval(int, 0, None, Closed.LEFT),
-            description="Random seed (0 = no fixed seed).",
+            description="MCMC seed (0 = random seed, not reproducible).",
         ),
         "cp_prob_threshold": ParamDef(
             constraint=Interval(float, 0, 1, Closed.NEITHER),
@@ -225,7 +213,7 @@ class BeastDetector(BaseSegmenter):
         mcmc_burnin: int = 200,
         mcmc_chains: int = 3,
         mcmc_thin: int = 5,
-        mcmc_seed: int = 0,
+        mcmc_seed: int = 1,
         cp_prob_threshold: float = 0.1,
         max_cps: int | None = None,
         component: str = "trend",
@@ -305,6 +293,7 @@ class BeastDetector(BaseSegmenter):
     def _get_mcmc_kwargs(self) -> dict:
         """Return common MCMC keyword arguments for beast() / beast123()."""
         return dict(
+            start=0.0,  # time of the first sample: CP times / deltat are indices
             season=self.season,
             deltat=self.deltat,
             period=self.period,
@@ -337,6 +326,7 @@ class BeastDetector(BaseSegmenter):
 
         md = rb.args()
         md.whichDimIsTime = 1  # rows = time
+        md.startTime = 0.0  # CP times / deltat are indices
         md.season = self.season
         md.period = self.period
         md.detrend = False
@@ -415,7 +405,7 @@ class BeastDetector(BaseSegmenter):
                 prob = pr_col[i] if pr_col is not None and i < len(pr_col) else 1.0
                 if float(prob) < self.cp_prob_threshold:
                     continue
-                comp_cps.append(int(round(float(cp))))
+                comp_cps.append(int(round(float(cp) / self.deltat)))
 
             if n_expected is not None and len(comp_cps) > n_expected:
                 comp_cps = comp_cps[:n_expected]
@@ -500,7 +490,7 @@ class BeastDetector(BaseSegmenter):
                 prob = cp_pr[i] if cp_pr is not None and i < len(cp_pr) else 1.0
                 if float(prob) < self.cp_prob_threshold:
                     continue
-                cps.append(int(round(float(cp))))
+                cps.append(int(round(float(cp) / self.deltat)))
 
             # If we have an expected count, keep at most that many
             if n_expected is not None and len(cps) > n_expected:
