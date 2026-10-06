@@ -68,6 +68,11 @@ Unreleased
 * ``KCPDDetector`` is deprecated (``FutureWarning``): it is ``PeltDetector`` or
   ``DynpDetector`` with a kernel cost (``model="rbf"``, ``"cosine"``, or ``"l2"``
   for the linear kernel).
+* ``ClaspDetector`` runs when ``NUMBA_NUM_THREADS`` is below the number of cores
+  (as set by users or by SLURM jobs): ``n_jobs=-1`` meant ``os.cpu_count()``
+  threads, more than numba accepts, which raised ``ValueError: The number of
+  threads must be between 1 and ...``. ``n_jobs=-1`` now means all the threads
+  numba may use, and a larger ``n_jobs`` is capped at that number.
 
 0.2.0 (2026-09-26)
 ------------------

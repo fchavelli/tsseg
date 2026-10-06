@@ -1,4 +1,3 @@
-import os
 import warnings
 from queue import PriorityQueue
 
@@ -8,7 +7,7 @@ import pandas as pd
 from sklearn.exceptions import NotFittedError
 
 from .clasp_knn import ClaSPEnsemble
-from .utils import check_excl_radius, check_input_time_series
+from .utils import check_excl_radius, check_input_time_series, resolve_n_jobs
 from .window_size import map_window_size_methods
 
 
@@ -106,7 +105,7 @@ class BinaryClaSPSegmentation:
         self.score = score
         self.early_stopping = early_stopping
         self.excl_radius = excl_radius
-        self.n_jobs = os.cpu_count() if n_jobs < 1 else n_jobs
+        self.n_jobs = resolve_n_jobs(n_jobs)
         self.random_state = random_state
         self.is_fitted = False
 
