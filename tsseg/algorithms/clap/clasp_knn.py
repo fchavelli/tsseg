@@ -1,12 +1,15 @@
-import os
-
 import numpy as np
 from numba import get_num_threads, njit, prange, set_num_threads
 from sklearn.exceptions import NotFittedError
 
 from .nearest_neighbour import KSubsequenceNeighbours, cross_val_labels
 from .scoring import map_scores
-from .utils import check_excl_radius, check_input_time_series, numba_cache_safe
+from .utils import (
+    check_excl_radius,
+    check_input_time_series,
+    numba_cache_safe,
+    resolve_n_jobs,
+)
 from .validation import map_validation_tests
 
 
@@ -127,7 +130,7 @@ class ClaSP:
         self.score_name = score
         self.score = map_scores(score)
         self.excl_radius = excl_radius
-        self.n_jobs = os.cpu_count() if n_jobs < 1 else n_jobs
+        self.n_jobs = resolve_n_jobs(n_jobs)
         self.is_fitted = False
 
         check_excl_radius(k_neighbours, excl_radius)

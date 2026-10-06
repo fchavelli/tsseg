@@ -6,7 +6,7 @@ import multiprocessing
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-from sklearn.linear_model import LogisticRegression
+from .._sklearn_compat import ovr_elasticnet_logistic_regression
 from sklearn.mixture import GaussianMixture
 
 from ..embedding.embedding_matrix import create_univariate_embedding, format_embedding_with_overlapping_windows
@@ -299,7 +299,7 @@ def __segment_embedding(embedding, parameters):
 
     # Perform an additional logistic regression step to learn the probability distribution
     if parameters['algorithm'] == 'logistic_regression':
-        model = LogisticRegression(C=parameters['regularization'], multi_class='ovr', penalty='elasticnet', solver='saga', l1_ratio=0.5, random_state=0)
+        model = ovr_elasticnet_logistic_regression(C=parameters['regularization'])
         best_segmentation = __predict_probabilities(model.fit(formatted_embedding, best_segmentation), formatted_embedding)
 
     return best_segmentation
@@ -342,7 +342,7 @@ def __segment_embedding_parallel(embedding, parameters, n_jobs):
 
     # Apply an additional logistic regression step
     if parameters['algorithm'] == 'logistic_regression':
-        model = LogisticRegression(C=parameters['regularization'], multi_class='ovr', penalty='elasticnet', solver='saga', l1_ratio=0.5, random_state=0)
+        model = ovr_elasticnet_logistic_regression(C=parameters['regularization'])
         best_segmentation = __predict_probabilities(model.fit(formatted_embedding, best_segmentation), formatted_embedding)
 
     return best_segmentation, logging_information

@@ -1,12 +1,36 @@
 import os
 import shutil
 
+import numba
 import numpy as np
 from numba import njit
 
 """
 ClaSP utilities
 """
+
+
+def resolve_n_jobs(n_jobs):
+    """
+    Number of numba threads to use for ``n_jobs``.
+
+    ``n_jobs < 1`` means all the threads numba may use, and a larger request is
+    capped at that number: ``numba.set_num_threads`` refuses more threads than
+    ``NUMBA_NUM_THREADS``, which users and schedulers (e.g. SLURM jobs) set below
+    the number of cores.
+
+    Parameters
+    ----------
+    n_jobs : int
+        Requested number of threads; values below 1 mean "as many as possible".
+
+    Returns
+    -------
+    int
+        Number of threads in ``[1, NUMBA_NUM_THREADS]``.
+    """
+    limit = numba.config.NUMBA_NUM_THREADS
+    return limit if n_jobs < 1 else min(n_jobs, limit)
 
 
 def check_input_time_series(time_series):

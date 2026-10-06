@@ -17,6 +17,12 @@ Unreleased
   the V-statistics and the merge of the first and last clusters inherited from
   ``ecp``, and the over-segmentation obtained from one cluster per time point.
 
+* ``ClaspDetector`` runs when ``NUMBA_NUM_THREADS`` is below the number of cores
+  (as set by users or by SLURM jobs): ``n_jobs=-1`` meant ``os.cpu_count()``
+  threads, more than numba accepts, which raised ``ValueError: The number of
+  threads must be between 1 and ...``. ``n_jobs=-1`` now means all the threads
+  numba may use, and a larger ``n_jobs`` is capped at that number.
+
 * ``TireDetector``: the minimum distance between two change points is
   ``peak_distance_fraction`` times the series length, as documented; the default is 0 (no
   constraint). The prominence threshold of
@@ -44,6 +50,15 @@ Unreleased
   PELT and DynP, a transcription of the C solvers of ruptures' ``KernelCPD``);
   DynP no longer memoises O((n / jump)^2) sub-problems; BinSeg finds the best
   split of a segment in one sweep from each end.
+* ``SNLDSDetector`` is now shipped with the package. It was listed in
+  ``tsseg.algorithms`` without its module, so ``from tsseg.algorithms import *``
+  failed on the 0.2.0 wheel. The authors' TensorFlow code (Google Research,
+  Apache-2.0) is vendored in ``tsseg/algorithms/snlds/vendor``; install the
+  dependencies with ``pip install tsseg[snlds]``. Its constructor is now
+  keyword-only, and its tags declare it semi-supervised (``n_states`` is the
+  number of regimes) rather than unsupervised. The wheel now also ships the
+  ``LICENSE`` files of the vendored code.
+
 * ``CostRbf``: the median heuristic no longer counts the distance of a sample to
   itself, whose rounding residues shifted gamma by about 1e-4, and no longer
   builds the Gram matrix.
@@ -74,6 +89,11 @@ Unreleased
 * ``KCPDDetector`` is deprecated (``FutureWarning``): it is ``PeltDetector`` or
   ``DynpDetector`` with a kernel cost (``model="rbf"``, ``"cosine"``, or ``"l2"``
   for the linear kernel).
+* ``PatssDetector`` runs with scikit-learn 1.8, which removed
+  ``LogisticRegression(multi_class=...)`` and raised a ``TypeError``: the
+  one-vs-rest elastic-net logistic regression of PaTSS is now
+  ``OneVsRestClassifier(LogisticRegression(...))``, the same model (predicted
+  probabilities equal to 1e-15 under scikit-learn 1.6).
 
 0.2.0 (2026-09-26)
 ------------------

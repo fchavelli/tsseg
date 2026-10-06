@@ -132,7 +132,10 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     "FLUSSDetector": AlgorithmOverride(dependencies=("stumpy",)),
     "PatssDetector": AlgorithmOverride(dependencies=("npbad",)),
     "ProphetDetector": AlgorithmOverride(dependencies=("prophet",)),
-    "SNLDSDetector": AlgorithmOverride(dependencies=("tensorflow",)),
+    "SNLDSDetector": AlgorithmOverride(
+        dependencies=("tensorflow", "tensorflow_probability", "tf_keras"),
+        init_kwargs={"n_train_steps": 3},
+    ),
     "Time2StateDetector": AlgorithmOverride(dependencies=("torch",)),
     "TireDetector": AlgorithmOverride(dependencies=("torch",)),
     "TGLADDetector": AlgorithmOverride(
