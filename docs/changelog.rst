@@ -90,7 +90,8 @@ Unreleased
   defaults are ``batch_size=8`` and ``n_train_steps=2000``. Prediction is
   compiled, about 100 times faster on MoCap. The detector declares a parameter
   schema and the ``non_deterministic`` tag, and no longer reseeds NumPy's global
-  generator.
+  generator. SNLDS is documented as experimental: on a sample of TSB-SEG it
+  scores below a random segmentation.
 
 * ``KCPDDetector`` is deprecated (``FutureWarning``): it is ``PeltDetector`` or
   ``DynpDetector`` with a kernel cost (``model="rbf"``, ``"cosine"``, or ``"l2"``

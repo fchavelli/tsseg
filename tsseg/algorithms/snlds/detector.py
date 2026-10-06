@@ -31,6 +31,11 @@ class SNLDSDetector(BaseSegmenter):
     ``p(s_t | x_{1:T}, z_{1:T})`` is used to assign a regime label to each
     time-step.
 
+    .. warning::
+        **Experimental.** On a sample of TSB-SEG, with the default parameters,
+        SNLDS scores below a random segmentation: its labels change far more
+        often than the true regimes. See the documentation page.
+
     Parameters
     ----------
     n_states : int, default=3

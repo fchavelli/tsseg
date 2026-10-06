@@ -4,6 +4,14 @@ SNLDS
 Switching non-linear dynamical system trained with collapsed amortized
 variational inference (CAVI-SNLDS).
 
+.. warning::
+   **Experimental.** On a 54-series sample of TSB-SEG (TSSB, UTSA, SKAB, MoCap),
+   with the default parameters, SNLDS scores below a random segmentation
+   (bidirectional covering 0.074 against 0.377, ARI 0.066 against 0.208): its
+   labels change about 200 times more often than the true regimes. Training five
+   times longer did not help on the two series tried. It is kept for further
+   study, not as a recommended detector.
+
 Description
 -----------
 

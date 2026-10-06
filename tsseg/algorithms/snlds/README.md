@@ -8,6 +8,9 @@ highest posterior probability.
 
 ## Key properties
 
+- **Experimental**: below a random segmentation on a 54-series sample of TSB-SEG
+  (labels change about 200 times too often); kept for further study
+
 - Type: state detection
 - Semi-supervised (`n_states` is the number of regimes)
 - Univariate and multivariate
