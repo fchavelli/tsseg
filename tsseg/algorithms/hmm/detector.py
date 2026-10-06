@@ -20,6 +20,12 @@ from ..base import BaseSegmenter
 class HMMDetector(BaseSegmenter):
     """Implements a simple HMM fitted with Viterbi algorithm.
 
+    .. warning::
+        **Deprecated**, will be removed in a future release. ``HMMDetector``
+        learns nothing: it decodes with emission and transition parameters that
+        the user must supply. Use ``GaussianHMMDetector``, which fits a Gaussian
+        HMM by expectation-maximisation.
+
     The HMM annotation estimator uses the
     the Viterbi algorithm to fit a sequence of 'hidden state' class
     annotations (represented by an array of integers the same size
@@ -151,6 +157,13 @@ class HMMDetector(BaseSegmenter):
         transition_prob_mat: np.ndarray | None = None,
         initial_probs: np.ndarray | None = None,
     ):
+        warnings.warn(
+            "HMMDetector is deprecated and will be removed in a future release: it "
+            "decodes with user-supplied parameters and learns nothing. Use "
+            "GaussianHMMDetector, which fits a Gaussian HMM by EM.",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.initial_probs = initial_probs
         self.emission_funcs = (
             emission_funcs

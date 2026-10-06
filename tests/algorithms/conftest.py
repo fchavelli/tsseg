@@ -111,6 +111,9 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     ),
     "DynpDetector": AlgorithmOverride(semi_supervised=True),
     "HidalgoDetector": AlgorithmOverride(semi_supervised=True),
+    "GaussianHMMDetector": AlgorithmOverride(
+        init_kwargs={"random_state": 0, "max_states": 4},
+    ),
     "VSAXDetector": AlgorithmOverride(semi_supervised=True),
     # --- Need an explicit stopping criterion --------------------------
     "ClaspDetector": AlgorithmOverride(

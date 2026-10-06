@@ -3,6 +3,13 @@ HMM
 
 HMM — Hidden Markov Model state annotation via Viterbi decoding.
 
+.. warning::
+   **Deprecated.** ``HMMDetector`` will be removed in a future release. It learns
+   nothing: it decodes with emission and transition parameters that the user must
+   supply, and its defaults are two fixed Gaussians. Use
+   :doc:`gaussian_hmm`, which fits a Gaussian HMM by expectation-maximisation
+   and can choose the number of states.
+
 Description
 -----------
 
