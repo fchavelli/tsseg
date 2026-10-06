@@ -45,7 +45,9 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -e .[dev,aeon,prophet,tglad]
+          # accelerators (numba): without it the numba backend of the vendored
+          # ruptures, ClaSP, CLaP and E-Agglo are skipped
+          pip install -e .[dev,aeon,prophet,tglad,accelerators]
 
       - name: Run tests
         run: pytest --tb=short -q
