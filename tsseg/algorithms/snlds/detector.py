@@ -18,6 +18,7 @@ from typing import Any
 import numpy as np
 
 from ..base import BaseSegmenter
+from ..param_schema import Closed, Interval, ParamDef, StrOptions
 
 logger = logging.getLogger(__name__)
 
@@ -40,35 +41,53 @@ class SNLDSDetector(BaseSegmenter):
         Hidden dimension of the posterior inference RNN.
     rnn_type : str, default="simplernn"
         RNN cell type for inference network ("gru", "lstm", "simplernn").
-    n_train_steps : int, default=5000
+    n_train_steps : int, default=2000
         Number of gradient steps for training.
     learning_rate : float, default=1e-4
         Learning rate for Adam optimiser.
-    batch_size : int, default=1
-        Number of sequences per mini-batch (kept at 1 for single-series usage).
+    batch_size : int, default=8
+        Number of training windows per gradient step.
+    train_window : int or None, default=256
+        Length of the training windows, drawn at random positions of the series
+        at each step. ``None`` (or a value at least the length of the series)
+        trains on the whole series, with ``batch_size`` copies of it.
     objective : str, default="elbo"
         Training objective ("elbo" or "iwae").
     use_temperature_annealing : bool, default=True
-        Whether to anneal the discrete state temperature. Currently inactive, see
-        Notes.
+        Anneal the temperature of the discrete transitions from
+        ``temperature_init`` down to 1 (see Notes).
+    temperature_init : float, default=1000.0
+        Initial temperature.
     use_cross_entropy_reg : bool, default=True
-        Whether to use cross-entropy regularisation to encourage state usage.
-        Currently inactive, see Notes.
+        Add the cross-entropy regulariser on regime usage, with a weight that
+        decays from ``xent_init`` towards 0 (see Notes).
+    xent_init : float, default=1000.0
+        Initial weight of the cross-entropy regulariser.
     random_state : int or None, default=42
-        Random seed for reproducibility.
+        Seed of the training windows, and of TensorFlow (global seed, set at the
+        start of ``fit`` and ``predict``). TensorFlow's sampling is not fully
+        reproducible: a few labels (about 0.1 % on MoCap) can differ between two
+        calls.
     verbose : int, default=0
-        Logging verbosity (0=silent, 1=progress, 2=debug).
+        Log the objective ten times during training when ``>= 1``.
     axis : int, default=0
         Time axis of the input array.
 
     Notes
     -----
-    The schedules take the values of the upstream Lorenz example, whose
-    initial temperature and initial regulariser weight are 0. The temperature
-    therefore stays at 1 and the regulariser weight at 1e-10 for the whole
-    training, whatever ``use_temperature_annealing`` and
-    ``use_cross_entropy_reg``. The paper starts both large and decays them to
-    prevent the collapse onto a single regime.
+    The schedules follow the paper's Reacher experiment (appendix), scaled to
+    ``n_train_steps``: there, the regulariser weight starts at 1,000 and
+    decays by a factor 0.975 every 500 steps after step 50,000, the temperature
+    does the same after step 100,000 (down to 1), and training lasts 300,000
+    steps. Here the weight decays after ``n_train_steps / 6`` steps and the
+    temperature after ``n_train_steps / 3``, by 0.975 every
+    ``n_train_steps / 600`` steps, so that both reach the same final values.
+
+    Training on random windows bounds the cost of a step, which otherwise
+    runs a forward-backward pass over the whole series. The paper trains on
+    minibatches of 32 short sequences (50 to 100 steps) from many trajectories;
+    here the windows come from the single series to segment. Prediction uses
+    the whole series.
 
     The vendored model code comes from Google Research (Apache License 2.0),
     see ``tsseg/algorithms/snlds/vendor``.
@@ -92,6 +111,67 @@ class SNLDSDetector(BaseSegmenter):
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
         "python_dependencies": ["tensorflow", "tensorflow_probability", "tf_keras"],
+        # The inference network samples z inside a TensorFlow while loop; even
+        # with a seed, a few labels can change from one call to the next.
+        "non_deterministic": True,
+    }
+
+    _parameter_schema = {
+        "n_states": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of discrete regimes.",
+        ),
+        "hidden_dim": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Dimension of the continuous latent state.",
+            group="architecture",
+        ),
+        "rnn_dim": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Hidden size of the inference RNN.",
+            group="architecture",
+        ),
+        "rnn_type": ParamDef(
+            constraint=StrOptions({"gru", "lstm", "simplernn"}),
+            description="Inference RNN cell.",
+            group="architecture",
+        ),
+        "n_train_steps": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Number of gradient steps.",
+            group="training",
+        ),
+        "learning_rate": ParamDef(
+            constraint=Interval(float, 0, None, Closed.NEITHER),
+            description="Adam learning rate.",
+            group="training",
+        ),
+        "batch_size": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Training windows per gradient step.",
+            group="training",
+        ),
+        "train_window": ParamDef(
+            constraint=Interval(int, 2, None, Closed.LEFT),
+            nullable=True,
+            description="Length of the training windows (None: whole series).",
+            group="training",
+        ),
+        "objective": ParamDef(
+            constraint=StrOptions({"elbo", "iwae"}),
+            description="Training objective.",
+            group="training",
+        ),
+        "temperature_init": ParamDef(
+            constraint=Interval(float, 1, None, Closed.LEFT),
+            description="Initial temperature of the discrete transitions.",
+            group="training",
+        ),
+        "xent_init": ParamDef(
+            constraint=Interval(float, 0, None, Closed.LEFT),
+            description="Initial weight of the cross-entropy regulariser.",
+            group="training",
+        ),
     }
 
     def __init__(
@@ -101,12 +181,15 @@ class SNLDSDetector(BaseSegmenter):
         hidden_dim: int = 8,
         rnn_dim: int = 4,
         rnn_type: str = "simplernn",
-        n_train_steps: int = 5000,
+        n_train_steps: int = 2000,
         learning_rate: float = 1e-4,
-        batch_size: int = 1,
+        batch_size: int = 8,
+        train_window: int | None = 256,
         objective: str = "elbo",
         use_temperature_annealing: bool = True,
+        temperature_init: float = 1000.0,
         use_cross_entropy_reg: bool = True,
+        xent_init: float = 1000.0,
         random_state: int | None = 42,
         verbose: int = 0,
         axis: int = 0,
@@ -118,9 +201,12 @@ class SNLDSDetector(BaseSegmenter):
         self.n_train_steps = n_train_steps
         self.learning_rate = learning_rate
         self.batch_size = batch_size
+        self.train_window = train_window
         self.objective = objective
         self.use_temperature_annealing = use_temperature_annealing
+        self.temperature_init = temperature_init
         self.use_cross_entropy_reg = use_cross_entropy_reg
+        self.xent_init = xent_init
         self.random_state = random_state
         self.verbose = verbose
         super().__init__(axis=axis)
@@ -204,34 +290,38 @@ class SNLDSDetector(BaseSegmenter):
         return model
 
     def _get_schedules(self):
-        """Return schedule functions for learning rate, temperature, and cross-entropy."""
+        """Temperature and cross-entropy weight as functions of the step.
+
+        The paper's Reacher schedule (300,000 steps) scaled to ``n_train_steps``,
+        see the class Notes.
+        """
         from .vendor import config_utils, utils
 
+        n = self.n_train_steps
+        decay_steps = max(1.0, n / 600.0)
+
         temp_config = config_utils.get_temperature_config(
-            decay_rate=0.99,
-            decay_steps=50,
-            initial_temperature=0.0,
+            decay_rate=0.975,
+            decay_steps=decay_steps,
+            initial_temperature=float(self.temperature_init),
             minimal_temperature=1.0,
-            kickin_steps=0,
+            kickin_steps=n / 3.0,
             use_temperature_annealing=self.use_temperature_annealing,
         )
-
         xent_config = config_utils.get_cross_entropy_config(
-            decay_rate=0.99,
-            decay_steps=50,
-            initial_value=0.0,
-            kickin_steps=0,
+            decay_rate=0.975,
+            decay_steps=decay_steps,
+            initial_value=float(self.xent_init),
+            kickin_steps=n / 6.0,
             use_entropy_annealing=self.use_cross_entropy_reg,
         )
 
         def get_temperature(step):
             if temp_config.use_temperature_annealing:
                 return utils.schedule_exponential_decay(
-                    step,
-                    temp_config,
-                    temp_config.minimal_temperature,
+                    step, temp_config, temp_config.minimal_temperature
                 )
-            return temp_config.initial_temperature
+            return 1.0
 
         def get_xent_coef(step):
             if xent_config.use_entropy_annealing:
@@ -255,7 +345,7 @@ class SNLDSDetector(BaseSegmenter):
 
         if self.random_state is not None:
             tf.random.set_seed(self.random_state)
-            np.random.seed(self.random_state)
+        rng = np.random.default_rng(self.random_state)
 
         n_timepoints, obs_dim = X.shape
         self._obs_dim = obs_dim
@@ -263,16 +353,23 @@ class SNLDSDetector(BaseSegmenter):
         # Normalise input
         self._mean = X.mean(axis=0)
         self._std = X.std(axis=0) + 1e-8
-        X_norm = (X - self._mean) / self._std
+        X_norm = ((X - self._mean) / self._std).astype(np.float32)
+
+        # Training windows: random positions, fixed length
+        window = n_timepoints
+        if self.train_window is not None:
+            window = min(int(self.train_window), n_timepoints)
+        n_starts = n_timepoints - window + 1
+
+        def next_batch():
+            starts = rng.integers(0, n_starts, size=self.batch_size)
+            return tf.constant(np.stack([X_norm[i : i + window] for i in starts]))
 
         # Build model
-        self._model = self._build_model(obs_dim, n_timepoints)
+        self._model = self._build_model(obs_dim, window)
         optimizer = tf.keras.optimizers.Adam()
 
         get_temperature, get_xent_coef = self._get_schedules()
-
-        # Prepare batch: [1, T, D]
-        X_tensor = tf.constant(X_norm[np.newaxis, :, :], dtype=tf.float32)
 
         # Compiled training step for performance
         objective_key = self.objective
@@ -306,7 +403,7 @@ class SNLDSDetector(BaseSegmenter):
             optimizer.learning_rate = self.learning_rate
 
             log_likelihood, _ = _train_step(
-                X_tensor,
+                next_batch(),
                 tf.constant(temperature, dtype=tf.float32),
                 tf.constant(xent_coef, dtype=tf.float32),
             )
@@ -321,8 +418,6 @@ class SNLDSDetector(BaseSegmenter):
                     ll_val,
                 )
 
-        # Store normalised data for predict
-        self._X_norm = X_norm
         return self
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
@@ -343,11 +438,18 @@ class SNLDSDetector(BaseSegmenter):
         X_norm = (X - self._mean) / self._std
         X_tensor = tf.constant(X_norm[np.newaxis, :, :], dtype=tf.float32)
 
-        # Run model at temperature=1.0 (no annealing at inference)
-        result = self._model(X_tensor, temperature=1.0, num_samples=1)
+        # The model samples z from its posterior: seed it for reproducibility
+        if self.random_state is not None:
+            tf.random.set_seed(self.random_state)
+
+        # Run model at temperature=1.0 (no annealing at inference), compiled: the
+        # forward-backward pass over a long series is very slow in eager mode
+        @tf.function(autograph=False)
+        def _infer(data):
+            return self._model(data, temperature=1.0, num_samples=1)["posterior_llk"]
 
         # posterior_llk: [1, T, K] — log p(s_t = k | x, z)
-        log_posterior = result["posterior_llk"]
+        log_posterior = _infer(X_tensor)
         labels = tf.argmax(log_posterior, axis=-1).numpy()[0]  # [T]
 
         return labels.astype(np.int64)
