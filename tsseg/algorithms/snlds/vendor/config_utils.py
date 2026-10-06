@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Modified for tsseg (2026): imports made relative to this vendored package; moved from snlds/examples/.
+# Modified for tsseg (2026): moved from snlds/examples/; the code is identical to upstream.
 # Upstream: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
 
 """Utils to create default configs for create SNLDS models."""
