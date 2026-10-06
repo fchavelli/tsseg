@@ -8,11 +8,14 @@ highest posterior probability.
 
 ## Key properties
 
+- **Experimental**: below a random segmentation on a 54-series sample of TSB-SEG
+  (labels change about 200 times too often); kept for further study
+
 - Type: state detection
 - Semi-supervised (`n_states` is the number of regimes)
 - Univariate and multivariate
 - Requires TensorFlow, TensorFlow Probability and `tf-keras` (`pip install tsseg[snlds]`)
-- Slow: every gradient step runs a forward-backward pass over the whole series
+- Slow: about 0.1 s per gradient step on one CPU thread with the defaults
 
 ## Implementation
 
@@ -27,9 +30,8 @@ TensorFlow code.
 - Licence: Apache License 2.0 (Copyright The Google Research Authors)
 - Licence file: `vendor/LICENSE`
 
-Known limitation: the annealing schedules take the values of the upstream Lorenz
-example, whose initial values are 0, so the temperature annealing and the
-cross-entropy regulariser described in the paper are inactive (see the class
+Training follows the annealing schedule of the paper's Reacher experiment,
+scaled to `n_train_steps`, on random windows of the series (see the class
 docstring).
 
 ## Citation

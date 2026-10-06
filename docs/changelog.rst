@@ -108,6 +108,19 @@ Unreleased
   ``n_cps=0`` again (no change point), as ``DynpDetector`` and ``KCPDDetector``
   do: the parameter schema required ``n_cps >= 1``, which failed the
   semi-supervised runs on series without change points.
+* ``SNLDSDetector`` follows the training schedules of the paper: the
+  temperature of the discrete transitions and the weight of the cross-entropy
+  regulariser start at 1,000 (``temperature_init``, ``xent_init``) and decay as
+  in the Reacher experiment, scaled to ``n_train_steps``. Before, both stayed
+  inactive (temperature 1, weight 1e-10). Training draws ``batch_size`` windows
+  of ``train_window`` points per step (new parameter, default 256; ``None`` for
+  the whole series), so a step no longer runs over the whole series, and the
+  defaults are ``batch_size=8`` and ``n_train_steps=2000``. Prediction is
+  compiled, about 100 times faster on MoCap. The detector declares a parameter
+  schema and the ``non_deterministic`` tag, and no longer reseeds NumPy's global
+  generator. SNLDS is documented as experimental: on a sample of TSB-SEG it
+  scores below a random segmentation.
+
 * ``KCPDDetector`` is deprecated (``FutureWarning``): it is ``PeltDetector`` or
   ``DynpDetector`` with a kernel cost (``model="rbf"``, ``"cosine"``, or ``"l2"``
   for the linear kernel).

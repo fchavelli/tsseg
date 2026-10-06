@@ -4,6 +4,14 @@ SNLDS
 Switching non-linear dynamical system trained with collapsed amortized
 variational inference (CAVI-SNLDS).
 
+.. warning::
+   **Experimental.** On a 54-series sample of TSB-SEG (TSSB, UTSA, SKAB, MoCap),
+   with the default parameters, SNLDS scores below a random segmentation
+   (bidirectional covering 0.074 against 0.377, ARI 0.066 against 0.208): its
+   labels change about 200 times more often than the true regimes. Training five
+   times longer did not help on the two series tried. It is kept for further
+   study, not as a recommended detector.
+
 Description
 -----------
 
@@ -20,19 +28,21 @@ exactly with the forward-backward algorithm.
 After training, each time step receives the regime of highest posterior
 probability :math:`p(s_t \mid x_{1:T}, z_{1:T})`.
 
-.. warning::
+Two devices from the paper prevent the collapse onto a single regime: a
+cross-entropy regulariser between the regime posterior and a uniform prior,
+with weight :math:`\beta`, and a temperature :math:`\tau` on the discrete
+transitions. Both start large and decay, :math:`\beta` first, then
+:math:`\tau` down to 1. tsseg follows the schedule of the paper's Reacher
+experiment (:math:`\beta_0 = \tau_0 = 1000`, decay by 0.975 every 500 steps
+after steps 50,000 and 100,000, out of 300,000), scaled to ``n_train_steps``:
+the decays start after ``n_train_steps / 6`` and ``n_train_steps / 3`` steps,
+with a factor 0.975 every ``n_train_steps / 600`` steps.
 
-   The paper prevents the collapse onto a single regime with two annealed
-   devices: a cross-entropy regulariser between the regime posterior and a
-   uniform prior, with weight :math:`\beta`, and a temperature :math:`\tau` on
-   the discrete transitions. Both start large and decay to 0 and 1; in the
-   paper's Reacher experiment they start at 1,000 and decay after 50,000 and
-   100,000 steps respectively, over 300,000 training steps. This wrapper takes
-   the schedule values of the upstream Lorenz example instead, whose initial
-   values are 0. As a result :math:`\tau` stays at 1 and :math:`\beta` at
-   :math:`10^{-10}` throughout training, even with
-   ``use_temperature_annealing=True`` and ``use_cross_entropy_reg=True``: neither
-   device is active.
+Each gradient step uses ``batch_size`` windows of ``train_window`` points drawn
+at random positions of the series, which bounds the cost of a step; prediction
+runs on the whole series. The paper trains on minibatches of 32 short
+sequences (50 to 100 steps) from many trajectories; tsseg draws its windows from
+the single series it segments.
 
 | **Type:** state detection
 | **Supervision:** semi-supervised (``n_states`` is the number of regimes)
@@ -42,11 +52,11 @@ probability :math:`p(s_t \mid x_{1:T}, z_{1:T})`.
 
 .. note::
 
-   Training is slow. Each gradient step runs a forward-backward pass over the
-   whole series, so a step costs :math:`O(nK^2)`. With the default 5,000 steps,
-   none of the nine MoCap series (4,600 to 10,600 points) finished within
-   10 minutes on one CPU thread. The first call also spends about 15 s compiling
-   the training graph.
+   Training is slow. A step costs :math:`O(BLK^2)` for ``batch_size`` :math:`B`
+   windows of :math:`L` points, independent of the length of the series: about
+   0.1 s on one CPU thread with the defaults, so about 3 minutes for the 2,000
+   default steps. The first call also spends a few seconds compiling the training
+   graph.
 
 Parameters
 ----------
@@ -77,16 +87,20 @@ Parameters
      - Inference RNN cell (``"gru"``, ``"lstm"``, ``"simplernn"``).
    * - ``n_train_steps``
      - int
-     - ``5000``
-     - Number of gradient steps.
+     - ``2000``
+     - Number of gradient steps; the schedules scale with it.
    * - ``learning_rate``
      - float
      - ``1e-4``
      - Adam learning rate.
    * - ``batch_size``
      - int
-     - ``1``
-     - Sequences per batch (one series is segmented at a time).
+     - ``8``
+     - Training windows per gradient step.
+   * - ``train_window``
+     - int / None
+     - ``256``
+     - Length of the training windows (``None``: the whole series).
    * - ``objective``
      - str
      - ``"elbo"``
@@ -94,15 +108,24 @@ Parameters
    * - ``use_temperature_annealing``
      - bool
      - ``True``
-     - Anneal the temperature of the discrete transitions.
+     - Anneal the temperature of the discrete transitions down to 1.
+   * - ``temperature_init``
+     - float
+     - ``1000.0``
+     - Initial temperature.
    * - ``use_cross_entropy_reg``
      - bool
      - ``True``
      - Add the cross-entropy regulariser on regime usage.
+   * - ``xent_init``
+     - float
+     - ``1000.0``
+     - Initial weight of the regulariser.
    * - ``random_state``
      - int / None
      - ``42``
-     - Seed for TensorFlow and NumPy.
+     - Seed of the training windows and of TensorFlow (a few labels can still
+       differ between calls).
    * - ``verbose``
      - int
      - ``0``
@@ -119,7 +142,7 @@ Usage
 
    from tsseg.algorithms import SNLDSDetector
 
-   detector = SNLDSDetector(n_states=3, n_train_steps=2000)
+   detector = SNLDSDetector(n_states=3)
    labels = detector.fit_predict(X)
 
 **Implementation:** wrapper around the authors' TensorFlow code (Google
