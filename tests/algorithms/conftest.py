@@ -111,7 +111,6 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     ),
     "DynpDetector": AlgorithmOverride(semi_supervised=True),
     "HidalgoDetector": AlgorithmOverride(semi_supervised=True),
-    "VSAXDetector": AlgorithmOverride(semi_supervised=True),
     # --- Need an explicit stopping criterion --------------------------
     "ClaspDetector": AlgorithmOverride(
         init_kwargs={
@@ -143,15 +142,6 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         init_kwargs={"window_size": 100, "stride": 50, "epochs": 100},
     ),
     "TSCP2Detector": AlgorithmOverride(dependencies=("tensorflow",)),
-    "VQTSSDetector": AlgorithmOverride(
-        dependencies=("torch",),
-        init_kwargs={
-            "epochs": 2,
-            "batch_size": 16,
-            "window_size": 20,
-            "num_embeddings": 10,
-        },
-    ),
     # --- Tirex detectors (need torch + tirex runtime) -----------------
     "TirexHiddenCPD": AlgorithmOverride(dependencies=("torch", "moment")),
     "TirexCosineCPD": AlgorithmOverride(dependencies=("torch", "moment")),

@@ -23,6 +23,15 @@ Unreleased
   the unsupervised mode is the ``prominence_threshold`` parameter,
   0.5 by default.
 
+* **Removed** ``VQTSSDetector`` and ``VSAXDetector``, two methods developed for
+  tsseg without a publication. On a 54-series sample of TSB-SEG, VSAX scored
+  below a random segmentation (bidirectional covering 0.351 against 0.377, ARI
+  0.163 against 0.208), and VQTSS returned one vector-quantisation code per
+  time step rather than a segmentation (ARI 0.001), with more than 10 minutes
+  per series beyond 2,500 points. Both labelled local patterns rather than
+  regimes. Code that imports them must drop them; they remain in the history
+  of the repository and in tsseg 0.2.0.
+
 * ``ProphetDetector`` now places ``n_candidates`` evenly spaced candidates, fits
   Prophet's rate changes ``delta`` and returns the ``n_changepoints`` largest
   ``|delta|`` relative to their median, or, when ``n_changepoints`` is ``None``
