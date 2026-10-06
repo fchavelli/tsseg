@@ -91,6 +91,9 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         dependencies=("numba",),
     ),
     "WindowDetector": AlgorithmOverride(init_kwargs={"n_cps": 2}),
+    "GaussianHMMDetector": AlgorithmOverride(
+        init_kwargs={"random_state": 0, "max_states": 4},
+    ),
     "EspressoDetector": AlgorithmOverride(
         init_kwargs={"n_segments": 3, "window_size": 10},
     ),

@@ -7,6 +7,7 @@ from .changefinder.detector import ChangeFinderDetector
 from .dynp.detector import DynpDetector
 from .espresso.detector import EspressoDetector
 from .fluss.detector import FLUSSDetector
+from .gaussian_hmm.detector import GaussianHMMDetector
 from .ggs.detector import GreedyGaussianDetector
 from .hdp_hsmm.detector import HdpHsmmDetector
 from .hidalgo.detector import HidalgoDetector
@@ -69,6 +70,7 @@ __all__ = [
     "EAggloDetector",
     "EspressoDetector",
     "FLUSSDetector",
+    "GaussianHMMDetector",
     "GreedyGaussianDetector",
     "HdpHsmmDetector",
     "HidalgoDetector",

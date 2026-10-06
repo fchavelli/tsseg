@@ -53,6 +53,7 @@ State detection
    autoplait
    clap
    e2usd
+   gaussian_hmm
    hdp_hsmm
    hidalgo
    hmm

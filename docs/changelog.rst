@@ -98,6 +98,12 @@ Unreleased
   unit-variance channels, where it is the BIC penalty; the mean absolute
   deviation for ``l1``; 1 for the kernel costs), so that one value applies
   across lengths, dimensions and costs.
+* New ``GaussianHMMDetector``: a hidden Markov model with diagonal Gaussian
+  emissions, fitted by Baum-Welch (EM) from k-means initialisations and decoded
+  by Viterbi. The number of states is given (``n_states``) or chosen by BIC.
+  ``HMMDetector``, which only decoded with user-supplied parameters, is
+  deprecated (``FutureWarning``).
+
 * ``BinSegDetector``, ``BottomUpDetector`` and ``WindowDetector`` accept
   ``n_cps=0`` again (no change point), as ``DynpDetector`` and ``KCPDDetector``
   do: the parameter schema required ``n_cps >= 1``, which failed the
