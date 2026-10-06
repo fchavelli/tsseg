@@ -23,50 +23,79 @@ class EAggloDetector(BaseSegmenter):
     """
     Hierarchical agglomerative estimation of multiple change points.
 
-    E-Agglo is a non-parametric clustering approach for multivariate timeseries[1]_,
-    where neighboring segments are sequentially merged to maximize a goodness-of-fit
-    statistic. Unlike most general purpose agglomerative clustering algorithms, this
-    procedure preserves the time ordering of the observations.
+    E-Agglo [1]_ starts from an initial partition of the series into contiguous
+    clusters and repeatedly merges the pair of adjacent clusters that most
+    increases a goodness-of-fit statistic, until a single cluster remains. The
+    statistic is the sum, over pairs of adjacent clusters, of their scaled energy
+    divergence :math:`\\hat Q(C_i, C_{i+1}; \\alpha)` (equation (13) in [1]_).
+    The segmentation with the largest statistic along this merging sequence,
+    optionally penalised, gives both the number and the locations of the change
+    points. Unlike general purpose agglomerative clustering, only adjacent
+    clusters are merged, so the time ordering is preserved.
 
-    This method can detect distributional change within an independent sequence,
-    and does not make any distributional assumptions (beyond the existence of an
-    alpha-th moment). Estimation is performed in a manner that simultaneously
-    identifies both the number and locations of change points.
+    The energy divergence detects any change of distribution, without
+    distributional assumptions beyond a finite ``alpha``-th moment, but assumes
+    independent observations.
 
-    This implementation is based on the aeon package.
+    This implementation is based on the aeon package, a port of the R package
+    ``ecp`` [2]_.
 
     Parameters
     ----------
     member : array_like (default=None)
-        Assigns points to the initial cluster membership, therefore the first
-        dimension should be the same as for data. If ``None`` it will be initialized
-        to dummy vector where each point is assigned to separate cluster.
+        Initial cluster of each time point: sorted labels, one per row of ``X``,
+        each cluster a contiguous block. ``None`` puts every time point in its own
+        cluster, as ``ecp`` does by default. Change points can only fall on the
+        boundaries of the initial clusters. Blocks of a few samples are faster and
+        less prone to over-segmentation (see Notes); [1]_ initialises its real data
+        example with equally spaced blocks.
     alpha : float (default=1.0)
-        Fixed constant alpha in (0, 2] used in the divergence measure, as the
-        alpha-th absolute moment, see equation (4) in [1]_.
+        Exponent of the distances in the energy divergence, in (0, 2], see
+        equation (4) in [1]_. With ``alpha=2`` the divergence only compares the
+        means of the clusters.
     penalty : str or callable or None (default=None)
-        Function that defines a penalization of the sequence of goodness-of-fit
-        statistic, when overfitting is a concern. If ``None`` no penalty is applied.
-        Could also be an existing penalty name, either ``len_penalty`` or
-        ``mean_diff_penalty``.
+        Added to the goodness-of-fit statistic of every step of the merging
+        sequence before taking the maximum. A callable receives the segment
+        boundaries of the step (the change points and the series length, plus 0
+        unless the first and last clusters were merged) and returns a number.
+        ``"len_penalty"`` subtracts the number of boundaries, ``"mean_diff_penalty"``
+        adds the mean segment length. ``None`` applies no penalty.
 
     Attributes
     ----------
-    merged_ : array_like
-        2D ``array_like`` outlining which clusters were merged at each step.
-    gof_ : float
-        goodness-of-fit statistic for current clustering.
-    cluster_ : array_like
-        1D ``array_like`` specifying which cluster each row of input data
-        X belongs to.
+    merged_ : ndarray of shape (n_clusters - 1, 2)
+        The pair of clusters merged at each step.
+    gof_ : ndarray of shape (n_clusters,)
+        Goodness-of-fit statistic of each step of the merging sequence, penalised
+        when ``penalty`` is set; the returned segmentation is its argmax.
+    cluster_ : ndarray of shape (n_timepoints,)
+        Cluster of each time point in the returned segmentation.
 
     Notes
     -----
-    Based on the work from [1]_. Requires ``numpy``, ``pandas`` and ``numba``.
+    As in ``ecp``, the divergences are V-statistics: the mean within-cluster
+    distances include the zero distance of each point to itself, unlike the
+    U-statistics of equation (5) in [1]_. Every boundary then adds about the mean
+    within-cluster distance to the statistic, even without a change. From one
+    cluster per time point and without a penalty, the maximum usually lies at a
+    very fine segmentation, with many more change points than the true ones.
+    Initial blocks help on independent observations, but on serially dependent
+    series E-Agglo can over-segment whatever the initial partition; a penalty
+    on the number of change points then has to be scaled to the statistic.
 
-    - source code inspired by: https://github.com/cran/ecp/blob/master/R/e_agglomerative.R
-    - paper available at: https://www.tandfonline.com/doi/full/10.1080/01621459.\
-        2013.849605
+    Also as in ``ecp``, the first and last clusters count as adjacent: their
+    divergence enters the statistic and they may be merged, giving a cluster that
+    wraps around the end of the series (``cluster_`` then labels both ends alike).
+
+    Time is :math:`O(n^2)` for a series of length :math:`n`. Memory is
+    :math:`O(m^2)` for :math:`m` initial clusters, hence :math:`O(n^2)` with
+    ``member=None``. Requires ``numba``.
+
+    See Also
+    --------
+    BottomUpDetector : Greedy merges of adjacent segments under a segment cost,
+        e.g. the RBF kernel cost, whose merge gain is also a two-sample
+        (maximum mean discrepancy) statistic.
 
     References
     ----------
@@ -478,20 +507,21 @@ def _gof_update(i, gof_, left, right, distances, sizes):
     return fit
 
 
-@njit(fastmath=True, cache=True)
-def len_penalty(x: pd.DataFrame) -> int:
-    """Penalize goodness-of-fit statistic for number of change points."""
+def len_penalty(x) -> int:
+    """Penalize the goodness-of-fit statistic by the number of change points.
+
+    ``x`` holds the segment boundaries of one step of the merging sequence.
+    """
     return -len(x)
 
 
-@njit(fastmath=True, cache=True)
-def mean_diff_penalty(x: pd.DataFrame) -> float:
-    """Penalize goodness-of-fit statistic.
+def mean_diff_penalty(x) -> float:
+    """Reward the goodness-of-fit statistic by the mean segment length.
 
-    Favors segmentations with larger sizes, while taking into consideration
-    the size of the new segments.
+    Favors segmentations with larger segments. ``x`` holds the segment
+    boundaries of one step of the merging sequence.
     """
-    return np.mean(np.diff(np.sort(x)))
+    return float(np.mean(np.diff(np.sort(x))))
 
 
 @njit(fastmath=True, cache=True)

@@ -7,13 +7,18 @@ Description
 -----------
 
 E-Agglo is a non-parametric, hierarchical agglomerative algorithm for detecting
-multiple change points in multivariate time series.  Neighbouring segments are
-sequentially merged when the merge maximises a goodness-of-fit statistic based
-on energy distances.  Unlike classical agglomerative clustering, this procedure
-preserves the temporal ordering.
+multiple change points in multivariate time series.  Adjacent segments are
+merged greedily to maximise a goodness-of-fit statistic, the sum of the energy
+divergences between adjacent segments, and the segmentation with the largest
+statistic along the merging sequence is returned.  Unlike classical
+agglomerative clustering, this procedure preserves the temporal ordering.
 
-A divergence parameter :math:`\alpha\in(0,2]` controls the distance exponent.
-An optional penalty function can regularise against over-segmentation.
+A divergence parameter :math:`\alpha\in(0,2]` controls the distance exponent
+(:math:`\alpha = 2` only compares means).  From one cluster per point
+(``member=None``, the default) the statistic is usually maximised by a very
+fine segmentation: start from blocks of a few samples (``member``) and/or set a
+penalty.  The method assumes independent observations and can over-segment
+serially dependent series whatever the initial partition.
 
 | **Type:** change point detection
 | **Supervision:** fully unsupervised
@@ -35,7 +40,7 @@ Parameters
    * - ``member``
      - array-like / None
      - ``None``
-     - Initial cluster membership. ``None`` = one cluster per point.
+     - Initial cluster of each point (sorted labels, contiguous blocks). ``None`` = one cluster per point.
    * - ``alpha``
      - float
      - ``1.0``
@@ -50,10 +55,12 @@ Usage
 
 .. code-block:: python
 
+   import numpy as np
    from tsseg.algorithms import EAggloDetector
 
-   detector = EAggloDetector(alpha=1.0)
-   labels = detector.fit_predict(X)
+   member = np.arange(len(X)) // 10  # initial blocks of 10 samples
+   detector = EAggloDetector(alpha=1.0, member=member)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** Adapted from aeon.  BSD 3-Clause.
 

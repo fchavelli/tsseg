@@ -1,16 +1,19 @@
 # E-Agglo (E-Agglomerative)
 
 Non-parametric hierarchical agglomerative algorithm for multiple change point
-analysis. Maximises a goodness-of-fit statistic based on the alpha-th absolute
-moment of pairwise Euclidean distances by iteratively merging adjacent clusters.
+analysis. Merges adjacent clusters greedily to maximise a goodness-of-fit
+statistic, the sum of the energy divergences between adjacent clusters, and
+keeps the segmentation with the largest statistic along the merging sequence.
 
 ## Key properties
 
 - Type: change point detection
-- Fully unsupervised (penalty-based stopping)
+- Unsupervised: the number of change points maximises the (optionally
+  penalised) goodness-of-fit statistic; from one cluster per point it
+  usually over-segments, see the class docstring
 - Non-parametric
 - Univariate and multivariate
-- O(n^2) time and memory
+- O(n^2) time; O(m^2) memory for m initial clusters (O(n^2) by default)
 - Uses numba for acceleration
 
 ## Implementation

@@ -11,6 +11,12 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``EAggloDetector``: ``penalty="mean_diff_penalty"`` no longer raises (the
+  penalty was compiled with numba, which rejects the list of segment boundaries
+  it receives). The documentation now describes the goodness-of-fit statistic,
+  the V-statistics and the merge of the first and last clusters inherited from
+  ``ecp``, and the over-segmentation obtained from one cluster per time point.
+
 * ``ClaspDetector`` runs when ``NUMBA_NUM_THREADS`` is below the number of cores
   (as set by users or by SLURM jobs): ``n_jobs=-1`` meant ``os.cpu_count()``
   threads, more than numba accepts, which raised ``ValueError: The number of
