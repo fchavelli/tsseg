@@ -57,6 +57,7 @@ State detection
    hidalgo
    hmm
    patss
+   snlds
    ticc
    time2state
    vqtss

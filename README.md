@@ -97,7 +97,7 @@ conda activate tsseg-env
 pip install -e .[torch,prophet,aeon]   # pick only the extras you want
 ```
 
-Only `TSCP2Detector` requires TensorFlow (`tsseg[tscp2]`). All other 27+ algorithms work without it.
+Only `TSCP2Detector` (`tsseg[tscp2]`) and `SNLDSDetector` (`tsseg[snlds]`) require TensorFlow. All other algorithms work without it.
 
 </details>
 
@@ -113,6 +113,7 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
 | `tsseg[torch]` | PyTorch-based detectors (`TireDetector`, `Time2StateDetector`) |
 | `tsseg[tglad]` | PyTorch + NetworkX (`TGLADDetector`) |
 | `tsseg[tscp2]` | TensorFlow + TCN layer (`TSCP2Detector`) |
+| `tsseg[snlds]` | TensorFlow + TensorFlow Probability (`SNLDSDetector`) |
 | `tsseg[accelerators]` | Numba / Cython: needed by CLaP, ClaSP and E-Agglo; speeds up HDP-HSMM |
 | `tsseg[docs]` | Sphinx doc toolchain |
 | `tsseg[all]` | **Everything above** |
@@ -144,6 +145,7 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 | `ggs/` | BSD-2 | [cvxgrp/GGS](https://github.com/cvxgrp/GGS) |
 | `icid/` | GPLv3 | [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID) |
 | `patss/` | MIT | [KU Leuven DTAI](https://gitlab.kuleuven.be/u0143709/patss) |
+| `snlds/vendor/` | Apache-2.0 | [google-research/snlds](https://github.com/google-research/google-research/tree/master/snlds) |
 | `tglad/vendor/` (uGLAD) | Non-Commercial | [Harshs27/tGLAD](https://github.com/Harshs27/tGLAD) |
 | `autoplait/` | not specified | [Matsubara et al.](https://sites.google.com/site/onlinesemanticsegmentation/) |
 | `e2usd/` | not specified | [AI4CTS/E2Usd](https://github.com/AI4CTS/E2Usd) |

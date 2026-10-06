@@ -11,6 +11,15 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``SNLDSDetector`` is now shipped with the package. It was listed in
+  ``tsseg.algorithms`` without its module, so ``from tsseg.algorithms import *``
+  failed on the 0.2.0 wheel. The authors' TensorFlow code (Google Research,
+  Apache-2.0) is vendored in ``tsseg/algorithms/snlds/vendor``; install the
+  dependencies with ``pip install tsseg[snlds]``. Its constructor is now
+  keyword-only, and its tags declare it semi-supervised (``n_states`` is the
+  number of regimes) rather than unsupervised. The wheel now also ships the
+  ``LICENSE`` files of the vendored code.
+
 * ``TireDetector``: the minimum distance between two change points is
   ``peak_distance_fraction`` times the series length, as documented; the default is 0 (no
   constraint). The prominence threshold of
