@@ -35,9 +35,9 @@ class PatssDetector(BaseSegmenter):
     A wrapper for the PaTSS (Pattern-based Time Series Segmentation) algorithm,
     compatible with the aeon framework.
 
-    .. deprecated::
-        ``PatssDetector`` is deprecated and will be removed in a future release.
-        It needs ``npbad``, which is not on PyPI, and it over-segments: on a
+    .. warning::
+        **Deprecated**, will be removed in a future release. ``PatssDetector``
+        needs ``npbad``, which is not on PyPI, and it over-segments: on a
         54-series sample of TSB-SEG it predicted 17 times more change points
         than the ground truth (median). The authors maintain PaTSEmb
         (https://github.com/ML-KULeuven/PaTSEmb), which needs Java.
