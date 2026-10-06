@@ -89,6 +89,8 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
      - PyTorch + NetworkX (``TGLADDetector``)
    * - ``tsseg[tscp2]``
      - TensorFlow + TCN layer (``TSCP2Detector``)
+   * - ``tsseg[snlds]``
+     - TensorFlow + TensorFlow Probability (``SNLDSDetector``)
    * - ``tsseg[accelerators]``
      - Numba / Cython: needed by CLaP, ClaSP and E-Agglo; speeds up HDP-HSMM
    * - ``tsseg[docs]``
