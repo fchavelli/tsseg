@@ -25,6 +25,7 @@ Three strategies handle multivariate inputs:
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised (``max_cps``)
 | **Scope:** univariate and multivariate
+| **Requires:** Rbeast >= 0.1.25 (``pip install tsseg[beast]``)
 
 Parameters
 ----------
@@ -91,8 +92,8 @@ Parameters
      - Thinning factor for the MCMC chains.
    * - ``mcmc_seed``
      - int
-     - ``0``
-     - Random seed (0 = no fixed seed).
+     - ``1``
+     - Seed of the MCMC sampler (``0``: random seed, not reproducible).
    * - ``cp_prob_threshold``
      - float
      - ``0.1``
@@ -133,8 +134,8 @@ Usage
    detector = BeastDetector(season="harmonic", period=12)
    labels = detector.fit_predict(X)
 
-**Implementation:** Wraps the Rbeast C library, vendorized in ``c/Rbeast/``
-(patched for numpy >= 2.0).  Build with ``make`` in ``c/Rbeast/``.
+**Implementation:** wraps the `Rbeast <https://github.com/zhaokg/Rbeast>`_
+package, version 0.1.25 or later (``pip install tsseg[beast]``).
 
 **Reference:** Zhao et al. (2019), *Detecting change-point, trend, and
 seasonality in satellite time series data*, Remote Sensing of Environment.

@@ -1,3 +1,0 @@
-include ext_src/*.h
-include LICENSE
-include requirements.txt

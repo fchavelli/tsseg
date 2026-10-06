@@ -20,14 +20,15 @@ detection with uncertainty quantification.
 
 ## Implementation
 
-Wraps the Rbeast C library, vendorized in `c/Rbeast/`. Build with `make`
-in that directory. A numpy 2.0 compatibility patch is included (upstream
-requires `numpy<2`).
+Wraps the `Rbeast` package from PyPI (`pip install tsseg[beast]`), version
+0.1.25 or later; no code is vendored. Rbeast 0.1.15, previously vendored in
+`c/Rbeast/`, never returned on univariate series longer than about 4,600
+points.
 
 - Origin: Rbeast Python package
 - Source: https://github.com/zhaokg/Rbeast
-- Licence: GPL-2.0 (Python wrapper) — C core included
-- Vendorized: `c/Rbeast/` (patched for numpy ≥ 2.0)
+- Licence: the R package is GPL (>= 2) on CRAN; the PyPI wheel declares MIT.
+  tsseg only depends on it.
 
 ## Citation
 
