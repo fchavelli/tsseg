@@ -3,6 +3,14 @@ PaTSS
 
 PaTSS — Pattern-based Time Series Segmentation.
 
+.. warning::
+   **Deprecated.** ``PatssDetector`` will be removed in a future release. It
+   needs ``npbad``, which is not on PyPI, and it over-segments: on a 54-series
+   sample of TSB-SEG it predicted 17 times more change points than the ground
+   truth (median), and scored below a random segmentation on univariate series.
+   The authors maintain `PaTSEmb <https://github.com/ML-KULeuven/PaTSEmb>`_
+   (``pip install patsemb``), which needs a Java runtime.
+
 Description
 -----------
 

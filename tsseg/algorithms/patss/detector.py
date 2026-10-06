@@ -2,9 +2,12 @@
 This module provides a wrapper for the PaTSS algorithm to integrate it
 with the tsseg library's API, following the aeon BaseSegmenter structure.
 """
+import tempfile
+import warnings
+
 import numpy as np
 import pandas as pd
-import tempfile
+
 from ..base import BaseSegmenter
 
 # Import the core logic from the old, working implementation
@@ -32,6 +35,13 @@ class PatssDetector(BaseSegmenter):
     A wrapper for the PaTSS (Pattern-based Time Series Segmentation) algorithm,
     compatible with the aeon framework.
 
+    .. warning::
+        **Deprecated**, will be removed in a future release. ``PatssDetector``
+        needs ``npbad``, which is not on PyPI, and it over-segments: on a
+        54-series sample of TSB-SEG it predicted 17 times more change points
+        than the ground truth (median). The authors maintain PaTSEmb
+        (https://github.com/ML-KULeuven/PaTSEmb), which needs Java.
+
     This implementation uses the original logic from PaTSS_perso.py and adapts it
     to the BaseSegmenter API.
 
@@ -56,6 +66,13 @@ class PatssDetector(BaseSegmenter):
     }
 
     def __init__(self, config: dict = None, axis: int = 0):
+        warnings.warn(
+            "PatssDetector is deprecated and will be removed in a future release: "
+            "it needs npbad (not on PyPI) and over-segments. The authors maintain "
+            "PaTSEmb (https://github.com/ML-KULeuven/PaTSEmb).",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.config = config
         # The original PaTSS implementation expects (n_timepoints, n_channels),
         # which corresponds to axis 0 in aeon's convention.

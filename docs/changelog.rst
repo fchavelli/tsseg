@@ -73,6 +73,11 @@ Unreleased
   latest tied peak first (Window); a value tied with ``pen`` or ``epsilon``
   stops, and PELT keeps a start tied with its pruning bound (pruning less never
   loses the optimum).
+* ``PatssDetector`` is deprecated (``FutureWarning``) and will be removed in a
+  future release: it needs ``npbad``, which is not on PyPI, and over-segments
+  (17 times more change points than the ground truth on a 54-series sample of
+  TSB-SEG). The authors maintain PaTSEmb, which needs Java.
+
 * ``WindowDetector`` searches its peaks as ruptures does
   (``argrelmax(mode="wrap")``): the vendored peak search cut the neighbourhood
   of a score at the ends of the signal, and could add a change point next to the
