@@ -82,11 +82,11 @@ Usage
    from tsseg.algorithms import KCPDDetector
 
    detector = KCPDDetector(kernel="rbf", n_cps=3)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
    # Unknown K — use a penalty
    detector = KCPDDetector(kernel="rbf", pen=10)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** vendored from ruptures v1.1.8, whose ``KernelCPD`` is a C
 implementation of PELT and DynP for kernel costs. tsseg runs its vendored

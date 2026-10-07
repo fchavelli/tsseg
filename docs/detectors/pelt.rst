@@ -83,7 +83,7 @@ Usage
    from tsseg.algorithms import PeltDetector
 
    detector = PeltDetector(model="l2", penalty=10)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.  With the
 ``"l1"``, ``"l2"``, ``"rbf"`` or ``"cosine"`` cost and numba installed, the

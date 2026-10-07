@@ -83,7 +83,7 @@ Usage
    from tsseg.algorithms import TGLADDetector
 
    detector = TGLADDetector(window_size=256, stride=64, threshold=0.4)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** *Origin: new code.*  Inspired by the tGLAD paper.
 

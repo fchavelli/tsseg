@@ -44,7 +44,7 @@ Usage
    from tsseg.algorithms import AmocDetector
 
    detector = AmocDetector(min_size=10)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** Clean-room reimplementation of the classical SSE-based single
 change point criterion.  Inspired by the R ``changepoint`` package (GPL >= 2), no R

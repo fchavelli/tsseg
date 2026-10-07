@@ -12,11 +12,13 @@
   <a href="https://github.com/fchavelli/tsseg/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fchavelli/tsseg?color=blue&style=for-the-badge" alt="License"></a>
 </p>
 
-**tsseg** is a Python library for **Time Series Segmentation**, covering both Change Point Detection and State Detection. It bundles 30+ segmentation algorithms, evaluation metrics, data loaders, and real-world benchmark datasets under a unified API.
+**tsseg** is a Python library for **Time Series Segmentation**, covering both Change Point Detection and State Detection. It bundles 30+ segmentation algorithms and evaluation metrics under a unified API, with a small real-world dataset for examples.
 
-Segmentation algorithms share the same base class interface as the [aeon](https://github.com/aeon-toolkit/aeon) time series toolkit, making them interoperable with the broader aeon ecosystem. Several aeon segmenters are also re-exposed through tsseg for convenience.
+Segmentation algorithms follow the segmenter interface of the [aeon](https://github.com/aeon-toolkit/aeon) time series toolkit (`fit` / `predict` on NumPy arrays, scikit-learn style parameters). A few detectors are adapted from aeon's implementations (E-Agglo, HMM, Hidalgo, IGTS).
 
 ## Quick Start
+
+This example needs the `accelerators` and `aeon` extras (CLaP uses numba and aeon's classifiers):
 
 ```python
 from tsseg.data.datasets import load_mocap
@@ -107,10 +109,10 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
 
 | Extra | What it adds |
 |---|---|
-| `tsseg[aeon]` | Compatibility helpers for the aeon ecosystem |
+| `tsseg[aeon]` | aeon's time series classifiers, used by `ClapDetector` |
 | `tsseg[prophet]` | Facebook Prophet (`ProphetDetector`) |
-| `tsseg[patss]` | Bayesian HSMM dependencies (`PatssDetector`) |
-| `tsseg[torch]` | PyTorch-based detectors (`TireDetector`, `Time2StateDetector`) |
+| `tsseg[patss]` | Nothing: `PatssDetector` (deprecated) needs `npbad`, not on PyPI, installed by hand |
+| `tsseg[torch]` | PyTorch-based detectors (`TireDetector`, `Time2StateDetector`, `E2USDDetector`) |
 | `tsseg[tglad]` | PyTorch + NetworkX (`TGLADDetector`) |
 | `tsseg[tscp2]` | TensorFlow + TCN layer (`TSCP2Detector`) |
 | `tsseg[snlds]` | TensorFlow + TensorFlow Probability (`SNLDSDetector`) |
@@ -122,9 +124,9 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
 ## Contributing
 
 ```bash
-make test       # run the test suite
-make lint       # check style and linting rules with Ruff
-make docs       # build the documentation locally
+python -m pytest tests/                        # run the test suite (long; select with -k)
+make lint                                      # ruff check + ruff format --check, as in CI
+sphinx-build -W -b html docs docs/_build/html  # build the documentation locally
 ```
 
 See the [Contributing Guide](https://fchavelli.github.io/tsseg/guides/contributing.html) for full instructions.

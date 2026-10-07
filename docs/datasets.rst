@@ -1,14 +1,17 @@
 Datasets
 ========
 
-``tsseg`` ships a small collection of curated datasets used in the test suite
-and benchmarks, plus helpers to load your own data through the unified
-``(X, y)`` interface.
+``tsseg`` ships one small dataset, used in the examples and tests, and works
+with any series given as ``(X, y)`` arrays. The benchmark datasets of the
+paper (TSSB, UTSA, SKAB, ...) are not bundled.
 
-Built-in datasets
------------------
+Built-in dataset
+----------------
 
-Each loader returns a tuple ``(X, y)``:
+``load_mocap`` loads one of the 9 trials of subject 86 of the
+`CMU Graphics Lab Motion Capture Database <https://mocap.cs.cmu.edu/>`_
+(4 channels: left and right arms and legs), with one activity label per time
+point. It returns a tuple ``(X, y)``:
 
 * ``X`` — a 2-D array of shape ``(n_timepoints, n_channels)``
 * ``y`` — an integer array of state labels aligned with ``X``
@@ -19,27 +22,37 @@ Example:
 
    from tsseg.data.datasets import load_mocap
 
-   X, y = load_mocap(trial=0)
-   print(X.shape, y.shape)
+   X, y = load_mocap(trial=0)  # an index in 0..8, or a trial ID such as "07"
+   print(X.shape, y.shape)  # (4579, 4) (4579,)
 
-When a dataset ships with annotated change points, you can convert dense
-labels into change-point indices via
-:func:`tsseg.algorithms.utils.extract_cps`.
-
-Custom datasets
----------------
-
-You can wrap your own time series as lightweight dataset objects by exposing a
-callable returning ``(X, y, metadata)``. For testing, reuse the synthetic
-fixtures in ``tests/algorithms/conftest.py``:
+The ground truth is given as state labels. The change points are the indices
+where the label changes, given by :func:`tsseg.algorithms.utils.extract_cps`
+(without ``0`` and the series length, like the output of the change point
+detectors):
 
 .. code-block:: python
 
-   from tests.algorithms.conftest import synthetic_series
+   from tsseg.algorithms.utils import extract_cps
 
-   series = synthetic_series()
-   X = series["multivariate"]["X"]
-   y = series["multivariate"]["y"]
+   change_points = extract_cps(y)
+
+Your own data
+-------------
+
+Detectors take a NumPy array of shape ``(n_timepoints,)`` or
+``(n_timepoints, n_channels)``, a ``pandas.Series`` or a
+``pandas.DataFrame`` (one column per channel). If your annotations are
+change points, turn them into state labels (one segment, one label) to
+evaluate state detectors:
+
+.. code-block:: python
+
+   import numpy as np
+
+   n_timepoints, change_points = 1000, [300, 700]
+   y = np.zeros(n_timepoints, dtype=int)
+   for label, start in enumerate(change_points, start=1):
+       y[start:] = label
 
 For large datasets, prefer storing them in an external location and provide a
 lazy loader to avoid shipping them inside the package.

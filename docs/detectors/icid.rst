@@ -59,7 +59,7 @@ Usage
    from tsseg.algorithms import ICIDDetector
 
    detector = ICIDDetector(window_size=100, alpha=0.3)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** *Origin: new code.*
 

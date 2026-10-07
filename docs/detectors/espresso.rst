@@ -66,7 +66,7 @@ Usage
    from tsseg.algorithms import EspressoDetector
 
    detector = EspressoDetector(window_size=64, chain_len=5, n_segments=4)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** Reimplemented from the original ESPRESSO paper.  *Origin:
 new code.*

@@ -148,11 +148,11 @@ Usage
 
    # --- ClaSP (change point detection, fully unsupervised) ---
    clasp = ClaspDetector()
-   cps = clasp.fit_predict(X)                    # dense labels
+   cps = clasp.fit_predict(X)                    # change point indices
 
    # --- CLaP (state detection, guided) ---
    clap = ClapDetector(n_segments=4, classifier="rocket")
-   states = clap.fit_predict(X)                  # sparse state labels
+   states = clap.fit_predict(X)                  # one state label per time point
 
 **Implementation:** Adapted from original ClaSP code by Arik Ermshaus.  BSD
 3-Clause.

@@ -128,11 +128,11 @@ Usage
 
    # Trend-only detection (no seasonality)
    detector = BeastDetector(season="none", cp_prob_threshold=0.2)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
    # Seasonal data (e.g. monthly with annual period)
    detector = BeastDetector(season="harmonic", period=12)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** wraps the `Rbeast <https://github.com/zhaokg/Rbeast>`_
 package, version 0.1.25 or later (``pip install tsseg[beast]``).
