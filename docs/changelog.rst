@@ -11,6 +11,10 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``AmocDetector`` computes the error of every split from cumulative sums, in
+  linear time: it recomputed both means at every split (quadratic time).
+  The detected change point is the same.
+
 * ``ChangeFinderDetector`` without ``n_cps``: the data-driven threshold is
   ``mean + threshold_factor * std`` of the scores (``threshold_factor``, 2.0
   by default as before), the minimum distance between change points can be a

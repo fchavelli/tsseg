@@ -54,18 +54,19 @@ class _AmocEngine:
         if n_timepoints < 2 * self.min_size:
             return np.array([], dtype=int)
 
+        # Sum of squared errors of every split from cumulative sums: O(n d)
+        # instead of recomputing both means at every split (O(n^2 d)). The
+        # series is centred first so that the sums of squares do not cancel.
+        signal = self.signal - self.signal.mean(axis=0)
+        csum = np.cumsum(signal, axis=0)
+        csq = np.cumsum(signal**2, axis=0)
+        t = np.arange(self.min_size, n_timepoints - self.min_size + 1)
+        left_sum, left_sq = csum[t - 1], csq[t - 1]
+        right_sum, right_sq = csum[-1] - left_sum, csq[-1] - left_sq
         sse = np.full(n_timepoints - 1, np.inf, dtype=float)
-        for t in range(self.min_size, n_timepoints - self.min_size + 1):
-            left = self.signal[:t]
-            right = self.signal[t:]
-
-            mean_left = left.mean(axis=0, keepdims=True)
-            mean_right = right.mean(axis=0, keepdims=True)
-
-            error_left = np.sum((left - mean_left) ** 2)
-            error_right = np.sum((right - mean_right) ** 2)
-
-            sse[t - 1] = error_left + error_right
+        sse[t - 1] = (left_sq - left_sum**2 / t[:, None]).sum(axis=1) + (
+            right_sq - right_sum**2 / (n_timepoints - t)[:, None]
+        ).sum(axis=1)
 
         if not np.isfinite(sse).any():
             return np.array([], dtype=int)
