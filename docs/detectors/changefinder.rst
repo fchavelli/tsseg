@@ -67,12 +67,21 @@ Parameters
    * - ``threshold``
      - float / None
      - ``None``
-     - Minimum score for a peak.  If ``None``, uses ``mean + 2*std`` of the
-       score curve.
+     - Minimum score for a peak.  If ``None``, uses
+       ``mean + threshold_factor * std`` of the non-zero scores.
+   * - ``threshold_factor``
+     - float
+     - ``2.0``
+     - Standard deviations above the mean of the data-driven threshold.
    * - ``min_distance``
      - int
      - ``10``
      - Minimum samples between successive change points.
+   * - ``min_distance_fraction``
+     - float
+     - ``0.0``
+     - Minimum distance between change points as a fraction of the series
+       length (the larger of the two minimum distances applies).
    * - ``multivariate_strategy``
      - str
      - ``"l2"``
@@ -80,7 +89,15 @@ Parameters
    * - ``tolerance``
      - float
      - ``0``
-     - Tolerance for aggregating change points in ensembling mode.
+     - Tolerance for aggregating change points in ensembling mode (a float
+       below 1 is a fraction of the length; without ``n_cps``, 0 means the
+       minimum distance).
+   * - ``consensus``
+     - float
+     - ``0.0``
+     - Ensembling without ``n_cps``: detections of the channels within
+       ``tolerance`` are merged; a merged change point is returned if at
+       least this fraction of the channels (one at least) detected it.
    * - ``axis``
      - int
      - ``0``

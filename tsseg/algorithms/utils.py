@@ -1,3 +1,4 @@
+import math
 from collections import Counter
 
 import numpy as np
@@ -99,6 +100,48 @@ def aggregate_change_points(
     # Return sorted representatives
     pred = sorted([rep for score, rep in top_clusters])
     return np.array(pred, dtype=int)
+
+
+def consensus_change_points(
+    per_channel: list,
+    tolerance: int,
+    consensus: float,
+) -> np.ndarray:
+    """Change points detected by enough channels, without a target count.
+
+    The change points of all channels are chained into clusters (two
+    successive points at most ``tolerance`` samples apart). A cluster is kept
+    if it holds change points of at least ``ceil(consensus * n_channels)``
+    distinct channels (one at least) and is returned as its median.
+
+    Parameters
+    ----------
+    per_channel : list of array-like
+        Change points detected on each channel, one entry per channel.
+    tolerance : int
+        Maximum gap, in samples, between two successive points of a cluster.
+    consensus : float
+        Fraction of the channels, in [0, 1], that must support a change point.
+
+    Returns
+    -------
+    np.ndarray
+        Sorted array of change point indices.
+    """
+    points = sorted((int(cp), ch) for ch, cps in enumerate(per_channel) for cp in cps)
+    if not points:
+        return np.empty(0, dtype=np.int64)
+    needed = max(1, math.ceil(consensus * len(per_channel) - 1e-9))
+    selected: list[int] = []
+    cluster = [points[0]]
+    for point in points[1:] + [None]:
+        if point is not None and point[0] - cluster[-1][0] <= tolerance:
+            cluster.append(point)
+            continue
+        if len({ch for _, ch in cluster}) >= needed:
+            selected.append(int(np.median([cp for cp, _ in cluster])))
+        cluster = [point] if point is not None else []
+    return np.asarray(sorted(set(selected)), dtype=np.int64)
 
 
 def create_state_labels(changepoints, n_timepoints):

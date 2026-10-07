@@ -11,6 +11,26 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``ChangeFinderDetector`` without ``n_cps``: the data-driven threshold is
+  ``mean + threshold_factor * std`` of the scores (``threshold_factor``, 2.0
+  by default as before), the minimum distance between change points can be a
+  fraction of the length (``min_distance_fraction``), and the ``ensembling``
+  strategy merges the detections of the channels that lie within the
+  tolerance (by default the minimum distance) and can require a share of the
+  channels to agree (``consensus``, 0 by default); it returned every distinct
+  peak of every channel. The ``l2`` strategy and the behaviour with ``n_cps``
+  are unchanged by default.
+
+* ``FLUSSDetector`` accepts ``n_segments=None`` (number of segments unknown):
+  the regime extraction keeps the minima of the corrected arc curve below
+  ``threshold`` (0.5), and the ``ensembling`` strategy merges the detections
+  of the channels within ``tolerance`` (``consensus``, the share of the
+  channels that must agree, is 0 by default). A known ``n_segments`` behaves
+  as before.
+
+* New helper ``tsseg.algorithms.utils.consensus_change_points``: change points
+  detected by enough channels, without a target count.
+
 * ``EAggloDetector``: ``penalty="mean_diff_penalty"`` no longer raises (the
   penalty was compiled with numba, which rejects the list of segment boundaries
   it receives). The documentation now describes the goodness-of-fit statistic,

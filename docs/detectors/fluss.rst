@@ -37,9 +37,10 @@ Parameters
      - ``10``
      - Sliding window size (use the dominant period length).
    * - ``n_segments``
-     - int
+     - int / None
      - ``2``
-     - Number of segments (= change points + 1).
+     - Number of segments (= change points + 1). ``None``: unknown, change
+       points are the minima of the corrected arc curve below ``threshold``.
    * - ``exclusion_factor``
      - int
      - ``5``
@@ -52,6 +53,17 @@ Parameters
      - float
      - ``0.01``
      - Tolerance for aggregating change points.
+   * - ``threshold``
+     - float
+     - ``0.5``
+     - With ``n_segments=None``: corrected-arc-curve value below which a
+       minimum is a change point (in [0, 1]).
+   * - ``consensus``
+     - float
+     - ``0.0``
+     - Ensembling with ``n_segments=None``: detections of the channels within
+       ``tolerance`` are merged; a merged change point is returned if at
+       least this fraction of the channels (one at least) detected it.
    * - ``axis``
      - int
      - ``0``

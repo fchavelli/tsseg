@@ -27,7 +27,11 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
-from ..utils import aggregate_change_points, multivariate_l2_norm
+from ..utils import (
+    aggregate_change_points,
+    consensus_change_points,
+    multivariate_l2_norm,
+)
 from .sdar import SDAR
 
 
@@ -58,17 +62,31 @@ class ChangeFinderDetector(BaseSegmenter):
         ``threshold`` are returned.
     threshold : float or None, default=None
         Minimum score for a peak to be accepted as a change point.  When
-        ``None``, a data-driven threshold of ``mean + 2*std`` of the score
-        curve is used.
+        ``None``, a data-driven threshold of ``mean + threshold_factor * std``
+        of the non-zero scores is used.
+    threshold_factor : float, default=2.0
+        Number of standard deviations above the mean score of the
+        data-driven threshold (used when ``threshold`` is ``None``).
     min_distance : int, default=10
         Minimum number of samples between successive change points.
+    min_distance_fraction : float, default=0.0
+        Minimum distance between successive change points as a fraction of
+        the series length; the larger of ``min_distance`` and
+        ``min_distance_fraction * n`` applies.
     multivariate_strategy : str, default="l2"
         Strategy for multivariate inputs: ``"l2"`` reduces to univariate
         via L2 norm; ``"ensembling"`` runs independently per channel and
         aggregates.
     tolerance : int or float, default=0
         Tolerance for aggregating change points across channels (ensembling
-        strategy only).
+        strategy only); a float below 1 is a fraction of the series length.
+        Without ``n_cps``, 0 means the minimum distance between change points.
+    consensus : float, default=0.0
+        Ensembling without ``n_cps``: the change points of the channels that
+        lie within ``tolerance`` of each other are merged into one, returned if
+        at least ``consensus`` of the channels (one at least) detected it.
+        With ``n_cps``, the ``n_cps`` change points detected by the most
+        channels are returned instead.
     axis : int, default=0
         Time axis.
 
@@ -116,9 +134,17 @@ class ChangeFinderDetector(BaseSegmenter):
             description="Minimum peak score to accept as change point.",
             nullable=True,
         ),
+        "threshold_factor": ParamDef(
+            constraint=Interval(float, 0, None, Closed.LEFT),
+            description="Standard deviations above the mean of the data-driven threshold.",
+        ),
         "min_distance": ParamDef(
             constraint=Interval(int, 1, None, Closed.LEFT),
             description="Minimum samples between successive change points.",
+        ),
+        "min_distance_fraction": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.LEFT),
+            description="Minimum distance between change points, fraction of the length.",
         ),
         "multivariate_strategy": ParamDef(
             constraint=StrOptions({"l2", "ensembling"}),
@@ -127,6 +153,10 @@ class ChangeFinderDetector(BaseSegmenter):
         "tolerance": ParamDef(
             constraint=Interval(float, 0, None, Closed.LEFT),
             description="Tolerance for aggregating CPs in ensembling.",
+        ),
+        "consensus": ParamDef(
+            constraint=Interval(float, 0, 1, Closed.BOTH),
+            description="Fraction of channels that must agree (ensembling, no n_cps).",
         ),
         "_cross_constraints": [
             DataDependent(
@@ -151,6 +181,9 @@ class ChangeFinderDetector(BaseSegmenter):
         min_distance: int = 10,
         multivariate_strategy: str = "l2",
         tolerance: int | float = 0,
+        threshold_factor: float = 2.0,
+        min_distance_fraction: float = 0.0,
+        consensus: float = 0.0,
         axis: int = 0,
     ) -> None:
         self.order = order
@@ -162,6 +195,9 @@ class ChangeFinderDetector(BaseSegmenter):
         self.min_distance = min_distance
         self.multivariate_strategy = multivariate_strategy
         self.tolerance = tolerance
+        self.threshold_factor = threshold_factor
+        self.min_distance_fraction = min_distance_fraction
+        self.consensus = consensus
         super().__init__(axis=axis)
 
     # ------------------------------------------------------------------
@@ -239,10 +275,16 @@ class ChangeFinderDetector(BaseSegmenter):
     # Peak-based change-point selection
     # ------------------------------------------------------------------
 
+    def _min_distance_samples(self, n: int) -> int:
+        """Minimum distance between change points, in samples."""
+        return max(
+            int(self.min_distance), int(round(self.min_distance_fraction * n)), 1
+        )
+
     def _select_peaks(self, scores: np.ndarray) -> np.ndarray:
         """Select change points as peaks of the score curve."""
         n = len(scores)
-        min_dist = max(self.min_distance, 1)
+        min_dist = self._min_distance_samples(n)
 
         # Find local maxima
         order = max(min_dist // 2, 1)
@@ -255,10 +297,10 @@ class ChangeFinderDetector(BaseSegmenter):
         if self.threshold is not None:
             thr = self.threshold
         else:
-            # Data-driven: mean + 2*std of non-zero scores
+            # Data-driven: mean + threshold_factor * std of non-zero scores
             valid = scores[scores > 0]
             if len(valid) > 0:
-                thr = float(np.mean(valid) + 2.0 * np.std(valid))
+                thr = float(np.mean(valid) + self.threshold_factor * np.std(valid))
             else:
                 thr = 0.0
         peaks = peaks[scores[peaks] > thr]
@@ -325,23 +367,34 @@ class ChangeFinderDetector(BaseSegmenter):
 
     def _predict_ensembling(self, data: np.ndarray) -> np.ndarray:
         n_samples, n_channels = data.shape
-        all_cps: list[int] = []
+        per_channel = [
+            self._select_peaks(self._changefinder_scores(data[:, d]))
+            for d in range(n_channels)
+        ]
+        if self.n_cps is None:
+            return self._consensus_change_points(per_channel, n_samples)
 
-        for d in range(n_channels):
-            scores = self._changefinder_scores(data[:, d])
-            cps = self._select_peaks(scores)
-            all_cps.extend(cps.tolist())
-
+        all_cps = [int(cp) for cps in per_channel for cp in cps]
         if not all_cps:
             return np.empty(0, dtype=np.int64)
-
-        n_cp = self.n_cps if self.n_cps is not None else len(all_cps)
         return aggregate_change_points(
             all_cps,
-            n_cp=n_cp,
+            n_cp=self.n_cps,
             tolerance=self.tolerance,
-            signal_len=data.shape[0],
+            signal_len=n_samples,
         )
+
+    def _consensus_change_points(
+        self, per_channel: list[np.ndarray], n_samples: int
+    ) -> np.ndarray:
+        """Change points detected by at least ``consensus`` of the channels."""
+        if isinstance(self.tolerance, float) and 0 < self.tolerance < 1:
+            tol = int(self.tolerance * n_samples)
+        else:
+            tol = int(self.tolerance)
+        if tol <= 0:
+            tol = self._min_distance_samples(n_samples)
+        return consensus_change_points(per_channel, tol, self.consensus)
 
     @classmethod
     def _get_test_params(cls, parameter_set: str = "default"):
