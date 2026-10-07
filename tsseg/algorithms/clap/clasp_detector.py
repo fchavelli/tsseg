@@ -26,7 +26,10 @@ class ClaspDetector(BaseSegmenter):
     ----------
     n_segments : str or int, default="learn"
         The number of segments to split the time series into. If "learn", the
-        number is inferred automatically.
+        number is inferred automatically. ``1`` returns no change point.
+    n_change_points : int, optional
+        The number of change points (guided mode). Takes precedence over
+        ``n_segments`` when set; ``0`` returns no change point.
     n_estimators : int, default=10
         The number of ClaSPs in the ensemble.
     window_size : str or int, default="suss"
@@ -58,12 +61,12 @@ class ClaspDetector(BaseSegmenter):
         "n_segments": ParamDef(
             constraint=[
                 StrOptions({"learn"}),
-                Interval(int, 2, None, Closed.LEFT),
+                Interval(int, 1, None, Closed.LEFT),
             ],
             description="Number of segments ('learn' = auto-detect).",
         ),
         "n_change_points": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Number of change points (injected by supervision pipeline).",
             nullable=True,
             ui_hidden=True,

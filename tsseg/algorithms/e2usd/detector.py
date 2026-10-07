@@ -82,7 +82,7 @@ class E2USDDetector(BaseSegmenter):
             group="windowing",
         ),
         "n_states": ParamDef(
-            constraint=Interval(int, 2, None, Closed.LEFT),
+            constraint=Interval(int, 1, None, Closed.LEFT),
             description="Maximum number of states for DPGMM.",
         ),
         "alpha": ParamDef(

@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Guided mode on a series without any change point: ``ClaspDetector``
+  (``n_change_points=0`` or ``n_segments=1``), ``ClapDetector``
+  (``n_change_points=0``), ``EspressoDetector`` (``n_segments=1``),
+  ``Time2StateDetector``, ``E2USDDetector`` and ``TiccDetector``
+  (``n_states=1``) accept the value and return no change point (a single
+  state); their parameter validation rejected it.
+
 * ``AmocDetector`` computes the error of every split from cumulative sums, in
   linear time: it recomputed both means at every split (quadratic time).
   The detected change point is the same.

@@ -44,6 +44,9 @@ class ClapDetector(BaseSegmenter):
         The axis of the time series data.
     change_points : np.ndarray, optional
         Pre-computed change points. Used if `semi_supervised` is True.
+    n_change_points : int, optional
+        The number of change points to find (guided mode). Takes precedence
+        over ``n_segments``; ``0`` yields a single segment, hence one state.
     n_segments : int, optional
         The number of segments to find. Used if `semi_supervised` is False to
         guide the unsupervised change point detection.
@@ -123,7 +126,7 @@ class ClapDetector(BaseSegmenter):
             nullable=True,
         ),
         "n_change_points": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Number of change points (overrides n_segments).",
             nullable=True,
         ),

@@ -24,7 +24,8 @@ class TiccDetector(BaseSegmenter):
     window_size : int, default=10
         The size of the sliding window.
     n_states : int, default=5
-        The number of states (clusters) to find.
+        The number of states (clusters) to find; ``1`` labels every time
+        point with the same state.
     lambda_parameter : float, default=11e-2
         Sparsity parameter.
     beta : float, default=400
@@ -55,7 +56,7 @@ class TiccDetector(BaseSegmenter):
             description="Sliding window size.",
         ),
         "n_states": ParamDef(
-            constraint=Interval(int, 2, None, Closed.LEFT),
+            constraint=Interval(int, 1, None, Closed.LEFT),
             description="Number of clusters/states to identify.",
         ),
         "lambda_parameter": ParamDef(

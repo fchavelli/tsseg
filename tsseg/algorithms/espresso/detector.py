@@ -44,7 +44,7 @@ class EspressoDetector(BaseSegmenter):
         semantic density matrix.
     n_segments : int, optional
         Target number of segments to produce during prediction. Must be
-        supplied and be greater than or equal to 2 when calling ``predict``.
+        supplied before calling ``fit``; ``1`` returns no change point.
     peak_distance_fraction : float, default=0.01
         Fraction of the input length that enforces a minimum spacing between
         detected peaks (matches the MATLAB reference implementation).
@@ -76,8 +76,8 @@ class EspressoDetector(BaseSegmenter):
             description="Iterations for expanding arc sets.",
         ),
         "n_segments": ParamDef(
-            constraint=Interval(int, 2, None, Closed.LEFT),
-            description="Target number of segments (>= 2 required).",
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Target number of segments (1 = no change point).",
             nullable=True,
         ),
         "peak_distance_fraction": ParamDef(
