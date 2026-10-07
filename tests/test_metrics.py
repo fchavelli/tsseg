@@ -61,7 +61,15 @@ def state_data_perfect():
 # Change-Point Detection metrics
 # ---------------------------------------------------------------------------
 
+# These tests use the legacy convention (the series length is the last element
+# of y_true), which warns; ``n_timepoints`` is covered in
+# ``test_metrics_series_length.py``.
+legacy_series_length = pytest.mark.filterwarnings(
+    "ignore:.*series length is inferred:UserWarning"
+)
 
+
+@legacy_series_length
 class TestF1Score:
     """F1Score returns keys: score, precision, recall."""
 
@@ -84,6 +92,7 @@ class TestF1Score:
         assert f1.compute([], [1])["score"] == 0.0
 
 
+@legacy_series_length
 class TestCovering:
     """Covering returns key: score."""
 
@@ -99,6 +108,7 @@ class TestCovering:
         assert result["score"] == 1.0
 
 
+@legacy_series_length
 class TestBidirectionalCovering:
     """BidirectionalCovering returns: score, ground_truth_covering, prediction_covering."""
 

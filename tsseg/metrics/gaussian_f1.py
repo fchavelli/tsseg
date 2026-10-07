@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .base import BaseMetric
-from .change_point_detection import labels_to_change_points
+from .change_point_detection import _prepare_change_points
 
 
 def _ensure_list(values: Sequence[int] | np.ndarray | None) -> list[int]:
@@ -209,12 +209,34 @@ class GaussianF1Score(BaseMetric):
         self,
         y_true: Iterable[int] | np.ndarray,
         y_pred: Iterable[int] | np.ndarray,
+        *,
+        n_timepoints: int | None = None,
     ) -> dict[str, float]:
-        """Return the Gaussian-weighted precision, recall, and F1 score."""
+        """Return the Gaussian-weighted precision, recall, and F1 score.
 
-        if self.convert_labels_to_segments:
-            y_true = labels_to_change_points(y_true)
-            y_pred = labels_to_change_points(y_pred)
+        Parameters
+        ----------
+        y_true, y_pred:
+            True and predicted change points (or label sequences with
+            ``convert_labels_to_segments=True``). Without ``n_timepoints``,
+            the series length is the largest element of ``y_true``, so
+            ``y_true`` must end with it.
+        n_timepoints:
+            Length of the series. When given, the change points may include
+            or omit the boundaries ``0`` and ``n_timepoints``. When omitted, a
+            ``UserWarning`` is emitted (unless ``convert_labels_to_segments``
+            is set).
+        """
+
+        if not self.convert_labels_to_segments:
+            y_true, y_pred = _ensure_list(y_true), _ensure_list(y_pred)
+        y_true, y_pred = _prepare_change_points(
+            y_true,
+            y_pred,
+            n_timepoints=n_timepoints,
+            convert_labels_to_segments=self.convert_labels_to_segments,
+            metric_name=type(self).__name__,
+        )
 
         y_true_list = _ensure_list(y_true)
         y_pred_list = _ensure_list(y_pred)
