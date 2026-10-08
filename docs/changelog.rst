@@ -11,6 +11,12 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Reproduction tests: tests that reproduce a published result on a dataset
+  downloaded on demand (pinned by its SHA-256 digest) go to
+  ``tests/reproduction/`` and are marked ``reproduction``. The marker is
+  deselected by default (``pytest -m reproduction`` runs them); the protocol
+  is in ``tests/reproduction/README.md``.
+
 * ``GreedyGaussianDetector`` returns the change point indices, as its
   ``returns_dense=True`` tag and its documentation announce: it returned one
   segment label per time point (``0, ..., 0, 1, ..., 1, ...``) since 0.2.0,

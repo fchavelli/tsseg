@@ -109,3 +109,19 @@ Running only the fast contract checks (no fit/predict):
 If your algorithm requires non-default constructor arguments or optional
 dependencies, add an entry to ``ALGORITHM_OVERRIDES`` in
 ``tests/algorithms/conftest.py``.
+
+Reproduction tests
+^^^^^^^^^^^^^^^^^^
+
+Tests that reproduce a published result live in ``tests/reproduction/``.
+They run a detector on a dataset used by the publication of its method,
+downloaded on demand from the original source and pinned by its SHA-256
+digest. They are marked ``reproduction`` and deselected by default, so they
+do not run in CI; each one has a fast synthetic counterpart that does.
+
+.. code-block:: bash
+
+    pytest -m reproduction
+
+The protocol (data helper, reference values, tolerances) is described in
+``tests/reproduction/README.md``.
