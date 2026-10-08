@@ -138,7 +138,7 @@ Usage
    from tsseg.algorithms import TireDetector
 
    detector = TireDetector(window_size=30, domain="both", n_segments=5)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** *Origin: new code.*
 

@@ -10,13 +10,13 @@ tsseg — Time Series Segmentation
 
 **tsseg** is a Python library for **Time Series Segmentation**, covering both
 **Change Point Detection** and **State Detection**. It bundles 30+ segmentation
-algorithms, evaluation metrics, data loaders and real-world benchmark datasets
-under a unified API.
+algorithms and evaluation metrics under a unified API, with a small
+real-world dataset for examples.
 
-Segmentation algorithms share the same base class interface as the
-`aeon <https://github.com/aeon-toolkit/aeon>`_ time-series toolkit, making them
-interoperable with the broader aeon ecosystem. Several aeon segmenters are also
-re-exposed through ``tsseg`` for convenience.
+Segmentation algorithms follow the segmenter interface of the
+`aeon <https://github.com/aeon-toolkit/aeon>`_ time-series toolkit (``fit`` /
+``predict`` on NumPy arrays, scikit-learn style parameters). A few detectors
+are adapted from aeon's implementations (E-Agglo, HMM, Hidalgo, IGTS).
 
 .. toctree::
    :hidden:
@@ -34,7 +34,7 @@ Overview
 
 The library is organised around three concepts:
 
-* :doc:`datasets` — loaders for the bundled and external benchmark datasets.
+* :doc:`datasets` — the bundled MoCap dataset and the expected data format.
 * :doc:`detectors/index` — 30+ change-point and state-detection algorithms
   exposed through a single ``fit`` / ``predict`` / ``fit_predict`` API.
 * :doc:`evaluation` — evaluation metrics for both change-point and
@@ -78,13 +78,15 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
    * - Extra
      - What it adds
    * - ``tsseg[aeon]``
-     - Compatibility helpers for the aeon ecosystem
+     - aeon's time series classifiers, used by ``ClapDetector``
    * - ``tsseg[prophet]``
      - Facebook Prophet (``ProphetDetector``)
    * - ``tsseg[patss]``
-     - Bayesian HSMM dependencies (``PatssDetector``)
+     - Nothing: ``PatssDetector`` (deprecated) needs ``npbad``, which is not
+       on PyPI and must be installed by hand
    * - ``tsseg[torch]``
-     - PyTorch-based detectors (``TireDetector``, ``Time2StateDetector``)
+     - PyTorch-based detectors (``TireDetector``, ``Time2StateDetector``,
+       ``E2USDDetector``)
    * - ``tsseg[tglad]``
      - PyTorch + NetworkX (``TGLADDetector``)
    * - ``tsseg[tscp2]``
@@ -103,6 +105,9 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
 
 Usage
 -----
+
+This example needs the ``accelerators`` and ``aeon`` extras (CLaP uses numba
+and aeon's classifiers):
 
 .. code-block:: python
 
@@ -143,20 +148,15 @@ If you use ``tsseg`` in academic work, please cite:
 
 .. code-block:: bibtex
 
-   @inproceedings{chavelli:hal-05654218,
-     TITLE = {{tsseg: An Interactive Toolkit for Time Series Segmentation}},
-     AUTHOR = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
-     URL = {https://inria.hal.science/hal-05654218},
-     BOOKTITLE = {{ECML-PKDD 2026 - European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases}},
-     ADDRESS = {Naples, Italy},
-     YEAR = {2026},
-     MONTH = Sep
+   @inproceedings{tsseg2026,
+     title     = {tsseg: An Interactive Toolkit for Time Series Segmentation},
+     author    = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
+     booktitle = {Machine Learning and Knowledge Discovery in Databases},
+     year      = {2027},
+     pages     = {391--394},
+     publisher = {Springer Nature Switzerland},
+     doi       = {10.1007/978-3-032-37685-5_41}
    }
-
-.. note::
-
-   A reference publication is in preparation; the BibTeX entry above is a
-   placeholder and will be updated when the paper is available.
 
 
 Contributors

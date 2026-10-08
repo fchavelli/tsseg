@@ -90,7 +90,7 @@ Usage
    from tsseg.algorithms import BOCDDetector
 
    detector = BOCDDetector(hazard_lambda=200, cp_prob_threshold=0.1)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** Adapted from hildensia/bayesian_changepoint_detection.
 Apache License 2.0.

@@ -42,6 +42,14 @@ Unreleased
 * New helper ``tsseg.algorithms.utils.consensus_change_points``: change points
   detected by enough channels, without a target count.
 
+* Documentation matches the code: the tag list of the detectors page
+  (``returns_dense`` is ``True`` for change point indices; guided mode is the
+  ``capability:semi_supervised`` tag), the getting-started guide (examples that
+  run without optional dependencies, guided mode through constructor
+  parameters, real test commands), the datasets page (one bundled dataset, no
+  test fixture to import), the extras table, change point examples that named
+  their output ``labels``, and the citation (Springer proceedings).
+
 * ``EAggloDetector``: ``penalty="mean_diff_penalty"`` no longer raises (the
   penalty was compiled with numba, which rejects the list of segment boundaries
   it receives). The documentation now describes the goodness-of-fit statistic,

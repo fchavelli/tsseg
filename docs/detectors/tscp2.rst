@@ -110,7 +110,7 @@ Usage
    from tsseg.algorithms import TSCP2Detector
 
    detector = TSCP2Detector(window_size=128, n_cps=5, epochs=50)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** TensorFlow reimplementation adapted from original code by
 Deldari et al.

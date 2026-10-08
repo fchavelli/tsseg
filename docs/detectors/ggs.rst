@@ -58,7 +58,7 @@ Usage
    from tsseg.algorithms import GreedyGaussianDetector
 
    detector = GreedyGaussianDetector(k_max=8, lamb=1.0)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** Adapted from aeon.  BSD 3-Clause.
 

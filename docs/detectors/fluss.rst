@@ -77,7 +77,7 @@ Usage
    from tsseg.algorithms import FLUSSDetector
 
    detector = FLUSSDetector(window_size=50, n_segments=4)
-   labels = detector.fit_predict(X)
+   change_points = detector.fit_predict(X)
 
 **Implementation:** Wrapper around ``stumpy``.  BSD 3-Clause.
 
