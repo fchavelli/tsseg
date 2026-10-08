@@ -17,6 +17,20 @@ Unreleased
   deselected by default (``pytest -m reproduction`` runs them); the protocol
   is in ``tests/reproduction/README.md``.
 
+* ``GreedyGaussianDetector`` returns the change point indices, as its
+  ``returns_dense=True`` tag and its documentation announce: it returned one
+  segment label per time point (``0, ..., 0, 1, ..., 1, ...``) since 0.2.0,
+  which code reading the output as change point indices misinterpreted.
+
+* ``EAggloDetector`` returns a ``numpy`` integer array instead of a Python
+  list, and the deprecated ``HMMDetector`` returns integer labels instead of
+  floats.
+
+* The output contract tests check what the documentation states: change
+  points are a 1-D integer ``numpy`` array, strictly increasing, within
+  ``[1, n - 1]``; state labels are a 1-D integer ``numpy`` array of length
+  ``n``. They accepted ``0``, duplicates and float labels.
+
 * Guided mode on a series without any change point: ``ClaspDetector``
   (``n_change_points=0`` or ``n_segments=1``), ``ClapDetector``
   (``n_change_points=0``), ``EspressoDetector`` (``n_segments=1``),

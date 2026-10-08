@@ -52,6 +52,47 @@ def _pick_data(instance, ovr, synthetic_data):
     return synthetic_data["multivariate"]
 
 
+def _preview(arr: np.ndarray, size: int = 20) -> str:
+    """Short representation of an output for assertion messages."""
+    values = np.asarray(arr).ravel()
+    head = values[:size].tolist()
+    return f"{head}{' ...' if values.size > size else ''} (size {values.size})"
+
+
+def _assert_output_contract(instance, result, n: int) -> None:
+    """Assert the output contract of ``predict`` for a series of length ``n``.
+
+    Change point detectors (``returns_dense=True``) return a 1-D integer
+    ``np.ndarray`` of strictly increasing indices in ``[1, n - 1]``: each
+    index is the first point of a new segment, and ``0`` and ``n`` are left
+    out. State detectors (``returns_dense=False``) return a 1-D integer
+    ``np.ndarray`` of length ``n``.
+    """
+    assert isinstance(result, np.ndarray), (
+        f"Expected a numpy array, got {type(result).__name__}"
+    )
+    assert result.ndim == 1, f"Expected 1-D output, got shape {result.shape}"
+    assert np.issubdtype(result.dtype, np.integer), (
+        f"Expected an integer dtype, got {result.dtype}"
+    )
+    if instance.get_tag("returns_dense"):
+        if result.size > 0:
+            assert result.min() >= 1, (
+                f"Change point indices must be >= 1 (0 is not a change point), "
+                f"got {_preview(result)}"
+            )
+            assert result.max() <= n - 1, (
+                f"Change point indices must be <= {n - 1}, got {_preview(result)}"
+            )
+        assert np.all(np.diff(result) > 0), (
+            f"Change point indices must be strictly increasing, got {_preview(result)}"
+        )
+    else:
+        assert result.shape[0] == n, (
+            f"State labels length ({result.shape[0]}) != number of samples ({n})"
+        )
+
+
 # ==================================================================
 # Output shape / type / value-range
 # ==================================================================
@@ -60,16 +101,21 @@ def _pick_data(instance, ovr, synthetic_data):
 class TestPredictOutputContract:
     """Verify that predictions satisfy the declared output contract."""
 
-    def test_output_is_array_like(self, algorithm, synthetic_data):
-        """Prediction must be convertible to a numpy array."""
+    def test_output_is_integer_array(self, algorithm, synthetic_data):
+        """Prediction must be a 1-D integer ``np.ndarray``."""
         _name, cls, ovr, instance = algorithm
         data = _pick_data(instance, ovr, synthetic_data)
         _, result = _run_fit_predict(cls, ovr, data)
-        arr = np.asarray(result)
-        assert arr.ndim >= 1, "Output must have at least one dimension"
+        assert isinstance(result, np.ndarray), (
+            f"Expected a numpy array, got {type(result).__name__}"
+        )
+        assert result.ndim == 1, f"Expected 1-D output, got shape {result.shape}"
+        assert np.issubdtype(result.dtype, np.integer), (
+            f"Expected an integer dtype, got {result.dtype}"
+        )
 
-    def test_dense_change_points_shape(self, algorithm, synthetic_data):
-        """If ``returns_dense=True``: 1-D array of indices in ``[0, N)``."""
+    def test_dense_change_points_range(self, algorithm, synthetic_data):
+        """If ``returns_dense=True``: indices in ``[1, N - 1]`` (no 0, no N)."""
         _name, cls, ovr, instance = algorithm
         if not instance.get_tag("returns_dense"):
             pytest.skip("Not a sparse change-point detector")
@@ -79,11 +125,16 @@ class TestPredictOutputContract:
         n = data["X"].shape[0]
         assert arr.ndim == 1, f"Expected 1-D output, got shape {arr.shape}"
         if arr.size > 0:
-            assert np.all(arr >= 0), "Change-point indices must be ≥ 0"
-            assert np.all(arr < n), f"Change-point indices must be < {n}"
+            assert np.all(arr >= 1), (
+                f"Change-point indices must be >= 1 (0 is not a change point), "
+                f"got {_preview(arr)}"
+            )
+            assert np.all(arr <= n - 1), (
+                f"Change-point indices must be <= {n - 1}, got {_preview(arr)}"
+            )
 
     def test_state_labels_shape(self, algorithm, synthetic_data):
-        """If ``returns_dense=False``: array of length ``N``."""
+        """If ``returns_dense=False``: 1-D array of length ``N``."""
         _name, cls, ovr, instance = algorithm
         if instance.get_tag("returns_dense"):
             pytest.skip("Not a state-label detector")
@@ -91,12 +142,12 @@ class TestPredictOutputContract:
         _, result = _run_fit_predict(cls, ovr, data)
         arr = np.asarray(result)
         n = data["X"].shape[0]
-        assert arr.shape[0] == n, (
-            f"State labels length ({arr.shape[0]}) != number of samples ({n})"
+        assert arr.shape == (n,), (
+            f"State labels shape {arr.shape} != ({n},) (one label per sample)"
         )
 
-    def test_change_points_are_sorted(self, algorithm, synthetic_data):
-        """If ``returns_dense=True``: indices must be sorted."""
+    def test_change_points_strictly_increasing(self, algorithm, synthetic_data):
+        """If ``returns_dense=True``: indices sorted, without duplicates."""
         _name, cls, ovr, instance = algorithm
         if not instance.get_tag("returns_dense"):
             pytest.skip("Not a sparse change-point detector")
@@ -104,19 +155,9 @@ class TestPredictOutputContract:
         _, result = _run_fit_predict(cls, ovr, data)
         arr = np.asarray(result)
         if arr.size > 1:
-            assert np.all(np.diff(arr) >= 0), "Change-point indices must be sorted"
-
-    def test_state_labels_dtype(self, algorithm, synthetic_data):
-        """If ``returns_dense=False``: labels should be integer-like."""
-        _name, cls, ovr, instance = algorithm
-        if instance.get_tag("returns_dense"):
-            pytest.skip("Not a state-label detector")
-        data = _pick_data(instance, ovr, synthetic_data)
-        _, result = _run_fit_predict(cls, ovr, data)
-        arr = np.asarray(result)
-        assert np.issubdtype(arr.dtype, np.integer) or np.allclose(
-            arr, arr.astype(int)
-        ), "State labels must be integer-valued"
+            assert np.all(np.diff(arr) > 0), (
+                f"Change-point indices must be strictly increasing, got {_preview(arr)}"
+            )
 
 
 # ==================================================================
@@ -183,8 +224,7 @@ class TestMultivariateSupport:
             pytest.skip("Univariate-only algorithm")
         data = synthetic_data["multivariate"]
         _, result = _run_fit_predict(cls, ovr, data)
-        arr = np.asarray(result)
-        assert arr.ndim >= 1, "Multivariate prediction must return an array"
+        _assert_output_contract(instance, result, data["X"].shape[0])
 
     def test_univariate_runs(self, algorithm, synthetic_data):
         _name, cls, ovr, instance = algorithm
@@ -192,5 +232,4 @@ class TestMultivariateSupport:
             pytest.skip("Multivariate-only algorithm")
         data = synthetic_data["univariate"]
         _, result = _run_fit_predict(cls, ovr, data)
-        arr = np.asarray(result)
-        assert arr.ndim >= 1, "Univariate prediction must return an array"
+        _assert_output_contract(instance, result, data["X"].shape[0])
