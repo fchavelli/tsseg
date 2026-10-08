@@ -247,8 +247,9 @@ class EAggloDetector(BaseSegmenter):
 
         Returns
         -------
-        list[int]
-            Sorted list of change point indices (exclusive of 0 and series length).
+        np.ndarray
+            Sorted 1-D integer array of change point indices (exclusive of 0
+            and series length).
         """
         n = X.shape[0]
         # fit again if indices not seen, but don't store anything
@@ -270,7 +271,9 @@ class EAggloDetector(BaseSegmenter):
         else:
             estimates = self._estimates
 
-        return sorted(int(cp) for cp in estimates if 0 < cp < n)
+        return np.array(
+            sorted(int(cp) for cp in estimates if 0 < cp < n), dtype=np.int64
+        )
 
     def _initialize_params(self, X: pd.DataFrame) -> None:
         """Initialize parameters and store to self."""
