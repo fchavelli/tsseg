@@ -524,19 +524,13 @@ class GreedyGaussianDetector(BaseSegmenter):
 
         Returns
         -------
-        y_pred : array_like
-            1D array with predicted segmentation of the same size as the first
-            dimension of X. The numerical values represent distinct segments
-            labels for each of the data points.
+        np.ndarray
+            Sorted 1-D integer array of change point indices, each the first
+            point of a new segment (``0`` and the series length are left out).
         """
         change_points_ = self.ggs.find_change_points(X)
-
-        labels = np.zeros(X.shape[0], dtype=np.int32)
-        for i, (start, stop) in enumerate(
-            zip(change_points_[:-1], change_points_[1:], strict=True)
-        ):
-            labels[start:stop] = i
-        return labels
+        # ``change_points_`` is bounded by 0 and ``n + 1`` (search sentinels).
+        return np.asarray(change_points_[1:-1], dtype=np.int64)
 
     @classmethod
     def _get_test_params(cls, parameter_set="default"):
