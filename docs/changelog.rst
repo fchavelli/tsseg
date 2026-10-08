@@ -11,6 +11,12 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New ``RuLSIFDetector`` (Liu, Yamada, Collier and Sugiyama, Neural Networks
+  2013): change points are peaks of the symmetrised relative Pearson
+  divergence between the subsequences before and after each point, estimated
+  by RuLSIF with cross-validated kernel width and regularisation. Written from
+  the paper, NumPy only; guided (``n_cps``) or thresholded.
+
 * Reproduction tests: tests that reproduce a published result on a dataset
   downloaded on demand (pinned by its SHA-256 digest) go to
   ``tests/reproduction/`` and are marked ``reproduction``. The marker is

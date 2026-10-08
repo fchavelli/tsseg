@@ -49,6 +49,7 @@ Change-point detection
    pelt
    prophet
    ruptures
+   rulsif
    tglad
    tire
    tscp2

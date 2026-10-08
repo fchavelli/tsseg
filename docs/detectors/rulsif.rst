@@ -1,0 +1,133 @@
+RuLSIF
+======
+
+Change-point detection by relative density-ratio estimation.
+
+Description
+-----------
+
+The series is cut into overlapping subsequences of length :math:`k`
+(``subsequence_length``); a multivariate subsequence concatenates all
+channels. For every candidate split, the :math:`n` subsequences before it
+(distribution :math:`P`) are compared with the :math:`n` subsequences after it
+(distribution :math:`P'`, ``n_subsequences``) by the symmetrised
+:math:`\alpha`-relative Pearson divergence
+
+.. math::
+
+   \mathrm{PE}_\alpha(P \| P') + \mathrm{PE}_\alpha(P' \| P), \qquad
+   \mathrm{PE}_\alpha(P \| P') = \frac{1}{2} \int p'_\alpha(Y)
+   \left(r_\alpha(Y) - 1\right)^2 \mathrm{d}Y,
+
+with :math:`p'_\alpha = \alpha p + (1 - \alpha) p'` and the relative density
+ratio :math:`r_\alpha = p / p'_\alpha`. Each divergence is estimated without
+estimating densities: RuLSIF fits :math:`r_\alpha` by regularised least
+squares with a Gaussian kernel model centred on the samples of :math:`P`,
+which has a closed-form solution. The kernel width (a multiple of the median
+distance between subsequences) and the regularisation parameter are chosen by
+5-fold cross-validation for every estimate. The relative ratio is bounded by
+:math:`1 / \alpha`, which makes the estimate more stable than that of the plain
+ratio (:math:`\alpha = 0`, uLSIF).
+
+Change points are the peaks of this score at least ``min_distance`` points
+apart: the ``n_cps`` highest ones in guided mode, those above ``threshold``
+otherwise. The paper only evaluates the score over all thresholds (ROC
+curves); the default ``threshold`` is a tsseg choice, about the 99th
+percentile of the score on change-free series. The score is kept in the
+``scores_`` attribute after ``predict``.
+
+| **Type:** change point detection
+| **Supervision:** unsupervised (``threshold``) or semi-supervised (``n_cps``)
+| **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(T \cdot F S L \cdot n^3)` for a series of length
+  :math:`T`, :math:`F` folds, :math:`S` kernel widths and :math:`L`
+  regularisation parameters; about 25 s for 5,000 points with the defaults
+| **Requires:** nothing beyond the core dependencies
+
+Parameters
+----------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 14 18 46
+
+   * - Name
+     - Type
+     - Default
+     - Description
+   * - ``subsequence_length``
+     - int
+     - ``10``
+     - Subsequence length :math:`k` (paper value).
+   * - ``n_subsequences``
+     - int
+     - ``50``
+     - Subsequences per compared set, :math:`n` (paper value). The series
+       needs at least :math:`2n + k - 1` points.
+   * - ``alpha``
+     - float
+     - ``0.1``
+     - Mixture weight of the relative density ratio, in :math:`[0, 1)`
+       (paper value).
+   * - ``sigma_factors``
+     - tuple of float
+     - ``(0.6, 0.8, 1.0, 1.2, 1.4)``
+     - Candidate kernel widths, as multiples of the median distance (paper
+       values).
+   * - ``lambdas``
+     - tuple of float
+     - ``(1e-3, 1e-2, 1e-1, 1, 10)``
+     - Candidate regularisation parameters (paper values).
+   * - ``n_folds``
+     - int
+     - ``5``
+     - Cross-validation folds (paper value).
+   * - ``n_cps``
+     - int / None
+     - ``None``
+     - Number of change points; ``None`` thresholds the peaks.
+   * - ``threshold``
+     - float
+     - ``3.0``
+     - Minimum peak score without ``n_cps`` (tsseg choice). The divergence
+       lies in :math:`[0, (1 - \alpha) / \alpha]`.
+   * - ``min_distance``
+     - int
+     - ``20``
+     - Minimum distance between change points (the paper merges alarms
+       closer than 20 points).
+   * - ``axis``
+     - int
+     - ``0``
+     - Time axis.
+
+Usage
+-----
+
+.. code-block:: python
+
+   from tsseg.algorithms import RuLSIFDetector
+
+   # peaks above the threshold
+   cps = RuLSIFDetector().fit_predict(X)
+
+   # known number of change points
+   detector = RuLSIFDetector(n_cps=3)
+   cps = detector.fit_predict(X)
+   score = detector.scores_
+
+**Implementation:** written for tsseg in NumPy from the paper; the authors'
+MATLAB code has no licence and was not used.
+
+**Reference:** Liu, Yamada, Collier & Sugiyama (2013), *Change-point detection
+in time-series data by relative density-ratio estimation*, Neural Networks 43;
+Yamada, Suzuki, Kanamori, Hachiya & Sugiyama (2013), *Relative density-ratio
+estimation for robust distribution comparison*, Neural Computation 25(5).
+
+API reference
+-------------
+
+.. automodule:: tsseg.algorithms.rulsif.detector
+   :members:
+   :show-inheritance:
+   :undoc-members:

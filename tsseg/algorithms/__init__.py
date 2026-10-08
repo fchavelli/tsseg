@@ -18,6 +18,7 @@ from .kcpd.detector import KCPDDetector
 from .patss.detector import PatssDetector
 from .pelt.detector import PeltDetector
 from .random.detector import RandomDetector
+from .rulsif.detector import RuLSIFDetector
 from .ticc.detector import TiccDetector
 from .window.detector import WindowDetector
 
@@ -82,6 +83,7 @@ __all__ = [
     "PeltDetector",
     "ProphetDetector",
     "RandomDetector",
+    "RuLSIFDetector",
     "SNLDSDetector",
     "TGLADDetector",
     "TiccDetector",
