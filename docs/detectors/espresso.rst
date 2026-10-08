@@ -44,7 +44,7 @@ Parameters
    * - ``n_segments``
      - int / None
      - ``None``
-     - Target number of segments (>= 2 at predict time).
+     - Target number of segments (``1`` = no change point).
    * - ``peak_distance_fraction``
      - float
      - ``0.01``

@@ -49,7 +49,7 @@ ClaSP parameters
    * - ``n_change_points``
      - int / None
      - ``None``
-     - Exact number of change points (semi-supervised mode).
+     - Exact number of change points (semi-supervised mode; ``0`` = none).
    * - ``n_estimators``
      - int
      - ``10``
@@ -129,7 +129,7 @@ CLaP parameters
    * - ``n_change_points``
      - int / None
      - ``None``
-     - Number of change points (overrides ``n_segments``).
+     - Number of change points (overrides ``n_segments``; ``0`` = one segment).
    * - ``change_points``
      - list / None
      - ``None``
