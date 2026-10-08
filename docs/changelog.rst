@@ -167,6 +167,16 @@ Unreleased
   ``OneVsRestClassifier(LogisticRegression(...))``, the same model (predicted
   probabilities equal to 1e-15 under scikit-learn 1.6).
 
+* ``F1Score``, ``Covering``, ``BidirectionalCovering`` and ``GaussianF1Score``
+  accept the series length in ``compute(y_true, y_pred, n_timepoints=n)``;
+  the change points may then include or omit ``0`` and ``n``, so the raw
+  output of a detector can be scored directly. Without ``n_timepoints`` (and
+  without ``convert_labels_to_segments=True``), the length is still read from
+  the change points, scores are unchanged, and a ``UserWarning`` now says so:
+  a ``y_true`` that does not end with the series length silently lost its last
+  change point (``F1Score(margin=5).compute([300, 700], [300])`` gives 1.0;
+  with ``n_timepoints=1000``, 0.667).
+
 0.2.0 (2026-09-26)
 ------------------
 

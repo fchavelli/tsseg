@@ -4,6 +4,22 @@ This module provides evaluation metrics for time series segmentation. All metric
 
 ## Change-Point Detection Metrics
 
+`F1Score`, `Covering`, `BidirectionalCovering` and `GaussianF1Score` need the
+series length $T$. Pass it explicitly, and the change points may include or
+omit the boundaries `0` and `T` (detectors return them without):
+
+```python
+from tsseg.metrics import F1Score
+
+F1Score(margin=5).compute([300, 700], [300], n_timepoints=1000)
+# {'score': 0.667, 'precision': 1.0, 'recall': 0.5}
+```
+
+Alternatively, pass dense label sequences with `convert_labels_to_segments=True`.
+Without either, the length is read from the change points (`y_true` must end
+with it) and a `UserWarning` is emitted: `compute([300, 700], [300])` takes 700
+for the length and returns 1.0.
+
 ### F1 Score
 
 Standard margin-based F1 for change-point detection. A predicted change point is considered a true positive if it falls within a fixed tolerance window of a ground-truth change point.
@@ -30,8 +46,9 @@ where $T$ is the series length and $\alpha$ (default 0.01) controls the width. A
 from tsseg.metrics import GaussianF1Score
 
 metric = GaussianF1Score()
-result = metric.compute(y_true=[0, 250, 500], y_pred=[0, 260, 500])
-# {'score': 0.96, 'precision': 0.96, 'recall': 0.96, 'matched_weight': 0.96}
+result = metric.compute(y_true=[250], y_pred=[260], n_timepoints=500)
+# sigma = 0.01 * 500 = 5 points, so a 10-point offset is worth exp(-2):
+# {'score': 0.135, 'precision': 0.135, 'recall': 0.135, 'matched_weight': 0.135}
 ```
 
 ### Bidirectional Covering
@@ -53,8 +70,8 @@ The two directions are aggregated with a configurable strategy: `harmonic` (defa
 from tsseg.metrics import BidirectionalCovering
 
 metric = BidirectionalCovering()
-result = metric.compute(y_true=[0, 50, 120, 200], y_pred=[0, 60, 180, 200])
-# {'score': 0.84, 'ground_truth_covering': 0.87, 'prediction_covering': 0.82}
+result = metric.compute(y_true=[50, 120], y_pred=[60, 180], n_timepoints=200)
+# {'score': 0.547, 'ground_truth_covering': 0.541, 'prediction_covering': 0.552}
 ```
 
 ### Covering

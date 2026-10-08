@@ -30,6 +30,74 @@ def labels_to_change_points(labels):
     return [0] + cp_indices.tolist() + [n]
 
 
+def _warn_series_length_inferred(metric_name: str) -> None:
+    """Warn that the series length is guessed from the change points."""
+    warnings.warn(
+        f"{metric_name}: the series length is inferred from the change points, "
+        "so y_true must end with it; a y_true without it (e.g. the raw output "
+        "of a detector) silently loses its last change point. Pass "
+        "n_timepoints=<series length> to compute(), or label sequences with "
+        "convert_labels_to_segments=True.",
+        UserWarning,
+        stacklevel=4,
+    )
+
+
+def _with_series_bounds(change_points: list[int], n_timepoints: int) -> list[int]:
+    """Return ``change_points`` sorted, starting with ``0`` and ending with ``n``.
+
+    The points may already include either boundary; the other points are kept
+    as they are (duplicates included).
+    """
+    n_timepoints = int(n_timepoints)
+    if n_timepoints < 1:
+        raise ValueError(f"n_timepoints must be >= 1, got {n_timepoints}")
+    points = sorted(int(cp) for cp in change_points)
+    if points and (points[0] < 0 or points[-1] > n_timepoints):
+        raise ValueError(
+            f"Change points must lie in [0, n_timepoints={n_timepoints}], "
+            f"got {points[0]}..{points[-1]}"
+        )
+    if not points or points[0] != 0:
+        points.insert(0, 0)
+    if points[-1] != n_timepoints:
+        points.append(n_timepoints)
+    return points
+
+
+def _prepare_change_points(
+    y_true: list[int],
+    y_pred: list[int],
+    *,
+    n_timepoints: int | None,
+    convert_labels_to_segments: bool,
+    metric_name: str,
+) -> tuple[list[int], list[int]]:
+    """Shared input handling of the change-point metrics.
+
+    Labels are converted to change points (with ``0`` and ``n``) when
+    ``convert_labels_to_segments`` is set; otherwise, when ``n_timepoints`` is
+    given, both lists get the boundaries ``0`` and ``n_timepoints``, and when
+    it is not, the inputs are returned unchanged with a warning.
+    """
+    if convert_labels_to_segments:
+        if n_timepoints is not None and (
+            len(y_true) != n_timepoints or len(y_pred) != n_timepoints
+        ):
+            raise ValueError(
+                f"n_timepoints={n_timepoints} differs from the length of the "
+                f"label sequences ({len(y_true)}, {len(y_pred)})"
+            )
+        return labels_to_change_points(y_true), labels_to_change_points(y_pred)
+    if n_timepoints is None:
+        _warn_series_length_inferred(metric_name)
+        return y_true, y_pred
+    return (
+        _with_series_bounds(y_true, n_timepoints),
+        _with_series_bounds(y_pred, n_timepoints),
+    )
+
+
 def _ensure_boundaries(
     y_true: list[int], y_pred: list[int]
 ) -> tuple[list[int], list[int]]:
@@ -120,14 +188,25 @@ class F1Score(BaseMetric):
         self.margin = margin
         self.convert_labels_to_segments = convert_labels_to_segments
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    def compute(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        *,
+        n_timepoints: int | None = None,
+    ) -> dict[str, float]:
         """
         Computes the F1-score, precision, and recall.
 
         Args:
-            y_true: List of true change points. The last element should be the
-                    total number of time steps.
+            y_true: List of true change points. Without ``n_timepoints``, the
+                    last element must be the total number of time steps.
             y_pred: List of predicted change points.
+            n_timepoints: Length of the series. When given, the change points
+                    may include or omit the boundaries ``0`` and
+                    ``n_timepoints``. When omitted, the length is read from
+                    the last element of ``y_true`` and a ``UserWarning`` is
+                    emitted (unless ``convert_labels_to_segments`` is set).
         Returns:
             A dictionary with F1-score, precision, and recall.
         """
@@ -136,9 +215,13 @@ class F1Score(BaseMetric):
         if isinstance(y_pred, np.ndarray):
             y_pred = y_pred.tolist()
 
-        if self.convert_labels_to_segments:
-            y_true = labels_to_change_points(y_true)
-            y_pred = labels_to_change_points(y_pred)
+        y_true, y_pred = _prepare_change_points(
+            y_true,
+            y_pred,
+            n_timepoints=n_timepoints,
+            convert_labels_to_segments=self.convert_labels_to_segments,
+            metric_name=type(self).__name__,
+        )
 
         if not y_true and not y_pred:
             return {
@@ -236,14 +319,25 @@ class Covering(BaseMetric):
         """
         return [(cp_indices[i], cp_indices[i + 1]) for i in range(len(cp_indices) - 1)]
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    def compute(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        *,
+        n_timepoints: int | None = None,
+    ) -> dict[str, float]:
         """
         Computes the Covering score.
 
         Args:
-            y_true: Array of true change points. The last element should be the
-                    total number of time steps.
+            y_true: Array of true change points. Without ``n_timepoints``, the
+                    series length is the largest change point of ``y_true``
+                    and ``y_pred``, so ``y_true`` must end with it.
             y_pred: Array of predicted change points.
+            n_timepoints: Length of the series. When given, the change points
+                    may include or omit the boundaries ``0`` and
+                    ``n_timepoints``. When omitted, a ``UserWarning`` is
+                    emitted (unless ``convert_labels_to_segments`` is set).
 
         Returns:
             A dictionary with the Covering score.
@@ -253,9 +347,13 @@ class Covering(BaseMetric):
         if isinstance(y_pred, np.ndarray):
             y_pred = y_pred.tolist()
 
-        if self.convert_labels_to_segments:
-            y_true = labels_to_change_points(y_true)
-            y_pred = labels_to_change_points(y_pred)
+        y_true, y_pred = _prepare_change_points(
+            y_true,
+            y_pred,
+            n_timepoints=n_timepoints,
+            convert_labels_to_segments=self.convert_labels_to_segments,
+            metric_name=type(self).__name__,
+        )
 
         y_true, y_pred = _ensure_boundaries(y_true, y_pred)
 
