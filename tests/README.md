@@ -17,6 +17,7 @@ tests/
 │   ├── test_instantiation.py  # Default & override construction
 │   ├── test_tags.py           # Required tag presence
 │   └── __init__.py
+├── reproduction/              # published results on downloaded data (see its README)
 ├── test_datasets.py           # MoCap loader (shapes, errors, trial selection)
 └── test_metrics.py            # All metrics (F1, Covering, ARI, SMS, …)
 ```
@@ -55,6 +56,7 @@ pytest                              # full suite
 pytest tests/test_metrics.py        # metrics only
 pytest tests/algorithms/ -k Pelt    # one algorithm
 pytest -x --tb=short                # stop at first failure
+pytest -m reproduction              # reproduction tests (deselected by default)
 ```
 
 Pytest automatically **skips** tests whose optional dependencies are

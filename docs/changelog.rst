@@ -11,6 +11,12 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Reproduction tests: tests that reproduce a published result on a dataset
+  downloaded on demand (pinned by its SHA-256 digest) go to
+  ``tests/reproduction/`` and are marked ``reproduction``. The marker is
+  deselected by default (``pytest -m reproduction`` runs them); the protocol
+  is in ``tests/reproduction/README.md``.
+
 * Guided mode on a series without any change point: ``ClaspDetector``
   (``n_change_points=0`` or ``n_segments=1``), ``ClapDetector``
   (``n_change_points=0``), ``EspressoDetector`` (``n_segments=1``),
