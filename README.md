@@ -169,7 +169,7 @@ If you use this work, please consider citing the associated paper:
   title     = {tsseg: An Interactive Toolkit for Time Series Segmentation},
   author    = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
   booktitle = {Machine Learning and Knowledge Discovery in Databases},
-  year      = {2027},
+  year      = {2026},
   pages     = {391--394},
   publisher = {Springer Nature Switzerland},
   doi       = {10.1007/978-3-032-37685-5_41}
