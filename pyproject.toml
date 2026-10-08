@@ -186,9 +186,12 @@ addopts = [
     "-v",
     "--tb=short",
     "--strict-markers",
+    "-m",
+    "not reproduction",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "reproduction: reproduces a published result on a dataset downloaded on demand; deselected by default, run with '-m reproduction' (see tests/reproduction/README.md)",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
