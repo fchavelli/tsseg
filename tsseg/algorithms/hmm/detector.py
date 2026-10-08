@@ -372,7 +372,7 @@ class HMMDetector(BaseSegmenter):
             each entry in the array is an int representing a hidden id state
             that has been assigned to that observation.
         """
-        hmm_fit = np.zeros(num_obs)
+        hmm_fit = np.zeros(num_obs, dtype=np.int64)
         # Now we trace backwards and find the most likely path:
         max_inds = np.zeros(num_obs, dtype=np.int32)
         max_inds[-1] = np.argmax(trans_prob[:, -1])
