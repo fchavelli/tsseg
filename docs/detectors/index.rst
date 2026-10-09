@@ -49,6 +49,7 @@ Change-point detection
    pelt
    prophet
    ruptures
+   seeded_binseg
    tglad
    tire
    tscp2
