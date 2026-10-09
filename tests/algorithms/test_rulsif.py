@@ -213,7 +213,11 @@ def test_unsupervised_mean_shift_and_noise():
     assert np.any(np.abs(cps - 200) <= 10)
     assert np.all(np.abs(cps - 200) <= 30)
     noise = np.random.default_rng(5).normal(size=400)
-    assert len(RuLSIFDetector().fit_predict(noise)) == 0
+    # the calibrated threshold trades a few false alarms on noise (about 3
+    # per 2,000 points) for recall; 3.0 is about the 99th percentile of the
+    # score on change-free series
+    assert len(RuLSIFDetector().fit_predict(noise)) <= 1
+    assert len(RuLSIFDetector(threshold=3.0).fit_predict(noise)) == 0
 
 
 def test_multivariate_change_in_one_channel():
@@ -232,6 +236,19 @@ def test_guided_returns_peaks_min_distance_apart():
     assert any(abs(int(c) - 200) <= 10 for c in cps)
     assert any(abs(int(c) - 400) <= 10 for c in cps)
     assert any(abs(int(c) - 600) <= 10 for c in cps)
+
+
+def test_threshold_above_the_bound_of_the_score_warns():
+    # alpha = 0.5 bounds the score by 1, below the default threshold
+    with pytest.warns(UserWarning, match="no change point"):
+        cps = RuLSIFDetector(alpha=0.5, n_subsequences=20).fit_predict(
+            _mean_shift(0, n=100)
+        )
+    assert cps.size == 0
+    cps = RuLSIFDetector(alpha=0.5, n_subsequences=20, threshold=0.25).fit_predict(
+        _mean_shift(0, n=100)
+    )
+    assert np.any(np.abs(cps - 100) <= 5)
 
 
 def test_zero_change_points():

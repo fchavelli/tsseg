@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 from scipy.signal import find_peaks
 
@@ -41,7 +43,9 @@ class RuLSIFDetector(BaseSegmenter):
         Candidate Gaussian kernel widths, as multiples of the median scale
         :math:`\sqrt{\operatorname{median}(d^2) / 2}` of the pairwise
         distances :math:`d` between the subsequences of the two sets (after
-        standardisation, see Notes). Paper values.
+        standardisation, see Notes). The paper's factors; the base width is
+        the authors' code's (the paper's median distance divided by
+        :math:`\sqrt 2`).
     lambdas : tuple of float, default=(1e-3, 1e-2, 1e-1, 1.0, 10.0)
         Candidate regularisation parameters. Paper values.
     n_folds : int, default=5
@@ -53,18 +57,23 @@ class RuLSIFDetector(BaseSegmenter):
         highest peaks of the score at least ``min_distance`` apart, or fewer
         if the score has fewer peaks. ``None`` keeps the peaks above
         ``threshold``.
-    threshold : float, default=3.0
+    threshold : float, default=2.25
         Minimum score of a peak in unsupervised mode. Not from the paper,
-        which evaluates the score over all thresholds (ROC curves): about the
-        99th percentile of the score on change-free series (white noise,
-        AR(2), correlated Gaussian and noisy sine) with the default
-        parameters. The divergence itself lies in ``[0, (1 - alpha) / alpha]``
-        (``[0, 9]`` for the default ``alpha``); its estimate can fall slightly
-        below 0.
+        which evaluates the score over all thresholds (ROC curves). Calibrated
+        by tsseg for the default parameters (``alpha=0.1``): it maximises the
+        mean F1 score (margin 1 %) over the paper's four synthetic datasets
+        (Section 4.1, three draws each), 0.700 against 0.678 for 3.0; on
+        change-free series of 2,000 points it gives 2 to 4 false alarms
+        (white noise, noisy sine, correlated Gaussian, 5-channel noise), 18 on
+        an AR(2) process. The score is bounded by ``(1 - alpha) / alpha``
+        (9 for the default ``alpha``; its estimate can fall slightly below
+        0), so for another ``alpha`` scale the threshold with this bound; a
+        threshold at or above it finds nothing and raises a warning.
     min_distance : int, default=20
-        Minimum number of points between two change points. The paper merges
-        alarms closer than 20 points when it evaluates the score (Section
-        4.1).
+        Minimum number of points between two change points: of two peaks
+        closer than that, the higher one is kept. The paper, when it
+        evaluates the score, drops an alarm closer than 20 points to the
+        previous one (Section 4.1).
     axis : int, default=0
         Time axis.
 
@@ -85,7 +94,9 @@ class RuLSIFDetector(BaseSegmenter):
 
     - Before each estimate, every coordinate of the ``2 * n_subsequences``
       subsequences is divided by its standard deviation over them (not
-      centred), so channels on different scales weigh the same.
+      centred), so channels on different scales weigh the same; a nearly
+      constant channel is brought to unit variance too, which amplifies its
+      noise.
     - The base kernel width is :math:`\sqrt{\operatorname{median}(d^2) /
       2}` over the non-zero pairwise distances (``comp_med.m``), i.e. the
       paper's "median distance" divided by :math:`\sqrt 2`.
@@ -203,7 +214,7 @@ class RuLSIFDetector(BaseSegmenter):
         lambdas: tuple[float, ...] = (1e-3, 1e-2, 1e-1, 1.0, 10.0),
         n_folds: int = 5,
         n_cps: int | None = None,
-        threshold: float = 3.0,
+        threshold: float = 2.25,
         min_distance: int = 20,
         axis: int = 0,
     ) -> None:
@@ -230,6 +241,16 @@ class RuLSIFDetector(BaseSegmenter):
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         self._check_grids()
+        if self.n_cps is None and self.alpha > 0:
+            bound = (1.0 - self.alpha) / self.alpha
+            if self.threshold >= bound:
+                warnings.warn(
+                    f"threshold={self.threshold} is not below the maximum of the "
+                    f"score, (1 - alpha) / alpha = {bound:.4g}: no change point "
+                    "can be found. Lower the threshold or pass n_cps.",
+                    UserWarning,
+                    stacklevel=2,
+                )
         X = np.asarray(X, dtype=float)
         scores = rulsif_scores(
             X,

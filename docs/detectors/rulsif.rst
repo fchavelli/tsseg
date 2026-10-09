@@ -34,9 +34,12 @@ ratio (:math:`\alpha = 0`, uLSIF).
 Change points are the peaks of this score at least ``min_distance`` points
 apart: the ``n_cps`` highest ones in guided mode, those above ``threshold``
 otherwise. The paper only evaluates the score over all thresholds (ROC
-curves); the default ``threshold`` is a tsseg choice, about the 99th
-percentile of the score on change-free series. The score is kept in the
-``scores_`` attribute after ``predict``.
+curves); the default ``threshold`` (2.25, for :math:`\alpha = 0.1`) is
+calibrated by tsseg: it maximises the mean F1 score (margin 1 %) over the
+paper's four synthetic datasets. The score saturates near its bound
+:math:`(1 - \alpha) / \alpha` on smooth or drifting series (motion capture,
+random walk), where no threshold separates the changes: use ``n_cps`` there.
+The score is kept in the ``scores_`` attribute after ``predict``.
 
 | **Type:** change point detection
 | **Supervision:** unsupervised (``threshold``) or semi-supervised (``n_cps``)
@@ -76,8 +79,9 @@ Parameters
      - ``(0.6, 0.8, 1.0, 1.2, 1.4)``
      - Candidate kernel widths, as multiples of
        :math:`\sqrt{\operatorname{median}(d^2) / 2}` over the pairwise
-       distances :math:`d` between subsequences, as in the authors' code
-       (paper values).
+       distances :math:`d` between subsequences: the paper's factors, the
+       authors' code's base width (the paper's median distance over
+       :math:`\sqrt 2`).
    * - ``lambdas``
      - tuple of float
      - ``(1e-3, 1e-2, 1e-1, 1, 10)``
@@ -92,14 +96,17 @@ Parameters
      - Number of change points; ``None`` thresholds the peaks.
    * - ``threshold``
      - float
-     - ``3.0``
-     - Minimum peak score without ``n_cps`` (tsseg choice). The divergence
-       lies in :math:`[0, (1 - \alpha) / \alpha]`.
+     - ``2.25``
+     - Minimum peak score without ``n_cps``, calibrated for
+       :math:`\alpha = 0.1` (tsseg). The score lies in
+       :math:`[0, (1 - \alpha) / \alpha]`: scale the threshold with this
+       bound for another :math:`\alpha`.
    * - ``min_distance``
      - int
      - ``20``
-     - Minimum distance between change points (the paper merges alarms
-       closer than 20 points).
+     - Minimum distance between change points; the higher of two closer
+       peaks is kept (the paper drops alarms closer than 20 points to the
+       previous one).
    * - ``axis``
      - int
      - ``0``

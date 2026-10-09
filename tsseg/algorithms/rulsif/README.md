@@ -32,7 +32,7 @@ estimated by RuLSIF; change points are peaks of the score.
   the α-relative Pearson divergence (closed form, cross-validation over
   kernel widths and regularisation parameters), and the score of every split
 - `detector.py`: `RuLSIFDetector`, peak selection
-- Defaults are the paper's (k = 10, n = 50, α = 0.1, five kernel widths and
+- Defaults are the paper's (k = 10, n = 50, α = 0.1, five kernel-width factors and
   five regularisation parameters, 5-fold cross-validation, Section 4). Where
   the code is more specific than the paper (standardisation, median
   heuristic, folds), the code is followed; the class docstring lists these
