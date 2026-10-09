@@ -4,28 +4,38 @@ Publication: M. Londschien, P. Bühlmann and S. Kovács, *Random forests for
 change point detection*, JMLR 24(216), 2023, Table 1: average adjusted Rand
 index (ARI) of changeforest over 500 simulations, with standard deviations.
 
-Protocol (Section 4.2 of the paper, read from the paper only): the change in
-mean (CIM) and change in covariance (CIC) setups (n=600, d=5, change points
-at 200 and 400), the Dirichlet setup (n=1000, d=20, ten change points) and the
-iris and glass setups, where each class of a classification data set is one
-segment: classes with fewer than delta * n observations are discarded, the
-observations are shuffled within each class and the classes concatenated in a
-random order. ``ChangeForestDetector`` runs unsupervised with its defaults
-(those of the package, delta = 0.01, as in the main simulations). The ARI
-compares the segmentations as clusterings of the time points.
+Protocol (Section 4.2 of the paper, checked against the paper's simulation
+code, github.com/mlondschien/changeforest-simulations, cited in Section 4):
+the change in mean (CIM) and change in covariance (CIC) setups (n=600, d=5,
+change points at 200 and 400), the Dirichlet setup (n=1000, d=20, ten change
+points) and the iris and glass setups, where each class of a classification
+data set is one segment: classes with fewer than delta * n observations are
+discarded, the observations are shuffled within each class and the classes
+concatenated in a random order. ``ChangeForestDetector`` runs unsupervised
+with its defaults (those of the package, delta = 0.01, as in the main
+simulations). The ARI compares the segmentations as clusterings of the time
+points.
 
-Deviations: the paper normalises each covariate of the class-based setups by
-the median absolute consecutive difference; random forests are invariant to
-this per-covariate scaling (as the paper notes), so it is skipped. The package
-version (1.2.1) is more recent than the paper's.
+Deviations:
 
-Glass: Table 1 reports d = 8 while the UCI file has 9 covariates, and the
-paper does not say which one is left out. With all 9, the mean ARI is 0.964
-(sd 0.046), above the published 0.92. Dropping one covariate at a time (150
-simulations each) gives 0.922 without the refractive index (RI) and 0.956 to
-0.962 without any other one, so the test uses the 8 chemical covariates
-(Na to Fe). This choice is inferred from d = 8 and that probe, not stated by
-the paper.
+- The paper divides each covariate of the class-based setups by the median
+  absolute deviation of its consecutive differences (Section 4.2; ``normalize``
+  in the simulation code). Random forests are invariant to this per-covariate
+  scaling (as the paper notes), so it is skipped.
+- The paper's results come from changeforest 0.6.0 (README and
+  ``environment.yaml`` of the simulation code; random forests from biosphere
+  0.3). This test uses 1.2.1 (biosphere 0.4); according to the package
+  changelog, no default has changed since 0.6.0.
+- Classes are kept when they have at least delta * n observations, as the
+  paper's text says; the simulation code keeps them when they have strictly
+  more. No class of iris or glass is at that boundary.
+
+Glass: Table 1 reports d = 8 while the UCI file has 9 covariates. The
+simulation code (``load_glass``) reads ``glass.data`` with 10 column names for
+its 11 columns, so pandas takes the Id column as index, reads the refractive
+index (RI) as "id" and drops it: the paper's glass setup uses the 8 chemical
+covariates Na to Fe, and so does this test. With all 9 covariates, the mean
+ARI would be 0.964 (sd 0.046), above the published 0.92.
 
 Results (500 simulations, seeds 0-499, changeforest 1.2.1), mean ARI (sd),
 tsseg vs Table 1: CIM 0.987 (0.035) vs 0.99 (0.03); CIC 0.920 (0.136) vs
@@ -127,7 +137,7 @@ def _iris():
 def _glass():
     raw = np.loadtxt(fetch("uci-glass"), delimiter=",")
     # Columns: Id, RI, Na, Mg, Al, Si, K, Ca, Ba, Fe, glass type. RI is left
-    # out to match d = 8 of Table 1 (see the module docstring).
+    # out, as in the paper's simulation code (see the module docstring).
     return _class_setup(raw[:, 2:10], raw[:, 10].astype(int))
 
 
