@@ -79,6 +79,7 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     ),
     # --- Rbeast (tsseg[beast]) -----------------------------------------
     "BeastDetector": AlgorithmOverride(dependencies=("Rbeast",)),
+    "ChangeForestDetector": AlgorithmOverride(dependencies=("changeforest",)),
     "DynpDetector": AlgorithmOverride(semi_supervised=True),
     "HidalgoDetector": AlgorithmOverride(semi_supervised=True),
     # --- Need an explicit stopping criterion --------------------------
