@@ -233,3 +233,11 @@ def test_wild_intervals_are_reproducible():
     second = SeededBinSegDetector(intervals="wild", n_intervals=200, random_state=1)
     np.testing.assert_array_equal(first.fit_predict(x), second.fit_predict(x))
     assert first.n_intervals_ <= 201
+
+
+@pytest.mark.parametrize("selection", ["greedy", "narrowest"])
+def test_ssic_considers_at_most_max_cps(selection):
+    x = _steps([0, 3] * 10, 30, 0.5)  # 19 change points
+    assert len(SeededBinSegDetector(selection=selection).fit_predict(x)) == 19
+    capped = SeededBinSegDetector(selection=selection, max_cps=5).fit_predict(x)
+    assert 0 < len(capped) <= 5

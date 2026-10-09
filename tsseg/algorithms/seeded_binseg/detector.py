@@ -86,9 +86,12 @@ class SeededBinSegDetector(BaseSegmenter):
     alpha : float, default=1.01
         Exponent of the sSIC penalty ``k (d + 1)/2 log(n)^alpha``; 1 gives the
         Schwarz criterion. 1.01 is the value of Fryzlewicz (2014).
-    max_cps : int or None, default=50
-        Largest number of change points the sSIC considers: the solution path
-        is followed until it holds more. ``None``: no limit.
+    max_cps : int, default=50
+        Largest number of change points the sSIC considers (``K`` of
+        Fryzlewicz, 2014, Sec. 4.2, which the criterion needs: along the whole
+        path the residual variance tends to 0 and the largest model wins). The
+        solution path is followed until it holds more; a series with more
+        change points than ``max_cps`` gets ``max_cps`` at most.
     model : str, default="l2"
         Cost of the vendored ruptures (``"l2"``, ``"l1"``, ``"rbf"``,
         ``"linear"``, ``"normal"``, ``"cosine"``).
@@ -197,7 +200,6 @@ class SeededBinSegDetector(BaseSegmenter):
         "max_cps": ParamDef(
             constraint=Interval(int, 0, None, Closed.LEFT),
             description="Largest number of change points considered by the sSIC.",
-            nullable=True,
         ),
         "model": ParamDef(
             constraint=StrOptions({"l1", "l2", "rbf", "linear", "normal", "cosine"}),
@@ -245,7 +247,7 @@ class SeededBinSegDetector(BaseSegmenter):
         n_intervals: int = 5000,
         selection: str = "greedy",
         alpha: float = 1.01,
-        max_cps: int | None = 50,
+        max_cps: int = 50,
         model: str = "l2",
         min_size: int = 1,
         cost_params: dict | None = None,
@@ -357,13 +359,11 @@ class SeededBinSegDetector(BaseSegmenter):
         csum = np.vstack([zeros, np.cumsum(centred, axis=0)])
         csum2 = np.vstack([zeros, np.cumsum(centred**2, axis=0)])
         best, best_value = [], ssic(csum, csum2, [], self.alpha)
-        limit = self.max_cps
+        limit = int(self.max_cps)
         if greedy:
             # nested models: each change point splits one segment, whose
             # residual sum of squares is updated in O(d)
-            path = greedy_path(starts, ends, bkps, gains)
-            if limit is not None:
-                path = path[:limit]
+            path = greedy_path(starts, ends, bkps, gains)[:limit]
             n, d = X.shape
             penalty = (d + 1) / 2 * np.log(n) ** self.alpha
             rss = np.maximum(csum2[-1] - csum[-1] ** 2 / n, 0.0)
@@ -380,9 +380,9 @@ class SeededBinSegDetector(BaseSegmenter):
                 if value < best_value:
                     best, best_value = path[:k], value
         else:
-            stop = None if limit is None else limit + 1
-            for solution in narrowest_path(starts, ends, bkps, gains, stop_at=stop):
-                if limit is not None and len(solution) > limit:
+            path = narrowest_path(starts, ends, bkps, gains, stop_at=limit + 1)
+            for solution in path:
+                if len(solution) > limit:
                     break
                 value = ssic(csum, csum2, [cp for cp, _ in solution], self.alpha)
                 if value < best_value:

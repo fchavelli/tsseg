@@ -77,9 +77,10 @@ Parameters
      - ``1.01``
      - Exponent of the sSIC penalty :math:`k\,(d+1)/2\,\log(n)^\alpha`.
    * - ``max_cps``
-     - int / None
+     - int
      - ``50``
-     - Largest number of change points the sSIC considers.
+     - Largest number of change points the sSIC considers (the criterion
+       needs a bound); a series with more gets ``max_cps`` at most.
    * - ``model``
      - str
      - ``"l2"``
