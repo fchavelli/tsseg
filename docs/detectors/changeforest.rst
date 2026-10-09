@@ -12,15 +12,17 @@ model inside the segments. To score a split of a segment, it trains a
 classifier to separate the observations before the split from those after it,
 and turns the out-of-bag class probabilities into a classifier log-likelihood
 ratio, the *gain*. A two-step search fits the classifier at the 1/4, 1/2 and
-3/4 quantiles of the segment, maximises the resulting approximate gain curves
-and refines around the best guess, so that a handful of classifier fits per
-segment suffice. A permutation test decides whether the best split is
-significant, and binary segmentation recurses on the significant splits.
+3/4 quantiles of the segment and maximises the resulting approximate gain
+curves, then refits the classifier at the best of these guesses and maximises
+the new gain curve over all candidate splits, so that a handful of classifier
+fits per segment suffice. A pseudo-permutation test of the first-step gains
+decides whether the best split is kept, and binary segmentation recurses on
+the kept splits.
 
 Three gains are available: the random forest classifier (the paper's method),
 a k-nearest-neighbour classifier (``"knn"``) and the parametric change in mean
-(``"change_in_mean"``). The search can use binary, seeded binary or wild
-binary segmentation.
+(``"change_in_mean"``). The search can use binary (the paper's method), seeded
+binary or wild binary segmentation.
 
 With ``n_cps=K`` (semi-supervised mode, not part of the paper), the detector
 runs binary segmentation best-first: it repeatedly splits the segment whose
@@ -30,10 +32,36 @@ change points are found; the significance test is not used.
 | **Type:** change point detection
 | **Supervision:** unsupervised (permutation test) or semi-supervised (``n_cps``)
 | **Scope:** univariate and multivariate
-| **Complexity:** a few forests per segment, each nearly linear in :math:`n`
-  for a fixed tree depth (Section 3.3 of the paper); empirically close to
-  linear in :math:`n` (Section 4.5)
+| **Complexity:** random forest: a few forests per segment, each nearly linear
+  in :math:`n` for a fixed tree depth (Section 3.3 of the paper); empirically
+  close to linear in :math:`n` (Section 4.5). ``"knn"``: quadratic in time and
+  memory (an :math:`n \times n` distance matrix and its ordering, about
+  :math:`16 n^2` bytes)
 | **Requires:** changeforest (``pip install tsseg[changeforest]``)
+
+Limitations
+-----------
+
+* **Independent observations.** The method assumes them (Section 2 of the
+  paper) and over-segments autocorrelated series: three stationary AR(1)
+  series with coefficient 0.9 (2000 points, 3 channels, no change) give 63 to
+  71 change points each. Section 5 of the paper suggests adding lagged
+  observations as extra channels.
+* **Scale.** Only the random forest gain is invariant to the scale of each
+  channel. ``"knn"`` uses Euclidean distances, and the ``"change_in_mean"``
+  gain and its threshold :math:`\log(n)(d + 1)` assume noise of unit variance
+  (i.i.d. Gaussian noise of standard deviation 3 gives about 50 change points
+  in 600 points). Standardise the channels first, for instance by the median
+  absolute deviation of their consecutive differences (Section 4.2).
+* **Seeded and wild binary segmentation.** The model selection is designed
+  for binary segmentation; the paper does not evaluate the other two and notes
+  that they would need a different model selection to avoid overfitting
+  (Section 5). On 20 series of i.i.d. noise (600 points, 5 channels), ``"bs"``
+  returned no change point, ``"sbs"`` and ``"wbs"`` at least one on 11 and 9
+  of them.
+* **Guided mode.** Segments are ranked by their raw gain, which is negative on
+  a homogeneous segment and decreases with its length: change points beyond
+  the true ones tend to fall in the shortest segments.
 
 Parameters
 ----------
@@ -63,7 +91,8 @@ Parameters
    * - ``model_selection_alpha``
      - float
      - ``0.02``
-     - Significance level of the permutation test.
+     - Threshold on the p-value of the pseudo-permutation test, a tuning
+       parameter rather than a valid significance level (Section 3.4).
    * - ``model_selection_n_permutations``
      - int
      - ``199``
@@ -80,7 +109,7 @@ Parameters
    * - ``seeded_segments_alpha``
      - float
      - :math:`1/\sqrt{2}`
-     - Decay of the seeded intervals (``"sbs"``), in :math:`[1/2, 1)`.
+     - Decay of the seeded intervals (``"sbs"``), in :math:`(0, 1)`.
    * - ``random_forest_n_estimators``
      - int
      - ``100``
@@ -92,7 +121,8 @@ Parameters
    * - ``random_forest_max_features``
      - int / str / None
      - ``"sqrt"``
-     - Features tried per split: ``"sqrt"``, ``None`` (all) or an integer.
+     - Features tried per split: ``"sqrt"`` (:math:`\lfloor\sqrt{d}\rfloor`),
+       ``None`` (all) or an integer.
    * - ``random_forest_n_jobs``
      - int
      - ``-1``

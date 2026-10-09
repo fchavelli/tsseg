@@ -125,7 +125,15 @@ def test_series_shorter_than_two_segments():
             minimal_relative_segment_length=0.45, segmentation=segmentation
         )
         assert detector.fit_predict(X).shape == (0,)
-    assert ChangeForestDetector(n_cps=1).fit_predict(X[:1]).shape == (0,)
+
+
+@pytest.mark.parametrize("n_timepoints", [1, 6])
+def test_guided_warns_when_series_too_short(n_timepoints):
+    """Guided mode warns, as for short segments, when the series cannot be split."""
+    X = np.arange(2 * n_timepoints, dtype=float).reshape(n_timepoints, 2)
+    detector = ChangeForestDetector(n_cps=1, minimal_relative_segment_length=0.45)
+    with pytest.warns(UserWarning, match="found only 0 of the 1"):
+        assert detector.fit_predict(X).shape == (0,)
 
 
 @pytest.mark.parametrize(

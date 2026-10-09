@@ -5,9 +5,10 @@ split of a segment, changeforest trains a classifier (a random forest by
 default) to separate the observations before the split from those after it,
 and turns the out-of-bag class probabilities into a classifier log-likelihood
 ratio, the gain. A two-step search fits the classifier at the 1/4, 1/2 and 3/4
-quantiles of the segment, maximises the approximate gain curves and refines
-around the best guess; a permutation test decides whether the best split is
-significant, and binary segmentation recurses on significant splits.
+quantiles of the segment, maximises the approximate gain curves, then refits
+the classifier at the best guess and maximises the new gain curve over all
+candidate splits; a pseudo-permutation test decides whether the best split is
+kept, and binary segmentation recurses on kept splits.
 
 ## Key properties
 
@@ -16,8 +17,12 @@ significant, and binary segmentation recurses on significant splits.
   binary segmentation on the package's gains; not part of the paper)
 - Univariate and multivariate; detects changes in the whole distribution
   (mean, covariance, shape) without a parametric model
-- Gains: random forest (default), k-nearest neighbours, change in mean
-- Search: binary, seeded binary or wild binary segmentation
+- Gains: random forest (default), k-nearest neighbours, change in mean; only
+  the random forest is invariant to the scale of each channel
+- Search: binary (the paper's method), seeded binary or wild binary
+  segmentation; the paper's model selection is designed for binary
+  segmentation and over-segments with the other two
+- Assumes independent observations: over-segments autocorrelated series
 
 ## Implementation
 

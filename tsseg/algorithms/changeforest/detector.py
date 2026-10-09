@@ -35,10 +35,12 @@ class ChangeForestDetector(BaseSegmenter):
     classifier to tell observations before ``t`` from those after it and
     uses the out-of-bag class probabilities to compute a classifier
     log-likelihood ratio (the *gain*). A two-step search fits the classifier
-    at the 1/4, 1/2 and 3/4 quantiles of the segment, maximises the
-    resulting approximate gain curves and refines around the best guess. A
-    permutation test decides whether the best split is significant;
-    significant splits are recursed on by binary segmentation.
+    at the 1/4, 1/2 and 3/4 quantiles of the segment and maximises the
+    resulting approximate gain curves, then refits the classifier at the
+    best of these guesses and maximises the new gain curve over all
+    candidate splits. A pseudo-permutation test of the first-step gains
+    decides whether the best split is kept; kept splits are recursed on by
+    binary segmentation.
 
     This detector wraps the official implementation, the ``changeforest``
     package (Rust, BSD-3-Clause), installed with
@@ -50,20 +52,27 @@ class ChangeForestDetector(BaseSegmenter):
         Gain used to score splits: the random forest classifier
         log-likelihood ratio (the paper's method), the k-nearest-neighbour
         classifier variant ("changekNN" in the paper), or the parametric
-        change-in-mean gain.
+        change-in-mean gain. Only the random forest is invariant to the
+        scale of the channels; see Notes.
     segmentation : {"bs", "sbs", "wbs"}, default="bs"
-        Search over segments: binary segmentation, seeded binary
-        segmentation (Kovács et al., 2023) or wild binary segmentation
-        (Fryzlewicz, 2014).
+        Search over segments: binary segmentation (the paper's method),
+        seeded binary segmentation (Kovács et al., 2023) or wild binary
+        segmentation (Fryzlewicz, 2014). The paper does not evaluate the
+        last two with its model selection, which over-segments with them;
+        see Notes.
     minimal_relative_segment_length : float, default=0.01
         Minimal segment length as a fraction ``delta`` of the series length:
         every segment has at least ``ceil(delta * n)`` observations. The
         paper's main simulations use 0.01.
     model_selection_alpha : float, default=0.02
-        Significance level of the permutation test (classifier-based
-        methods, unsupervised mode).
+        Threshold on the p-value of the pseudo-permutation test
+        (classifier-based methods, unsupervised mode): a split is kept when
+        ``(1 + #{permuted gains >= observed gain}) / (B + 1) <= alpha``. The
+        paper calls it a tuning parameter rather than a valid significance
+        level (Section 3.4); at 0.02, 2.5 to 5 % of its homogeneous series
+        get at least one change point (Section 4.7, Table 3).
     model_selection_n_permutations : int, default=199
-        Number of permutations of the permutation test.
+        Number ``B`` of permutations of the test.
     minimal_gain_to_split : float or None, default=None
         Minimal gain for a split to be kept (``method="change_in_mean"``,
         unsupervised mode). ``None`` uses the BIC-motivated value
@@ -72,14 +81,15 @@ class ChangeForestDetector(BaseSegmenter):
         Number of random intervals drawn by ``segmentation="wbs"``.
     seeded_segments_alpha : float, default=1/sqrt(2)
         Decay of the seeded intervals of ``segmentation="sbs"``, in
-        ``[1/2, 1)``; values close to 1 give many intervals.
+        ``(0, 1)`` as in the package (Kovács et al. take it in ``[1/2, 1)``);
+        values close to 1 give many intervals.
     random_forest_n_estimators : int, default=100
         Number of trees of each random forest.
     random_forest_max_depth : int or None, default=8
         Maximal depth of the trees; ``None`` grows them fully.
     random_forest_max_features : int, "sqrt" or None, default="sqrt"
         Number of features tried at each split of a tree: ``"sqrt"`` uses
-        ``sqrt(d)``, ``None`` all of them, an integer that many.
+        ``floor(sqrt(d))``, ``None`` all of them, an integer that many.
     random_forest_n_jobs : int, default=-1
         Number of threads used to grow the forests; -1 uses all cores.
     random_state : int, default=0
@@ -98,6 +108,34 @@ class ChangeForestDetector(BaseSegmenter):
     Unsupervised mode (``n_cps=None``) returns the significant split points
     of the package's segmentation tree, exactly as ``changeforest`` does.
 
+    The method assumes independent observations (Section 2 of the paper).
+    On autocorrelated series it over-segments: three stationary AR(1)
+    series with coefficient 0.9 (2000 points, 3 channels, no change) give 63
+    to 71 change points each. Section 5 of the paper suggests adding lagged
+    observations as extra channels when the change lies in the serial
+    dependence.
+
+    The random forest gain is invariant to the scale of each channel. The
+    other two gains are not: ``"knn"`` uses Euclidean distances, and the
+    ``"change_in_mean"`` gain (Section 3.1) and its threshold
+    ``log(n) * (d + 1)`` assume noise of unit variance, so that i.i.d.
+    Gaussian noise of standard deviation 3 (600 points, 5 channels) gives
+    about 50 change points. Standardise the channels first, for instance
+    by the median absolute deviation of their consecutive differences, as
+    the paper does for its data sets (Section 4.2).
+
+    The model selection is designed for binary segmentation. Section 5 of
+    the paper notes that pairing it with seeded or wild binary segmentation
+    would require changes to avoid overfitting, and the paper does not
+    evaluate these combinations. On 20 series of i.i.d. Gaussian noise (600
+    points, 5 channels), ``"bs"`` returned no change point, while ``"sbs"``
+    and ``"wbs"`` returned at least one on 11 and 9 of them.
+
+    Cost: the random forest needs a few forests per segment, each nearly
+    linear in ``n`` for a fixed depth (Section 3.3). The ``"knn"`` gain
+    builds an ``n x n`` distance matrix and its row-wise ordering, about
+    ``16 n^2`` bytes (6.4 GB for ``n = 20000``).
+
     The package has no option for a fixed number of change points. With
     ``n_cps=K`` this detector runs binary segmentation best-first: it splits
     the whole series at its best split, then repeatedly splits the current
@@ -111,7 +149,13 @@ class ChangeForestDetector(BaseSegmenter):
     than ``K`` change points are returned, with a warning, when the segments
     become too short to split (the package splits a segment only when it
     has more than ``2 * ceil(delta * n)`` points). This guided mode is not
-    part of the paper.
+    part of the paper. Segments are ranked by their raw gain, which is
+    negative on a homogeneous segment and decreases with its length, so
+    change points beyond the true ones tend to fall in the shortest
+    segments (a mean shift at 200 and 400 in 600 points with ``n_cps=4``
+    gave ``[11, 18, 199, 400]``). With ``"sbs"`` or ``"wbs"``, every
+    segment draws its own intervals, which is slower than ``"bs"`` (2 s
+    against 0.04 s for 600 points and ``n_cps=2``).
 
     The hyperparameter defaults are those of the package (``Control`` in
     ``changeforest`` 1.2.1), which match the settings of the paper's main
@@ -164,7 +208,7 @@ class ChangeForestDetector(BaseSegmenter):
         ),
         "model_selection_alpha": ParamDef(
             constraint=Interval(float, 0, 1, Closed.NEITHER),
-            description="Significance level of the permutation test.",
+            description="Threshold on the p-value of the pseudo-permutation test.",
         ),
         "model_selection_n_permutations": ParamDef(
             constraint=Interval(int, 1, None, Closed.LEFT),
@@ -268,13 +312,14 @@ class ChangeForestDetector(BaseSegmenter):
             return np.empty(0, dtype=np.int64)
 
         # Minimal segment length, as computed by the package: ceil(delta * n).
-        # The package only splits segments longer than twice this length; on a
-        # shorter series, wild binary segmentation would never stop drawing.
         min_length = math.ceil(self.minimal_relative_segment_length * n_samples)
-        if n_samples <= 2 * min_length:
-            return np.empty(0, dtype=np.int64)
 
         if self.n_cps is None:
+            # The package only splits segments longer than twice the minimal
+            # length; on a shorter series, wild binary segmentation would never
+            # stop drawing intervals.
+            if n_samples <= 2 * min_length:
+                return np.empty(0, dtype=np.int64)
             changeforest = _import_changeforest()
             result = changeforest.changeforest(
                 data,
