@@ -148,6 +148,7 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 | `ggs/` | BSD-2 | [cvxgrp/GGS](https://github.com/cvxgrp/GGS) |
 | `icid/` | GPLv3 | [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID) |
 | `patss/` | MIT | [KU Leuven DTAI](https://gitlab.kuleuven.be/u0143709/patss) |
+| `rulsif/` (port of the authors' MATLAB code) | MIT | [anewgithubname/change_detection](https://github.com/anewgithubname/change_detection) |
 | `snlds/vendor/` | Apache-2.0 | [google-research/snlds](https://github.com/google-research/google-research/tree/master/snlds) |
 | `tglad/vendor/` (uGLAD) | Non-Commercial | [Harshs27/tGLAD](https://github.com/Harshs27/tGLAD) |
 | `autoplait/` | not specified | [Matsubara et al.](https://sites.google.com/site/onlinesemanticsegmentation/) |

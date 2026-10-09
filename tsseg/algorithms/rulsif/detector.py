@@ -38,8 +38,10 @@ class RuLSIFDetector(BaseSegmenter):
         ratio :math:`p / (\alpha p + (1 - \alpha) p')`; ``0`` gives the plain
         density ratio (uLSIF). Paper value.
     sigma_factors : tuple of float, default=(0.6, 0.8, 1.0, 1.2, 1.4)
-        Candidate Gaussian kernel widths, as multiples of the median pairwise
-        distance between the subsequences of the two sets. Paper values.
+        Candidate Gaussian kernel widths, as multiples of the median scale
+        :math:`\sqrt{\operatorname{median}(d^2) / 2}` of the pairwise
+        distances :math:`d` between the subsequences of the two sets (after
+        standardisation, see Notes). Paper values.
     lambdas : tuple of float, default=(1e-3, 1e-2, 1e-1, 1.0, 10.0)
         Candidate regularisation parameters. Paper values.
     n_folds : int, default=5
@@ -75,24 +77,41 @@ class RuLSIFDetector(BaseSegmenter):
 
     Notes
     -----
-    Written for tsseg from the paper only; the authors' MATLAB code carries
-    no licence and was not consulted. Choices the paper leaves open:
+    Port of the authors' MATLAB code (``change_detection.m``, ``RelULSIF.m``,
+    ``demo.m``; https://github.com/anewgithubname/change_detection, MIT
+    licence), checked against a line-by-line NumPy transcription of it (equal
+    divergence estimates to rounding). Where the code is more specific than
+    the paper, the code is followed:
 
-    - The score of the sets starting at ``t`` and ``t + n_subsequences`` is
-      placed at ``t + n_subsequences + (subsequence_length - 1) // 2``,
-      where the subsequences that straddle the boundary between the two sets
-      are split evenly between them.
-    - The median distance is taken over the ``2 * n_subsequences``
-      subsequences of the two sets, for every split.
-    - Cross-validation assigns sample ``i`` of each set to fold
-      ``i % n_folds`` (deterministic) and keeps all samples of the
-      numerator set as kernel centres, as in the paper's model (5). The
-      held-out criterion is the RuLSIF squared loss :math:`J`.
+    - Before each estimate, every coordinate of the ``2 * n_subsequences``
+      subsequences is divided by its standard deviation over them (not
+      centred), so channels on different scales weigh the same.
+    - The base kernel width is :math:`\sqrt{\operatorname{median}(d^2) /
+      2}` over the non-zero pairwise distances (``comp_med.m``), i.e. the
+      paper's "median distance" divided by :math:`\sqrt 2`.
+    - The centres of the kernel model are the samples of the numerator set.
+      Cross-validation draws, for every (kernel width, regularisation)
+      candidate, a random partition of each set into ``n_folds`` folds; the
+      code resets its generator before every estimate, so the partitions are
+      the same for all estimates. MATLAB's generator cannot be reproduced:
+      NumPy's is used with a fixed seed, which keeps the detector
+      deterministic. The code subsamples 100 centres when
+      ``n_subsequences > 100``; tsseg keeps them all.
+    - The symmetric score is the sum of the code's score on the series and
+      on the reversed series (``demo.m``), i.e. both directions of the
+      divergence on the same pair of sets.
+
+    tsseg's own choice: the score of the sets starting at ``t`` and ``t +
+    n_subsequences`` is placed at ``t + n_subsequences + (subsequence_length
+    - 1) // 2``, where the subsequences that straddle the boundary between
+    the two sets are split evenly between them (``demo.m`` plots it at the
+    end of the second set, ``2 * n_subsequences + subsequence_length - 2``
+    points after ``t``, which suits online monitoring).
 
     The cost is :math:`O(T \cdot F \cdot S \cdot L \cdot n^3)` for a series
     of length :math:`T`, :math:`F` folds, :math:`S` kernel widths and
-    :math:`L` regularisation parameters: about 5 ms per point with the
-    defaults, i.e. 25 s for 5,000 points.
+    :math:`L` regularisation parameters: about 8 ms per point with the
+    defaults, i.e. 40 s for 5,000 points.
 
     References
     ----------

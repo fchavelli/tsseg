@@ -9,8 +9,10 @@ from scipy.stats import norm
 from tsseg.algorithms import RuLSIFDetector
 from tsseg.algorithms.rulsif.rulsif import (
     _squared_distances,
+    cv_folds,
     relative_pe_divergence,
     rulsif_scores,
+    split_kernels,
     subsequences,
 )
 
@@ -99,6 +101,75 @@ def test_cross_validation_selects_from_the_grid():
         K[[s], :40, :40], K[[s], 40:, :40], 0.1, lambdas[[q]], 4
     )
     assert est == pytest.approx(refit, rel=1e-12)
+
+
+def test_cv_folds_partition_every_candidate():
+    folds = cv_folds(50, 5, 25)
+    assert folds.shape == (2, 25, 50)
+    for side in range(2):
+        for c in range(25):
+            # ten samples per fold, as floor(p * 5 / 50) in RelULSIF.m
+            assert np.array_equal(np.bincount(folds[side, c], minlength=5), [10] * 5)
+    # a fresh permutation per candidate and per set, the same at every call
+    assert not np.array_equal(folds[0, 0], folds[0, 1])
+    assert not np.array_equal(folds[0, 0], folds[1, 0])
+    assert np.array_equal(folds, cv_folds(50, 5, 25))
+
+
+# Output of a line-by-line NumPy transcription of the authors' MATLAB code
+# (change_detection.m, RelULSIF.m, lib/, github.com/anewgithubname/
+# change_detection at 496042e): RelULSIF(YRef, YTest) on the standardised
+# subsequences starting at t, with the folds of ``cv_folds`` in place of
+# MATLAB's generator. The test set is the numerator, as in the MATLAB code.
+_OFFICIAL = [
+    (0.1, 1, 60, -0.03270825258975829),
+    (0.1, 1, 140, 3.4431266076302647),
+    (0.1, 3, 60, 0.3600968683127679),
+    (0.1, 3, 140, 3.943260976986153),
+    (0.5, 1, 60, -0.02561540186296407),
+    (0.5, 1, 140, 0.3778581052847816),
+    (0.5, 3, 60, 0.13178374330092102),
+    (0.5, 3, 140, 0.41097049606383096),
+]
+
+
+@pytest.mark.parametrize("alpha, n_channels, t, expected", _OFFICIAL)
+def test_divergence_matches_the_official_code(alpha, n_channels, t, expected):
+    rng = np.random.default_rng(n_channels)
+    scale = np.array([1.0, 5.0, 0.2][:n_channels])
+    x = rng.standard_normal((400, n_channels)) * scale
+    x[200:] += 1.0
+    n = 50
+    K = split_kernels(subsequences(x, 10)[t : t + 2 * n], [0.6, 0.8, 1.0, 1.2, 1.4])
+    est, _, _ = relative_pe_divergence(
+        K[:, n:, n:],
+        K[:, :n, n:],
+        alpha,
+        10.0 ** np.arange(-3, 2),
+        5,
+        cv_folds(n, 5, 25),
+    )
+    assert est == pytest.approx(expected, rel=1e-9, abs=1e-12)
+
+
+def test_split_kernels_standardise_and_use_the_median_scale():
+    rng = np.random.default_rng(4)
+    U = rng.normal(size=(20, 3)) * [1.0, 10.0, 0.1]
+    K = split_kernels(U, [1.0])
+    Z = U / U.std(axis=0, ddof=1)
+    d2 = _squared_distances(Z)[np.triu_indices(20, 1)]
+    sigma = np.sqrt(0.5 * np.median(d2))
+    assert np.allclose(K[0], np.exp(-_squared_distances(Z) / (2 * sigma**2)))
+    assert split_kernels(np.ones((10, 2)), [1.0]) is None
+
+
+def test_scores_ignore_the_scale_of_each_channel():
+    rng = np.random.default_rng(5)
+    X = rng.normal(size=(260, 2))
+    X[130:, 0] += 2.0
+    s = rulsif_scores(X, n=20, k=5)
+    s_scaled = rulsif_scores(X * [1e3, 1e-2], n=20, k=5)
+    assert np.allclose(s, s_scaled, equal_nan=True, rtol=1e-7, atol=1e-9)
 
 
 def test_scores_are_aligned_and_undefined_at_the_ends():

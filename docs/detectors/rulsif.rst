@@ -23,9 +23,11 @@ with :math:`p'_\alpha = \alpha p + (1 - \alpha) p'` and the relative density
 ratio :math:`r_\alpha = p / p'_\alpha`. Each divergence is estimated without
 estimating densities: RuLSIF fits :math:`r_\alpha` by regularised least
 squares with a Gaussian kernel model centred on the samples of :math:`P`,
-which has a closed-form solution. The kernel width (a multiple of the median
-distance between subsequences) and the regularisation parameter are chosen by
-5-fold cross-validation for every estimate. The relative ratio is bounded by
+which has a closed-form solution. As in the authors' code, the subsequences
+of the two sets are first standardised coordinate by coordinate, so that
+channels on different scales weigh the same; the kernel width (a multiple of
+the median distance between subsequences) and the regularisation parameter are
+chosen by 5-fold cross-validation for every estimate. The relative ratio is bounded by
 :math:`1 / \alpha`, which makes the estimate more stable than that of the plain
 ratio (:math:`\alpha = 0`, uLSIF).
 
@@ -41,7 +43,7 @@ percentile of the score on change-free series. The score is kept in the
 | **Scope:** univariate and multivariate
 | **Complexity:** :math:`O(T \cdot F S L \cdot n^3)` for a series of length
   :math:`T`, :math:`F` folds, :math:`S` kernel widths and :math:`L`
-  regularisation parameters; about 25 s for 5,000 points with the defaults
+  regularisation parameters; about 40 s for 5,000 points with the defaults
 | **Requires:** nothing beyond the core dependencies
 
 Parameters
@@ -72,8 +74,10 @@ Parameters
    * - ``sigma_factors``
      - tuple of float
      - ``(0.6, 0.8, 1.0, 1.2, 1.4)``
-     - Candidate kernel widths, as multiples of the median distance (paper
-       values).
+     - Candidate kernel widths, as multiples of
+       :math:`\sqrt{\operatorname{median}(d^2) / 2}` over the pairwise
+       distances :math:`d` between subsequences, as in the authors' code
+       (paper values).
    * - ``lambdas``
      - tuple of float
      - ``(1e-3, 1e-2, 1e-1, 1, 10)``
@@ -116,8 +120,10 @@ Usage
    cps = detector.fit_predict(X)
    score = detector.scores_
 
-**Implementation:** written for tsseg in NumPy from the paper; the authors'
-MATLAB code has no licence and was not used.
+**Implementation:** NumPy port of the authors' MATLAB code
+(`anewgithubname/change_detection <https://github.com/anewgithubname/change_detection>`_,
+MIT licence), checked against a line-by-line transcription of it; it
+reproduces the code's demo on well-log data (reproduction test).
 
 **Reference:** Liu, Yamada, Collier & Sugiyama (2013), *Change-point detection
 in time-series data by relative density-ratio estimation*, Neural Networks 43;
