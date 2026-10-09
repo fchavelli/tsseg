@@ -38,6 +38,7 @@ Change-point detection
    bocd
    bottomup
    changefinder
+   changeforest
    dynp
    eagglo
    espresso

@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New detector ``ChangeForestDetector``: classifier-based nonparametric change
+  point detection with random forests (Londschien, Bühlmann and Kovács,
+  JMLR 2023). It wraps the official ``changeforest`` package, installed with
+  the new extra ``pip install tsseg[changeforest]``. With ``n_cps`` it runs
+  best-first binary segmentation on the package's gains, a semi-supervised
+  mode that is not part of the paper.
+
 * Reproduction tests: tests that reproduce a published result on a dataset
   downloaded on demand (pinned by its SHA-256 digest) go to
   ``tests/reproduction/`` and are marked ``reproduction``. The marker is
