@@ -33,6 +33,10 @@ Key parameters:
 | **Type:** change point detection
 | **Supervision:** semi-supervised (``n_changepoints``) or unsupervised
 | **Scope:** univariate (multivariate via ensembling or L2 norm)
+| **Complexity:** :math:`O(d\,n)` for the L2 reduction (default strategy), then
+  :math:`O(\tilde{n}\,S)` per L-BFGS iteration of Prophet's fit, where
+  :math:`\tilde{n} = \min(n, 2000)` (``max_points``) and *S* is
+  ``n_candidates``
 | **Requires:** ``prophet`` and ``cmdstanpy``
 
 Parameters

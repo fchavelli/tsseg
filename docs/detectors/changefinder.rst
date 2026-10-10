@@ -23,13 +23,15 @@ older observations are progressively down-weighted at rate *r*, allowing the
 model to track non-stationary dynamics.  AR parameters are updated at each step
 by re-solving a discounted Toeplitz system.
 
-This online, single-pass design yields :math:`O(n \cdot k^2)` time complexity,
+This online, single-pass design solves one :math:`k \times k` system per sample and
+stage, hence :math:`O(n \cdot k^3)` time after the reduction of the channels,
 making ChangeFinder efficient for long time series.
 
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised (``n_cps``)
 | **Scope:** univariate and multivariate
-| **Complexity:** :math:`O(n \cdot k^2)` where *k* is the AR order
+| **Complexity:** :math:`O(d\,n + n\,k^{3})` where *k* is the AR order
+  (``"l2"`` strategy; ``"ensembling"``: :math:`O(d\,n\,k^{3})`)
 
 Parameters
 ----------

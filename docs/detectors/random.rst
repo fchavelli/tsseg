@@ -17,6 +17,7 @@ Two modes of operation:
 | **Type:** state detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(n)`
 
 Parameters
 ----------

@@ -21,6 +21,8 @@ used to counteract false negatives and produce cluster-friendly embedding spaces
 | **Type:** state detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** multivariate
+| **Complexity:** :math:`O(d\,n\,\ell\log\ell)` per pass over the sliding
+  windows, where :math:`\ell` is ``window_size``
 | **Requires:** PyTorch
 
 Parameters
