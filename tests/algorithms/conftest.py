@@ -116,7 +116,9 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     ),
     "TSCP2Detector": AlgorithmOverride(
         dependencies=("tensorflow",),
-        init_kwargs={"random_state": 0},
+        # Two epochs instead of 100: the contract does not depend on the
+        # quality of the encoder, and each test took 3 to 6 minutes.
+        init_kwargs={"random_state": 0, "epochs": 2},
     ),
     # --- Tirex detectors (need torch + tirex runtime) -----------------
     "TirexHiddenCPD": AlgorithmOverride(dependencies=("torch", "moment")),
