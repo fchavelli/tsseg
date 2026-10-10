@@ -11,6 +11,14 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``TSCP2Detector`` takes a ``random_state`` seed (``None`` by default, as
+  before): with an integer, every fit initialises the encoder, shuffles the
+  training windows and draws the dropout masks identically, so two fits on the
+  same series return the same change points. Without a seed, the weights and
+  the shuffling changed at every fit, and nothing declared the detector
+  non-deterministic. The seed goes through ``tf.keras.utils.set_random_seed``,
+  which also reseeds the global Python, NumPy and TensorFlow generators.
+
 * Reproduction tests: tests that reproduce a published result on a dataset
   downloaded on demand (pinned by its SHA-256 digest) go to
   ``tests/reproduction/`` and are marked ``reproduction``. The marker is
