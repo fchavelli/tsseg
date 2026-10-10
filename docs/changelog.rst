@@ -157,6 +157,14 @@ Unreleased
   ``mcmc_seed`` defaults to 1: with 0, Rbeast draws a random seed and the
   output changed from one call to the next.
 
+* Third-party licenses: ``bocd/``, ``ticc/``, ``time2state/`` and the
+  aeon-derived ``eagglo/``, ``hidalgo/``, ``hmm/`` and ``igts/`` now ship a
+  copy of their upstream license, in the source tree and the wheel. The code
+  adapted in ``bocd/`` is under the MIT license, not Apache-2.0 as
+  documented. The README lists ``BeastDetector``'s dependency Rbeast, under
+  the license of its R package (GPL >= 2), and no longer claims that every
+  vendored directory contains a license file.
+
 * ``pen_scale="bic"`` in ``PeltDetector``, ``BinSegDetector``,
   ``BottomUpDetector`` and ``WindowDetector``: the penalty is a coefficient on
   ``log(n) * u``, u the cost of one sample of the whole signal (d for ``l2`` on

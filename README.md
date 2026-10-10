@@ -143,7 +143,8 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 |---|---|---|
 | `aeon` (base, EAgglo, Hidalgo, HMM, IGTS) | BSD-3 | [aeon-toolkit/aeon](https://github.com/aeon-toolkit/aeon) |
 | `ruptures/` (vendored v1.1.8) | BSD-2 | [deepcharles/ruptures](https://github.com/deepcharles/ruptures) |
-| `bocd/` | Apache-2.0 | [hildensia/bayesian_changepoint_detection](https://github.com/hildensia/bayesian_changepoint_detection) |
+| `bocd/` | MIT | [hildensia/bayesian_changepoint_detection](https://github.com/hildensia/bayesian_changepoint_detection) |
+| `beast/` (wraps Rbeast, not bundled) | GPL-2.0-or-later | [zhaokg/Rbeast](https://github.com/zhaokg/Rbeast) |
 | `clap/` (ClaSP / CLaP) | BSD-3 | [ermshaua/clasp](https://github.com/ermshaua/clasp) |
 | `ggs/` | BSD-2 | [cvxgrp/GGS](https://github.com/cvxgrp/GGS) |
 | `icid/` | GPLv3 | [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID) |
@@ -158,7 +159,13 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 | `tire/` | not specified | [De Ryck, De Vos & Bertrand (KU Leuven)](https://github.com/deryckt/TIRE) |
 | `tscp2/` | not specified | [Cruise Research Group](https://github.com/cruiseresearchgroup/TSCP2) |
 
-Each vendored directory contains a LICENSE file with full terms.
+Each directory above that bundles code under a published license contains a
+copy of it (`LICENSE`, or `LICENCE` in `patss/`). The aeon license is copied in
+`eagglo/`, `hidalgo/`, `hmm/` and `igts/`, and also covers the base classes in
+`tsseg/algorithms/base.py`. The sources marked *not specified* publish no
+license. Rbeast, which `beast/` only wraps, is installed by `tsseg[beast]`;
+tsseg follows the license of its R package, GPL (>= 2), although its PyPI
+wheel declares MIT.
 
 ## Citation
 

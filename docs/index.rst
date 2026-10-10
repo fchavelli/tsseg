@@ -137,8 +137,11 @@ License
 `AGPLv3 <https://github.com/fchavelli/tsseg/blob/main/LICENSE>`_.
 
 Several detectors bundle adapted or vendored code under their own licenses
-(BSD, MIT, Apache-2.0, GPLv3, etc.). Each vendored directory contains a
-``LICENSE`` file with the full terms.
+(BSD, MIT, Apache-2.0, GPLv3, etc.). Where the original code publishes a
+license, the directory that bundles it contains a copy (``LICENSE``, or
+``LICENCE`` for PaTSS); the
+`README <https://github.com/fchavelli/tsseg#third-party-components>`_ lists
+every component, including those whose source publishes no license.
 
 
 Citation

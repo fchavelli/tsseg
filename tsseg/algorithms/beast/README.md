@@ -27,8 +27,9 @@ points.
 
 - Origin: Rbeast Python package
 - Source: https://github.com/zhaokg/Rbeast
-- Licence: the R package is GPL (>= 2) on CRAN; the PyPI wheel declares MIT.
-  tsseg only depends on it.
+- Licence: GPL (>= 2), the licence of the R package on CRAN, which tsseg
+  follows; the PyPI wheel declares MIT. tsseg only depends on Rbeast and
+  bundles none of its code.
 
 ## Citation
 
