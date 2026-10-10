@@ -88,6 +88,7 @@ class FLUSSDetector(BaseSegmenter):
         "capability:multivariate": True,
         "returns_dense": True,
         "detector_type": "change_point_detection",
+        "python_dependencies": ["stumpy"],
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
     }

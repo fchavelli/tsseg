@@ -20,6 +20,16 @@ Unreleased
   rejects unknown tags and checks that every detector declares both
   supervision tags, at least one of them ``True``.
 
+* Tags: ``python_dependencies`` is ``None`` or a list of the optional modules
+  a detector imports. ``ProphetDetector``, ``TGLADDetector`` and
+  ``TireDetector`` declared a string (``"torch,networkx"``), and eight
+  detectors declared nothing; they now declare ``["numba", "aeon"]``
+  (``ClapDetector``), ``["numba"]`` (``ClaspDetector``, ``EAggloDetector``),
+  ``["torch"]`` (``E2USDDetector``, ``Time2StateDetector``), ``["stumpy"]``
+  (``FLUSSDetector``), ``["npbad"]`` (``PatssDetector``) and ``["Rbeast"]``
+  (``BeastDetector``). A contract test checks the format and that the tag
+  lists the modules the test suite skips a detector on.
+
 * Reproduction tests: tests that reproduce a published result on a dataset
   downloaded on demand (pinned by its SHA-256 digest) go to
   ``tests/reproduction/`` and are marked ``reproduction``. The marker is

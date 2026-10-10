@@ -146,7 +146,7 @@ class TireDetector(BaseSegmenter):
         "capability:multivariate": True,
         "returns_dense": True,
         "fit_is_empty": False,
-        "python_dependencies": "torch",
+        "python_dependencies": ["torch"],
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,

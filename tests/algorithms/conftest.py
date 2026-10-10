@@ -98,7 +98,7 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         init_kwargs={"n_segments": 3, "window_size": 10},
     ),
     # --- Optional heavy dependencies ----------------------------------
-    "ClapDetector": AlgorithmOverride(dependencies=("numba",)),
+    "ClapDetector": AlgorithmOverride(dependencies=("numba", "aeon")),
     "EAggloDetector": AlgorithmOverride(dependencies=("numba",)),
     "E2USDDetector": AlgorithmOverride(dependencies=("torch",)),
     "FLUSSDetector": AlgorithmOverride(dependencies=("stumpy",)),
@@ -114,7 +114,7 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         dependencies=("torch", "networkx"),
         init_kwargs={"window_size": 100, "stride": 50, "epochs": 100},
     ),
-    "TSCP2Detector": AlgorithmOverride(dependencies=("tensorflow",)),
+    "TSCP2Detector": AlgorithmOverride(dependencies=("tensorflow", "tcn")),
     # --- Tirex detectors (need torch + tirex runtime) -----------------
     "TirexHiddenCPD": AlgorithmOverride(dependencies=("torch", "moment")),
     "TirexCosineCPD": AlgorithmOverride(dependencies=("torch", "moment")),
