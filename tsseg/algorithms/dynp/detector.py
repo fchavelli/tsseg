@@ -18,7 +18,40 @@ __all__ = ["DynpDetector"]
 
 
 class DynpDetector(BaseSegmenter):
-    """Exact dynamic programming change point detector."""
+    """Exact dynamic programming change point detector (vendored ruptures ``Dynp``).
+
+    Returns the ``n_cps`` change points that minimise the sum of the segment
+    costs, over the candidates allowed by ``min_size`` and ``jump``. The number
+    of change points must be known: the detector is semi-supervised only.
+
+    Parameters
+    ----------
+    n_cps : int, default=1
+        Number of change points to return. ``0`` returns no change point, and
+        so does a series shorter than ``min_size * (n_cps + 1)``; ``None``
+        raises a ``ValueError``.
+    model : {"l2", "l1", "rbf", "linear", "normal", "cosine"}, default="l2"
+        Cost model: least squares (``"l2"``), least absolute deviation
+        (``"l1"``), Gaussian kernel (``"rbf"``), linear regression
+        (``"linear"``), Gaussian likelihood (``"normal"``) or cosine kernel
+        (``"cosine"``).
+    min_size : int, default=2
+        Minimum segment length. Must not exceed half the series length.
+    jump : int, default=5
+        Sub-sampling factor for candidate breakpoints: only multiples of
+        ``jump`` are considered.
+    cost_params : dict or None, default=None
+        Extra keyword arguments forwarded to the cost (for instance
+        ``{"gamma": 0.1}`` for ``"rbf"``).
+    semi_supervised : bool, default=True
+        Stored but not used: it has no effect on the result.
+    backend : {"auto", "numba", "python"}, default="auto"
+        Backend of the costs ``l1``, ``l2``, ``rbf`` and ``cosine``: numba when
+        it is installed under ``"auto"``, the kernel costs then without the
+        n x n Gram matrix. Same change points either way.
+    axis : int, default=0
+        Axis of ``X`` that represents time.
+    """
 
     _tags = {
         "capability:univariate": True,

@@ -46,25 +46,30 @@ class BinSegDetector(BaseSegmenter):
     Parameters
     ----------
     n_cps : int or None, default=None
-        Number of change points to return. When ``None``, ruptures stops
-        according to its internal criteria (``pen`` or ``epsilon``).
+        Number of change points to return. When given, ``penalty`` and
+        ``epsilon`` are ignored, with a ``UserWarning`` for each one that is not
+        ``None`` (``penalty`` is 10 by default, so pass ``penalty=None`` to
+        avoid the warning). When ``None``, splitting stops on ``penalty`` or
+        ``epsilon``.
     model : str, default="l2"
         Cost model passed to ruptures. Examples include "l2", "l1", "rbf".
     min_size : int, default=2
         Minimum segment length enforced during the binary search.
     jump : int, default=5
         Sub-sampling factor for candidate breakpoints.
-    penalty : float or None, default=None
-        Penalty threshold supplied to ``predict``. Mutually exclusive with
-        ``n_cps`` and ``epsilon``. Provide at least one of ``n_cps``, ``penalty``
-        or ``epsilon``.
+    penalty : float or None, default=10
+        Penalty per change point, used when ``n_cps`` is ``None``: splitting
+        continues while the best split lowers the cost by more than
+        ``penalty``. Must be strictly positive. At most one of ``penalty`` and
+        ``epsilon`` may be set, so ``epsilon`` requires ``penalty=None``.
     pen_scale : {None, "bic"}, default=None
         ``"bic"``: ``penalty`` is a coefficient on ``log(n) * u``, u the cost of
         one sample of the whole signal (d for ``"l2"`` on unit-variance
         channels, where it is the BIC penalty; 1 for the kernel costs).
     epsilon : float or None, default=None
-        Reconstruction error tolerance. Mutually exclusive with ``n_cps`` and
-        ``penalty``.
+        Reconstruction budget, used when ``n_cps`` is ``None`` and
+        ``penalty=None``: splitting continues while the total cost of the
+        segmentation exceeds ``epsilon``. Must be strictly positive.
     custom_cost : BaseCost, optional
         Pre-instantiated ruptures cost object.
     cost_params : dict, optional
@@ -77,6 +82,12 @@ class BinSegDetector(BaseSegmenter):
     axis : int, default=0
         Axis representing time in the input array.
 
+    Raises
+    ------
+    ValueError
+        If ``n_cps``, ``penalty`` and ``epsilon`` are all ``None``, if both
+        ``penalty`` and ``epsilon`` are set without ``n_cps``, or if
+        ``penalty`` or ``epsilon`` is not strictly positive.
     """
 
     _tags = {

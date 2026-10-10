@@ -23,7 +23,60 @@ __all__ = ["WindowDetector"]
 
 
 class WindowDetector(BaseSegmenter):
-    """Sliding window detector leveraging gain-based scoring."""
+    """Sliding-window change point detector using the vendored ruptures implementation.
+
+    A window of ``width`` samples slides over the series; at each candidate
+    point, the score is the cost of the whole window minus the costs of its
+    two halves. The local maxima of this score are then added as change
+    points, highest score first, until the stopping criterion is met.
+
+    Parameters
+    ----------
+    width : int, default=100
+        Window length, rounded down to an even number. Candidates within
+        ``width // 2`` samples of either end of the series are not scored.
+    n_cps : int or None, default=None
+        Number of change points to return; fewer are returned when the score
+        has fewer local maxima. Takes precedence over ``pen`` and ``epsilon``
+        (with a ``UserWarning`` if either is also set).
+    pen : float or None, default=None
+        Penalty per change point: a peak is added while it lowers the cost of
+        the segmentation of the whole series by more than ``pen``. Takes
+        precedence over ``epsilon`` (with a ``UserWarning`` if both are set).
+    pen_scale : {None, "bic"}, default=None
+        ``None``: ``pen`` is used as is. ``"bic"``: ``pen`` is a coefficient on
+        ``log(n) * u``, u the cost of one sample of the whole signal (d for
+        ``"l2"`` on unit-variance channels, where it is the BIC penalty; 1 for
+        the kernel costs).
+    epsilon : float or None, default=None
+        Reconstruction budget: peaks are added while the total cost of the
+        segmentation exceeds ``epsilon``.
+    model : {"l2", "l1", "rbf", "linear", "normal", "cosine"}, default="l2"
+        Cost model: least squares (``"l2"``), least absolute deviation
+        (``"l1"``), Gaussian kernel (``"rbf"``), linear regression
+        (``"linear"``), Gaussian likelihood (``"normal"``) or cosine kernel
+        (``"cosine"``).
+    min_size : int, default=2
+        Minimum segment length. Must not exceed half the series length.
+    jump : int, default=5
+        Sub-sampling factor for candidate breakpoints: only multiples of
+        ``jump`` are scored.
+    cost_params : dict or None, default=None
+        Extra keyword arguments forwarded to the cost (for instance
+        ``{"gamma": 0.1}`` for ``"rbf"``).
+    backend : {"auto", "numba", "python"}, default="auto"
+        Backend of the costs ``l1``, ``l2``, ``rbf`` and ``cosine``: numba when
+        it is installed under ``"auto"``, the kernel costs then without the
+        n x n Gram matrix. Same change points either way.
+    axis : int, default=0
+        Axis of ``X`` that represents time.
+
+    Raises
+    ------
+    ValueError
+        If ``n_cps``, ``pen`` and ``epsilon`` are all ``None``, which is the
+        default: one stopping criterion must be given.
+    """
 
     _tags = {
         "capability:univariate": True,

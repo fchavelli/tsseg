@@ -32,6 +32,44 @@ class KCPDDetector(BaseSegmenter):
     the linear kernel. For ``decimation=k``, pass ``X[::k]`` and multiply the
     change points by ``k``; for ``pen_scale="bic"``, use a penalty of
     ``pen * log(n) * d``.
+
+    Parameters
+    ----------
+    n_cps : int or None, default=None
+        Number of change points: the dynamic programming solver is used. When
+        given, ``pen`` is ignored (with a ``UserWarning``, ``pen`` being 10 by
+        default). ``0`` returns no change point.
+    pen : float or None, default=10
+        Penalty per change point, used with the PELT solver when ``n_cps`` is
+        ``None``.
+    kernel : {"rbf", "linear", "cosine"}, default="rbf"
+        Kernel of the cost.
+    pen_scale : {None, "bic"}, default=None
+        ``None``: ``pen`` is used as is. ``"bic"``: the penalty is
+        ``pen * log(n) * d``, n and d the length and number of channels of the
+        series after decimation.
+    min_size : int, default=2
+        Minimum segment length, in decimated samples.
+    jump : int, default=1
+        Sub-sampling factor for candidate breakpoints, in decimated samples.
+    decimation : int, default=1
+        Keep one sample in ``decimation`` before segmenting; the change points
+        are mapped back to the time base of ``X``. Must be at least 1.
+    cost_params : dict or None, default=None
+        Extra keyword arguments forwarded to the kernel cost (for instance
+        ``{"gamma": 0.1}`` for ``"rbf"``).
+    backend : {"auto", "numba", "python"}, default="auto"
+        Backend of the kernel costs: numba when it is installed under
+        ``"auto"``, then without the n x n Gram matrix. Same change points
+        either way.
+    axis : int, default=0
+        Axis of ``X`` that represents time.
+
+    Raises
+    ------
+    ValueError
+        If both ``n_cps`` and ``pen`` are ``None``, or if ``decimation`` is
+        smaller than 1.
     """
 
     _tags = {
