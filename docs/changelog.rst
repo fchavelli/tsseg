@@ -42,6 +42,10 @@ Unreleased
   linear time: it recomputed both means at every split (quadratic time).
   The detected change point is the same.
 
+* ``fit`` and ``fit_predict`` reject a ``y`` given as a ``pandas.DataFrame``
+  that does not have exactly one column, as the error message states: a
+  frame with two columns (or none) was accepted.
+
 * ``ChangeFinderDetector`` without ``n_cps``: the data-driven threshold is
   ``mean + threshold_factor * std`` of the scores (``threshold_factor``, 2.0
   by default as before), the minimum distance between change points can be a
