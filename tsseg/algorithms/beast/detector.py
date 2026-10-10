@@ -120,6 +120,7 @@ class BeastDetector(BaseSegmenter):
         "fit_is_empty": True,
         "returns_dense": True,
         "detector_type": "change_point_detection",
+        "python_dependencies": ["Rbeast"],
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
     }

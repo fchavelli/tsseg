@@ -59,6 +59,7 @@ class PatssDetector(BaseSegmenter):
         "capability:multivariate": True,
         "capability:unequal_length": False,
         "detector_type": "state_detection",
+        "python_dependencies": ["npbad"],
         "fit_is_empty": True,  # PaTSS is unsupervised and has no separate fit stage
         "returns_dense": False,
         "capability:unsupervised": True,

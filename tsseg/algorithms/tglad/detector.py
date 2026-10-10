@@ -88,7 +88,7 @@ class TGLADDetector(BaseSegmenter):
         "fit_is_empty": False,
         "returns_dense": True,
         "detector_type": "change_point_detection",
-        "python_dependencies": "torch,networkx",
+        "python_dependencies": ["torch", "networkx"],
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
         "non_deterministic": True,

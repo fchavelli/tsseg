@@ -11,6 +11,25 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Tags: the undocumented ``semi_supervised`` tag of ``AmocDetector``,
+  ``EspressoDetector`` and ``RandomDetector`` is removed:
+  ``capability:semi_supervised`` is the tag (the ``semi_supervised`` parameter
+  of ``RandomDetector`` is unchanged). The deprecated ``HMMDetector``, neither
+  unsupervised nor semi-supervised, declares ``capability:semi_supervised``:
+  its number of states is the length of ``emission_funcs``. A contract test
+  rejects unknown tags and checks that every detector declares both
+  supervision tags, at least one of them ``True``.
+
+* Tags: ``python_dependencies`` is ``None`` or a list of the optional modules
+  a detector imports. ``ProphetDetector``, ``TGLADDetector`` and
+  ``TireDetector`` declared a string (``"torch,networkx"``), and eight
+  detectors declared nothing; they now declare ``["numba", "aeon"]``
+  (``ClapDetector``), ``["numba"]`` (``ClaspDetector``, ``EAggloDetector``),
+  ``["torch"]`` (``E2USDDetector``, ``Time2StateDetector``), ``["stumpy"]``
+  (``FLUSSDetector``), ``["npbad"]`` (``PatssDetector``) and ``["Rbeast"]``
+  (``BeastDetector``). A contract test checks the format and that the tag
+  lists the modules the test suite skips a detector on.
+
 * Reproduction tests: tests that reproduce a published result on a dataset
   downloaded on demand (pinned by its SHA-256 digest) go to
   ``tests/reproduction/`` and are marked ``reproduction``. The marker is

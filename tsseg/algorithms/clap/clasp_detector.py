@@ -51,6 +51,7 @@ class ClaspDetector(BaseSegmenter):
         "capability:univariate": True,
         "capability:multivariate": True,
         "detector_type": "change_point_detection",
+        "python_dependencies": ["numba"],
         "fit_is_empty": False,
         "returns_dense": True,
         "capability:unsupervised": True,

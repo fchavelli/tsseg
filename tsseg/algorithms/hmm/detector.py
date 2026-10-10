@@ -140,8 +140,10 @@ class HMMDetector(BaseSegmenter):
         "fit_is_empty": True,
         "returns_dense": False,
         "detector_type": "state_detection",
+        # The number of states is not inferred: it is the length of the
+        # user-supplied ``emission_funcs`` (two by default).
         "capability:unsupervised": False,
-        "capability:semi_supervised": False,
+        "capability:semi_supervised": True,
     }
 
     # Default: two-state Gaussian HMM  (μ=0, σ=1) and (μ=1, σ=1)
