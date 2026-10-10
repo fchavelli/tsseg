@@ -73,3 +73,19 @@ papers/
 
 # Perso
 perso/
+
+# Dead code removed from the package: no module imports it. Local copies stay
+# untracked.
+docs/_scripts/
+tsseg/algorithms/autoplait/deprecated/
+tsseg/algorithms/bocd/old/
+tsseg/algorithms/espresso/detector_matlab.py
+tsseg/algorithms/espresso/matlab/
+tsseg/algorithms/hdp_hsmm/deprecated/
+tsseg/algorithms/icid/matlab/
+tsseg/algorithms/igts/legacy_detector.py
+tsseg/algorithms/patss/algorithms/ClaSP.py
+tsseg/algorithms/patss/algorithms/FLOSS.py
+tsseg/algorithms/patss/algorithms/PaTSS.py
+tsseg/algorithms/patss/segmentation/
+tsseg/algorithms/tire/old/

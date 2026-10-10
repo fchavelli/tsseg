@@ -133,8 +133,8 @@ Usage
 **Implementation:** NumPy/SciPy Gibbs sampler, forward messages compiled with numba
 when it is installed (``tsseg[accelerators]``; otherwise interpreted, about 100 times
 slower), checked against ``pyhsmm`` and against exact enumeration.  *Origin: new code.*
-Replaces the earlier ``pyhsmm``-backed implementation and the
-first NumPy implementation (``HdpHsmmDetectorV1``, deprecated).
+Replaces an earlier ``pyhsmm``-backed implementation and a
+first NumPy implementation (``HdpHsmmDetectorV1``), both removed.
 
 **References:** Johnson & Willsky (2013), *Bayesian Nonparametric Hidden Semi-Markov
 Models*, JMLR 14, for the model and the sampler implemented here; Johnson & Willsky

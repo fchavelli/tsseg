@@ -16,9 +16,7 @@ determine the number of regimes and their boundaries.
 ## Implementation
 
 Wraps the original C code by Yasuko Matsubara (Kumamoto University). The
-`autoplait_c.py` module handles I/O with the binary. A `deprecated/` folder
-contains an incomplete pure-Python port (based on hayato0311/autoplait-python,
-depends on `hmmlearn`) kept for reference only.
+`autoplait_c.py` module handles I/O with the binary.
 
 - Origin: wrapper around original C code
 - Source: https://sites.google.com/site/onlinesemanticsegmentation/
