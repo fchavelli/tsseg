@@ -101,9 +101,12 @@ def wild_intervals(
     """Random intervals of wild binary segmentation (Fryzlewicz, 2014).
 
     Both ends of each of the ``n_intervals`` intervals are drawn independently,
-    uniformly and with replacement from ``{0, ..., n}``; draws with fewer than
-    ``min_length`` points are dropped. The whole series ``(0, n)`` is always
-    added (the optional augmentation of Fryzlewicz, 2014, at the top level).
+    uniformly and with replacement from ``{0, ..., n}`` (Fryzlewicz, 2014,
+    Sec. 3.3); draws with fewer than ``min_length`` points are dropped, not
+    redrawn, so that fewer intervals may be kept (Baranowski et al., 2019,
+    Sec. 2.2, draw ``n_intervals`` pairs among the long enough ones). The
+    whole series ``(0, n)`` is always added: the optional augmentation of
+    Fryzlewicz (2014, Sec. 3.3), at the top level only.
 
     Returns
     -------
@@ -270,9 +273,11 @@ def ssic(csum: np.ndarray, csum2: np.ndarray, change_points, alpha: float) -> fl
     ``n/2 * sum_j log(sigma_j^2) + k (d + 1)/2 * log(n)^alpha``, with
     ``sigma_j^2`` the residual variance of channel ``j`` around the segment
     means (maximum likelihood) and ``k`` change points. For ``d = 1`` it is
-    the sSIC of Fryzlewicz (2014, eq. 4.1), ``n/2 log(sigma^2) + k
+    the sSIC of Fryzlewicz (2014, Sec. 3.4, eq. (4)), ``n/2 log(sigma^2) + k
     log(n)^alpha``; for ``d > 1`` each channel has its own variance and each
-    change point ``d + 1`` parameters (Baranowski et al., 2019, eq. 7).
+    change point ``d + 1`` parameters (its location and ``d`` means), half
+    the general sSIC of Baranowski et al. (2019, eq. (3.1) of the arXiv
+    version) for this Gaussian model, which is not in the papers.
 
     Parameters
     ----------

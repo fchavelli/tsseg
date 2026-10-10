@@ -25,16 +25,26 @@ license and the R packages `wbs`, `not` and `breakfast` are GPL-2.0-only: none
 was opened.
 
 - `_core.py`: seeded intervals (Kovács et al., 2023, Definition 1), random
-  intervals (Fryzlewicz, 2014, Sec. 3.2), greedy selection (Fryzlewicz, 2014),
+  intervals (Fryzlewicz, 2014, Sec. 3.3), greedy selection (Fryzlewicz, 2014),
   narrowest-over-threshold selection and its threshold path (Baranowski et al.,
   2019; the path is followed by recomputing a solution only from the first
-  newly eligible interval that it accepts), sSIC (Fryzlewicz, 2014, eq. 4.1).
+  newly eligible interval that it accepts), sSIC (Fryzlewicz, 2014, Sec. 3.4,
+  eq. (4)).
+- WBS (`intervals="wild"`, `selection="greedy"`) applies the optional
+  augmentation of Fryzlewicz (2014, Sec. 3.3) at the top level only: the whole
+  series is a candidate, the segments between selected change points are not
+  added at later steps.
 - `detector.py`: the best split and gain of each interval come from the
   vendored ruptures `Binseg.single_bkp` (`jump=1`), on the numba backend when
   it is available.
-- Paper version used: arXiv:2002.06633v1 (the only arXiv version).
+- Paper version used: arXiv:2002.06633v1 (the only arXiv version); section,
+  theorem and table numbers in the code follow it, and those of Baranowski et
+  al. (2019) follow its arXiv version.
 - Extension not in the papers: for a multivariate series the sSIC gives each
-  channel its own variance and counts d + 1 parameters per change point.
+  channel its own variance and counts d + 1 parameters per change point (the
+  general form of Baranowski et al., 2019, eq. (3.1)). The gain sums the
+  channels unweighted: channels with different noise levels must be put on the
+  same noise level first.
 
 ## Source
 

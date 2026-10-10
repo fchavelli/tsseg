@@ -64,7 +64,8 @@ class SeededBinSegDetector(BaseSegmenter):
         Threshold on the gain: a change point is kept when the gain of the
         interval that selects it exceeds ``penalty`` (for ``"l2"`` and noise
         of variance ``sigma^2``, ``(C sigma)^2 2 log n`` is the threshold
-        ``C sigma sqrt(2 log n)`` of Fryzlewicz, 2014, on the CUSUM). ``None``
+        ``C sigma sqrt(2 log n)`` of Fryzlewicz, 2014, Sec. 4, on the CUSUM).
+        ``None``
         (with ``n_cps=None``): the strengthened Schwarz information criterion
         picks the model, as in the experiments of Kovács et al. (2023);
         ``model="l2"`` only.
@@ -75,8 +76,13 @@ class SeededBinSegDetector(BaseSegmenter):
         layer to the next; the value recommended by Kovács et al. (2023).
         Closer to 1: more intervals, slower and more accurate.
     n_intervals : int, default=5000
-        Number of random intervals of ``intervals="wild"`` (Fryzlewicz, 2014,
-        Sec. 4.1).
+        Number of random intervals of ``intervals="wild"``, the value of
+        Fryzlewicz (2014, Sec. 4.1) and of the experiments of Kovács et al.
+        (2023); Baranowski et al. (2019, Sec. 3.6.1) recommend 10 000 for
+        NOT. Both ends of each interval are drawn uniformly from the series, as
+        in WBS (Fryzlewicz, 2014, Sec. 3.3); draws shorter than
+        ``2 * min_size`` are dropped, not redrawn, so slightly fewer intervals
+        are kept (NOT, Sec. 2.2, draws among the long enough ones only).
     selection : {"greedy", "narrowest"}, default="greedy"
         ``"greedy"``: the largest gain first, then all intervals containing it
         are dropped, and so on (as in WBS). ``"narrowest"``: among the
@@ -91,14 +97,23 @@ class SeededBinSegDetector(BaseSegmenter):
         Fryzlewicz, 2014, Sec. 4.2, which the criterion needs: along the whole
         path the residual variance tends to 0 and the largest model wins). The
         solution path is followed until it holds more; a series with more
-        change points than ``max_cps`` gets ``max_cps`` at most.
+        change points than ``max_cps`` gets ``max_cps`` at most. NOT
+        evaluates every solution of its path with at most ``q_max = 25``
+        change points (Baranowski et al., 2019, Sec. 3.6.2); here the path of
+        ``selection="narrowest"``, whose solutions do not grow monotonically,
+        stops at the first one with more than ``max_cps``, and smaller
+        solutions further down the path are not evaluated.
     model : str, default="l2"
         Cost of the vendored ruptures (``"l2"``, ``"l1"``, ``"rbf"``,
         ``"linear"``, ``"normal"``, ``"cosine"``).
     min_size : int, default=1
         Minimum number of points on each side of a split; intervals shorter
-        than ``2 * min_size`` are dropped. ``1`` is the ``m = 2`` of the
-        experiments of Kovács et al. (2023).
+        than ``2 * min_size`` have no admissible split and are dropped. ``1``
+        is the ``m = 2`` of the experiments of Kovács et al. (2023). Above 1,
+        the seeded intervals of the layers whose length is close to
+        ``2 * min_size`` are kept when rounding makes them long enough;
+        Kovács et al. (2023, Sec. 2.3) suggest instead stopping at an earlier
+        layer when a minimal segment length is wanted.
     cost_params : dict or None, default=None
         Keyword arguments of the ruptures cost.
     backend : {"auto", "numba", "python"}, default="auto"
@@ -115,15 +130,29 @@ class SeededBinSegDetector(BaseSegmenter):
     the ``s`` of the papers' split ``(l, s] | (s, r]``. With
     ``min_size=1``, ``decay=2 ** -0.5``, ``selection="greedy"`` or
     ``"narrowest"`` and the sSIC, this is g-SeedBS or n-SeedBS of Kovács et
-    al. (2023, Table 1); ``intervals="wild"`` with ``selection="greedy"`` is
-    WBS with the sSIC.
+    al. (2023, Table 1). ``intervals="wild"`` with ``selection="greedy"`` is
+    WBS with the sSIC, with the optional augmentation of Fryzlewicz (2014,
+    Sec. 3.3) at the top level only: the whole series is always a candidate
+    interval, but the segment between two selected change points is not
+    added as a new candidate at each later step.
 
-    The sSIC (Fryzlewicz, 2014, eq. 4.1) assumes Gaussian noise of constant
-    variance. For a multivariate series this implementation gives each channel
-    its own variance and counts ``d + 1`` parameters per change point
-    (Baranowski et al., 2019, eq. 7), which reduces to the univariate
-    criterion for ``d = 1``; this extension is not from the papers. The gain
-    sums the channels as they are: put them on comparable scales first.
+    Section, theorem and table numbers of Kovács et al. (2023) are those of
+    arXiv:2002.06633v1, and those of Baranowski et al. (2019) those of its
+    arXiv version.
+
+    The sSIC (Fryzlewicz, 2014, Sec. 3.4, eq. (4)) assumes Gaussian noise of
+    constant variance. For a multivariate series this implementation applies
+    the general form of Baranowski et al. (2019, eq. (3.1): minus twice the
+    log-likelihood plus ``log(n)^alpha`` per parameter, halved here) to
+    Gaussian channels with their own variances, a change point counting its
+    location and ``d`` means; it reduces to the univariate criterion for
+    ``d = 1``. This multivariate model is not in the papers. The gain sums
+    the channels as they are while the criterion weighs each by its own
+    variance: when the channels have different noise levels, put them on the
+    same noise level first, e.g. divide each by ``median(|diff(x)|) /
+    (sqrt(2) * 0.6745)``, the noise estimate of Baranowski et al. (2019, Sec.
+    2.1). A z-normalisation is not enough when a channel has large changes
+    and little noise.
 
     Cost: the best split of every interval, ``O(n log n)`` points in all for
     the seeded intervals (``O(n_intervals * n)`` for the random ones), each in

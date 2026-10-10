@@ -24,7 +24,9 @@ The number of change points comes from ``n_cps``, from a threshold
 ``penalty`` on the gain, or, by default, from the strengthened Schwarz
 information criterion (sSIC) along the solution path, as in the experiments
 of the paper. ``intervals="wild"`` draws ``n_intervals`` random intervals
-instead (WBS).
+instead (WBS, with its optional augmentation at the top level only: the whole
+series is a candidate, the segments between selected change points are not
+added at later steps).
 
 The gain of a split is the decrease of a ruptures cost: for ``"l2"``, the
 squared CUSUM statistic of the papers, summed over channels.
@@ -80,7 +82,10 @@ Parameters
      - int
      - ``50``
      - Largest number of change points the sSIC considers (the criterion
-       needs a bound); a series with more gets ``max_cps`` at most.
+       needs a bound); a series with more gets ``max_cps`` at most. With
+       ``selection="narrowest"``, the solution path stops at its first
+       solution with more change points (NOT evaluates all those with at
+       most 25).
    * - ``model``
      - str
      - ``"l2"``
@@ -89,7 +94,8 @@ Parameters
    * - ``min_size``
      - int
      - ``1``
-     - Minimum number of points on each side of a split.
+     - Minimum number of points on each side of a split; shorter intervals
+       are dropped (``1``: the ``m = 2`` of the paper).
    * - ``cost_params``
      - dict / None
      - ``None``
@@ -129,8 +135,12 @@ Usage
 the R packages ``wbs`` and ``not`` are GPL-2.0-only). The sSIC assumes
 Gaussian noise; for a multivariate series each channel has its own variance
 and each change point counts :math:`d + 1` parameters, an extension that is
-not in the papers. The gain sums the channels as they are: put them on
-comparable scales first.
+not in the papers. The gain sums the channels as they are while the
+criterion weighs each by its own variance: put channels with different noise
+levels on the same noise level first, e.g. divide each by the median absolute
+deviation estimate of its noise, :math:`\operatorname{median}|\Delta x| /
+(\sqrt{2}\,\Phi^{-1}(3/4))`; a z-normalisation is not enough when a channel
+has large changes and little noise.
 
 **References:** Kovács, Bühlmann, Li and Munk (2023), Biometrika; Fryzlewicz
 (2014), The Annals of Statistics; Baranowski, Chen and Fryzlewicz (2019),

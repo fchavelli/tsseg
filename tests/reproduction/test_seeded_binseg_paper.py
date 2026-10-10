@@ -29,11 +29,12 @@ Deviations and unknowns:
 - The paper does not give its seeds; this test uses 0-99.
 - The paper's total length of the seeded intervals (thousands): blocks 95.3,
   blocks* 329.7, fms 19.1, mix 22.3, teeth10 4.4, stairs10 4.8. Definition 1
-  as written gives, without duplicates, 85.5, 316.6, 18.1, 20.7, 4.0, 4.4
-  (95.8, 400.6, 19.3, 23.5, 4.7, 5.0 with them; duplicates do not change the
-  result). No rounding variant tried matches all six: the authors' intervals
-  differ slightly from Definition 1 as written, in a way the paper does not
-  state (their code has no license and was not consulted).
+  as written, in exact arithmetic (as ``seeded_intervals``), gives 85.3,
+  316.6, 18.1, 20.6, 4.0, 4.4 without duplicates and 91.5, 400.6, 19.3, 23.5,
+  4.7, 5.0 with them (duplicates do not change the result). No rounding
+  variant tried matches all six: the authors' intervals differ slightly from
+  Definition 1 as written, in a way the paper does not state (their code has
+  no license and was not consulted).
 
 Tolerance: three standard errors of a difference of two means of 100 runs,
 ``3 * sqrt(2) * sd / sqrt(100)``, with the paper's sd, plus the rounding of
@@ -61,9 +62,17 @@ seeds: with the 100 series of one ``default_rng(1)`` stream instead, N̂ - N =
 -1.49, and the sSIC keeps no change point at all in 6 of them. On that
 stream, the same selection and criterion on random intervals (WBS, 5000
 intervals) give N̂ = N in 73 of 100 runs, against 80 in Fryzlewicz (2014,
-Table 1), and seeded intervals with ``a = 2^(-1/8)`` in 67: the probable
-cause is the interval system (see the total lengths above), not the
-selection.
+Table 1), and seeded intervals with ``a = 2^(-1/8)`` in 67. The cause is not
+established. Two candidates: the interval system (see the total lengths
+above), and the selection. Kovács et al. ran g-SeedBS with the R package
+``wbs`` modified to take seeded intervals (Section 4) and do not say whether
+the optional augmentation of WBS (Fryzlewicz, 2014, Sec. 3.3: the segment
+between selected change points is a candidate at each step) was on; their
+greedy selection (Section 2.4) does not include it, nor does this
+implementation. With it, on seeds 0-99, g-SeedBS on teeth10 gives V 0.916
+instead of 0.879, N̂ - N -0.65 instead of -1.11 and N̂ = N in 69 runs instead
+of 61 (Table 1: V 0.933, N̂ - N -0.19); on random intervals it changes almost
+nothing (N̂ = N in 74 runs instead of 75).
 
 The synthetic twin that runs in CI is ``test_frequent_alternating_changes``
 (teeth signal, low noise) and ``test_detects_steps`` in
