@@ -22,6 +22,41 @@ __all__ = ["PeltDetector"]
 class PeltDetector(BaseSegmenter):
     """Wrapper around the vendored ruptures :class:`Pelt` estimator.
 
+    PELT minimises the sum of the segment costs plus ``penalty`` per change
+    point. The number of change points follows from the penalty; it cannot be
+    set directly (use :class:`~tsseg.algorithms.DynpDetector` for that).
+
+    Parameters
+    ----------
+    model : {"l2", "l1", "rbf", "linear", "normal", "cosine"}, default="l2"
+        Cost model: least squares (``"l2"``), least absolute deviation
+        (``"l1"``), Gaussian kernel (``"rbf"``), linear regression
+        (``"linear"``), Gaussian likelihood (``"normal"``) or cosine kernel
+        (``"cosine"``).
+    min_size : int, default=2
+        Minimum segment length. Must not exceed half the series length.
+    jump : int, default=5
+        Sub-sampling factor for candidate breakpoints: only multiples of
+        ``jump`` are considered.
+    penalty : float, default=10.0
+        Penalty added per change point. Must be strictly positive.
+    pen_scale : {None, "bic"}, default=None
+        ``None``: ``penalty`` is used as is. ``"bic"``: ``penalty`` is a
+        coefficient on ``log(n) * u``, u the cost of one sample of the whole
+        signal (d for ``"l2"`` on unit-variance channels, where it is the BIC
+        penalty; 1 for the kernel costs).
+    cost_params : dict or None, default=None
+        Extra keyword arguments forwarded to the cost (for instance
+        ``{"gamma": 0.1}`` for ``"rbf"``).
+    backend : {"auto", "numba", "python"}, default="auto"
+        Backend of the costs ``l1``, ``l2``, ``rbf`` and ``cosine``: numba when
+        it is installed under ``"auto"``, the kernel costs then without the
+        n x n Gram matrix. Same change points either way.
+    axis : int, default=0
+        Axis of ``X`` that represents time.
+
+    Notes
+    -----
     For a univariate signal with ``model="l1"``, upstream ruptures now ships
     ``L1Potts``, an exact and much faster solver of the same penalised problem
     with ``min_size=1`` and ``jump=1``; it is not vendored here. See
@@ -162,6 +197,7 @@ class PeltDetector(BaseSegmenter):
 
     @property
     def change_points_(self) -> np.ndarray:
+        """Change points returned by the last call to ``predict`` (a copy)."""
         if self._change_points is None:
             raise RuntimeError("Predict must be called before accessing change_points_")
         return self._change_points.copy()
