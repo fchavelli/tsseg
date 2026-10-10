@@ -26,6 +26,13 @@ Unreleased
   list, and the deprecated ``HMMDetector`` returns integer labels instead of
   floats.
 
+* ``InformationGainDetector`` stops its search when every candidate position
+  (the multiples of ``step``) is already a change point, and then returns
+  fewer than ``k_max`` change points: when ``k_max`` exceeded the number of
+  candidates (``ceil(n / step) - 1``), it returned ``-1`` and ``0`` among the
+  change points, for instance ``[-1, 0, 5, 10, 15, 20, 25]`` for
+  ``k_max=10, step=5`` on 30 points. The other change points are unchanged.
+
 * The output contract tests check what the documentation states: change
   points are a 1-D integer ``numpy`` array, strictly increasing, within
   ``[1, n - 1]``; state labels are a 1-D integer ``numpy`` array of length

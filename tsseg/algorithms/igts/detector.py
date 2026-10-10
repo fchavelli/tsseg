@@ -200,7 +200,8 @@ class _IGTS:
 
     GTS uses top-down search method to greedily find the next change point
     location that creates the maximum information gain. Once this is found, it
-    repeats the process until it finds `k_max` splits of the time series.
+    repeats the process until it finds `k_max` splits of the time series, or
+    until no candidate location is left.
 
     Uses cumulative sums (Eq. 5-6 of the IGTS paper) so that segment channel sums are
     computed in O(m) instead of O(mn).
@@ -372,6 +373,11 @@ class _IGTS:
                     ig_max = ig
                     best_candidate = candidate
 
+            if best_candidate < 0:
+                # every position of the candidate grid is already a change
+                # point: fewer than k_max change points can be placed
+                break
+
             current_change_points.append(best_candidate)
             current_change_points.sort()
             self.intermediate_results_.append(
@@ -396,7 +402,9 @@ class InformationGainDetector(BaseSegmenter):
 
     GTS uses a top-down search to greedily find the next change point that
     creates the maximum information gain.  Once found, the process repeats
-    until ``k_max`` splits have been made.
+    until ``k_max`` splits have been made, or until every candidate position
+    (the multiples of ``step``) is already a change point, in which case fewer
+    than ``k_max`` change points are returned.
 
     For **univariate** input the series is automatically augmented with its
     normalised complement channel (Eq. 12-13 of [1]_) so that entropy can
