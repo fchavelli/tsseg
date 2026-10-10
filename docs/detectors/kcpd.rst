@@ -33,6 +33,8 @@ Available kernels: ``"linear"`` (L2 cost), ``"rbf"`` (Gaussian), ``"cosine"``.
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
+| **Complexity:** that of :doc:`pelt` (``pen``) or :doc:`dynp` (``n_cps``) with
+  a kernel cost
 
 Parameters
 ----------

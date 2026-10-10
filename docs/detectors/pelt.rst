@@ -7,10 +7,12 @@ Description
 -----------
 
 PELT solves the penalised change point optimisation problem exactly by
-pruning the search space with a dynamic-programming rule.  Under mild conditions
-on the change point distribution, the average complexity is
-:math:`O(C\,K\,n)` — linear in the number of samples — where *K* is the number
-of change points and *C* the cost function complexity.  In practice, ``"l2"``
+pruning the search space with a dynamic-programming rule.  When the number of
+change points grows linearly with the number of samples *n* (Killick et al.,
+2012), the expected complexity is :math:`O(C\,n)` — linear in *n* and
+independent of the number of change points — where *C* is the cost function
+complexity; with few change points, little is pruned and the worst case is
+:math:`O(C\,n^{2})`.  In practice, ``"l2"``
 cost models are significantly faster than linear or autoregressive ones.
 
 Key tuning levers:
@@ -22,7 +24,7 @@ Key tuning levers:
 | **Type:** change point detection
 | **Supervision:** fully unsupervised
 | **Scope:** univariate and multivariate
-| **Complexity:** :math:`O(C\,K\,n)` average
+| **Complexity:** :math:`O(C\,n)` expected, :math:`O(C\,n^{2})` worst case
 
 Parameters
 ----------

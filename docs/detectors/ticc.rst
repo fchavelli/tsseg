@@ -21,6 +21,9 @@ The algorithm alternates between:
 | **Type:** state detection
 | **Supervision:** semi-supervised (``n_states`` required)
 | **Scope:** multivariate (transductive)
+| **Complexity:** :math:`O(S\,(n\,(d\,w)^{2} + (d\,w)^{3}))` per iteration,
+  where *S* is ``n_states`` and *w* is ``window_size``: each stacked window
+  (dimension :math:`d\,w`) is scored under the precision matrix of each state
 
 Parameters
 ----------

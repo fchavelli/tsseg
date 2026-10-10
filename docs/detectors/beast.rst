@@ -25,6 +25,7 @@ Three strategies handle multivariate inputs:
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised (``max_cps``)
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d\,n)` per MCMC iteration
 | **Requires:** Rbeast >= 0.1.25 (``pip install tsseg[beast]``)
 
 Parameters

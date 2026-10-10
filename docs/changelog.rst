@@ -205,6 +205,13 @@ Unreleased
   change point (``F1Score(margin=5).compute([300, 700], [300])`` gives 1.0;
   with ``n_timepoints=1000``, 0.667).
 
+* Detector pages give the time complexity of 18 more detectors, as
+  implemented with their default settings. Two values were wrong: PELT is
+  :math:`O(C\,n)` expected and :math:`O(C\,n^{2})` at worst, with no factor in
+  the number of change points (the page said :math:`O(C\,K\,n)`), and
+  ChangeFinder solves one :math:`k \times k` system per sample, so
+  :math:`O(d\,n + n\,k^{3})` (the page said :math:`O(n\,k^{2})`).
+
 0.2.0 (2026-09-26)
 ------------------
 

@@ -18,6 +18,8 @@ raw time series by compressing the representation before clustering.
 | **Type:** state detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d\,n\,\ell)` per pass over the sliding windows,
+  where :math:`\ell` is ``window_size``
 | **Requires:** PyTorch
 
 Parameters
