@@ -1,4 +1,4 @@
-.PHONY: help install clean lint
+.PHONY: help install clean lint test docs
 
 # Load .env file if it exists and export the variables
 ifneq (,$(wildcard ./.env))
@@ -14,6 +14,13 @@ endif
 # Default environment name
 CONDA_ENV_NAME = tsseg-env
 
+# Interpreter of the environment where tsseg is installed (used by test and docs).
+PYTHON ?= python
+# Extra pytest arguments, e.g. make test PYTEST_ARGS="tests/algorithms -k PeltDetector"
+PYTEST_ARGS ?=
+# Output directory of make docs (the CI builds into docs/_build/html).
+DOCS_BUILD_DIR ?= docs/_build/html
+
 help:
 	@echo "Makefile for tsseg"
 	@echo ""
@@ -21,6 +28,10 @@ help:
 	@echo "  make install    Create conda environment and install tsseg."
 	@echo "  make clean      Remove the conda environment."
 	@echo "  make lint       Run the CI lint job (ruff check + ruff format --check)."
+	@echo "  make test       Run the CI test job (long: select tests with"
+	@echo "                  PYTEST_ARGS=\"tests/algorithms -k PeltDetector\")."
+	@echo "  make docs       Run the CI docs build, warnings as errors, into"
+	@echo "                  DOCS_BUILD_DIR (default docs/_build/html; needs the docs extra)."
 	@echo ""
 	@echo "Configuration:"
 	@echo "  - The Makefile will automatically find 'conda' in your PATH."
@@ -56,3 +67,16 @@ clean:
 lint:
 	ruff check .
 	ruff format --check .
+
+# Same command as the test job of .github/workflows/ci.yml, which installs
+# pip install -e .[dev,aeon,prophet,tglad,beast]: tests whose optional dependency
+# is missing are skipped, and pyproject.toml deselects the reproduction tests
+# (make test PYTEST_ARGS="-m reproduction" runs them).
+test:
+	$(PYTHON) -m pytest --tb=short -q $(PYTEST_ARGS)
+
+# Same command as the docs job of .github/workflows/ci.yml (-W: warnings are
+# errors). -E rereads every source file, so that a rebuild in an existing
+# directory reports the warnings of unchanged files, as the fresh CI build does.
+docs:
+	$(PYTHON) -m sphinx -W -E -b html docs $(DOCS_BUILD_DIR)
