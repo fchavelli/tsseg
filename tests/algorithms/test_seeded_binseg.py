@@ -53,6 +53,59 @@ def test_seeded_intervals_contain_the_dyadic_system():
     assert dyadic <= _as_set(seeded_intervals(1024, 2**-0.5, 2))
 
 
+def _definition_1(n, inv_decay, min_length):
+    """Definition 1 in 50-digit arithmetic: the reference of the float code."""
+    from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal, localcontext
+
+    with localcontext() as ctx:
+        ctx.prec = 50
+        tie = Decimal("1e-30")  # values this close to an integer are integers
+
+        def ceil(x):
+            return int((x - tie).to_integral_value(rounding=ROUND_CEILING))
+
+        def floor(x):
+            return int((x + tie).to_integral_value(rounding=ROUND_FLOOR))
+
+        inv_a, big_n = Decimal(inv_decay), Decimal(n)
+        found = set()
+        for k in range(1, ceil(big_n.ln() / inv_a.ln()) + 1):
+            n_k = 2 * ceil(inv_a ** (k - 1)) - 1
+            l_k = big_n / inv_a ** (k - 1)
+            s_k = (big_n - l_k) / (n_k - 1) if n_k > 1 else Decimal(0)
+            for i in range(n_k):
+                start, end = floor(i * s_k), ceil(i * s_k + l_k)
+                if end - start >= min_length:
+                    found.add((start, end))
+    return found
+
+
+@pytest.mark.parametrize(
+    "n, inv_decay",
+    [
+        # exact ties (sqrt(2)^(k-1) rational, i * s_k integer) must round as
+        # integers despite floating-point noise
+        *[
+            (n, "1.4142135623730950488016887242096980785696718753769")
+            for n in (17, 140, 150, 497, 560, 1024, 2048, 3001)
+        ],
+        *[
+            (n, "1.0905077326652576592070106557607079789927027185400")
+            for n in (140, 2048)
+        ],
+        # n = 40001: values a few 1e-6 away from an integer must not be rounded
+        # to it (a relative tolerance of 1e-9 missed 11 of the 166 198
+        # intervals and gave 3 others, shifted by one point)
+        (40001, "1.4142135623730950488016887242096980785696718753769"),
+    ],
+)
+def test_seeded_intervals_match_definition_1(n, inv_decay):
+    from decimal import Decimal
+
+    decay = float(1 / Decimal(inv_decay))
+    assert _as_set(seeded_intervals(n, decay, 2)) == _definition_1(n, inv_decay, 2)
+
+
 @pytest.mark.parametrize("n", [140, 497, 2048])
 @pytest.mark.parametrize("decay", [0.5, 2**-0.5, 2**-0.125])
 def test_seeded_intervals_near_linear_total_length(n, decay):

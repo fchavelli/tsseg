@@ -26,16 +26,25 @@ __all__ = [
 ]
 
 _TOL = 1e-9
+_EPS = np.finfo(float).eps
 
 
-def _ceil(x: float) -> int:
-    """``ceil`` that ignores floating-point noise (``sqrt(2) ** 2`` is 2)."""
-    return math.ceil(x - _TOL * max(1.0, abs(x)))
+def _ceil(x: float, tol: float | None = None) -> int:
+    """``ceil`` that ignores floating-point noise (``sqrt(2) ** 2`` is 2).
+
+    ``tol`` is the absolute rounding error tolerated on ``x``; by default
+    ``1e-9`` relative, enough for the small numbers of layers and intervals.
+    """
+    if tol is None:
+        tol = _TOL * max(1.0, abs(x))
+    return math.ceil(x - tol)
 
 
-def _floor(x: float) -> int:
-    """``floor`` that ignores floating-point noise."""
-    return math.floor(x + _TOL * max(1.0, abs(x)))
+def _floor(x: float, tol: float | None = None) -> int:
+    """``floor`` that ignores floating-point noise (see :func:`_ceil`)."""
+    if tol is None:
+        tol = _TOL * max(1.0, abs(x))
+    return math.floor(x + tol)
 
 
 def seeded_intervals(n: int, decay: float, min_length: int) -> np.ndarray:
@@ -71,9 +80,16 @@ def seeded_intervals(n: int, decay: float, min_length: int) -> np.ndarray:
         n_k = 2 * _ceil((1.0 / decay) ** (k - 1)) - 1
         l_k = n * decay ** (k - 1)
         s_k = (n - l_k) / (n_k - 1) if n_k > 1 else 0.0
+        # The bounds are exact integers when a^(k-1) is rational (the odd layers
+        # of a = 2^(-1/2)) and their floating-point error is then below about
+        # k n eps / 4 (measured); genuine non-integers can lie closer to an
+        # integer than a relative 1e-9 for long series (n = 40001). Tolerate
+        # 2 k n eps: exact up to a few 10^5 points, then at most a handful of
+        # intervals moved by one point (2 out of 4.2 million at n = 10^6).
+        tol = 2.0 * k * n * _EPS
         for i in range(n_k):
-            start = max(0, _floor(i * s_k))
-            end = min(n, _ceil(i * s_k + l_k))
+            start = max(0, _floor(i * s_k, tol))
+            end = min(n, _ceil(i * s_k + l_k, tol))
             if end - start >= min_length:
                 found.add((start, end))
     return np.array(sorted(found), dtype=np.int64).reshape(-1, 2)
