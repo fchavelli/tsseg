@@ -70,6 +70,16 @@ Unreleased
   test fixture to import), the extras table, change point examples that named
   their output ``labels``, and the citation (Springer proceedings).
 
+* Docstrings: ``PeltDetector``, ``BottomUpDetector``, ``WindowDetector``,
+  ``DynpDetector`` and ``KCPDDetector`` document their parameters;
+  ``BinSegDetector`` states its actual ``penalty`` default (10; pass
+  ``penalty=None`` to stop on ``epsilon``); the ``HidalgoDetector`` example
+  runs with tsseg instead of aeon, and its ``K_states`` default is 1; the
+  ``ICIDDetector`` ``psi_list`` default is ``None``. The ``compute`` methods of
+  the state detection metrics and the ``validate`` methods of the parameter
+  constraints are documented. A test checks that each detector documents
+  exactly its constructor parameters, with their actual defaults.
+
 * ``EAggloDetector``: ``penalty="mean_diff_penalty"`` no longer raises (the
   penalty was compiled with numba, which rejects the list of segment boundaries
   it receives). The documentation now describes the goodness-of-fit statistic,
