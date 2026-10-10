@@ -86,4 +86,6 @@ python -m pytest tests/
 python -m pytest tests/algorithms -k PeltDetector
 ```
 
-The lint job of the CI runs with `make lint`.
+`make test`, `make lint` and `make docs` run the same commands as the test,
+lint and documentation jobs of the CI (select tests with
+`make test PYTEST_ARGS="-k PeltDetector"`).

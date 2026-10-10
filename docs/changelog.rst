@@ -11,6 +11,11 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``make test`` and ``make docs`` run the test and documentation jobs of the
+  CI (``pytest --tb=short -q``; ``sphinx -W -E -b html docs docs/_build/html``).
+  ``PYTEST_ARGS`` selects tests, ``DOCS_BUILD_DIR`` changes the output
+  directory, ``PYTHON`` the interpreter.
+
 * Reproduction tests: tests that reproduce a published result on a dataset
   downloaded on demand (pinned by its SHA-256 digest) go to
   ``tests/reproduction/`` and are marked ``reproduction``. The marker is
