@@ -11,6 +11,33 @@ import pytest
 
 VALID_DETECTOR_TYPES = {"change_point_detection", "state_detection"}
 
+# Tags a detector may declare: those of the base classes plus the
+# segmentation tags.  A key outside this set is a typo or a retired tag.
+KNOWN_TAGS = {
+    # BaseAeonEstimator
+    "python_version",
+    "python_dependencies",
+    "cant_pickle",
+    "non_deterministic",
+    "algorithm_type",
+    "capability:missing_values",
+    "capability:multithreading",
+    # BaseSeriesEstimator
+    "capability:univariate",
+    "capability:multivariate",
+    "X_inner_type",
+    # BaseSegmenter
+    "fit_is_empty",
+    "requires_y",
+    "returns_dense",
+    # aeon collection tag, declared by a few detectors
+    "capability:unequal_length",
+    # Declared by every detector
+    "detector_type",
+    "capability:unsupervised",
+    "capability:semi_supervised",
+}
+
 
 class TestTagContract:
     """Validate the tag metadata exposed by each algorithm."""
@@ -82,3 +109,25 @@ class TestTagContract:
         )
         if val is not None:
             assert isinstance(val, bool)
+
+    def test_no_unknown_tags(self, algorithm):
+        """Every declared tag is a known tag (no retired or misspelt keys)."""
+        _name, _cls, _ovr, instance = algorithm
+        unknown = set(instance.get_tags()) - KNOWN_TAGS
+        assert not unknown, f"{_name} declares unknown tags: {sorted(unknown)}"
+
+    def test_supervision_tags_declared(self, algorithm):
+        """Both supervision tags are declared as bools, at least one ``True``.
+
+        ``capability:unsupervised`` and ``capability:semi_supervised`` have no
+        default in the base classes: each detector states both.
+        """
+        _name, _cls, _ovr, instance = algorithm
+        values = {}
+        for tag in ("capability:unsupervised", "capability:semi_supervised"):
+            val = instance.get_tag(tag, raise_error=False, tag_value_default=None)
+            assert isinstance(val, bool), f"{_name}: '{tag}' must be a bool"
+            values[tag] = val
+        assert any(values.values()), (
+            f"{_name} is neither unsupervised nor semi-supervised"
+        )
