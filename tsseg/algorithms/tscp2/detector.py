@@ -71,6 +71,21 @@ class TSCP2Detector(BaseSegmenter):
 
     This implementation mirrors the original TensorFlow TS-CP2 reference
     (Deldari et al., WWW'21, https://doi.org/10.1145/3442381.3449903).
+
+    Parameters
+    ----------
+    random_state : int or None, default=None
+        Seed of the encoder's weight initialisation, the shuffling of the
+        training windows and the dropout masks. ``None`` gives a different
+        model at each fit. An integer makes ``fit`` reproducible on a given
+        machine and TensorFlow build: every fit (including the refit done by
+        ``refit_on_predict``) calls ``tf.keras.utils.set_random_seed``, which
+        reseeds the global Python, NumPy and TensorFlow generators.
+
+    Notes
+    -----
+    The other parameters are described in the user guide
+    (``docs/detectors/tscp2.rst``) and in ``_parameter_schema``.
     """
 
     _tags = {
@@ -183,6 +198,12 @@ class TSCP2Detector(BaseSegmenter):
             constraint=HasType((bool,)),
             description="Re-train the encoder on the prediction data.",
         ),
+        "random_state": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Random seed (weights, shuffling, dropout).",
+            nullable=True,
+            group="training",
+        ),
         "_cross_constraints": [
             DataDependent(
                 "window_size * 2 <= n_samples",
@@ -214,6 +235,7 @@ class TSCP2Detector(BaseSegmenter):
         beta: float = 0.1,
         similarity: str = "cosine",
         refit_on_predict: bool = False,
+        random_state: int | None = None,
         axis: int = 0,
     ) -> None:
         if tf is None or not hasattr(TemporalEncoder, "call"):
@@ -259,6 +281,7 @@ class TSCP2Detector(BaseSegmenter):
         self.beta = float(beta)
         self.similarity_name = similarity
         self.refit_on_predict = refit_on_predict
+        self.random_state = random_state
         self._encoder: TemporalEncoder | None = None
         self._train_stats: _TrainingStats | None = None
         self._train_signal: np.ndarray | None = None
@@ -336,6 +359,10 @@ class TSCP2Detector(BaseSegmenter):
         if history.shape[0] < 2:
             raise ValueError("Not enough windowed samples for contrastive training")
         n_features = signal.shape[1]
+        if self.random_state is not None:
+            # Keras 3 initialisers draw their seeds from Python's ``random``:
+            # ``tf.random.set_seed`` alone leaves the weights unseeded.
+            tf.keras.utils.set_random_seed(self.random_state)
         encoder = TemporalEncoder(
             input_features=n_features,
             window_size=self.window_size,

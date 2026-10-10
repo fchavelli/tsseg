@@ -114,7 +114,10 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         dependencies=("torch", "networkx"),
         init_kwargs={"window_size": 100, "stride": 50, "epochs": 100},
     ),
-    "TSCP2Detector": AlgorithmOverride(dependencies=("tensorflow",)),
+    "TSCP2Detector": AlgorithmOverride(
+        dependencies=("tensorflow",),
+        init_kwargs={"random_state": 0},
+    ),
     # --- Tirex detectors (need torch + tirex runtime) -----------------
     "TirexHiddenCPD": AlgorithmOverride(dependencies=("torch", "moment")),
     "TirexCosineCPD": AlgorithmOverride(dependencies=("torch", "moment")),

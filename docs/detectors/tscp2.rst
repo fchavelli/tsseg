@@ -97,6 +97,12 @@ Parameters
      - str
      - ``"cosine"``
      - Similarity function.
+   * - ``random_state``
+     - int / None
+     - ``None``
+     - Seed of the weight initialisation, the shuffling of the training
+       windows and the dropout masks (``None`` = a different model at each
+       fit). Reseeds the global Python, NumPy and TensorFlow generators.
    * - ``axis``
      - int
      - ``0``
