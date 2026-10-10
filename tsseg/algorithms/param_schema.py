@@ -156,6 +156,21 @@ class StrOptions:
         object.__setattr__(self, "options", frozenset(options))
 
     def validate(self, value: Any, name: str = "value") -> str | None:
+        """Check that *value* is one of the allowed strings.
+
+        Parameters
+        ----------
+        value : Any
+            Value to check. ``None`` passes (nullability is decided by
+            :class:`ParamDef`).
+        name : str, default="value"
+            Parameter name used in the error message.
+
+        Returns
+        -------
+        str or None
+            An error message, or ``None`` if *value* is valid.
+        """
         if value is None:
             return None
         if value not in self.options:
@@ -188,6 +203,20 @@ class Options:
         object.__setattr__(self, "sentinels", frozenset(sentinels))
 
     def validate(self, value: Any, name: str = "value") -> str | None:
+        """Check that *value* is a sentinel or an instance of the declared type.
+
+        Parameters
+        ----------
+        value : Any
+            Value to check.
+        name : str, default="value"
+            Parameter name used in the error message.
+
+        Returns
+        -------
+        str or None
+            An error message, or ``None`` if *value* is valid.
+        """
         if value in self.sentinels:
             return None
         if not isinstance(value, self.type):
@@ -211,6 +240,21 @@ class HasType:
     types: tuple[type, ...]
 
     def validate(self, value: Any, name: str = "value") -> str | None:
+        """Check that *value* is an instance of one of the declared types.
+
+        Parameters
+        ----------
+        value : Any
+            Value to check. ``None`` passes (nullability is decided by
+            :class:`ParamDef`).
+        name : str, default="value"
+            Parameter name used in the error message.
+
+        Returns
+        -------
+        str or None
+            An error message, or ``None`` if *value* is valid.
+        """
         if value is None:
             return None
         if not isinstance(value, self.types):
@@ -243,6 +287,21 @@ class MutuallyExclusive:
         object.__setattr__(self, "required_count", required_count)
 
     def validate(self, param_values: dict[str, Any], name: str = "") -> str | None:
+        """Check that exactly ``required_count`` of the parameters are not ``None``.
+
+        Parameters
+        ----------
+        param_values : dict
+            Parameter values of the estimator, by name; a missing name counts
+            as ``None``.
+        name : str, default=""
+            Unused, for a signature common to all constraints.
+
+        Returns
+        -------
+        str or None
+            An error message, or ``None`` if the constraint holds.
+        """
         count = sum(1 for p in self.params if param_values.get(p) is not None)
         if count != self.required_count:
             return (
@@ -269,6 +328,22 @@ class ConditionalRequired:
     condition: str
 
     def validate(self, param_values: dict[str, Any], name: str = "") -> str | None:
+        """Check that ``param`` is set whenever ``condition`` holds.
+
+        Parameters
+        ----------
+        param_values : dict
+            Parameter values of the estimator, by name; ``condition`` is
+            evaluated on them without builtins.
+        name : str, default=""
+            Unused, for a signature common to all constraints.
+
+        Returns
+        -------
+        str or None
+            An error message, or ``None`` if the constraint holds or if
+            ``condition`` cannot be evaluated.
+        """
         try:
             cond_met = eval(self.condition, {"__builtins__": {}}, param_values)  # noqa: S307
         except Exception:
@@ -295,6 +370,22 @@ class DependsOn:
     description: str = ""
 
     def validate(self, param_values: dict[str, Any], name: str = "") -> str | None:
+        """Check that ``expr`` is true for the given parameter values.
+
+        Parameters
+        ----------
+        param_values : dict
+            Parameter values of the estimator, by name; ``expr`` is evaluated
+            on them without builtins.
+        name : str, default=""
+            Unused, for a signature common to all constraints.
+
+        Returns
+        -------
+        str or None
+            An error message, or ``None`` if ``expr`` is true or cannot be
+            evaluated.
+        """
         try:
             ok = eval(self.expr, {"__builtins__": {}}, param_values)  # noqa: S307
         except Exception:
@@ -329,6 +420,25 @@ class DataDependent:
         data_ctx: dict[str, Any] | None = None,
         name: str = "",
     ) -> str | None:
+        """Check that ``expr`` is true for the parameters and the data context.
+
+        Parameters
+        ----------
+        param_values : dict
+            Parameter values of the estimator, by name.
+        data_ctx : dict or None, default=None
+            Data dimensions (``n_samples``, ``n_channels``), merged over
+            *param_values* before ``expr`` is evaluated without builtins.
+            ``None`` skips the check.
+        name : str, default=""
+            Unused, for a signature common to all constraints.
+
+        Returns
+        -------
+        str or None
+            An error message, or ``None`` if ``expr`` is true, cannot be
+            evaluated, or *data_ctx* is ``None``.
+        """
         if data_ctx is None:
             return None  # can't check without data context
         merged = {**param_values, **data_ctx}
