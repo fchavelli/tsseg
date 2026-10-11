@@ -52,6 +52,68 @@ def _find_autoplait_dir() -> Path:
     )
 
 
+def _read_regime_labels(out_dir: Path, n_samples: int) -> np.ndarray:
+    """Read the binary's ``segment.<r>`` files into one label per time point.
+
+    For each regime ``r``, the binary writes a file ``segment.<r>`` whose lines
+    hold the first and the last index (inclusive) of one segment of that
+    regime. The label of a time point is the number ``r`` of its regime, so
+    that two segments of the same regime share a label. ``segment.labels`` is
+    not read: it has one row per regime, and its second column is the path of
+    the regime in the split tree (``"01"``, ``"00"``…), not a label.
+
+    Parameters
+    ----------
+    out_dir : Path
+        Output directory of the binary.
+    n_samples : int
+        Length of the series.
+
+    Returns
+    -------
+    np.ndarray
+        Integer array of shape ``(n_samples,)``.
+
+    Raises
+    ------
+    RuntimeError
+        If a line is malformed, or if the segments do not cover each time point
+        exactly once.
+    """
+    regime_files = sorted(
+        (int(path.name.split(".")[-1]), path)
+        for path in out_dir.glob("segment.*")
+        if path.name.split(".")[-1].isdigit()
+    )
+    labels = np.full(n_samples, -1, dtype=int)
+    for regime, path in regime_files:
+        for line in path.read_text().splitlines():
+            fields = line.split()
+            if not fields:
+                continue
+            if len(fields) != 2:
+                raise RuntimeError(f"Unexpected line {line!r} in AutoPlait {path.name}")
+            start, end = int(fields[0]), int(fields[1])
+            if not 0 <= start <= end < n_samples:
+                raise RuntimeError(
+                    f"AutoPlait segment [{start}, {end}] of {path.name} lies outside "
+                    f"a series of {n_samples} points."
+                )
+            if np.any(labels[start : end + 1] != -1):
+                raise RuntimeError(
+                    f"AutoPlait segment [{start}, {end}] of {path.name} overlaps "
+                    "another segment."
+                )
+            labels[start : end + 1] = regime
+    uncovered = np.flatnonzero(labels == -1)
+    if uncovered.size:
+        raise RuntimeError(
+            f"AutoPlait segments leave {uncovered.size} time points without a "
+            f"regime (first: {uncovered[0]})."
+        )
+    return labels
+
+
 class AutoPlait:
     """
     To run this method:
@@ -67,8 +129,26 @@ class AutoPlait:
         super().__init__()
 
     def _run_autoplait(self, ts, n_cps, name="autoplait_run"):
-        """
-        Executes the external AutoPlait C program.
+        """Run the AutoPlait binary and return one regime label per time point.
+
+        The command line with a number of segments (``n_cps + 1``) is tried
+        first; the bundled binary rejects it with a usage message, and the
+        unguided command line is then run.
+
+        Parameters
+        ----------
+        ts : np.ndarray
+            Series of shape ``(n_samples,)`` or ``(n_samples, n_features)``.
+        n_cps : int or None
+            Number of change points to request, or ``None``.
+        name : str, default="autoplait_run"
+            Name of the temporary input file.
+
+        Returns
+        -------
+        np.ndarray
+            Integer array of shape ``(n_samples,)``: the regime number of each
+            time point (see :func:`_read_regime_labels`).
         """
         # Raw name sometimes leads to errors with filesystem handling
         name = f"{hash(name)}"
@@ -159,72 +239,9 @@ class AutoPlait:
                     raise last_error
                 raise RuntimeError("AutoPlait execution failed with an unknown error.")
 
-            tmp_path_obj = Path(tmp_path)
-
-            segment_dir: Path | None = None
-            for candidate in tmp_path_obj.rglob("segment.labels"):
-                segment_dir = candidate.parent
-                break
-            if segment_dir is None:
-                for candidate in tmp_path_obj.rglob("segment.0"):
-                    segment_dir = candidate.parent
-                    break
-
-            if segment_dir is None:
-                return np.array([], dtype=int), np.array([], dtype=int)
-
-            segment_files = sorted(
-                (
-                    path
-                    for path in segment_dir.glob("segment.*")
-                    if path.name.split(".")[-1].isdigit()
-                ),
-                key=lambda path: int(path.name.split(".")[-1]),
-            )
-
-            found_cps: list[float] = []
-            for segment_file in segment_files:
-                pred = np.loadtxt(segment_file, dtype=np.float64)
-                if pred.size == 0:
-                    continue
-                if pred.ndim == 1:
-                    pred = np.atleast_1d(pred)
-                    if pred.size == 1:
-                        continue
-                    pred = [pred[1]]
-                elif pred.ndim == 2:
-                    pred = pred[:, 1]
-                else:
-                    raise RuntimeError(
-                        f"Unexpected AutoPlait segment format in {segment_file}"
-                    )
-                found_cps.extend(pred)
-
-            labels_path = segment_dir / "segment.labels"
-            found_labels: list[int] = []
-            if labels_path.exists():
-                with labels_path.open("r", encoding="utf-8") as handle:
-                    for raw_line in handle:
-                        line = raw_line.strip().split("\t\t")
-                        if len(line) > 1:
-                            try:
-                                found_labels.append(int(line[1]))
-                            except (TypeError, ValueError):
-                                found_labels.append(0)
-                        else:
-                            found_labels.append(0)
-
-        if found_cps:
-            found_cps_array = np.array(found_cps, dtype=int)
-            found_cps_array = np.sort(found_cps_array)
-            if found_cps_array.size > 0:
-                found_cps_array = found_cps_array[:-1]
-        else:
-            found_cps_array = np.array([], dtype=int)
-
-        if found_labels:
-            found_labels_array = np.array(found_labels, dtype=int)
-        else:
-            found_labels_array = np.array([], dtype=int)
-
-        return found_cps_array, found_labels_array
+            first_segment = next(Path(tmp_path).rglob("segment.0"), None)
+            if first_segment is None:
+                raise RuntimeError(
+                    "AutoPlait ran but wrote no segment file (segment.0 missing)."
+                )
+            return _read_regime_labels(first_segment.parent, n_samples)
