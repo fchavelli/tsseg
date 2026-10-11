@@ -208,7 +208,10 @@ class F1Score(BaseMetric):
                     the last element of ``y_true`` and a ``UserWarning`` is
                     emitted (unless ``convert_labels_to_segments`` is set).
         Returns:
-            A dictionary with F1-score, precision, and recall.
+            A dictionary with F1-score, precision, and recall. When neither
+            list has a change point once the boundaries ``0`` and the series
+            length are set aside (e.g. ``compute([n], [])``), all three are
+            1.0; when only one of them is empty, all three are 0.0.
         """
         if isinstance(y_true, np.ndarray):
             y_true = y_true.tolist()
@@ -223,37 +226,22 @@ class F1Score(BaseMetric):
             metric_name=type(self).__name__,
         )
 
-        if not y_true and not y_pred:
-            return {
-                "score": 1.0,
-                "precision": 1.0,
-                "recall": 1.0,
-            }
+        if not y_true:
+            # No series length to read: perfect only if nothing is predicted.
+            value = 0.0 if y_pred else 1.0
+            return {"score": value, "precision": value, "recall": value}
 
-        if not y_true or not y_pred:
-            return {
-                "score": 0.0,
-                "precision": 0.0,
-                "recall": 0.0,
-            }
-
-        series_length = y_true[-1] if y_true else None
+        # An empty y_pred goes on: once the boundaries are stripped, it is
+        # scored like a prediction without change points ([n] or [0, n]).
+        series_length = y_true[-1]
 
         margin = self.margin
+        margin_rounded_to_zero = False
         if isinstance(margin, float):
             if not (0.0 <= margin <= 1.0):
                 raise ValueError("Float margin must be between 0.0 and 1.0")
-            if series_length is None:
-                raise ValueError(
-                    "Cannot derive absolute margin without a series length"
-                )
             computed_margin = int(margin * series_length)
-            if margin > 0 and computed_margin == 0:
-                warnings.warn(
-                    "Computed margin equals 0 samples for the given series length; "
-                    "the tolerance will have no effect.",
-                    UserWarning,
-                )
+            margin_rounded_to_zero = margin > 0 and computed_margin == 0
             margin = computed_margin
 
         margin = int(margin)
@@ -276,6 +264,13 @@ class F1Score(BaseMetric):
                 "precision": 0.0,
                 "recall": 0.0,
             }
+
+        if margin_rounded_to_zero:
+            warnings.warn(
+                "Computed margin equals 0 samples for the given series length; "
+                "the tolerance will have no effect.",
+                UserWarning,
+            )
 
         tp = _true_positives(filtered_true, filtered_pred, margin)
 

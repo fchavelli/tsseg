@@ -195,6 +195,15 @@ Unreleased
   ``OneVsRestClassifier(LogisticRegression(...))``, the same model (predicted
   probabilities equal to 1e-15 under scikit-learn 1.6).
 
+* ``F1Score`` gives 1.0 when neither the ground truth nor the prediction has a
+  change point and the series length is read from ``y_true``:
+  ``F1Score().compute([n], [])`` gave 0.0, because the empty prediction was
+  rejected before the boundaries were set aside (``compute([n], [n])`` and
+  ``compute([n], [], n_timepoints=n)`` already gave 1.0). Scores computed from
+  labels (``convert_labels_to_segments=True``) are unchanged. The warning about
+  a margin rounded to 0 samples is only emitted when change points are
+  matched.
+
 * ``F1Score``, ``Covering``, ``BidirectionalCovering`` and ``GaussianF1Score``
   accept the series length in ``compute(y_true, y_pred, n_timepoints=n)``;
   the change points may then include or omit ``0`` and ``n``, so the raw
