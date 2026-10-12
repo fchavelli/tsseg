@@ -11,6 +11,12 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New detector ``ChangeForestDetector``: classifier-based nonparametric change
+  point detection with random forests (Londschien, Bühlmann and Kovács,
+  JMLR 2023). It wraps the official ``changeforest`` package, installed with
+  the new extra ``pip install tsseg[changeforest]``. With ``n_cps`` it runs
+  best-first binary segmentation on the package's gains, a semi-supervised
+  mode that is not part of the paper.
 * New ``RuLSIFDetector`` (Liu, Yamada, Collier and Sugiyama, Neural Networks
   2013): change points are peaks of the symmetrised relative Pearson
   divergence between the subsequences before and after each point, estimated

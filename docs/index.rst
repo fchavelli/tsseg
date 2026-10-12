@@ -95,6 +95,8 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
      - TensorFlow + TensorFlow Probability (``SNLDSDetector``)
    * - ``tsseg[beast]``
      - Rbeast (``BeastDetector``)
+   * - ``tsseg[changeforest]``
+     - changeforest (``ChangeForestDetector``)
    * - ``tsseg[accelerators]``
      - Numba / Cython: needed by CLaP, ClaSP and E-Agglo; speeds up HDP-HSMM
    * - ``tsseg[docs]``
