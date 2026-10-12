@@ -44,6 +44,18 @@ Run the test suite using pytest:
 
     pytest tests/
 
+``make test`` runs the same command as the test job of the CI
+(``pytest --tb=short -q``). The full suite takes a long time; pass a selection
+in ``PYTEST_ARGS``:
+
+.. code-block:: bash
+
+    make test PYTEST_ARGS="tests/algorithms -k PeltDetector"
+
+Tests whose optional dependency is not installed are skipped. The CI installs
+``pip install -e .[dev,aeon,prophet,tglad,beast]``, so it skips the
+TensorFlow-based detectors among others.
+
 When adding a new feature, please include relevant tests in ``tests/``.
 If adding a new algorithm, ensure it passes the common estimator checks (see :doc:`../detectors/index`).
 
@@ -125,3 +137,18 @@ do not run in CI; each one has a fast synthetic counterpart that does.
 
 The protocol (data helper, reference values, tolerances) is described in
 ``tests/reproduction/README.md``.
+
+Documentation
+-------------
+
+The documentation is built with Sphinx (``pip install -e .[docs]``).
+``make docs`` runs the same build as the docs job of the CI, where any
+warning is an error, and writes the HTML pages to ``docs/_build/html``:
+
+.. code-block:: bash
+
+    make docs
+    make docs DOCS_BUILD_DIR=/tmp/tsseg-docs   # another output directory
+
+It rereads every source file (``-E``), so that a rebuild in an existing
+directory reports the warnings of unchanged files, as the fresh CI build does.

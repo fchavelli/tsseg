@@ -8,7 +8,8 @@ determine the number of regimes and their boundaries.
 ## Key properties
 
 - Type: state detection
-- Semi-supervised (requires $n_cps$)
+- Unsupervised: the number of segments and regimes is chosen by MDL
+  (`n_cps` is deprecated and ignored, the binary has no guided mode)
 - Regime-based: each segment is assigned to a shared HMM regime
 - Multivariate
 - Requires a compiled C binary (`c/autoplait/` at the repository root)
@@ -18,9 +19,17 @@ determine the number of regimes and their boundaries.
 Wraps the original C code by Yasuko Matsubara (Kumamoto University). The
 `autoplait_c.py` module handles I/O with the binary.
 
-- Origin: wrapper around original C code
-- Source: https://sites.google.com/site/onlinesemanticsegmentation/
+- Origin: wrapper around original C code (version of June 18, 2014; the only
+  change in `c/autoplait/` declares `ws` `extern` in `cps.c`, so that the code
+  links with GCC 10 and later)
+- Source: https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html
 - Licence: no explicit licence provided with the original C code
+
+The modified binary of the FLOSS project page
+(https://sites.google.com/site/onlinesemanticsegmentation/), used by the CLaP
+benchmark, is not supported: its second argument is a minimum number of
+regimes, so its command line differs from the original's (`autoplait d
+list_file out_dir`), which the wrapper runs.
 
 ## Citation
 

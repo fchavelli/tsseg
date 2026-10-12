@@ -93,7 +93,7 @@ Usage
    change_points = detector.fit_predict(X)
 
 **Implementation:** Adapted from hildensia/bayesian_changepoint_detection.
-Apache License 2.0.
+MIT License.
 
 **Reference:** Fearnhead (2006), Statistics and Computing; Adams & MacKay (2007),
 arXiv.
