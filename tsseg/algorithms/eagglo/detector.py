@@ -125,6 +125,7 @@ class EAggloDetector(BaseSegmenter):
         "fit_is_empty": False,
         "returns_dense": True,
         "detector_type": "change_point_detection",
+        "python_dependencies": ["numba"],
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
     }

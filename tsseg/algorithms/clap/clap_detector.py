@@ -86,6 +86,7 @@ class ClapDetector(BaseSegmenter):
         "capability:univariate": True,
         "capability:multivariate": True,
         "detector_type": "state_detection",
+        "python_dependencies": ["numba", "aeon"],
         "fit_is_empty": False,
         "returns_dense": False,
         "capability:unsupervised": True,

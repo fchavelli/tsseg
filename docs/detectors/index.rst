@@ -19,6 +19,8 @@ Each detector declares its capabilities through tags, read with
   told the number of change points or states
 * ``capability:semi_supervised`` — ``True`` when that number can be passed to
   the constructor (guided mode, e.g. ``n_cps`` or ``n_states``)
+* ``python_dependencies`` — ``None``, or the list of optional modules the
+  detector imports (e.g. ``["torch"]``); the detector fails without them
 
 Use the table of contents below to jump to a specific detector. The detectors
 are grouped into two tasks: **change-point detection** returns a sorted array

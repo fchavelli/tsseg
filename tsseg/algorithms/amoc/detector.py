@@ -118,7 +118,6 @@ class AmocDetector(BaseSegmenter):
         "fit_is_empty": False,
         "returns_dense": True,
         "detector_type": "change_point_detection",
-        "semi_supervised": False,
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
     }
