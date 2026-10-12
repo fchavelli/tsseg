@@ -31,6 +31,16 @@ Unreleased
   list, and the deprecated ``HMMDetector`` returns integer labels instead of
   floats.
 
+* Code that no module of the package imports is removed: an unfinished Python
+  port of AutoPlait, older BOCD and TIRE scripts, the former IGTS
+  implementation, a MATLAB-engine wrapper of ESPRESSO, PaTSS scripts that
+  import a ``baselines`` package foreign to tsseg, and the MATLAB reference
+  sources of ESPRESSO and iCID. The wheel no longer ships these modules nor
+  the four data files of the MATLAB sources (two ``.mat`` files of the iCID
+  demo, two ``.txt`` notes of ESPRESSO). The deprecated aliases
+  ``HdpHsmmDetectorV1``, ``HdpHsmmLegacyDetector`` and
+  ``LegacyHdpHsmmDetector`` of ``tsseg.algorithms.hdp_hsmm`` are removed:
+  use ``HdpHsmmDetector``.
 * ``AutoPlaitDetector`` returns the segmentation that the AutoPlait binary
   writes: each time point gets the number of its regime, so that segments of
   the same regime share a label, and change points are the first index of a
