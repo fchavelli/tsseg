@@ -26,7 +26,7 @@ AutoPlait is linear in the input size and achieves near-perfect precision and
 recall on the benchmarks reported in the original paper.
 
 | **Type:** state detection
-| **Supervision:** semi-supervised (requires ``n_cps``)
+| **Supervision:** unsupervised
 | **Scope:** univariate and multivariate
 | **Complexity:** :math:`O(n)`
 
@@ -44,9 +44,10 @@ Parameters
    * - ``n_cps``
      - int / None
      - ``None``
-     - Number of change points.  Required if ground-truth ``y`` is not provided.
-       The bundled binary has no guided mode: it rejects this value and runs
-       unguided, so the number of change points returned does not depend on it.
+     - Deprecated and ignored.  AutoPlait chooses the number of segments
+       itself and the bundled binary has no guided mode, so this value has
+       never changed the output.  Passing it emits a ``FutureWarning`` at
+       ``fit``; it will be removed in a future release.
 
 Usage
 -----
@@ -55,7 +56,7 @@ Usage
 
    from tsseg.algorithms import AutoPlaitDetector
 
-   detector = AutoPlaitDetector(n_cps=4)
+   detector = AutoPlaitDetector()
    labels = detector.fit_predict(X)
 
 ``labels`` holds, for each time point, the number of the AutoPlait regime its

@@ -40,9 +40,16 @@ Unreleased
   applied them to the segments in time order, padding with the last one: on
   regimes A-B-A it returned ``1 | 0 | 0`` with a single change point. It now
   raises ``RuntimeError`` when the binary's segments do not cover each time
-  point exactly once. The bundled binary has no guided mode: ``n_cps`` is
-  passed to it, rejected, and the binary runs unguided, as before; the
-  documentation now says so.
+  point exactly once.
+
+* ``AutoPlaitDetector`` is tagged unsupervised (``capability:unsupervised``
+  ``True``, ``capability:semi_supervised`` ``False``), as the AutoPlait binary
+  always ran: it chooses the number of segments itself and has no guided mode.
+  It runs without ``n_cps`` and without ``y``; it raised ``ValueError`` when
+  both were missing. ``n_cps`` is deprecated and ignored: passing it, ``0``
+  included, emits a ``FutureWarning`` at ``fit`` and no longer launches the
+  binary once with a number of segments that it rejected. The output does not
+  change.
 
 * The output contract tests check what the documentation states: change
   points are a 1-D integer ``numpy`` array, strictly increasing, within

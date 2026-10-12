@@ -34,9 +34,8 @@ _SUPERVISION_PARAMS = (
 
 
 # Detectors whose schema still refuses a single-regime guidance: the detector
-# itself has not been run with it yet (it needs TensorFlow or a C binary).
+# itself has not been run with it yet (it needs TensorFlow).
 _NOT_YET_CHECKED = {
-    "AutoPlaitDetector": "n_cps=0 not yet checked against the AutoPlait binary",
     "TSCP2Detector": "n_cps=0 not yet checked against the TensorFlow model",
 }
 

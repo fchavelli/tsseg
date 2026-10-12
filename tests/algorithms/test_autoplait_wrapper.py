@@ -11,6 +11,7 @@ the binary itself when it is built.
 from __future__ import annotations
 
 import subprocess
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -98,7 +99,7 @@ def test_labels_follow_the_regime_files(fake_autoplait, case):
     fake_autoplait(outputs)
     X = np.zeros((len(expected), 2))
 
-    y = AutoPlaitDetector(n_cps=1).fit_predict(X)
+    y = AutoPlaitDetector().fit_predict(X)
 
     np.testing.assert_array_equal(y, expected)
     assert y.dtype.kind == "i"
@@ -108,18 +109,41 @@ def test_change_points_start_the_next_segment(fake_autoplait):
     outputs, expected = CASES["ABCA"]
     fake_autoplait(outputs)
 
-    y = AutoPlaitDetector(n_cps=3).fit_predict(np.zeros((len(expected), 1)))
+    y = AutoPlaitDetector().fit_predict(np.zeros((len(expected), 1)))
 
     np.testing.assert_array_equal(extract_cps(y), [300, 600, 900])
 
 
-def test_n_cps_is_tried_then_the_binary_runs_unguided(fake_autoplait):
-    calls = fake_autoplait(CASES["ABA"][0])
+def test_tags_declare_an_unsupervised_detector():
+    detector = AutoPlaitDetector()
 
-    AutoPlaitDetector(n_cps=2).fit_predict(np.zeros((900, 1)))
+    assert detector.get_tag("capability:unsupervised") is True
+    assert detector.get_tag("capability:semi_supervised") is False
 
-    assert [len(command) for command in calls] == [5, 4]
-    assert calls[0][2] == "3"
+
+def test_runs_without_n_cps_or_y(fake_autoplait):
+    outputs, expected = CASES["ABA"]
+    calls = fake_autoplait(outputs)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        y = AutoPlaitDetector().fit_predict(np.zeros((900, 1)))
+
+    np.testing.assert_array_equal(y, expected)
+    assert [len(command) for command in calls] == [4]
+
+
+@pytest.mark.parametrize("n_cps", [0, 2])
+def test_n_cps_is_deprecated_and_ignored(fake_autoplait, n_cps):
+    """A harness in guided mode still passes ``n_cps``: warn, run unguided."""
+    outputs, expected = CASES["ABA"]
+    calls = fake_autoplait(outputs)
+
+    with pytest.warns(FutureWarning, match="n_cps"):
+        y = AutoPlaitDetector(n_cps=n_cps).fit_predict(np.zeros((900, 1)))
+
+    np.testing.assert_array_equal(y, expected)
+    assert [len(command) for command in calls] == [4]
 
 
 @pytest.mark.parametrize(
@@ -134,14 +158,14 @@ def test_segments_that_do_not_tile_the_series_raise(fake_autoplait, segment_file
     fake_autoplait(segment_files)
 
     with pytest.raises(RuntimeError, match="segment"):
-        AutoPlaitDetector(n_cps=1).fit_predict(np.zeros((600, 1)))
+        AutoPlaitDetector().fit_predict(np.zeros((600, 1)))
 
 
 def test_missing_segment_files_raise(fake_autoplait):
     fake_autoplait({})
 
     with pytest.raises(RuntimeError, match="segment"):
-        AutoPlaitDetector(n_cps=1).fit_predict(np.zeros((600, 1)))
+        AutoPlaitDetector().fit_predict(np.zeros((600, 1)))
 
 
 def _binary_available() -> bool:
@@ -158,7 +182,7 @@ def test_binary_on_a_repeated_regime():
         [rng.normal(0, 1, 300), rng.normal(5, 1, 300), rng.normal(0, 1, 300)]
     )
 
-    y = AutoPlaitDetector(n_cps=2).fit_predict(X)
+    y = AutoPlaitDetector().fit_predict(X)
 
     np.testing.assert_array_equal(extract_cps(y), [300, 600])
     assert y[0] == y[-1] != y[300]
