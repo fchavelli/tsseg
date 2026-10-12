@@ -338,6 +338,11 @@ Unreleased
   ChangeFinder solves one :math:`k \times k` system per sample, so
   :math:`O(d\,n + n\,k^{3})` (the page said :math:`O(n\,k^{2})`).
 
+* The tGLAD page gives the default of ``epochs`` (100; it said 2000) and
+  explains why the paper reports :math:`O(n)` where the page states
+  :math:`O(d^{3}\,n)` per epoch. The ``TGLADDetector`` docstring links to the
+  authors' repository (``Harshs27/tGLAD``).
+
 0.2.0 (2026-09-26)
 ------------------
 

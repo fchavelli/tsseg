@@ -45,7 +45,7 @@ class TGLADDetector(BaseSegmenter):
     """Graph-difference based change point detector using uGLAD.
 
     The detector follows the batching procedure described in the original
-    `tGLAD <https://github.com/DanielTao/tGLAD>`_ repository. The time-series is
+    `tGLAD <https://github.com/Harshs27/tGLAD>`_ repository. The time-series is
     converted to overlapping windows, each window yields a precision matrix via
     the :class:`uGLAD` multitask solver.
 
