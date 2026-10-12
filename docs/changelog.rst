@@ -26,6 +26,19 @@ Unreleased
   list, and the deprecated ``HMMDetector`` returns integer labels instead of
   floats.
 
+* ``AutoPlaitDetector`` returns the segmentation that the AutoPlait binary
+  writes: each time point gets the number of its regime, so that segments of
+  the same regime share a label, and change points are the first index of a
+  segment. The wrapper read the change points one index early (the last index
+  of the previous segment), took the labels of ``segment.labels`` (one row per
+  regime, whose second column is the regime's path in the split tree) and
+  applied them to the segments in time order, padding with the last one: on
+  regimes A-B-A it returned ``1 | 0 | 0`` with a single change point. It now
+  raises ``RuntimeError`` when the binary's segments do not cover each time
+  point exactly once. The bundled binary has no guided mode: ``n_cps`` is
+  passed to it, rejected, and the binary runs unguided, as before; the
+  documentation now says so.
+
 * The output contract tests check what the documentation states: change
   points are a 1-D integer ``numpy`` array, strictly increasing, within
   ``[1, n - 1]``; state labels are a 1-D integer ``numpy`` array of length

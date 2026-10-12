@@ -45,6 +45,8 @@ Parameters
      - int / None
      - ``None``
      - Number of change points.  Required if ground-truth ``y`` is not provided.
+       The bundled binary has no guided mode: it rejects this value and runs
+       unguided, so the number of change points returned does not depend on it.
 
 Usage
 -----
@@ -56,9 +58,14 @@ Usage
    detector = AutoPlaitDetector(n_cps=4)
    labels = detector.fit_predict(X)
 
+``labels`` holds, for each time point, the number of the AutoPlait regime its
+segment belongs to: segments of the same regime share a label.
+
 .. note::
-   AutoPlait relies on a compiled C binary (``autoplait_c``).  The binary is
-   bundled in ``tsseg/c/autoplait/`` and must be built before first use.
+   AutoPlait relies on a compiled C binary (``autoplait``).  Its sources are in
+   ``c/autoplait/`` of the source repository (not in the wheel); build them with
+   ``make autoplait`` there, or point ``AUTOPLAIT_DIR`` to the directory that
+   holds the binary.
 
 **Implementation:** Adapted from the original C implementation by Matsubara et al.
 BSD 3-Clause.

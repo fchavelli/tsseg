@@ -17,6 +17,16 @@ class AutoPlaitDetector(BaseSegmenter):
     """
     Wrapper for the AutoPlait state detection algorithm.
 
+    Notes
+    -----
+    The label of a time point is the number of the AutoPlait regime its
+    segment belongs to: segments of the same regime share a label, and each
+    change point is the first index of a segment.
+
+    The bundled binary takes no number of segments: ``n_cps`` is passed to it,
+    rejected, and the binary then runs unguided, so the number of change
+    points it returns does not depend on ``n_cps``.
+
     References
     ----------
     .. [1] Y. Matsubara, Y. Sakurai, and C. Faloutsos, "AutoPlait: automatic mining of
@@ -64,7 +74,7 @@ class AutoPlaitDetector(BaseSegmenter):
 
     def _predict(self, X, y=None):
         """
-        Segment the time series to find change points and assign state labels.
+        Segment the time series and assign a regime label to each time point.
 
         This method calls the underlying AutoPlait C implementation via the
         `AutoPlait` runner class.
@@ -72,71 +82,19 @@ class AutoPlaitDetector(BaseSegmenter):
         Parameters
         ----------
         X : np.ndarray
-            The time series to segment of shape (n_channels, n_timepoints).
+            The time series to segment, of shape (n_timepoints, n_channels).
         y : None
             Not used, for API compatibility.
 
         Returns
         -------
         np.ndarray
-            The predicted state labels as a 1D array of shape (n_timepoints,).
+            The regime label of each time point, of shape (n_timepoints,).
         """
-        # Ensure a 2D array where rows are time points and columns are features.
         ts = np.asarray(X)
         if ts.ndim == 1:
-            ts2d = ts[:, np.newaxis]
-        elif ts.ndim == 2:
-            ts2d = ts
-        else:
-            ts2d = ts.reshape(ts.shape[0], -1)
+            ts = ts[:, np.newaxis]
+        elif ts.ndim > 2:
+            ts = ts.reshape(ts.shape[0], -1)
 
-        # 1. Instantiate the runner class from autoplait.py
-        autoplait_runner = AutoPlait()
-
-        # 2. Run the C code to get changepoints and labels
-        change_points, segment_labels = autoplait_runner._run_autoplait(
-            ts2d, self.n_cps
-        )
-
-        change_points = np.asarray(change_points, dtype=int)
-        segment_labels = np.asarray(segment_labels, dtype=int)
-
-        n_samples = ts2d.shape[0]
-        if segment_labels.size == 0:
-            if change_points.size == 0:
-                return np.zeros(n_samples, dtype=int)
-            segment_labels = np.arange(change_points.size + 1, dtype=int)
-
-        if change_points.size > 0:
-            change_points = np.sort(change_points)
-            change_points = change_points[
-                (change_points > 0) & (change_points < n_samples)
-            ]
-
-        expected_segments = change_points.size + 1
-        if segment_labels.size < expected_segments:
-            pad_value = segment_labels[-1]
-            pad_width = expected_segments - segment_labels.size
-            segment_labels = np.pad(
-                segment_labels,
-                (0, pad_width),
-                mode="constant",
-                constant_values=pad_value,
-            )
-        elif segment_labels.size > expected_segments:
-            segment_labels = segment_labels[:expected_segments]
-
-        dense_labels = np.empty(n_samples, dtype=int)
-        boundaries = list(change_points.tolist())
-        boundaries.append(n_samples)
-
-        start = 0
-        for label, end in zip(segment_labels, boundaries):
-            end_idx = min(max(end, start), n_samples)
-            dense_labels[start:end_idx] = label
-            start = end_idx
-
-        if start < n_samples:
-            dense_labels[start:] = segment_labels[-1]
-
-        return dense_labels
+        return AutoPlait()._run_autoplait(ts, self.n_cps)
