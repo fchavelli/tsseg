@@ -192,4 +192,4 @@ implementation (`aeon.segmentation._hidalgo`).
 
 ### Licence
 
-BSD 3-Clause (aeon toolkit)
+BSD 3-Clause (aeon toolkit); the licence file is `LICENSE` in this directory.

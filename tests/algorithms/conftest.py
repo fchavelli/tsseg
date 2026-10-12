@@ -69,10 +69,8 @@ class AlgorithmOverride:
 # Only algorithms that *cannot* be instantiated with a bare ``Cls()`` need
 # an entry here.  Everything else is discovered and tested automatically.
 ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
-    # --- Semi-supervised (need n_cps / n_segments via y) ---------------
+    # --- C binary (c/autoplait/autoplait, or autoplait on PATH) ---------
     "AutoPlaitDetector": AlgorithmOverride(
-        init_kwargs={"n_cps": None},
-        semi_supervised=True,
         skip_reason=(
             None if _autoplait_binary_available() else "AutoPlait C binary not built"
         ),

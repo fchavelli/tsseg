@@ -29,6 +29,10 @@ Unreleased
   (``FLUSSDetector``), ``["npbad"]`` (``PatssDetector``) and ``["Rbeast"]``
   (``BeastDetector``). A contract test checks the format and that the tag
   lists the modules the test suite skips a detector on.
+* ``make test`` and ``make docs`` run the test and documentation jobs of the
+  CI (``pytest --tb=short -q``; ``sphinx -W -E -b html docs docs/_build/html``).
+  ``PYTEST_ARGS`` selects tests, ``DOCS_BUILD_DIR`` changes the output
+  directory, ``PYTHON`` the interpreter.
 
 * Reproduction tests: tests that reproduce a published result on a dataset
   downloaded on demand (pinned by its SHA-256 digest) go to
@@ -45,6 +49,66 @@ Unreleased
   list, and the deprecated ``HMMDetector`` returns integer labels instead of
   floats.
 
+* ``InformationGainDetector`` stops its search when every candidate position
+  (the multiples of ``step``) is already a change point, and then returns
+  fewer than ``k_max`` change points: when ``k_max`` exceeded the number of
+  candidates (``ceil(n / step) - 1``), it returned ``-1`` and ``0`` among the
+  change points, for instance ``[-1, 0, 5, 10, 15, 20, 25]`` for
+  ``k_max=10, step=5`` on 30 points. The other change points are unchanged.
+* Code that no module of the package imports is removed: an unfinished Python
+  port of AutoPlait, older BOCD and TIRE scripts, the former IGTS
+  implementation, a MATLAB-engine wrapper of ESPRESSO, PaTSS scripts that
+  import a ``baselines`` package foreign to tsseg, and the MATLAB reference
+  sources of ESPRESSO and iCID. The wheel no longer ships these modules nor
+  the four data files of the MATLAB sources (two ``.mat`` files of the iCID
+  demo, two ``.txt`` notes of ESPRESSO). The deprecated aliases
+  ``HdpHsmmDetectorV1``, ``HdpHsmmLegacyDetector`` and
+  ``LegacyHdpHsmmDetector`` of ``tsseg.algorithms.hdp_hsmm`` are removed:
+  use ``HdpHsmmDetector``.
+* ``AutoPlaitDetector`` returns the segmentation that the AutoPlait binary
+  writes: each time point gets the number of its regime, so that segments of
+  the same regime share a label, and change points are the first index of a
+  segment. The wrapper read the change points one index early (the last index
+  of the previous segment), took the labels of ``segment.labels`` (one row per
+  regime, whose second column is the regime's path in the split tree) and
+  applied them to the segments in time order, padding with the last one: on
+  regimes A-B-A it returned ``1 | 0 | 0`` with a single change point. It now
+  raises ``RuntimeError`` when the binary's segments do not cover each time
+  point exactly once.
+
+* ``AutoPlaitDetector`` is tagged unsupervised (``capability:unsupervised``
+  ``True``, ``capability:semi_supervised`` ``False``), as the AutoPlait binary
+  always ran: it chooses the number of segments itself and has no guided mode.
+  It runs without ``n_cps`` and without ``y``; it raised ``ValueError`` when
+  both were missing. ``n_cps`` is deprecated and ignored: passing it, ``0``
+  included, emits a ``FutureWarning`` at ``fit`` and no longer launches the
+  binary once with a number of segments that it rejected. The output does not
+  change.
+
+* ``AutoPlaitDetector`` hands the AutoPlait binary a series that it reads with
+  the right length. The binary counts the time points of its input with a line
+  buffer of 254 bytes, and the wrapper wrote 25 characters per value
+  (``%.18e``): rows of 10 channels or more were counted twice or more, and the
+  binary segmented a longer series padded with rows of zeros (62,442 time
+  points instead of 31,392 on ActRecTut subject 1), whose last segment ended
+  past the series. Values are now written as float32 with 9 significant
+  digits, the precision at which the binary reads them, so that series of up
+  to 15 channels always fit. A series whose rows still do not fit (the 76
+  channels of JIGSAWS) raises ``ValueError`` before the binary runs, and a
+  binary that reports another length than the series' raises
+  ``RuntimeError``. Series of fewer than 10 channels were not affected.
+
+* The AutoPlait runner (``AutoPlait._run_autoplait`` in
+  ``tsseg.algorithms.autoplait.autoplait_c``) runs the binary once, with the
+  command line of the bundled binary (``autoplait d list_file out_dir``), and
+  raises ``RuntimeError`` if it fails. It no longer takes ``n_cps``, nor tries
+  a command line with ``n_cps + 1`` or with the length of the series: the only
+  binary that takes a second argument, the modified version of the FLOSS
+  project page, reads it as a minimum number of regimes, not of segments. The
+  documentation now points to the original C code of Matsubara et al., which
+  ``c/autoplait/`` holds, instead of the FLOSS page. ``AutoPlaitDetector``
+  returns the same output.
+
 * The output contract tests check what the documentation states: change
   points are a 1-D integer ``numpy`` array, strictly increasing, within
   ``[1, n - 1]``; state labels are a 1-D integer ``numpy`` array of length
@@ -60,6 +124,10 @@ Unreleased
 * ``AmocDetector`` computes the error of every split from cumulative sums, in
   linear time: it recomputed both means at every split (quadratic time).
   The detected change point is the same.
+
+* ``fit`` and ``fit_predict`` reject a ``y`` given as a ``pandas.DataFrame``
+  that does not have exactly one column, as the error message states: a
+  frame with two columns (or none) was accepted.
 
 * ``ChangeFinderDetector`` without ``n_cps``: the data-driven threshold is
   ``mean + threshold_factor * std`` of the scores (``threshold_factor``, 2.0
@@ -88,6 +156,16 @@ Unreleased
   parameters, real test commands), the datasets page (one bundled dataset, no
   test fixture to import), the extras table, change point examples that named
   their output ``labels``, and the citation (Springer proceedings).
+
+* Docstrings: ``PeltDetector``, ``BottomUpDetector``, ``WindowDetector``,
+  ``DynpDetector`` and ``KCPDDetector`` document their parameters;
+  ``BinSegDetector`` states its actual ``penalty`` default (10; pass
+  ``penalty=None`` to stop on ``epsilon``); the ``HidalgoDetector`` example
+  runs with tsseg instead of aeon, and its ``K_states`` default is 1; the
+  ``ICIDDetector`` ``psi_list`` default is ``None``. The ``compute`` methods of
+  the state detection metrics and the ``validate`` methods of the parameter
+  constraints are documented. A test checks that each detector documents
+  exactly its constructor parameters, with their actual defaults.
 
 * ``EAggloDetector``: ``penalty="mean_diff_penalty"`` no longer raises (the
   penalty was compiled with numba, which rejects the list of segment boundaries
@@ -176,6 +254,14 @@ Unreleased
   ``mcmc_seed`` defaults to 1: with 0, Rbeast draws a random seed and the
   output changed from one call to the next.
 
+* Third-party licenses: ``bocd/``, ``ticc/``, ``time2state/`` and the
+  aeon-derived ``eagglo/``, ``hidalgo/``, ``hmm/`` and ``igts/`` now ship a
+  copy of their upstream license, in the source tree and the wheel. The code
+  adapted in ``bocd/`` is under the MIT license, not Apache-2.0 as
+  documented. The README lists ``BeastDetector``'s dependency Rbeast, under
+  the license of its R package (GPL >= 2), and no longer claims that every
+  vendored directory contains a license file.
+
 * ``pen_scale="bic"`` in ``PeltDetector``, ``BinSegDetector``,
   ``BottomUpDetector`` and ``WindowDetector``: the penalty is a coefficient on
   ``log(n) * u``, u the cost of one sample of the whole signal (d for ``l2`` on
@@ -213,6 +299,15 @@ Unreleased
   one-vs-rest elastic-net logistic regression of PaTSS is now
   ``OneVsRestClassifier(LogisticRegression(...))``, the same model (predicted
   probabilities equal to 1e-15 under scikit-learn 1.6).
+
+* ``F1Score`` gives 1.0 when neither the ground truth nor the prediction has a
+  change point and the series length is read from ``y_true``:
+  ``F1Score().compute([n], [])`` gave 0.0, because the empty prediction was
+  rejected before the boundaries were set aside (``compute([n], [n])`` and
+  ``compute([n], [], n_timepoints=n)`` already gave 1.0). Scores computed from
+  labels (``convert_labels_to_segments=True``) are unchanged. The warning about
+  a margin rounded to 0 samples is only emitted when change points are
+  matched.
 
 * ``F1Score``, ``Covering``, ``BidirectionalCovering`` and ``GaussianF1Score``
   accept the series length in ``compute(y_true, y_pred, n_timepoints=n)``;
