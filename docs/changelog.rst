@@ -31,6 +31,12 @@ Unreleased
   list, and the deprecated ``HMMDetector`` returns integer labels instead of
   floats.
 
+* ``InformationGainDetector`` stops its search when every candidate position
+  (the multiples of ``step``) is already a change point, and then returns
+  fewer than ``k_max`` change points: when ``k_max`` exceeded the number of
+  candidates (``ceil(n / step) - 1``), it returned ``-1`` and ``0`` among the
+  change points, for instance ``[-1, 0, 5, 10, 15, 20, 25]`` for
+  ``k_max=10, step=5`` on 30 points. The other change points are unchanged.
 * Code that no module of the package imports is removed: an unfinished Python
   port of AutoPlait, older BOCD and TIRE scripts, the former IGTS
   implementation, a MATLAB-engine wrapper of ESPRESSO, PaTSS scripts that
