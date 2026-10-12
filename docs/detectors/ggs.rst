@@ -17,6 +17,9 @@ may return fewer if additional splits do not improve the regularised likelihood.
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(K\,d^{3}\,n)` for the splits, where *K* is
+  ``k_max``; each adjustment pass (at most ``max_shuffles`` per added change
+  point) adds :math:`O(d^{3}\,n)`
 
 Parameters
 ----------

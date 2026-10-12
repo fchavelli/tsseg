@@ -27,6 +27,10 @@ The generative model (Johnson & Willsky, 2013):
 | **Type:** state detection
 | **Supervision:** fully unsupervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d\,n)` for the block means, then
+  :math:`O(S\,\tilde{n}\,(\tilde{n} + S + d^{2}))` per Gibbs sweep, where *S*
+  is ``n_max_states`` and :math:`\tilde{n} = \min(n, 2000)` (``max_len``);
+  with ``trunc=None``, every segment duration is considered
 
 Parameters
 ----------

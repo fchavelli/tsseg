@@ -18,6 +18,9 @@ selects the granularity through a list of ``psi`` (sub-sample) values.
 | **Type:** change point detection
 | **Supervision:** fully unsupervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d\,n + n^{2})` for each value of ``psi_list``: the
+  approximate entropy that selects ``psi`` compares all pairs of points of the
+  score
 
 Parameters
 ----------

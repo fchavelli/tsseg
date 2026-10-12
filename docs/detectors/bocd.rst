@@ -21,6 +21,8 @@ expectation of segment length.  Two strategies handle multivariate inputs:
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d\,n + n^{3})` time, :math:`O(n^{2})` memory
+  (``"l2"`` strategy; ``"ensembling"``: :math:`O(d\,n^{3})`)
 
 Parameters
 ----------
