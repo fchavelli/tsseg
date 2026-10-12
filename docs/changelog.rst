@@ -51,6 +51,19 @@ Unreleased
   binary once with a number of segments that it rejected. The output does not
   change.
 
+* ``AutoPlaitDetector`` hands the AutoPlait binary a series that it reads with
+  the right length. The binary counts the time points of its input with a line
+  buffer of 254 bytes, and the wrapper wrote 25 characters per value
+  (``%.18e``): rows of 10 channels or more were counted twice or more, and the
+  binary segmented a longer series padded with rows of zeros (62,442 time
+  points instead of 31,392 on ActRecTut subject 1), whose last segment ended
+  past the series. Values are now written as float32 with 9 significant
+  digits, the precision at which the binary reads them, so that series of up
+  to 15 channels always fit. A series whose rows still do not fit (the 76
+  channels of JIGSAWS) raises ``ValueError`` before the binary runs, and a
+  binary that reports another length than the series' raises
+  ``RuntimeError``. Series of fewer than 10 channels were not affected.
+
 * The output contract tests check what the documentation states: change
   points are a 1-D integer ``numpy`` array, strictly increasing, within
   ``[1, n - 1]``; state labels are a 1-D integer ``numpy`` array of length

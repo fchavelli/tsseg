@@ -68,6 +68,13 @@ segment belongs to: segments of the same regime share a label.
    ``make autoplait`` there, or point ``AUTOPLAIT_DIR`` to the directory that
    holds the binary.
 
+   The binary counts the time points of its input with a line buffer of 254
+   bytes: a line of more than 252 characters counts as several time points.
+   The wrapper writes each value as a float32 with 9 significant digits (the
+   precision at which the binary reads it), so that series of up to 15 channels
+   always fit; a series whose rows do not fit (the 76 channels of JIGSAWS, for
+   instance) raises ``ValueError`` before the binary runs.
+
 **Implementation:** Adapted from the original C implementation by Matsubara et al.
 BSD 3-Clause.
 

@@ -33,6 +33,11 @@ class AutoPlaitDetector(BaseSegmenter):
     segment belongs to: segments of the same regime share a label, and each
     change point is the first index of a segment.
 
+    The binary counts the time points of its input file with a line buffer of
+    254 bytes. The series is written as float32 values with 9 significant
+    digits, so that rows of up to 15 channels always fit on one line; a series
+    whose rows take more than 252 characters raises ``ValueError``.
+
     References
     ----------
     .. [1] Y. Matsubara, Y. Sakurai, and C. Faloutsos, "AutoPlait: automatic mining of

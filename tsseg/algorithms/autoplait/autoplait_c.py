@@ -1,4 +1,6 @@
+import io
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -7,6 +9,66 @@ from pathlib import Path
 import numpy as np
 
 ABS_PATH = os.path.dirname(os.path.abspath(__file__))
+
+# The binary sets the length of the series to the number of lines of its input,
+# counted by ``fgets`` into a buffer of ``BUFSIZE`` = 254 bytes
+# (``c/autoplait/tool.c``, ``count_lines``; ``hmm.h``): a line of more than 252
+# characters counts as two rows or more, and the binary then reads a longer
+# series than the one it was given, padded with rows of zeros.
+_MAX_LINE_LENGTH = 252
+
+
+def _format_series(ts: np.ndarray) -> str:
+    """Format ``ts`` as the binary's input: one row per line, as float32.
+
+    The binary reads each value with ``fscanf("%f")`` into a C ``float``.
+    ``%.9g`` writes the float32 value of each entry exactly, in at most 15
+    characters, so that a row of up to 15 channels always fits in one line
+    that the binary counts once.
+
+    Parameters
+    ----------
+    ts : np.ndarray
+        Series of shape ``(n_samples, n_features)``.
+
+    Returns
+    -------
+    str
+        The text of the input file.
+
+    Raises
+    ------
+    ValueError
+        If a row takes more than ``_MAX_LINE_LENGTH`` characters, which the
+        binary would count as several rows.
+    """
+    buffer = io.StringIO()
+    np.savetxt(buffer, np.asarray(ts, dtype=np.float32), fmt="%.9g")
+    text = buffer.getvalue()
+    longest = max((len(line) for line in text.splitlines()), default=0)
+    if longest > _MAX_LINE_LENGTH:
+        raise ValueError(
+            f"AutoPlait: a row of this series takes {longest} characters, and the "
+            f"binary counts a line of more than {_MAX_LINE_LENGTH} characters as "
+            "several time points (c/autoplait/tool.c, count_lines): it would "
+            "segment a longer series than this one. Series of up to 15 channels "
+            f"always fit; this one has {ts.shape[1]}."
+        )
+    return text
+
+
+def _check_rows_read(stdout: str, n_samples: int) -> None:
+    """Raise if the binary reports a series length other than ``n_samples``.
+
+    The binary prints ``duration: <number of rows read>`` on its standard
+    output; nothing is checked if that line is missing.
+    """
+    match = re.search(r"^duration:\s*(\d+)", stdout, flags=re.MULTILINE)
+    if match is not None and int(match.group(1)) != n_samples:
+        raise RuntimeError(
+            f"The AutoPlait binary read a series of {match.group(1)} time points "
+            f"instead of {n_samples}."
+        )
 
 
 def _find_autoplait_dir() -> Path:
@@ -171,7 +233,7 @@ class AutoPlait:
             data_path = os.path.join(tmp_path, f"{name}.txt")
             list_path = os.path.join(tmp_path, "list")
 
-            np.savetxt(data_path, ts)
+            Path(data_path).write_text(_format_series(ts))
             np.savetxt(list_path, [data_path], fmt="%s")
 
             binary_path = autoplait_path / "autoplait"
@@ -239,6 +301,7 @@ class AutoPlait:
                     raise last_error
                 raise RuntimeError("AutoPlait execution failed with an unknown error.")
 
+            _check_rows_read(result.stdout, n_samples)
             first_segment = next(Path(tmp_path).rglob("segment.0"), None)
             if first_segment is None:
                 raise RuntimeError(
