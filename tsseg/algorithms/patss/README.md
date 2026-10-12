@@ -14,8 +14,8 @@ real-world regime changes are not always instantaneous.
 ## Implementation
 
 Adapted from the original PaTSS repository by the DTAI research group at
-KU Leuven. The core logic lives in the `algorithms/`, `embedding/` and
-`segmentation/` subdirectories.
+KU Leuven. The core logic lives in `algorithms/PaTSS_perso.py` and in the
+`embedding/` subdirectory.
 
 - Origin: adapted from https://gitlab.kuleuven.be/u0143709/patss
 - Licence: MIT (Copyright (c) 2023, KU Leuven, DTAI Research Group)

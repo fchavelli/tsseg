@@ -17,6 +17,7 @@ segmentation.
 | **Type:** change point detection
 | **Supervision:** fully unsupervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d^{3}\,n)` per training epoch
 | **Requires:** PyTorch, networkx
 
 Parameters

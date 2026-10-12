@@ -27,6 +27,10 @@ The generative model (Johnson & Willsky, 2013):
 | **Type:** state detection
 | **Supervision:** fully unsupervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d\,n)` for the block means, then
+  :math:`O(S\,\tilde{n}\,(\tilde{n} + S + d^{2}))` per Gibbs sweep, where *S*
+  is ``n_max_states`` and :math:`\tilde{n} = \min(n, 2000)` (``max_len``);
+  with ``trunc=None``, every segment duration is considered
 
 Parameters
 ----------
@@ -133,8 +137,8 @@ Usage
 **Implementation:** NumPy/SciPy Gibbs sampler, forward messages compiled with numba
 when it is installed (``tsseg[accelerators]``; otherwise interpreted, about 100 times
 slower), checked against ``pyhsmm`` and against exact enumeration.  *Origin: new code.*
-Replaces the earlier ``pyhsmm``-backed implementation and the
-first NumPy implementation (``HdpHsmmDetectorV1``, deprecated).
+Replaces an earlier ``pyhsmm``-backed implementation and a
+first NumPy implementation (``HdpHsmmDetectorV1``), both removed.
 
 **References:** Johnson & Willsky (2013), *Bayesian Nonparametric Hidden Semi-Markov
 Models*, JMLR 14, for the model and the sampler implemented here; Johnson & Willsky

@@ -33,7 +33,7 @@ class HidalgoDetector(BaseSegmenter):
         directly passed to sklearn KNearestNeighbors,
         must be str or callable that can be passed to KNearestNeighbors
         distance used in the nearest neighbors part of the algorithm
-    K_states : int, optional, default=2
+    K_states : int, optional, default=1
         number of manifolds used in algorithm
     zeta : float, optional, default=0.8
         "local homogeneity level" used in the algorithm, see equation (4)
@@ -54,7 +54,7 @@ class HidalgoDetector(BaseSegmenter):
         if using local interaction between z, see equation (4)
     estimate_zeta : bool, optional, default=False
         update zeta in the sampling
-    sampling_rate: int, optional, default=10
+    sampling_rate : int, optional, default=10
         rate at which to save samples for each n_iter
     a : np.ArrayLike, optional, default=None
         prior parameters of d, the dimensionality of manifold k
@@ -76,13 +76,13 @@ class HidalgoDetector(BaseSegmenter):
 
     Examples
     --------
-    >>> from aeon.segmentation import HidalgoSegmenter
     >>> import numpy as np
+    >>> from tsseg.algorithms import HidalgoDetector
     >>> np.random.seed(123)
     >>> X = np.random.rand(10,3)
     >>> X[:6, 1:] += 10
     >>> X[6:, 1:] = 0
-    >>> model = HidalgoSegmenter(K_states=2, burn_in=0.8, n_iter=100, seed=10)
+    >>> model = HidalgoDetector(K_states=2, burn_in=0.8, n_iter=100, seed=10)
     >>> seg = model.fit_predict(X, axis=0)
     >>> seg.tolist()
     [1, 1, 1, 1, 1, 1, 0, 0, 0, 0]

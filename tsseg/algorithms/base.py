@@ -456,9 +456,10 @@ class BaseSegmenter(BaseSeriesEstimator):
             if not pd.api.types.is_numeric_dtype(y):
                 raise ValueError("y input as pd.Series must be numeric")
         elif isinstance(y, pd.DataFrame):
-            if y.shape[1] > 2:
+            if y.shape[1] != 1:
                 raise ValueError(
-                    "y input as pd.DataFrame should have a single column series"
+                    "y input as pd.DataFrame should have a single column series, "
+                    f"saw {y.shape[1]} columns"
                 )
             if not all(pd.api.types.is_numeric_dtype(y[col]) for col in y.columns):
                 raise ValueError("y input as pd.DataFrame must be numeric")

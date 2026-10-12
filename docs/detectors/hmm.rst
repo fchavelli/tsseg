@@ -21,6 +21,7 @@ detector suitable as a baseline or when prior distributions are known.
 | **Type:** state detection
 | **Supervision:** requires known distributions (no learning)
 | **Scope:** univariate only
+| **Complexity:** :math:`O(S^{2}\,n)` (Viterbi decoding), where *S* is the number of states
 
 Parameters
 ----------

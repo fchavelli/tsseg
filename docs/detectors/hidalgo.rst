@@ -17,6 +17,9 @@ when different states occupy manifolds of different dimensionality.
 | **Type:** state detection
 | **Supervision:** semi-supervised (``K_states`` required)
 | **Scope:** multivariate (uses nearest-neighbour distances)
+| **Complexity:** :math:`O(d\,n^{2})` time and :math:`O(n^{2})` memory for the
+  neighbourhood graph, then :math:`O(K\,q\,n)` per Gibbs iteration, where *K*
+  is ``K_states`` and *q* the number of neighbours ``q``
 
 Parameters
 ----------

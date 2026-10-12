@@ -19,6 +19,8 @@ corresponds to the dominant period length.
 | **Type:** change point detection
 | **Supervision:** semi-supervised or unsupervised
 | **Scope:** univariate (multivariate via ensembling)
+| **Complexity:** :math:`O(d\,n^{2})`: one matrix profile per channel
+  (``stumpy.stump``)
 | **Requires:** ``stumpy``
 
 Parameters

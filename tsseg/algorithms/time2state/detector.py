@@ -69,6 +69,7 @@ class Time2StateDetector(BaseSegmenter):
         "capability:multivariate": True,
         "capability:unequal_length": False,
         "detector_type": "state_detection",
+        "python_dependencies": ["torch"],
         "non_deterministic": True,
         "cant_pickle": True,
         "capability:unsupervised": True,  # n_states is an upper bound

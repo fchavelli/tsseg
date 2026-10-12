@@ -14,10 +14,9 @@ activity recognition.
 
 ## Implementation
 
-Pure-Python translation of the original MATLAB code. The MATLAB sources are
-kept under `matlab/` for reference; the active implementation lives in
-`python/`. A legacy MATLAB-engine wrapper (`detector_matlab.py`) is also
-present but not used by default.
+Pure-Python translation of the original MATLAB code, which lives in the source
+repository below and is not shipped with tsseg. The implementation lives in
+`python/`.
 
 - Origin: translated from original MATLAB code
 - Source: https://github.com/cruiseresearchgroup/ESPRESSO
@@ -28,14 +27,6 @@ present but not used by default.
 ```
 espresso/
   detector.py              EspressoDetector (BaseSegmenter wrapper)
-  detector_matlab.py       Legacy MATLAB-engine wrapper (not used by default)
-  matlab/                  Original MATLAB reference code (read-only)
-    ESPRESSO_Script.m
-    separateGreedyIG.m
-    calculateSemanticDensityMatrix.m
-    IGTS/
-    MatrixProfile/
-    utils/
   python/                  Pure-Python translation (active)
     ESPRESSO_Script.py     Entry point: espresso()
     separateGreedyIG.py    Greedy IG peak selection

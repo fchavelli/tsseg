@@ -21,6 +21,8 @@ properties.
 | **Type:** change point detection
 | **Supervision:** semi-supervised (``n_segments`` required)
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d\,n^{2}\log n)`: one matrix profile per channel,
+  with an FFT for each subsequence
 
 Parameters
 ----------
