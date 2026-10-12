@@ -17,7 +17,8 @@ Taken from the original repository by David Hallac (Stanford). The core solver
 is in `ticc.py`.
 
 - Origin: taken from https://github.com/davidhallac/TICC
-- Licence: BSD-2
+- Licence: BSD 2-Clause (Copyright (c) 2017-2018, David Hallac, Sagar Vare, Saachi Jain, and Others)
+- Licence file: `LICENSE` in this directory
 
 ## Citation
 

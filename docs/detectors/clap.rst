@@ -30,6 +30,8 @@ Both algorithms support three usage modes:
 | **Type:** change point detection (ClaSP) / state detection (CLaP)
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
+| **Complexity:** ClaSP :math:`O(K\,d\,n^{2})`, CLaP
+  :math:`O(K\,n\,(d\,n + K\log K))`, where *K* is the number of change points
 
 ClaSP parameters
 ~~~~~~~~~~~~~~~~

@@ -45,7 +45,7 @@ class TGLADDetector(BaseSegmenter):
     """Graph-difference based change point detector using uGLAD.
 
     The detector follows the batching procedure described in the original
-    `tGLAD <https://github.com/DanielTao/tGLAD>`_ repository. The time-series is
+    `tGLAD <https://github.com/Harshs27/tGLAD>`_ repository. The time-series is
     converted to overlapping windows, each window yields a precision matrix via
     the :class:`uGLAD` multitask solver.
 
@@ -88,7 +88,7 @@ class TGLADDetector(BaseSegmenter):
         "fit_is_empty": False,
         "returns_dense": True,
         "detector_type": "change_point_detection",
-        "python_dependencies": "torch,networkx",
+        "python_dependencies": ["torch", "networkx"],
         "capability:unsupervised": True,
         "capability:semi_supervised": False,
         "non_deterministic": True,

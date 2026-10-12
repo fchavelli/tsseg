@@ -61,7 +61,6 @@ class EspressoDetector(BaseSegmenter):
         "fit_is_empty": False,
         "returns_dense": True,
         "detector_type": "change_point_detection",
-        "semi_supervised": True,
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
     }

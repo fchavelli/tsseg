@@ -69,10 +69,8 @@ class AlgorithmOverride:
 # Only algorithms that *cannot* be instantiated with a bare ``Cls()`` need
 # an entry here.  Everything else is discovered and tested automatically.
 ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
-    # --- Semi-supervised (need n_cps / n_segments via y) ---------------
+    # --- C binary (c/autoplait/autoplait, or autoplait on PATH) ---------
     "AutoPlaitDetector": AlgorithmOverride(
-        init_kwargs={"n_cps": None},
-        semi_supervised=True,
         skip_reason=(
             None if _autoplait_binary_available() else "AutoPlait C binary not built"
         ),
@@ -99,7 +97,7 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         init_kwargs={"n_segments": 3, "window_size": 10},
     ),
     # --- Optional heavy dependencies ----------------------------------
-    "ClapDetector": AlgorithmOverride(dependencies=("numba",)),
+    "ClapDetector": AlgorithmOverride(dependencies=("numba", "aeon")),
     "EAggloDetector": AlgorithmOverride(dependencies=("numba",)),
     "E2USDDetector": AlgorithmOverride(dependencies=("torch",)),
     "FLUSSDetector": AlgorithmOverride(dependencies=("stumpy",)),
@@ -115,7 +113,13 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         dependencies=("torch", "networkx"),
         init_kwargs={"window_size": 100, "stride": 50, "epochs": 100},
     ),
-    "TSCP2Detector": AlgorithmOverride(dependencies=("tensorflow",)),
+    "TSCP2Detector": AlgorithmOverride(
+        dependencies=("tensorflow",),
+        # Two epochs instead of 100: the contract does not depend on the
+        # quality of the encoder, and each test took 3 to 6 minutes.
+        init_kwargs={"random_state": 0, "epochs": 2},
+    ),
+    "TSCP2Detector": AlgorithmOverride(dependencies=("tensorflow", "tcn")),
     # --- Tirex detectors (need torch + tirex runtime) -----------------
     "TirexHiddenCPD": AlgorithmOverride(dependencies=("torch", "moment")),
     "TirexCosineCPD": AlgorithmOverride(dependencies=("torch", "moment")),

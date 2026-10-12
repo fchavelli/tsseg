@@ -146,19 +146,23 @@ def consensus_change_points(
 
 def create_state_labels(changepoints, n_timepoints):
     """
-    Create state labels from a list of changepoints.
+    Create segment labels from a list of changepoints.
+
+    Each segment gets its own label (``0, 1, 2, ...`` in time order): a state
+    is never reused.
 
     Parameters
     ----------
     changepoints : list of int
-        List of changepoint indices. The first element should be 0.
+        Changepoint indices, in any order and with or without the boundaries
+        ``0`` and ``n_timepoints``. Indices beyond ``n_timepoints`` are ignored.
     n_timepoints : int
         The total number of timepoints in the series.
 
     Returns
     -------
     np.ndarray
-        A 1D array of state labels of shape (n_timepoints,).
+        A 1D integer array of segment labels of shape (n_timepoints,).
     """
     changepoints = np.array(sorted(list(set(changepoints))))
 

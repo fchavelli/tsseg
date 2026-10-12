@@ -125,9 +125,10 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
 ## Contributing
 
 ```bash
-python -m pytest tests/                        # run the test suite (long; select with -k)
-make lint                                      # ruff check + ruff format --check, as in CI
-sphinx-build -W -b html docs docs/_build/html  # build the documentation locally
+make test                                # run the test suite, as in CI (long)
+make test PYTEST_ARGS="-k PeltDetector"  # run a selection of tests
+make lint                                # ruff check + ruff format --check, as in CI
+make docs                                # build the documentation into docs/_build/html, as in CI (needs tsseg[docs])
 ```
 
 See the [Contributing Guide](https://fchavelli.github.io/tsseg/guides/contributing.html) for full instructions.
@@ -144,14 +145,16 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 |---|---|---|
 | `aeon` (base, EAgglo, Hidalgo, HMM, IGTS) | BSD-3 | [aeon-toolkit/aeon](https://github.com/aeon-toolkit/aeon) |
 | `ruptures/` (vendored v1.1.8) | BSD-2 | [deepcharles/ruptures](https://github.com/deepcharles/ruptures) |
-| `bocd/` | Apache-2.0 | [hildensia/bayesian_changepoint_detection](https://github.com/hildensia/bayesian_changepoint_detection) |
+| `bocd/` | MIT | [hildensia/bayesian_changepoint_detection](https://github.com/hildensia/bayesian_changepoint_detection) |
+| `beast/` (wraps Rbeast, not bundled) | GPL-2.0-or-later | [zhaokg/Rbeast](https://github.com/zhaokg/Rbeast) |
 | `clap/` (ClaSP / CLaP) | BSD-3 | [ermshaua/clasp](https://github.com/ermshaua/clasp) |
 | `ggs/` | BSD-2 | [cvxgrp/GGS](https://github.com/cvxgrp/GGS) |
 | `icid/` | GPLv3 | [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID) |
 | `patss/` | MIT | [KU Leuven DTAI](https://gitlab.kuleuven.be/u0143709/patss) |
+| `rulsif/` (port of the authors' MATLAB code) | MIT | [anewgithubname/change_detection](https://github.com/anewgithubname/change_detection) |
 | `snlds/vendor/` | Apache-2.0 | [google-research/snlds](https://github.com/google-research/google-research/tree/master/snlds) |
 | `tglad/vendor/` (uGLAD) | Non-Commercial | [Harshs27/tGLAD](https://github.com/Harshs27/tGLAD) |
-| `autoplait/` | not specified | [Matsubara et al.](https://sites.google.com/site/onlinesemanticsegmentation/) |
+| `autoplait/` | not specified | [Matsubara et al.](https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html) |
 | `e2usd/` | not specified | [AI4CTS/E2Usd](https://github.com/AI4CTS/E2Usd) |
 | `espresso/` | not specified | [cruiseresearchgroup/ESPRESSO](https://github.com/cruiseresearchgroup/ESPRESSO) |
 | `ticc/` | BSD-2 | [davidhallac/TICC](https://github.com/davidhallac/TICC) |
@@ -159,7 +162,13 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 | `tire/` | not specified | [De Ryck, De Vos & Bertrand (KU Leuven)](https://github.com/deryckt/TIRE) |
 | `tscp2/` | not specified | [Cruise Research Group](https://github.com/cruiseresearchgroup/TSCP2) |
 
-Each vendored directory contains a LICENSE file with full terms.
+Each directory above that bundles code under a published license contains a
+copy of it (`LICENSE`, or `LICENCE` in `patss/`). The aeon license is copied in
+`eagglo/`, `hidalgo/`, `hmm/` and `igts/`, and also covers the base classes in
+`tsseg/algorithms/base.py`. The sources marked *not specified* publish no
+license. Rbeast, which `beast/` only wraps, is installed by `tsseg[beast]`;
+tsseg follows the license of its R package, GPL (>= 2), although its PyPI
+wheel declares MIT.
 
 ## Citation
 
