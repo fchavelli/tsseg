@@ -18,6 +18,7 @@ Adapted from the aeon toolkit.
 - Origin: adapted from aeon
 - Source: https://github.com/aeon-toolkit/aeon/blob/v1.3.0/aeon/segmentation/_hmm.py
 - Licence: BSD 3-Clause (aeon toolkit)
+- Licence file: `LICENSE` in this directory
 
 ## Citation
 
