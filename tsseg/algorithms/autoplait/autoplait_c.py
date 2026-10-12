@@ -177,11 +177,19 @@ def _read_regime_labels(out_dir: Path, n_samples: int) -> np.ndarray:
 
 
 class AutoPlait:
-    """
-    To run this method:
-      1. download the adapted autoplait from https://sites.google.com/site/onlinesemanticsegmentation/
-      2. place it into c/autoplait
-      3. build it (make clean autoplait)
+    """Runner of the AutoPlait C binary of Matsubara et al.
+
+    The binary is built from the original C code (version of June 18, 2014,
+    https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html), kept in
+    ``c/autoplait/`` of the source repository: build it with ``make autoplait``
+    there, or point ``AUTOPLAIT_DIR`` to the directory that holds it. It takes
+    no number of segments or regimes; its command line is
+    ``autoplait d list_file out_dir``.
+
+    The modified binary of the FLOSS project page
+    (https://sites.google.com/site/onlinesemanticsegmentation/) is not
+    supported: its second argument is a minimum number of regimes, and it
+    rejects the command line above.
     """
 
     def __init__(self):
@@ -190,19 +198,15 @@ class AutoPlait:
         """
         super().__init__()
 
-    def _run_autoplait(self, ts, n_cps, name="autoplait_run"):
+    def _run_autoplait(self, ts, name="autoplait_run"):
         """Run the AutoPlait binary and return one regime label per time point.
 
-        The command line with a number of segments (``n_cps + 1``) is tried
-        first; the bundled binary rejects it with a usage message, and the
-        unguided command line is then run.
+        The binary runs once, unguided: ``autoplait d list_file out_dir``.
 
         Parameters
         ----------
         ts : np.ndarray
             Series of shape ``(n_samples,)`` or ``(n_samples, n_features)``.
-        n_cps : int or None
-            Number of change points to request, or ``None``.
         name : str, default="autoplait_run"
             Name of the temporary input file.
 
@@ -211,6 +215,15 @@ class AutoPlait:
         np.ndarray
             Integer array of shape ``(n_samples,)``: the regime number of each
             time point (see :func:`_read_regime_labels`).
+
+        Raises
+        ------
+        ValueError
+            If a row of the series does not fit on one line of the binary's
+            input (see :func:`_format_series`).
+        RuntimeError
+            If the binary exits with a non-zero code, reads a series of another
+            length, or writes no segment file.
         """
         # Raw name sometimes leads to errors with filesystem handling
         name = f"{hash(name)}"
@@ -243,63 +256,19 @@ class AutoPlait:
                     f"{binary_path}. Build it with `make autoplait` in {autoplait_path}."
                 )
 
-            candidate_commands: list[list[str]] = []
-            if n_cps is not None:
-                try:
-                    candidate_commands.append(
-                        [
-                            str(binary_path),
-                            str(n_features),
-                            str(int(n_cps) + 1),
-                            list_path,
-                            tmp_path,
-                        ]
-                    )
-                except (TypeError, ValueError):
-                    pass
-
-            candidate_commands.append(
-                [
-                    str(binary_path),
-                    str(n_features),
-                    list_path,
-                    tmp_path,
-                ]
+            result = subprocess.run(
+                [str(binary_path), str(n_features), list_path, tmp_path],
+                cwd=str(autoplait_path),
+                check=False,
+                capture_output=True,
+                text=True,
             )
-
-            candidate_commands.append(
-                [
-                    str(binary_path),
-                    str(n_features),
-                    list_path,
-                    tmp_path,
-                    str(n_samples),
-                ]
-            )
-
-            last_error: RuntimeError | None = None
-            for command in candidate_commands:
-                result = subprocess.run(
-                    command,
-                    cwd=str(autoplait_path),
-                    check=False,
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode == 0:
-                    break
-                message = result.stderr or result.stdout
-                if "usage" in message.lower() and len(command) > 4:
-                    last_error = RuntimeError(message.strip())
-                    continue
-                last_error = RuntimeError(
+            if result.returncode != 0:
+                message = (result.stderr or result.stdout).strip()
+                raise RuntimeError(
                     "AutoPlait execution failed with return code "
                     f"{result.returncode}: {message}"
                 )
-            else:
-                if last_error is not None:
-                    raise last_error
-                raise RuntimeError("AutoPlait execution failed with an unknown error.")
 
             _check_rows_read(result.stdout, n_samples)
             first_segment = next(Path(tmp_path).rglob("segment.0"), None)

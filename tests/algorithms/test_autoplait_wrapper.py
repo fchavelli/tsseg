@@ -168,6 +168,47 @@ def test_n_cps_is_deprecated_and_ignored(fake_autoplait, n_cps):
     assert [len(command) for command in calls] == [4]
 
 
+def test_the_binary_runs_once_with_its_unguided_command_line(fake_autoplait):
+    outputs, expected = CASES["ABA"]
+    calls = fake_autoplait(outputs)
+
+    y = autoplait_c.AutoPlait()._run_autoplait(np.zeros((900, 3)))
+
+    np.testing.assert_array_equal(y, expected)
+    assert len(calls) == 1
+    binary, d, list_file, out_dir = calls[0]
+    assert (Path(binary).name, d) == ("autoplait", "3")
+    assert Path(list_file).parent == Path(out_dir)
+
+
+@pytest.mark.parametrize(
+    "returncode, stderr",
+    [
+        # The FLOSS binary: its second argument is a minimum number of regimes.
+        (1, "error: usage: cmd d fin, fout [./autoplait] \n"),
+        # Killed by SIGFPE.
+        (-8, ""),
+    ],
+)
+def test_a_failing_binary_raises_without_another_command_line(
+    fake_autoplait, monkeypatch, returncode, stderr
+):
+    calls: list[list[str]] = []
+
+    def run(command, **kwargs):
+        calls.append(list(command))
+        return subprocess.CompletedProcess(
+            command, returncode, stdout="", stderr=stderr
+        )
+
+    monkeypatch.setattr(autoplait_c.subprocess, "run", run)
+
+    with pytest.raises(RuntimeError, match=f"return code {returncode}"):
+        AutoPlaitDetector().fit_predict(np.zeros((600, 1)))
+
+    assert len(calls) == 1
+
+
 @pytest.mark.parametrize(
     "segment_files",
     [

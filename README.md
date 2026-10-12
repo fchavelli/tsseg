@@ -151,7 +151,7 @@ Several algorithms bundle adapted or vendored code under their own licenses:
 | `patss/` | MIT | [KU Leuven DTAI](https://gitlab.kuleuven.be/u0143709/patss) |
 | `snlds/vendor/` | Apache-2.0 | [google-research/snlds](https://github.com/google-research/google-research/tree/master/snlds) |
 | `tglad/vendor/` (uGLAD) | Non-Commercial | [Harshs27/tGLAD](https://github.com/Harshs27/tGLAD) |
-| `autoplait/` | not specified | [Matsubara et al.](https://sites.google.com/site/onlinesemanticsegmentation/) |
+| `autoplait/` | not specified | [Matsubara et al.](https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html) |
 | `e2usd/` | not specified | [AI4CTS/E2Usd](https://github.com/AI4CTS/E2Usd) |
 | `espresso/` | not specified | [cruiseresearchgroup/ESPRESSO](https://github.com/cruiseresearchgroup/ESPRESSO) |
 | `ticc/` | BSD-2 | [davidhallac/TICC](https://github.com/davidhallac/TICC) |
