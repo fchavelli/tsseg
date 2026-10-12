@@ -2,6 +2,8 @@
 This module provides an aeon-compatible wrapper for the AutoPlait algorithm.
 """
 
+import warnings
+
 import numpy as np
 
 from ..base import BaseSegmenter
@@ -17,12 +19,31 @@ class AutoPlaitDetector(BaseSegmenter):
     """
     Wrapper for the AutoPlait state detection algorithm.
 
+    Parameters
+    ----------
+    n_cps : int or None, default=None
+        Deprecated and ignored. AutoPlait chooses the number of segments and
+        regimes itself and the bundled binary has no guided mode, so this
+        value has never changed the output. Passing it emits a
+        ``FutureWarning`` at ``fit``; it will be removed in a future release.
+
+    Notes
+    -----
+    The label of a time point is the number of the AutoPlait regime its
+    segment belongs to: segments of the same regime share a label, and each
+    change point is the first index of a segment.
+
+    The binary counts the time points of its input file with a line buffer of
+    254 bytes. The series is written as float32 values with 9 significant
+    digits, so that rows of up to 15 channels always fit on one line; a series
+    whose rows take more than 252 characters raises ``ValueError``.
+
     References
     ----------
     .. [1] Y. Matsubara, Y. Sakurai, and C. Faloutsos, "AutoPlait: automatic mining of
        co-evolving time sequences," SIGMOD, 2014, doi: 10.1145/2588555.2588556.
-    .. [2] Online Semantic Segmentation project page,
-       https://sites.google.com/site/onlinesemanticsegmentation/ (reference implementation).
+    .. [2] Y. Matsubara, AutoPlait C code (version of June 18, 2014, bundled in
+       ``c/autoplait/``), https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html.
     """
 
     _tags = {
@@ -31,14 +52,14 @@ class AutoPlaitDetector(BaseSegmenter):
         "fit_is_empty": False,
         "returns_dense": False,
         "detector_type": "state_detection",
-        "capability:unsupervised": False,
-        "capability:semi_supervised": True,
+        "capability:unsupervised": True,
+        "capability:semi_supervised": False,
     }
 
     _parameter_schema = {
         "n_cps": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
-            description="Number of change points (required if y not provided).",
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Deprecated and ignored: the binary has no guided mode.",
             nullable=True,
         ),
     }
@@ -47,24 +68,34 @@ class AutoPlaitDetector(BaseSegmenter):
         super().__init__(axis=0)
         self.n_cps = n_cps
 
-    def _fit(self, X, y):
-        """
-        Fit the segmenter.
-        If y is provided (semi-supervised), we extract n_cps from it.
-        If y is None (unsupervised), we rely on the __init__ n_cps or raise error.
-        """
-        if y is None and self.n_cps is None:
-            raise ValueError(
-                f"{self.__class__.__name__} requires `n_cps` or `y` to be provided. "
-                "It is not capable of pure unsupervised learning without hints."
-            )
+    def _fit(self, X, y=None):
+        """Warn about the deprecated ``n_cps``; AutoPlait runs in ``predict``.
 
-        # If unsupervised and capable, we keep self.n_cps as defined in __init__ (or None if algo handles it)
+        Parameters
+        ----------
+        X : np.ndarray
+            The time series, of shape (n_timepoints, n_channels).
+        y : None
+            Not used: AutoPlait is unsupervised.
+
+        Returns
+        -------
+        self
+        """
+        if self.n_cps is not None:
+            warnings.warn(
+                f"{type(self).__name__}: `n_cps` is deprecated and ignored. "
+                "AutoPlait chooses the number of segments itself (the binary "
+                "has no guided mode); `n_cps` will be removed in a future "
+                "release.",
+                FutureWarning,
+                stacklevel=3,
+            )
         return self
 
     def _predict(self, X, y=None):
         """
-        Segment the time series to find change points and assign state labels.
+        Segment the time series and assign a regime label to each time point.
 
         This method calls the underlying AutoPlait C implementation via the
         `AutoPlait` runner class.
@@ -72,71 +103,19 @@ class AutoPlaitDetector(BaseSegmenter):
         Parameters
         ----------
         X : np.ndarray
-            The time series to segment of shape (n_channels, n_timepoints).
+            The time series to segment, of shape (n_timepoints, n_channels).
         y : None
             Not used, for API compatibility.
 
         Returns
         -------
         np.ndarray
-            The predicted state labels as a 1D array of shape (n_timepoints,).
+            The regime label of each time point, of shape (n_timepoints,).
         """
-        # Ensure a 2D array where rows are time points and columns are features.
         ts = np.asarray(X)
         if ts.ndim == 1:
-            ts2d = ts[:, np.newaxis]
-        elif ts.ndim == 2:
-            ts2d = ts
-        else:
-            ts2d = ts.reshape(ts.shape[0], -1)
+            ts = ts[:, np.newaxis]
+        elif ts.ndim > 2:
+            ts = ts.reshape(ts.shape[0], -1)
 
-        # 1. Instantiate the runner class from autoplait.py
-        autoplait_runner = AutoPlait()
-
-        # 2. Run the C code to get changepoints and labels
-        change_points, segment_labels = autoplait_runner._run_autoplait(
-            ts2d, self.n_cps
-        )
-
-        change_points = np.asarray(change_points, dtype=int)
-        segment_labels = np.asarray(segment_labels, dtype=int)
-
-        n_samples = ts2d.shape[0]
-        if segment_labels.size == 0:
-            if change_points.size == 0:
-                return np.zeros(n_samples, dtype=int)
-            segment_labels = np.arange(change_points.size + 1, dtype=int)
-
-        if change_points.size > 0:
-            change_points = np.sort(change_points)
-            change_points = change_points[
-                (change_points > 0) & (change_points < n_samples)
-            ]
-
-        expected_segments = change_points.size + 1
-        if segment_labels.size < expected_segments:
-            pad_value = segment_labels[-1]
-            pad_width = expected_segments - segment_labels.size
-            segment_labels = np.pad(
-                segment_labels,
-                (0, pad_width),
-                mode="constant",
-                constant_values=pad_value,
-            )
-        elif segment_labels.size > expected_segments:
-            segment_labels = segment_labels[:expected_segments]
-
-        dense_labels = np.empty(n_samples, dtype=int)
-        boundaries = list(change_points.tolist())
-        boundaries.append(n_samples)
-
-        start = 0
-        for label, end in zip(segment_labels, boundaries):
-            end_idx = min(max(end, start), n_samples)
-            dense_labels[start:end_idx] = label
-            start = end_idx
-
-        if start < n_samples:
-            dense_labels[start:] = segment_labels[-1]
-
-        return dense_labels
+        return AutoPlait()._run_autoplait(ts)

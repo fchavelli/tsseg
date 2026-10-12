@@ -1,3 +1,10 @@
+"""State detection metrics, comparing dense label sequences of equal length.
+
+ARI, NMI and AMI are those of scikit-learn. WARI and WNMI weight each time
+point by its distance to the nearest true boundary, and SMS matches predicted
+to true states before classifying the errors (arXiv:2510.23261).
+"""
+
 from typing import Any
 
 import numpy as np
@@ -338,6 +345,39 @@ class StateMatchingScore(BaseMetric):
         y_pred: np.ndarray,
         **kwargs,
     ) -> dict[str, Any]:
+        """Compute the State Matching Score.
+
+        Predicted states are first mapped to true states by the Hungarian
+        algorithm. Each maximal run of mismatched points with the same
+        predicted label is then an error segment, typed by the true labels it
+        covers: inside one true segment, ``"delay"`` if it continues the
+        neighbouring state (a boundary placed late or early), else
+        ``"isolation"``; ``"transition"`` if it covers one true boundary;
+        ``"missing"`` if it covers several. The score is ``1 - (L + P) / n``,
+        L the total length of the error segments and P their penalties,
+        weighted by type with ``self.weights`` (isolation and transition also
+        by the distance to the nearest true boundary).
+
+        Parameters
+        ----------
+        y_true : np.ndarray of shape (n_timepoints,)
+            Ground-truth state label of every time point.
+        y_pred : np.ndarray of shape (n_timepoints,)
+            Predicted state label of every time point. Labels are compared up
+            to a permutation: their values carry no meaning.
+        **kwargs
+            ``return_mapped`` (bool, default False): also return the predicted
+            labels after mapping. ``return_errors`` (bool, default False): also
+            return the error segments.
+
+        Returns
+        -------
+        dict
+            ``"score"`` (float, 1.0 for empty inputs), plus ``"mapped_pred"``
+            (np.ndarray) if ``return_mapped`` and ``"errors"`` (list of dict
+            with keys ``type``, ``start``, ``end``, ``size``, ``penalty``) if
+            ``return_errors``.
+        """
         labels_true = y_true
         labels_pred = y_pred
 
@@ -381,6 +421,23 @@ class AdjustedRandIndex(BaseMetric):
     def compute(
         self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
     ) -> dict[str, float]:
+        """Compute the Adjusted Rand Index with :func:`sklearn.metrics.adjusted_rand_score`.
+
+        Parameters
+        ----------
+        y_true : np.ndarray of shape (n_timepoints,)
+            Ground-truth state label of every time point.
+        y_pred : np.ndarray of shape (n_timepoints,)
+            Predicted state label of every time point. Labels are compared up
+            to a permutation: their values carry no meaning.
+        **kwargs
+            Ignored.
+
+        Returns
+        -------
+        dict
+            ``{"score": float}``.
+        """
         labels_true = y_true
         labels_pred = y_pred
         return {"score": adjusted_rand_score(labels_true, labels_pred)}
@@ -392,6 +449,23 @@ class NormalizedMutualInformation(BaseMetric):
     def compute(
         self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
     ) -> dict[str, float]:
+        """Compute the Normalized Mutual Information with :func:`sklearn.metrics.normalized_mutual_info_score`.
+
+        Parameters
+        ----------
+        y_true : np.ndarray of shape (n_timepoints,)
+            Ground-truth state label of every time point.
+        y_pred : np.ndarray of shape (n_timepoints,)
+            Predicted state label of every time point. Labels are compared up
+            to a permutation: their values carry no meaning.
+        **kwargs
+            Ignored.
+
+        Returns
+        -------
+        dict
+            ``{"score": float}``.
+        """
         labels_true = y_true
         labels_pred = y_pred
         return {"score": normalized_mutual_info_score(labels_true, labels_pred)}
@@ -403,6 +477,23 @@ class AdjustedMutualInformation(BaseMetric):
     def compute(
         self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
     ) -> dict[str, float]:
+        """Compute the Adjusted Mutual Information with :func:`sklearn.metrics.adjusted_mutual_info_score`.
+
+        Parameters
+        ----------
+        y_true : np.ndarray of shape (n_timepoints,)
+            Ground-truth state label of every time point.
+        y_pred : np.ndarray of shape (n_timepoints,)
+            Predicted state label of every time point. Labels are compared up
+            to a permutation: their values carry no meaning.
+        **kwargs
+            Ignored.
+
+        Returns
+        -------
+        dict
+            ``{"score": float}``.
+        """
         labels_true = y_true
         labels_pred = y_pred
         return {"score": adjusted_mutual_info_score(labels_true, labels_pred)}
@@ -508,6 +599,27 @@ class WeightedAdjustedRandIndex(BaseMetric):
     def compute(
         self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
     ) -> dict[str, float]:
+        """Compute the Weighted Adjusted Rand Index.
+
+        Each time point is weighted by ``self.distance_func`` of its distance
+        to the nearest boundary of ``y_true`` (the series ends included); the
+        default weight is ``1 + alpha * distance``.
+
+        Parameters
+        ----------
+        y_true : np.ndarray of shape (n_timepoints,)
+            Ground-truth state label of every time point.
+        y_pred : np.ndarray of shape (n_timepoints,)
+            Predicted state label of every time point. Labels are compared up
+            to a permutation: their values carry no meaning.
+        **kwargs
+            Ignored.
+
+        Returns
+        -------
+        dict
+            ``{"score": float}``.
+        """
         labels_true = y_true
         labels_pred = y_pred
 
@@ -540,6 +652,27 @@ class WeightedNormalizedMutualInformation(BaseMetric):
     def compute(
         self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
     ) -> dict[str, float]:
+        """Compute the Weighted Normalized Mutual Information.
+
+        Each time point is weighted by ``self.distance_func`` of its distance
+        to the nearest boundary of ``y_true`` (the series ends included); the
+        default weight is ``1 + alpha * distance``.
+
+        Parameters
+        ----------
+        y_true : np.ndarray of shape (n_timepoints,)
+            Ground-truth state label of every time point.
+        y_pred : np.ndarray of shape (n_timepoints,)
+            Predicted state label of every time point. Labels are compared up
+            to a permutation: their values carry no meaning.
+        **kwargs
+            Ignored.
+
+        Returns
+        -------
+        dict
+            ``{"score": float}``.
+        """
         labels_true = y_true
         labels_pred = y_pred
 
