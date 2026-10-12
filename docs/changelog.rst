@@ -11,6 +11,11 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New ``RuLSIFDetector`` (Liu, Yamada, Collier and Sugiyama, Neural Networks
+  2013): change points are peaks of the symmetrised relative Pearson
+  divergence between the subsequences before and after each point, estimated
+  by RuLSIF with cross-validated kernel width and regularisation. NumPy port
+  of the authors' MATLAB code (MIT); guided (``n_cps``) or thresholded.
 * ``TSCP2Detector`` takes a ``random_state`` seed (``None`` by default, as
   before): with an integer, every fit initialises the encoder, shuffles the
   training windows and draws the dropout masks identically, so two fits on the
