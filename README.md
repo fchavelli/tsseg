@@ -124,9 +124,10 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
 ## Contributing
 
 ```bash
-python -m pytest tests/                        # run the test suite (long; select with -k)
-make lint                                      # ruff check + ruff format --check, as in CI
-sphinx-build -W -b html docs docs/_build/html  # build the documentation locally
+make test                                # run the test suite, as in CI (long)
+make test PYTEST_ARGS="-k PeltDetector"  # run a selection of tests
+make lint                                # ruff check + ruff format --check, as in CI
+make docs                                # build the documentation into docs/_build/html, as in CI (needs tsseg[docs])
 ```
 
 See the [Contributing Guide](https://fchavelli.github.io/tsseg/guides/contributing.html) for full instructions.
