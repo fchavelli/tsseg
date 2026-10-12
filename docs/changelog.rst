@@ -64,6 +64,17 @@ Unreleased
   binary that reports another length than the series' raises
   ``RuntimeError``. Series of fewer than 10 channels were not affected.
 
+* The AutoPlait runner (``AutoPlait._run_autoplait`` in
+  ``tsseg.algorithms.autoplait.autoplait_c``) runs the binary once, with the
+  command line of the bundled binary (``autoplait d list_file out_dir``), and
+  raises ``RuntimeError`` if it fails. It no longer takes ``n_cps``, nor tries
+  a command line with ``n_cps + 1`` or with the length of the series: the only
+  binary that takes a second argument, the modified version of the FLOSS
+  project page, reads it as a minimum number of regimes, not of segments. The
+  documentation now points to the original C code of Matsubara et al., which
+  ``c/autoplait/`` holds, instead of the FLOSS page. ``AutoPlaitDetector``
+  returns the same output.
+
 * The output contract tests check what the documentation states: change
   points are a 1-D integer ``numpy`` array, strictly increasing, within
   ``[1, n - 1]``; state labels are a 1-D integer ``numpy`` array of length

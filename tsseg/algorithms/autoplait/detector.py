@@ -42,8 +42,8 @@ class AutoPlaitDetector(BaseSegmenter):
     ----------
     .. [1] Y. Matsubara, Y. Sakurai, and C. Faloutsos, "AutoPlait: automatic mining of
        co-evolving time sequences," SIGMOD, 2014, doi: 10.1145/2588555.2588556.
-    .. [2] Online Semantic Segmentation project page,
-       https://sites.google.com/site/onlinesemanticsegmentation/ (reference implementation).
+    .. [2] Y. Matsubara, AutoPlait C code (version of June 18, 2014, bundled in
+       ``c/autoplait/``), https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html.
     """
 
     _tags = {
@@ -118,4 +118,4 @@ class AutoPlaitDetector(BaseSegmenter):
         elif ts.ndim > 2:
             ts = ts.reshape(ts.shape[0], -1)
 
-        return AutoPlait()._run_autoplait(ts, None)
+        return AutoPlait()._run_autoplait(ts)

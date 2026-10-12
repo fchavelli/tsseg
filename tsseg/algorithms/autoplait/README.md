@@ -21,9 +21,17 @@ Wraps the original C code by Yasuko Matsubara (Kumamoto University). The
 contains an incomplete pure-Python port (based on hayato0311/autoplait-python,
 depends on `hmmlearn`) kept for reference only.
 
-- Origin: wrapper around original C code
-- Source: https://sites.google.com/site/onlinesemanticsegmentation/
+- Origin: wrapper around original C code (version of June 18, 2014; the only
+  change in `c/autoplait/` declares `ws` `extern` in `cps.c`, so that the code
+  links with GCC 10 and later)
+- Source: https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html
 - Licence: no explicit licence provided with the original C code
+
+The modified binary of the FLOSS project page
+(https://sites.google.com/site/onlinesemanticsegmentation/), used by the CLaP
+benchmark, is not supported: its second argument is a minimum number of
+regimes, so its command line differs from the original's (`autoplait d
+list_file out_dir`), which the wrapper runs.
 
 ## Citation
 
