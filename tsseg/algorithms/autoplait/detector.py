@@ -2,6 +2,8 @@
 This module provides an aeon-compatible wrapper for the AutoPlait algorithm.
 """
 
+import warnings
+
 import numpy as np
 
 from ..base import BaseSegmenter
@@ -17,15 +19,19 @@ class AutoPlaitDetector(BaseSegmenter):
     """
     Wrapper for the AutoPlait state detection algorithm.
 
+    Parameters
+    ----------
+    n_cps : int or None, default=None
+        Deprecated and ignored. AutoPlait chooses the number of segments and
+        regimes itself and the bundled binary has no guided mode, so this
+        value has never changed the output. Passing it emits a
+        ``FutureWarning`` at ``fit``; it will be removed in a future release.
+
     Notes
     -----
     The label of a time point is the number of the AutoPlait regime its
     segment belongs to: segments of the same regime share a label, and each
     change point is the first index of a segment.
-
-    The bundled binary takes no number of segments: ``n_cps`` is passed to it,
-    rejected, and the binary then runs unguided, so the number of change
-    points it returns does not depend on ``n_cps``.
 
     References
     ----------
@@ -41,14 +47,14 @@ class AutoPlaitDetector(BaseSegmenter):
         "fit_is_empty": False,
         "returns_dense": False,
         "detector_type": "state_detection",
-        "capability:unsupervised": False,
-        "capability:semi_supervised": True,
+        "capability:unsupervised": True,
+        "capability:semi_supervised": False,
     }
 
     _parameter_schema = {
         "n_cps": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
-            description="Number of change points (required if y not provided).",
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Deprecated and ignored: the binary has no guided mode.",
             nullable=True,
         ),
     }
@@ -57,19 +63,29 @@ class AutoPlaitDetector(BaseSegmenter):
         super().__init__(axis=0)
         self.n_cps = n_cps
 
-    def _fit(self, X, y):
-        """
-        Fit the segmenter.
-        If y is provided (semi-supervised), we extract n_cps from it.
-        If y is None (unsupervised), we rely on the __init__ n_cps or raise error.
-        """
-        if y is None and self.n_cps is None:
-            raise ValueError(
-                f"{self.__class__.__name__} requires `n_cps` or `y` to be provided. "
-                "It is not capable of pure unsupervised learning without hints."
-            )
+    def _fit(self, X, y=None):
+        """Warn about the deprecated ``n_cps``; AutoPlait runs in ``predict``.
 
-        # If unsupervised and capable, we keep self.n_cps as defined in __init__ (or None if algo handles it)
+        Parameters
+        ----------
+        X : np.ndarray
+            The time series, of shape (n_timepoints, n_channels).
+        y : None
+            Not used: AutoPlait is unsupervised.
+
+        Returns
+        -------
+        self
+        """
+        if self.n_cps is not None:
+            warnings.warn(
+                f"{type(self).__name__}: `n_cps` is deprecated and ignored. "
+                "AutoPlait chooses the number of segments itself (the binary "
+                "has no guided mode); `n_cps` will be removed in a future "
+                "release.",
+                FutureWarning,
+                stacklevel=3,
+            )
         return self
 
     def _predict(self, X, y=None):
@@ -97,4 +113,4 @@ class AutoPlaitDetector(BaseSegmenter):
         elif ts.ndim > 2:
             ts = ts.reshape(ts.shape[0], -1)
 
-        return AutoPlait()._run_autoplait(ts, self.n_cps)
+        return AutoPlait()._run_autoplait(ts, None)

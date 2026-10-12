@@ -8,7 +8,8 @@ determine the number of regimes and their boundaries.
 ## Key properties
 
 - Type: state detection
-- Semi-supervised (requires $n_cps$)
+- Unsupervised: the number of segments and regimes is chosen by MDL
+  (`n_cps` is deprecated and ignored, the binary has no guided mode)
 - Regime-based: each segment is assigned to a shared HMM regime
 - Multivariate
 - Requires a compiled C binary (`c/autoplait/` at the repository root)
