@@ -30,8 +30,6 @@ dependencies = [
     "scikit-learn",
     "scipy",
     "pooch",
-    "tqdm",
-    "joblib",
     "statsmodels",
     "future",
 ]

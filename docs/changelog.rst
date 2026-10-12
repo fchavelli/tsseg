@@ -11,6 +11,11 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Dependencies: ``tqdm`` and ``joblib`` are no longer required. No module of
+  tsseg imports them since the unfinished Python port of AutoPlait was removed
+  (``joblib`` remains installed with scikit-learn). ``fetch_dataset`` shows a
+  download progress bar only when ``tqdm`` is installed.
+
 * Tags: the undocumented ``semi_supervised`` tag of ``AmocDetector``,
   ``EspressoDetector`` and ``RandomDetector`` is removed:
   ``capability:semi_supervised`` is the tag (the ``semi_supervised`` parameter

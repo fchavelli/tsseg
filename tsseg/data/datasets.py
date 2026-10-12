@@ -1,5 +1,6 @@
 import os
 from importlib.resources import files
+from importlib.util import find_spec
 
 import pandas as pd
 import pooch
@@ -57,7 +58,9 @@ def fetch_dataset(filename, unzip=False):
         )
 
     processor = pooch.Unzip() if unzip else None
-    fname = GOODBOY.fetch(filename, processor=processor, progressbar=True)
+    # pooch draws its progress bar with tqdm, which tsseg does not require.
+    progressbar = find_spec("tqdm") is not None
+    fname = GOODBOY.fetch(filename, processor=processor, progressbar=progressbar)
     return fname
 
 
