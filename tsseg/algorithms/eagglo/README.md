@@ -23,6 +23,7 @@ package.
 
 - Origin: adapted from aeon
 - Licence: BSD 3-Clause (aeon toolkit)
+- Licence file: `LICENSE` in this directory
 
 ## Citation
 

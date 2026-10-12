@@ -32,7 +32,9 @@ Parameters
    * - ``k_max``
      - int
      - ``10``
-     - Maximum number of change points.
+     - Maximum number of change points. Fewer are returned when every
+       candidate location (the multiples of ``step``) is already a change
+       point.
    * - ``step``
      - int
      - ``5``

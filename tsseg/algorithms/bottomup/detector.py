@@ -22,7 +22,60 @@ __all__ = ["BottomUpDetector"]
 
 
 class BottomUpDetector(BaseSegmenter):
-    """Bottom-up change point detector."""
+    """Bottom-up change point detector using the vendored ruptures implementation.
+
+    The series is first cut into the finest partition that ``min_size`` and
+    ``jump`` allow; adjacent segments are then merged greedily, the merge that
+    increases the cost least first, until the stopping criterion is met.
+
+    Parameters
+    ----------
+    n_cps : int or None, default=None
+        Number of change points to return. When given, ``penalty`` and
+        ``epsilon`` are ignored, with a ``UserWarning`` for each one that is not
+        ``None`` (``penalty`` is 10 by default, so pass ``penalty=None`` to
+        avoid the warning).
+    model : {"l2", "l1", "rbf", "linear", "normal", "cosine"}, default="l2"
+        Cost model: least squares (``"l2"``), least absolute deviation
+        (``"l1"``), Gaussian kernel (``"rbf"``), linear regression
+        (``"linear"``), Gaussian likelihood (``"normal"``) or cosine kernel
+        (``"cosine"``).
+    min_size : int, default=2
+        Minimum segment length. Must not exceed half the series length.
+    jump : int, default=5
+        Sub-sampling factor for candidate breakpoints: only multiples of
+        ``jump`` are considered.
+    penalty : float or None, default=10
+        Penalty per change point, used when ``n_cps`` is ``None``: merging
+        continues while the cheapest merge increases the cost by less than
+        ``penalty``. Must be strictly positive. At most one of ``penalty`` and ``epsilon`` may be
+        set, so ``epsilon`` requires ``penalty=None``.
+    pen_scale : {None, "bic"}, default=None
+        ``None``: ``penalty`` is used as is. ``"bic"``: ``penalty`` is a
+        coefficient on ``log(n) * u``, u the cost of one sample of the whole
+        signal (d for ``"l2"`` on unit-variance channels, where it is the BIC
+        penalty; 1 for the kernel costs).
+    epsilon : float or None, default=None
+        Reconstruction budget, used when ``n_cps`` is ``None`` and
+        ``penalty=None``: merging continues while the total cost of the
+        segmentation is below ``epsilon``. Must be strictly positive.
+    cost_params : dict or None, default=None
+        Extra keyword arguments forwarded to the cost (for instance
+        ``{"gamma": 0.1}`` for ``"rbf"``).
+    backend : {"auto", "numba", "python"}, default="auto"
+        Backend of the costs ``l1``, ``l2``, ``rbf`` and ``cosine``: numba when
+        it is installed under ``"auto"``, the kernel costs then without the
+        n x n Gram matrix. Same change points either way.
+    axis : int, default=0
+        Axis of ``X`` that represents time.
+
+    Raises
+    ------
+    ValueError
+        If ``n_cps``, ``penalty`` and ``epsilon`` are all ``None``, if both
+        ``penalty`` and ``epsilon`` are set without ``n_cps``, or if
+        ``penalty`` or ``epsilon`` is not strictly positive.
+    """
 
     _tags = {
         "capability:univariate": True,

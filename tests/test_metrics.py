@@ -88,8 +88,23 @@ class TestF1Score:
     def test_empty_lists(self):
         f1 = F1Score()
         assert f1.compute([], [])["score"] == 1.0
-        assert f1.compute([1], [])["score"] == 0.0
+        # y_true = [n] is a series of length n without change points.
+        assert f1.compute([1], [])["score"] == 1.0
         assert f1.compute([], [1])["score"] == 0.0
+
+    def test_no_change_point_without_n_timepoints(self):
+        # Neither list has a change point: perfect, whether or not the
+        # prediction repeats the boundaries (same result as with n_timepoints).
+        f1 = F1Score()
+        expected = {"score": 1.0, "precision": 1.0, "recall": 1.0}
+        assert f1.compute([50], []) == expected
+        assert f1.compute([0, 50], []) == expected
+        assert f1.compute([50], [50]) == expected
+        assert f1.compute([50], [], n_timepoints=50) == expected
+
+    def test_empty_prediction_misses_true_change_points(self):
+        result = F1Score().compute([20, 50], [])
+        assert result == {"score": 0.0, "precision": 0.0, "recall": 0.0}
 
 
 @legacy_series_length
