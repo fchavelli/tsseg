@@ -190,7 +190,7 @@ class ChangeForestDetector(BaseSegmenter):
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
-        "python_dependencies": "changeforest",
+        "python_dependencies": ["changeforest"],
     }
 
     _parameter_schema = {
