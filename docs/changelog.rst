@@ -11,6 +11,20 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+0.3.0 (2026-10-14)
+------------------
+
+Upgrading from 0.2.0: ``VQTSSDetector``, ``VSAXDetector`` and the HDP-HSMM
+aliases are removed; ``GreedyGaussianDetector`` returns change points instead
+of labels; the arguments of ``SNLDSDetector`` are keyword-only;
+``ProphetDetector``, and ``ChangeFinderDetector`` without ``n_cps``, select
+change points differently by default; ``BeastDetector`` needs ``Rbeast`` from
+PyPI (``tsseg[beast]``); the supervision and dependency tags of several
+detectors change. ``KCPDDetector``, ``HMMDetector``, ``PatssDetector`` and the
+``n_cps`` parameter of ``AutoPlaitDetector`` are deprecated. Several fixes
+change the output of AutoPlait, BEAST, IGTS, Window and the vendored ruptures
+solvers (ties): results computed with 0.2.0 can differ.
+
 * New detector ``ChangeForestDetector``: classifier-based nonparametric change
   point detection with random forests (Londschien, Bühlmann and Kovács,
   JMLR 2023). It wraps the official ``changeforest`` package, installed with
