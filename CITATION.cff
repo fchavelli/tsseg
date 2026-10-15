@@ -1,0 +1,96 @@
+cff-version: 1.2.0
+message: "If you use tsseg, please cite the paper below."
+title: "tsseg"
+abstract: >-
+  tsseg gathers classic and recent algorithms for time series segmentation,
+  change point detection and state detection, behind a single
+  scikit-learn-style API, with the metrics to evaluate them and an interactive
+  demo to compare them.
+type: software
+version: 0.3.0
+date-released: "2026-10-14"
+license: AGPL-3.0-only
+repository-code: "https://github.com/fchavelli/tsseg"
+url: "https://fchavelli.github.io/tsseg/"
+keywords:
+  - time series
+  - segmentation
+  - change point detection
+  - state detection
+  - machine learning
+authors:
+  - family-names: Chavelli
+    given-names: Félix
+    affiliation: "Inria, ENS, CNRS, PSL"
+  - family-names: Ermshaus
+    given-names: Arik
+    affiliation: "Humboldt-Universität zu Berlin"
+  - family-names: Yang
+    given-names: Fan
+    affiliation: "The Ohio State University"
+  - family-names: Schäfer
+    given-names: Patrick
+    affiliation: "Humboldt-Universität zu Berlin"
+  - family-names: Paparrizos
+    given-names: John
+    affiliation: "The Ohio State University and AUTh"
+  - family-names: Boniol
+    given-names: Paul
+    affiliation: "Inria, ENS, CNRS, PSL"
+preferred-citation:
+  type: conference-paper
+  title: "tsseg: An Interactive Toolkit for Time Series Segmentation"
+  authors:
+    - family-names: Chavelli
+      given-names: Félix
+    - family-names: Ermshaus
+      given-names: Arik
+    - family-names: Yang
+      given-names: Fan
+    - family-names: Schäfer
+      given-names: Patrick
+    - family-names: Paparrizos
+      given-names: John
+    - family-names: Boniol
+      given-names: Paul
+  collection-title: "Machine Learning and Knowledge Discovery in Databases. Applied Data Science Track, Demo Track and Industrial Track"
+  collection-type: proceedings
+  conference:
+    name: "European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML PKDD 2026)"
+  publisher:
+    name: "Springer Nature Switzerland"
+  isbn: "978-3-032-37685-5"
+  doi: "10.1007/978-3-032-37685-5_41"
+  start: 391
+  end: 394
+  year: 2026
+references:
+  - type: conference-paper
+    title: "TSB-SEG: A Systematic Time-Series Segmentation Benchmark"
+    authors:
+      - family-names: Chavelli
+        given-names: Félix
+      - family-names: Ermshaus
+        given-names: Arik
+      - family-names: Yang
+        given-names: Fan
+      - family-names: Schäfer
+        given-names: Patrick
+      - family-names: Paparrizos
+        given-names: John
+      - family-names: Boniol
+        given-names: Paul
+    collection-title: "Advances in Neural Information Processing Systems (NeurIPS), Evaluations and Datasets Track"
+    repository-code: "https://github.com/fchavelli/TSB-SEG"
+    year: 2026
+  - type: conference-paper
+    title: "Toward Interpretable Evaluation Measures for Time Series Segmentation"
+    authors:
+      - family-names: Chavelli
+        given-names: Félix
+      - family-names: Boniol
+        given-names: Paul
+      - family-names: Thomazo
+        given-names: Michaël
+    collection-title: "Advances in Neural Information Processing Systems"
+    year: 2025

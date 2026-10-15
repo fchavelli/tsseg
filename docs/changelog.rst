@@ -11,6 +11,10 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Add a ``CITATION.cff`` file, read by GitHub's *Cite this repository*
+  button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
+  README.
+
 0.3.0 (2026-10-14)
 ------------------
 

@@ -26,7 +26,8 @@
   <a href="https://huggingface.co/spaces/fchavelli/tsseg"><b>Live demo</b></a> ·
   <a href="https://fchavelli.github.io/tsseg/detectors/index.html"><b>Detectors</b></a> ·
   <a href="https://fchavelli.github.io/tsseg/evaluation.html"><b>Metrics</b></a> ·
-  <a href="https://fchavelli.github.io/tsseg/changelog.html"><b>Changelog</b></a>
+  <a href="https://fchavelli.github.io/tsseg/changelog.html"><b>Changelog</b></a> ·
+  <a href="https://github.com/fchavelli/TSB-SEG"><b>Benchmark</b></a>
 </p>
 
 <p align="center">
@@ -68,6 +69,9 @@ compare them. It covers the two faces of the problem:
 - **Fast classics.** PELT, BinSeg, BottomUp, DynP and Window run on a vendored
   copy of [ruptures](https://github.com/deepcharles/ruptures) with an optional
   numba backend.
+- **Benchmarked.** [TSB-SEG](https://github.com/fchavelli/TSB-SEG) (NeurIPS
+  2026) evaluates 26 tsseg detectors on 592 series from 8 datasets, for both
+  tasks, and publishes every run.
 - **Try it in the browser.** The
   [interactive demo](https://huggingface.co/spaces/fchavelli/tsseg) loads a custom
   series, runs the detectors and compares their results, with nothing to
@@ -293,7 +297,9 @@ pass.
 ## Citation
 
 If tsseg helps your work, please cite the
-[ECML-PKDD 2026 paper](https://doi.org/10.1007/978-3-032-37685-5_41):
+[ECML-PKDD 2026 paper](https://doi.org/10.1007/978-3-032-37685-5_41) (also
+available from GitHub's *Cite this repository* button, through
+[`CITATION.cff`](https://github.com/fchavelli/tsseg/blob/main/CITATION.cff)):
 
 ```bibtex
 @inproceedings{tsseg2026,
@@ -305,6 +311,18 @@ If tsseg helps your work, please cite the
   pages     = {391--394},
   publisher = {Springer Nature Switzerland},
   doi       = {10.1007/978-3-032-37685-5_41}
+}
+```
+
+If you compare segmentation methods, or use the results of the
+[TSB-SEG benchmark](https://github.com/fchavelli/TSB-SEG), please also cite:
+
+```bibtex
+@inproceedings{chavelli2026tsbseg,
+  title     = {{TSB-SEG}: A Systematic Time-Series Segmentation Benchmark},
+  author    = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS), Evaluations and Datasets Track},
+  year      = {2026}
 }
 ```
 
