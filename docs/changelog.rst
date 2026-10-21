@@ -30,6 +30,16 @@ Unreleased
   documents; the parameter check refused it.
 * Docs: the BinSeg page listed an ``"ar"`` cost model, which the parameter
   check refuses, and omitted ``"cosine"``, which it accepts.
+* Docs: the docstrings of ``ClaspDetector``, ``EspressoDetector``,
+  ``FLUSSDetector``, ``HMMDetector``, ``InformationGainDetector``,
+  ``RandomDetector``, ``TireDetector`` and ``TSCP2Detector`` document every
+  constructor parameter. ``EspressoDetector`` documented ``subsequence_length``
+  instead of ``window_size``, and ``InformationGainDetector`` a
+  ``change_points_`` attribute that is never set. The FLUSS, HMM and IGTS
+  examples use tsseg instead of aeon. Now documented: ``RandomDetector``
+  ignores ``n_change_points`` and ``n_states`` unless ``semi_supervised=True``;
+  ``TireDetector`` returns window indices when ``stride > 1``, and selects the
+  peaks by ``prominence_threshold`` when ``n_segments=1``.
 
 * ``AutoPlaitDetector`` no longer needs a C binary: the C code of Matsubara et
   al. (version of June 18, 2014) is translated to Python and compiled with

@@ -390,9 +390,9 @@ class _IGTS:
 
 
 class InformationGainDetector(BaseSegmenter):
-    """Information Gain based Temporal Segmentation (GTS) Estimator.
+    """Information Gain based Temporal Segmentation (IGTS) Estimator.
 
-    GTS is an unsupervised method for segmenting time series into
+    IGTS is an unsupervised method for segmenting time series into
     non-overlapping segments by locating change points that maximise the
     information gain.
 
@@ -400,7 +400,7 @@ class InformationGainDetector(BaseSegmenter):
     segmentation.  The aim is to find the segmentation that has the maximum
     information gain for a specified number of segments.
 
-    GTS uses a top-down search to greedily find the next change point that
+    IGTS uses a top-down search to greedily find the next change point that
     creates the maximum information gain.  Once found, the process repeats
     until ``k_max`` splits have been made, or until every candidate position
     (the multiples of ``step``) is already a change point, in which case fewer
@@ -412,28 +412,26 @@ class InformationGainDetector(BaseSegmenter):
 
     Parameters
     ----------
-    k_max: int, default=10
-        Maximum number of change points to find. The number of segments is thus k+1.
-
-    step: : int, default=5
+    k_max : int, default=10
+        Maximum number of change points to find, hence at most ``k_max + 1``
+        segments. ``0`` returns no change point.
+    step : int, default=5
         Step size, or stride for selecting candidate locations of change points.
-        Fox example a ``step=5`` would produce candidates [0, 5, 10, ...]. Has the same
-        meaning as ``step`` in ``range`` function.
+        For example a ``step=5`` would produce candidates [0, 5, 10, ...]. Has the
+        same meaning as ``step`` in ``range`` function.
 
     Attributes
     ----------
-    change_points_: list of change points as integer indexes.
-        By convention change points include the identity segmentation, i.e. first and last index + 1 values.
-
-    intermediate_results_: list of ``ChangePointResult``
-        Intermediate segmentation results for each k value, where k=1, 2, ..., k_max
+    intermediate_results_ : list of ``ChangePointResult``
+        One entry per change point added, in the order of the search: ``k``
+        (0 for the first change point), the information gain ``score`` and the
+        ``change_points`` found so far, with the boundaries 0 and ``n``.
 
     Notes
     -----
     Based on the work from [1]_.
     - alt. py implementation: https://github.com/cruiseresearchgroup/IGTS-python
     - MATLAB version: https://github.com/cruiseresearchgroup/IGTS-matlab
-    - paper available at:
 
     References
     ----------
@@ -444,13 +442,14 @@ class InformationGainDetector(BaseSegmenter):
 
     Examples
     --------
-    >>> from aeon.testing.data_generation import make_example_dataframe_series
-    >>> from sklearn.preprocessing import MinMaxScaler
-    >>> from aeon.segmentation import InformationGainSegmenter
-    >>> X = make_example_dataframe_series(n_channels=2, random_state=10)
-    >>> X_scaled = MinMaxScaler(feature_range=(0, 1)).fit_transform(X)
-    >>> igts = InformationGainSegmenter(k_max=3, step=2)
-    >>> y = igts.fit_predict(X_scaled, axis=0)
+    >>> import numpy as np
+    >>> from tsseg.algorithms import InformationGainDetector
+    >>> rng = np.random.default_rng(0)
+    >>> X = np.concatenate([rng.normal(0, 1, (100, 2)), rng.normal(5, 1, (100, 2))])
+    >>> X = np.concatenate([X, rng.normal(0, 1, (100, 2)) + [5, -5]])
+    >>> igts = InformationGainDetector(k_max=2, step=5)
+    >>> igts.fit_predict(X)
+    array([100, 200])
     """
 
     _tags = {
@@ -502,10 +501,8 @@ class InformationGainDetector(BaseSegmenter):
 
         Returns
         -------
-        y_pred : np.ndarray
-            1D array with predicted segmentation of the same size as X.
-            The numerical values represent distinct segment labels for each of the
-            data points.
+        np.ndarray
+            Sorted indices of the change points, without 0 and ``n``.
         """
         # k_max=0 → no change points requested (e.g. guided mode on a
         # single-segment signal).  Return empty prediction immediately.

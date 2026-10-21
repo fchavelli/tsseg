@@ -72,8 +72,70 @@ class TSCP2Detector(BaseSegmenter):
     This implementation mirrors the original TensorFlow TS-CP2 reference
     (Deldari et al., WWW'21, https://doi.org/10.1145/3442381.3449903).
 
+    Each window pair (history, future) of ``2 * window_size`` points is
+    encoded by a temporal convolutional network (TCN); the change score at the
+    centre of the pair is one minus the similarity of the two codes.
+
     Parameters
     ----------
+    window_size : int, default=128
+        Length of the history and of the future window. If the series has at
+        most ``2 * window_size`` points, ``window_size`` is halved (with a
+        printed warning) until it fits.
+    n_cps : int, optional
+        Number of change points: the centres of the ``n_cps`` window pairs with
+        the highest change score, with no minimum spacing. Takes precedence over
+        ``similarity_threshold``.
+    similarity_threshold : float, optional
+        Every pair centre whose similarity is below this value is a change
+        point. With neither ``n_cps`` nor ``similarity_threshold``, the
+        threshold is set by ``fit`` from the last training batch:
+        ``pos - (pos - neg) / 3``, with ``pos`` and ``neg`` the mean
+        similarities of positive and negative pairs.
+    stride : int, default=5
+        Step between consecutive window pairs, hence between candidate change
+        points.
+    code_size : int, default=32
+        Dimension of the learned representation.
+    nb_filters : int, default=64
+        Number of filters of the TCN.
+    kernel_size : int, default=4
+        Kernel size of the TCN.
+    dilations : tuple of int, default=(1, 2, 4, 8)
+        Dilation factors of the TCN layers; ``None`` means ``(1, 2, 4, 8)``.
+    nb_stacks : int, default=2
+        Number of stacks of residual blocks of the TCN.
+    dropout_rate : float, default=0.0
+        Dropout rate of the TCN.
+    dense_units : tuple of int, optional
+        Units of the ReLU dense layers between the TCN and the final linear
+        projection to ``code_size``. ``None`` means
+        ``(2 * (window_size // 2), window_size // 2)``.
+    batch_size : int, default=64
+        Training batch size; the last incomplete batch is dropped when there
+        are at least ``batch_size`` window pairs.
+    epochs : int, default=100
+        Number of training epochs.
+    learning_rate : float, default=1e-3
+        Learning rate of the Adam optimiser.
+    loss : str, default="nce"
+        Contrastive loss: ``"nce"`` or its alias ``"info_nce"`` (InfoNCE),
+        ``"dcl"`` (debiased), ``"fc"`` (focal, which drops the hardest
+        negatives) or ``"harddcl"`` (hard negatives).
+    temperature : float, default=0.1
+        Temperature of the contrastive loss.
+    tau : float, default=0.1
+        Class prior ``tau_plus`` of the ``"dcl"`` and ``"harddcl"`` losses.
+    beta : float, default=0.1
+        Weight of the reweighting of the negatives by their similarity in the
+        ``"harddcl"`` loss (``0``: no reweighting); for ``"fc"``, the fraction
+        of the hardest negatives that is dropped (clipped to [0, 0.5]).
+    similarity : str, default="cosine"
+        Similarity of two codes, used by the loss and by the change score:
+        ``"cosine"``, ``"dot"``, ``"euclidean"`` or ``"edit"``.
+    refit_on_predict : bool, default=False
+        Retrain the encoder on ``X`` when ``predict`` receives a series other
+        than the one seen by ``fit``.
     random_state : int or None, default=None
         Seed of the encoder's weight initialisation, the shuffling of the
         training windows and the dropout masks. ``None`` gives a different
@@ -81,11 +143,8 @@ class TSCP2Detector(BaseSegmenter):
         machine and TensorFlow build: every fit (including the refit done by
         ``refit_on_predict``) calls ``tf.keras.utils.set_random_seed``, which
         reseeds the global Python, NumPy and TensorFlow generators.
-
-    Notes
-    -----
-    The other parameters are described in the user guide
-    (``docs/detectors/tscp2.rst``) and in ``_parameter_schema``.
+    axis : int, default=0
+        The time axis of ``X``: ``0`` if time points are rows.
     """
 
     _tags = {
