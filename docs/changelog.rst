@@ -30,6 +30,11 @@ Unreleased
   documents; the parameter check refused it.
 * Docs: the BinSeg page listed an ``"ar"`` cost model, which the parameter
   check refuses, and omitted ``"cosine"``, which it accepts.
+* Docs: the contributing guide names the six modules of the generic detector
+  test suite (it listed four), states the change-point output they check
+  (strictly increasing indices in ``[1, N - 1]``) and the extras the CI
+  installs; ``tests/README.md`` describes the current helpers of
+  ``tests/algorithms/conftest.py``.
 
 * ``AutoPlaitDetector`` no longer needs a C binary: the C code of Matsubara et
   al. (version of June 18, 2014) is translated to Python and compiled with
