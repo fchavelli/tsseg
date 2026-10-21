@@ -89,7 +89,7 @@ extra, for instance `pip install "tsseg[torch]"`, or all of them at once with
 
 | Extra | Adds | For |
 | --- | --- | --- |
-| `tsseg[accelerators]` | Numba, Cython | CLaP, ClaSP and E-Agglo (required); HDP-HSMM (speed-up) |
+| `tsseg[accelerators]` | Numba, Cython | AutoPlait, CLaP, ClaSP and E-Agglo (required); HDP-HSMM (speed-up) |
 | `tsseg[aeon]` | aeon's time series classifiers | `ClapDetector` |
 | `tsseg[torch]` | PyTorch | `TireDetector`, `Time2StateDetector`, `E2USDDetector` |
 | `tsseg[tglad]` | PyTorch, NetworkX | `TGLADDetector` |
@@ -101,10 +101,7 @@ extra, for instance `pip install "tsseg[torch]"`, or all of them at once with
 | `tsseg[docs]` | Sphinx toolchain | building the documentation |
 | `tsseg[all]` | everything above | |
 
-`FLUSSDetector` needs `stumpy` (`pip install stumpy`), and `AutoPlaitDetector` a
-C binary built from
-[`c/autoplait`](https://github.com/fchavelli/tsseg/tree/main/c/autoplait) (see
-its [documentation page](https://fchavelli.github.io/tsseg/detectors/autoplait.html)).
+`FLUSSDetector` needs `stumpy` (`pip install stumpy`).
 The `tsseg[patss]` extra installs nothing: the deprecated `PatssDetector` needs
 `npbad`, which is not on PyPI and must be installed by hand.
 
@@ -373,7 +370,7 @@ Several algorithms bundle adapted or vendored code under their own licenses.
 | `rulsif/` (port of the authors' MATLAB code) | MIT | [anewgithubname/change_detection](https://github.com/anewgithubname/change_detection) |
 | `snlds/vendor/` | Apache-2.0 | [google-research/snlds](https://github.com/google-research/google-research/tree/master/snlds) |
 | `tglad/vendor/` (uGLAD) | Non-Commercial | [Harshs27/tGLAD](https://github.com/Harshs27/tGLAD) |
-| `autoplait/` | not specified | [Matsubara et al.](https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html) |
+| `autoplait/` (translation of the authors' C code) | not specified | [Matsubara et al.](https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html) |
 | `e2usd/` | not specified | [AI4CTS/E2Usd](https://github.com/AI4CTS/E2Usd) |
 | `espresso/` | not specified | [cruiseresearchgroup/ESPRESSO](https://github.com/cruiseresearchgroup/ESPRESSO) |
 | `ticc/` | BSD-2 | [davidhallac/TICC](https://github.com/davidhallac/TICC) |

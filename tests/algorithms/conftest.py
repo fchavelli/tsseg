@@ -11,30 +11,14 @@ falls back to sensible defaults (default constructor, no special dependencies).
 
 from __future__ import annotations
 
-import shutil
 from dataclasses import dataclass
 from importlib.util import find_spec
-from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
 
 import tsseg.algorithms as _algorithms_module
-
-
-def _autoplait_binary_available() -> bool:
-    """Check if the AutoPlait C binary is available."""
-    # Check relative to the package
-    try:
-        pkg_root = Path(__file__).resolve().parents[2]
-        binary = pkg_root / "c" / "autoplait" / "autoplait"
-        if binary.is_file():
-            return True
-    except Exception:
-        pass
-    return shutil.which("autoplait") is not None
-
 
 # ======================================================================
 # Per-algorithm overrides
@@ -69,12 +53,7 @@ class AlgorithmOverride:
 # Only algorithms that *cannot* be instantiated with a bare ``Cls()`` need
 # an entry here.  Everything else is discovered and tested automatically.
 ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
-    # --- C binary (c/autoplait/autoplait, or autoplait on PATH) ---------
-    "AutoPlaitDetector": AlgorithmOverride(
-        skip_reason=(
-            None if _autoplait_binary_available() else "AutoPlait C binary not built"
-        ),
-    ),
+    "AutoPlaitDetector": AlgorithmOverride(dependencies=("numba",)),
     # --- Rbeast (tsseg[beast]) -----------------------------------------
     "BeastDetector": AlgorithmOverride(dependencies=("Rbeast",)),
     "ChangeForestDetector": AlgorithmOverride(dependencies=("changeforest",)),

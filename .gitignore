@@ -51,10 +51,6 @@ docs/_build/
 .env
 .conda
 
-# Compiled C binaries
-c/autoplait/autoplait
-c/autoplait/*.o
-
 # Notebooks
 notebooks/demo/
 docs/make.bat
