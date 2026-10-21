@@ -75,7 +75,7 @@ ClaSP parameters
    * - ``score``
      - str
      - ``"roc_auc"``
-     - Scoring function for the profile.
+     - Scoring function for the profile (``"roc_auc"`` or ``"f1"``).
    * - ``early_stopping``
      - bool
      - ``True``
@@ -111,11 +111,16 @@ CLaP parameters
    * - ``classifier``
      - str
      - ``"rocket"``
-     - Time series classifier (``"rocket"``, ``"knn"``, ``"svm"``).
+     - aeon time series classifier: ``"rocket"``, ``"mrhydra"``
+       (MultiRocket-Hydra), ``"weasel"`` (WEASEL 2.0), ``"quant"``, ``"rdst"``,
+       ``"proximityforest"``, ``"freshprince"`` or ``"inception"`` (needs
+       ``aeon[dl]``).
    * - ``merge_score``
      - str
      - ``"cgain"``
-     - Scoring function for segment merging.
+     - Score that decides whether two confused labels are merged:
+       ``"cgain"`` (classification gain), ``"f1_score"``, ``"log_loss"``,
+       ``"ami"``, ``"hamming_loss"`` or ``"roc_auc"``.
    * - ``n_splits``
      - int
      - ``5``
@@ -133,9 +138,9 @@ CLaP parameters
      - ``None``
      - Number of change points (overrides ``n_segments``; ``0`` = one segment).
    * - ``change_points``
-     - list / None
+     - array-like / None
      - ``None``
-     - Pre-computed change points for exact mode.
+     - Known change points (exact mode; ClaSP is not run).
    * - ``n_segments``
      - int / None
      - ``None``

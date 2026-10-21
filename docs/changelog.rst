@@ -14,6 +14,20 @@ Unreleased
 * Add a ``CITATION.cff`` file, read by GitHub's *Cite this repository*
   button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
   README.
+* ``ClapDetector`` accepts the classifiers and merge scores that CLaP
+  implements: ``classifier`` in {``"rocket"``, ``"mrhydra"``, ``"weasel"``,
+  ``"quant"``, ``"rdst"``, ``"proximityforest"``, ``"freshprince"``,
+  ``"inception"``} and ``merge_score`` in {``"cgain"``, ``"f1_score"``,
+  ``"log_loss"``, ``"ami"``, ``"hamming_loss"``, ``"roc_auc"``}. Since 0.1.1 its
+  parameter check refused all of them but ``"rocket"`` and ``"cgain"``, so
+  ``classifier="mrhydra"`` (the Fixed configuration of CLaP in TSB-SEG) raised
+  ``ValueError``; it allowed ``"knn"``, ``"svm"`` and ``"score"``, which failed
+  later, in ``fit``, and are now refused upfront.
+* ``ClapDetector(change_points=...)`` (known change points) works: an array was
+  refused by the parameter check and a list failed in ``fit``
+  (``AttributeError``). Lists, tuples and arrays are accepted.
+* ``ClaspDetector`` accepts ``score="f1"``, which ClaSP implements and
+  documents; the parameter check refused it.
 
 0.3.0 (2026-10-14)
 ------------------

@@ -23,7 +23,6 @@ DETECTORS = [name for name in algorithms.__all__ if name.endswith("Detector")]
 # batch (their files are being changed elsewhere). ``strict=True``: the entry
 # must go once the docstring is fixed.
 KNOWN_GAPS = {
-    "ClapDetector": "documents a semi_supervised parameter that does not exist",
     "ClaspDetector": "seven parameters are not documented",
     "EspressoDetector": "documents subsequence_length; the parameter is window_size",
     "FLUSSDetector": "axis is not documented",

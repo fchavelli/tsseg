@@ -102,8 +102,8 @@ class ClaspDetector(BaseSegmenter):
             description="Distance function for k-NN.",
         ),
         "score": ParamDef(
-            constraint=StrOptions({"roc_auc"}),
-            description="Scoring function for the profile.",
+            constraint=StrOptions({"roc_auc", "f1"}),
+            description="Scoring function for the profile ('roc_auc' or 'f1').",
         ),
         "early_stopping": ParamDef(
             constraint=HasType((bool,)),
