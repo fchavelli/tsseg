@@ -28,6 +28,8 @@ Unreleased
   (``AttributeError``). Lists, tuples and arrays are accepted.
 * ``ClaspDetector`` accepts ``score="f1"``, which ClaSP implements and
   documents; the parameter check refused it.
+* Docs: the BinSeg page listed an ``"ar"`` cost model, which the parameter
+  check refuses, and omitted ``"cosine"``, which it accepts.
 
 0.3.0 (2026-10-14)
 ------------------
