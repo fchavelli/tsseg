@@ -19,19 +19,9 @@ import tsseg.algorithms as algorithms
 
 DETECTORS = [name for name in algorithms.__all__ if name.endswith("Detector")]
 
-# Detectors whose docstring is known to be incomplete, to be fixed in a later
-# batch (their files are being changed elsewhere). ``strict=True``: the entry
-# must go once the docstring is fixed.
-KNOWN_GAPS = {
-    "ClaspDetector": "seven parameters are not documented",
-    "EspressoDetector": "documents subsequence_length; the parameter is window_size",
-    "FLUSSDetector": "axis is not documented",
-    "HMMDetector": "two parameter lines lack the ' : ' separator",
-    "InformationGainDetector": "two parameter lines lack the ' : ' separator",
-    "RandomDetector": "no Parameters section",
-    "TireDetector": "no Parameters section",
-    "TSCP2Detector": "no Parameters section",
-}
+# Detectors whose docstring is known to be incomplete. ``strict=True``: an
+# entry must go once its docstring is fixed.
+KNOWN_GAPS: dict[str, str] = {}
 
 _SECTION_RE = re.compile(r"^(\w[\w ]*)\n-{3,}$", re.M)
 _ARITHMETIC_RE = re.compile(r"^(?:[\d\s.+\-*/()]|sqrt)+$")
