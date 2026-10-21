@@ -3,6 +3,8 @@ This module provides a wrapper for the CLaP algorithm to integrate it
 with the tsseg library's API.
 """
 
+import numpy as np
+
 from ..base import BaseSegmenter
 
 # from ..clap.clasp_detector import ClaspDetector
@@ -29,9 +31,19 @@ class ClapDetector(BaseSegmenter):
     window_size : str or int, default="suss"
         The window size or the method to determine it ('suss', 'fft', 'acf').
     classifier : str, default="rocket"
-        The classifier to use for state detection.
+        The aeon time series classifier that is cross-validated on the
+        segments: ``"rocket"`` (``RocketClassifier``), ``"mrhydra"``
+        (``MultiRocketHydraClassifier``), ``"weasel"`` (``WEASEL_V2``),
+        ``"quant"`` (``QUANTClassifier``), ``"rdst"`` (``RDSTClassifier``),
+        ``"proximityforest"`` (``ProximityForest``), ``"freshprince"``
+        (``FreshPRINCEClassifier``) or ``"inception"``
+        (``IndividualInceptionClassifier``, which needs the aeon deep learning
+        extras, ``pip install aeon[dl]``).
     merge_score : str, default="cgain"
-        The scoring function to decide on merging segments.
+        The score that decides whether two confused segment labels are merged:
+        ``"cgain"`` (classification gain), ``"f1_score"`` (macro F1),
+        ``"log_loss"``, ``"ami"`` (adjusted mutual information),
+        ``"hamming_loss"`` or ``"roc_auc"``.
     n_splits : int, default=5
         Number of splits for cross-validation.
     n_jobs : int, default=1
@@ -42,35 +54,29 @@ class ClapDetector(BaseSegmenter):
         Random seed for reproducibility.
     axis : int, default=0
         The axis of the time series data.
-    change_points : np.ndarray, optional
-        Pre-computed change points. Used if `semi_supervised` is True.
     n_change_points : int, optional
         The number of change points to find (guided mode). Takes precedence
         over ``n_segments``; ``0`` yields a single segment, hence one state.
+    change_points : array-like of int, optional
+        Known change points (exact mode). When given, ClaSP is not run and
+        ``n_change_points`` and ``n_segments`` are ignored.
     n_segments : int, optional
-        The number of segments to find. Used if `semi_supervised` is False to
-        guide the unsupervised change point detection.
-    semi_supervised : bool, default=False
-        If True, uses provided change points for fitting. Change points can be
-        provided via the `change_points` parameter at initialization or via `y`
-        in the `fit` method. If False, detects change points automatically.
+        The number of segments to find (guided mode), passed to ClaSP.
 
     Notes
     -----
-    The detector requires a list of change points to segment the series. Three
-    usage patterns are supported:
+    CLaP labels the segments between change points. Three usage patterns are
+    supported:
 
-    * **Exact semi-supervised** – enable ``semi_supervised=True`` and supply
-        the true change points via the ``change_points`` parameter at
-        initialisation or as ``y`` during :meth:`fit`. The semi-supervised tag is
-        set accordingly so the test suite can forward labels.
-    * **Guided semi-supervised** – keep ``semi_supervised=False`` but pass
-        ``n_segments``. The provided segment count is forwarded to the underlying
-        change-point estimator (``BinaryClaSPSegmentation`` by default), acting as
-        a coarse constraint that typically sharpens the predicted breakpoints.
-    * **Fully unsupervised** – the default behaviour, where no prior change
-        point information is given. The change-point detector estimates breakpoints
-        without guidance.
+    * **Exact** – pass the known change points as ``change_points``; they are
+      used as they are.
+    * **Guided** – pass ``n_change_points`` (or ``n_segments``). The count is
+      forwarded to ``BinaryClaSPSegmentation``, which finds that many change
+      points.
+    * **Fully unsupervised** – the default behaviour: ClaSP estimates the
+      change points and their number.
+
+    ``y`` is never used: :meth:`fit` ignores it.
 
     Attributes
     ----------
@@ -102,11 +108,24 @@ class ClapDetector(BaseSegmenter):
             description="Window size or auto-detection method.",
         ),
         "classifier": ParamDef(
-            constraint=StrOptions({"rocket", "knn", "svm"}),
-            description="Classifier for state detection.",
+            constraint=StrOptions(
+                {
+                    "mrhydra",
+                    "rocket",
+                    "weasel",
+                    "quant",
+                    "rdst",
+                    "proximityforest",
+                    "freshprince",
+                    "inception",
+                }
+            ),
+            description="aeon classifier cross-validated on the segments.",
         ),
         "merge_score": ParamDef(
-            constraint=StrOptions({"cgain", "score"}),
+            constraint=StrOptions(
+                {"cgain", "f1_score", "log_loss", "ami", "hamming_loss", "roc_auc"}
+            ),
             description="Scoring function for segment merging.",
         ),
         "n_splits": ParamDef(
@@ -137,8 +156,8 @@ class ClapDetector(BaseSegmenter):
             nullable=True,
         ),
         "change_points": ParamDef(
-            constraint=HasType((list,)),
-            description="Pre-computed change points for semi-supervised mode.",
+            constraint=HasType((list, tuple, np.ndarray)),
+            description="Known change points (exact mode; ClaSP is not run).",
             nullable=True,
             ui_hidden=True,
         ),
@@ -180,21 +199,16 @@ class ClapDetector(BaseSegmenter):
         """
         Fits the CLaP model to the provided time series data.
 
-        In semi-supervised mode (`semi_supervised=True`), the model uses pre-defined
-        change points. These can be provided either via the `change_points` parameter
-        during initialization or via the `y` parameter to this method. If both are
-        provided, `change_points` from initialization takes precedence.
-
-        In unsupervised mode (`semi_supervised=False`), change points are detected
-        automatically using `ClaspDetector`.
+        The change points are ``change_points`` when given (exact mode);
+        otherwise ``BinaryClaSPSegmentation`` finds them, guided by
+        ``n_change_points`` or ``n_segments`` when either is set.
 
         Parameters
         ----------
         X : np.ndarray
             A 1D or 2D numpy array representing the time series.
-        y : np.ndarray, optional
-            Change points or state labels, used only if `semi_supervised` is True
-            and the `change_points` parameter was not provided at initialization.
+        y : None
+            Ignored.
 
         Returns
         -------
@@ -215,8 +229,8 @@ class ClapDetector(BaseSegmenter):
 
         # Determine change points
         if self.change_points is not None:
-            # Exact mode (via init)
-            self.change_points_ = self.change_points
+            # Exact mode (via init). CLaP reads ``change_points.shape``.
+            self.change_points_ = np.asarray(self.change_points, dtype=int)
         else:
             # Unsupervised or Guided Semi-Supervised
             target_n_segments = self.n_segments
