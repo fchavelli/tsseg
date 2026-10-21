@@ -96,6 +96,11 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     "EspressoDetector": AlgorithmOverride(
         init_kwargs={"n_segments": 3, "window_size": 10},
     ),
+    # Without n_states, TICC is fitted for each number of states up to
+    # max_states (8 by default): three candidates keep the tests short.
+    "TiccDetector": AlgorithmOverride(
+        init_kwargs={"window_size": 3, "max_states": 3},
+    ),
     # --- Optional heavy dependencies ----------------------------------
     "ClapDetector": AlgorithmOverride(dependencies=("numba", "aeon")),
     "EAggloDetector": AlgorithmOverride(dependencies=("numba",)),

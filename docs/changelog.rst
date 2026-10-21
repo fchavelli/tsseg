@@ -15,6 +15,22 @@ Unreleased
   button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
   README.
 
+* ``TiccDetector`` runs without ``n_states``: with ``n_states=None``, the new
+  default (it was ``5``), the number of states is chosen by the Bayesian
+  information criterion among ``1, ..., max_states`` (new parameter, default
+  ``8``), as the TICC paper recommends. The criterion counts the free entries
+  of each block Toeplitz precision matrix, the means and the switches, and
+  divides the log-likelihood of the overlapping windows by ``window_size``
+  (see the docstring); the attributes ``n_states_`` and ``bic_`` report the
+  choice. The detector is tagged ``capability:unsupervised``. Pass
+  ``n_states=5`` to keep the former behaviour.
+* The TICC solver returns the same labels two to five times faster: it runs in
+  the calling process when ``num_proc=1`` (it always started a process pool),
+  its ADMM Z-update and its assignment step are vectorised, and it no longer
+  computes, at each iteration, a k-means clustering and confusion matrices
+  that it did not use. It no longer reseeds NumPy's global random generator
+  nor changes the print options of NumPy and pandas.
+
 0.3.0 (2026-10-14)
 ------------------
 
