@@ -23,10 +23,15 @@ _GUIDED_WITHOUT_COUNT = {
 }
 
 
-# Detectors whose schema still refuses a single-regime guidance: the detector
-# itself has not been run with it yet (it needs TensorFlow).
+# Detectors whose schema still refuses a single-regime guidance, because the
+# detector itself has not been checked with it yet.
 _NOT_YET_CHECKED = {
     "TSCP2Detector": "n_cps=0 not yet checked against the TensorFlow model",
+    "BOCDDetector": "the schema requires max_cps >= 1; max_cps=0 not yet checked",
+    "BeastDetector": "the schema requires max_cps >= 1; max_cps=0 not yet checked",
+    "GreedyGaussianDetector": (
+        "the schema requires k_max >= 1; k_max=0 not yet checked"
+    ),
 }
 
 
