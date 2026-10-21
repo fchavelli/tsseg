@@ -15,6 +15,19 @@ Unreleased
   button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
   README.
 
+* ``AutoPlaitDetector`` no longer needs a C binary: the C code of Matsubara et
+  al. (version of June 18, 2014) is translated to Python and compiled with
+  numba (``tsseg[accelerators]``), random draws included. It returns the
+  segmentation of the binary built with GCC on Linux (same segments, same
+  total cost on the 9 MoCap trials of ``load_mocap``, the 7 demo series of the
+  C code and 38 series of ActRecTut, HAS, PUMP, SKAB, TSSB, USC-HAD and UTSA)
+  and runs 2 to 8 times faster. Series of more than 15 channels, which the binary read as a
+  longer series (``ValueError`` since 0.3.0), are segmented; a constant
+  channel is set to zero instead of yielding ``NaN`` values. ``c/autoplait/``,
+  the runner ``tsseg.algorithms.autoplait.autoplait_c`` and the
+  ``AUTOPLAIT_DIR`` variable are removed. ``AutoPlaitDetector`` gains the
+  ``n_regimes_`` and ``cost_`` attributes.
+
 0.3.0 (2026-10-14)
 ------------------
 
