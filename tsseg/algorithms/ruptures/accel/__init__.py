@@ -17,7 +17,7 @@ run on a copy of the signal whose channels far from 0 are shifted to it
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 
 import numpy as np
 
@@ -99,7 +99,7 @@ def shifted(x: np.ndarray) -> np.ndarray:
     return np.ascontiguousarray(x - shift)
 
 
-@lru_cache(maxsize=None)
+@cache
 def numpy_block() -> int:
     """The ``block`` of ``np_sum`` that sums as the installed numpy does.
 
