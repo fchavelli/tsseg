@@ -229,7 +229,7 @@ Each name links to the documentation page of the detector.
 | [HDP-HSMM](https://fchavelli.github.io/tsseg/detectors/hdp_hsmm.html)<br>`HdpHsmmDetector` | Bayesian nonparametric semi-Markov model | ✓ | ✓ | Johnson & Willsky (2013), JMLR |
 | [Hidalgo](https://fchavelli.github.io/tsseg/detectors/hidalgo.html)<br>`HidalgoDetector` | local intrinsic dimension | | ✓ | Allegra et al. (2020), Sci. Rep. |
 | [SNLDS](https://fchavelli.github.io/tsseg/detectors/snlds.html) 📦<br>`SNLDSDetector` | switching nonlinear dynamical system (experimental) | | ✓ | Dong et al. (2020), ICML |
-| [TICC](https://fchavelli.github.io/tsseg/detectors/ticc.html)<br>`TiccDetector` | Toeplitz inverse covariance clustering | | ✓ | Hallac et al. (2017), KDD |
+| [TICC](https://fchavelli.github.io/tsseg/detectors/ticc.html)<br>`TiccDetector` | Toeplitz inverse covariance clustering | ✓ | ✓ | Hallac et al. (2017), KDD |
 | [Time2State](https://fchavelli.github.io/tsseg/detectors/time2state.html) 📦<br>`Time2StateDetector` | contrastive encoder, clustering | ✓ | ✓ | Wang et al. (2023), SIGMOD |
 
 </details>
