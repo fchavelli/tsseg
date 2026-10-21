@@ -74,6 +74,11 @@ Unreleased
   computes, at each iteration, a k-means clustering and confusion matrices
   that it did not use. It no longer reseeds NumPy's global random generator
   nor changes the print options of NumPy and pandas.
+* The pages of IGTS, TS-CP2, PaTSS and SNLDS give their time complexity, so
+  every detector page now does. The SNLDS page said that a training step
+  costs :math:`O(B\,L\,K^{2})`; :math:`K^{2}` is only the forward-backward
+  recursion, and the discrete transition network costs :math:`O(K^{4})` per
+  time step.
 
 0.3.0 (2026-10-14)
 ------------------
