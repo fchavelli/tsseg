@@ -15,22 +15,12 @@ import pytest
 
 from tsseg.algorithms.param_schema import validate_params
 
-from .conftest import apply_supervision
+from .conftest import SUPERVISION_PARAMS, apply_supervision
 
-# Constructor parameters that ``apply_supervision`` may set from the labels.
-_SUPERVISION_PARAMS = (
-    "n_cps",
-    "n_change_points",
-    "n_bkps",
-    "n_breakpoints",
-    "N",
-    "n_segments",
-    "n_states",
-    "n_regimes",
-    "n_clusters",
-    "n_components",
-    "K",
-)
+# Guided detectors that take no count: the guidance is something else.
+_GUIDED_WITHOUT_COUNT = {
+    "HMMDetector": "the number of states is the number of emission functions",
+}
 
 
 # Detectors whose schema still refuses a single-regime guidance: the detector
@@ -47,8 +37,34 @@ def _supervision_errors(instance, n_samples: int) -> list[str]:
     return [
         err
         for err in errors
-        if any(err.startswith(f"{name}=") for name in _SUPERVISION_PARAMS)
+        if any(err.startswith(f"{name}=") for name in SUPERVISION_PARAMS)
     ]
+
+
+def test_supervision_sets_a_constructor_parameter(algorithm):
+    """``apply_supervision`` guides every detector that has a guided mode.
+
+    Otherwise the guided tests of this module and of the generic suite run
+    the detector with its unsupervised defaults.
+    """
+    name, _cls, _ovr, instance = algorithm
+    if not instance.get_tag(
+        "capability:semi_supervised", raise_error=False, tag_value_default=False
+    ):
+        pytest.skip(f"{name} has no guided mode")
+    if name in _GUIDED_WITHOUT_COUNT:
+        pytest.skip(_GUIDED_WITHOUT_COUNT[name])
+    # Two change points, three segments, two states: each count differs.
+    labels = np.repeat([0, 1, 0], 10)
+    expected = {"change_points": 2, "segments": 3, "states": 2}
+    apply_supervision(instance, labels)
+    guided = {
+        param: value
+        for param, value in instance.get_params(deep=False).items()
+        if param in SUPERVISION_PARAMS
+    }
+    assert guided, f"{name}: no constructor parameter is set by apply_supervision"
+    assert guided == {param: expected[SUPERVISION_PARAMS[param]] for param in guided}
 
 
 def test_schema_accepts_single_regime_guidance(algorithm, request):

@@ -142,36 +142,41 @@ def make_instance(cls, override: AlgorithmOverride | None = None):
     return cls(**kwargs)
 
 
+#: Parameter names that :func:`apply_supervision` sets, with the count each
+#: one receives: ``"change_points"``, ``"segments"`` or ``"states"``.
+SUPERVISION_PARAMS: dict[str, str] = {
+    # change-point count aliases
+    "n_cps": "change_points",
+    "n_change_points": "change_points",
+    "n_bkps": "change_points",
+    "n_breakpoints": "change_points",
+    "N": "change_points",
+    # segment count aliases
+    "n_segments": "segments",
+    # state count aliases
+    "n_states": "states",
+    "n_regimes": "states",
+    "n_clusters": "states",
+    "n_components": "states",
+    "K": "states",
+}
+
+
 def apply_supervision(instance, y: np.ndarray) -> None:
     """Inject supervision info for semi-supervised algorithms.
 
     Sets ``n_segments``, ``n_states``, etc. on the instance based on ``y``,
     mimicking what a benchmark harness would do.
     """
-    cps = np.flatnonzero(np.diff(y) != 0) + 1
-    n_cps = len(cps)
-    n_segments = n_cps + 1
-    n_states = len(np.unique(y))
-
-    attr_map = {
-        # change-point count aliases
-        "n_cps": n_cps,
-        "n_change_points": n_cps,
-        "n_bkps": n_cps,
-        "n_breakpoints": n_cps,
-        "N": n_cps,
-        # segment count aliases
-        "n_segments": n_segments,
-        # state count aliases
-        "n_states": n_states,
-        "n_regimes": n_states,
-        "n_clusters": n_states,
-        "n_components": n_states,
-        "K": n_states,
+    n_cps = int(np.count_nonzero(np.diff(y) != 0))
+    counts = {
+        "change_points": n_cps,
+        "segments": n_cps + 1,
+        "states": len(np.unique(y)),
     }
-    for attr, value in attr_map.items():
+    for attr, kind in SUPERVISION_PARAMS.items():
         if hasattr(instance, attr):
-            setattr(instance, attr, value)
+            setattr(instance, attr, counts[kind])
 
 
 # ======================================================================
