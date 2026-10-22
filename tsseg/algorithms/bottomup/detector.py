@@ -20,6 +20,9 @@ from ..ruptures.utils import bic_penalty
 
 __all__ = ["BottomUpDetector"]
 
+# penalty used when none of n_cps, penalty and epsilon is given
+_DEFAULT_PENALTY = 10.0
+
 
 class BottomUpDetector(BaseSegmenter):
     """Bottom-up change point detector using the vendored ruptures implementation.
@@ -32,9 +35,8 @@ class BottomUpDetector(BaseSegmenter):
     ----------
     n_cps : int or None, default=None
         Number of change points to return. When given, ``penalty`` and
-        ``epsilon`` are ignored, with a ``UserWarning`` for each one that is not
-        ``None`` (``penalty`` is 10 by default, so pass ``penalty=None`` to
-        avoid the warning).
+        ``epsilon`` are ignored, with a ``UserWarning`` for each one that is
+        also given.
     model : {"l2", "l1", "rbf", "linear", "normal", "cosine"}, default="l2"
         Cost model: least squares (``"l2"``), least absolute deviation
         (``"l1"``), Gaussian kernel (``"rbf"``), linear regression
@@ -45,19 +47,20 @@ class BottomUpDetector(BaseSegmenter):
     jump : int, default=5
         Sub-sampling factor for candidate breakpoints: only multiples of
         ``jump`` are considered.
-    penalty : float or None, default=10
+    penalty : float or None, default=None
         Penalty per change point, used when ``n_cps`` is ``None``: merging
         continues while the cheapest merge increases the cost by less than
-        ``penalty``. Must be strictly positive. At most one of ``penalty`` and ``epsilon`` may be
-        set, so ``epsilon`` requires ``penalty=None``.
+        ``penalty``. Must be strictly positive. ``None`` means 10 when neither
+        ``n_cps`` nor ``epsilon`` is given, and no penalty otherwise. At most
+        one of ``penalty`` and ``epsilon`` may be set.
     pen_scale : {None, "bic"}, default=None
         ``None``: ``penalty`` is used as is. ``"bic"``: ``penalty`` is a
         coefficient on ``log(n) * u``, u the cost of one sample of the whole
         signal (d for ``"l2"`` on unit-variance channels, where it is the BIC
         penalty; 1 for the kernel costs).
     epsilon : float or None, default=None
-        Reconstruction budget, used when ``n_cps`` is ``None`` and
-        ``penalty=None``: merging continues while the total cost of the
+        Reconstruction budget, used when ``n_cps`` and ``penalty`` are
+        ``None``: merging continues while the total cost of the
         segmentation is below ``epsilon``. Must be strictly positive.
     cost_params : dict or None, default=None
         Extra keyword arguments forwarded to the cost (for instance
@@ -72,8 +75,7 @@ class BottomUpDetector(BaseSegmenter):
     Raises
     ------
     ValueError
-        If ``n_cps``, ``penalty`` and ``epsilon`` are all ``None``, if both
-        ``penalty`` and ``epsilon`` are set without ``n_cps``, or if
+        If both ``penalty`` and ``epsilon`` are set without ``n_cps``, or if
         ``penalty`` or ``epsilon`` is not strictly positive.
     """
 
@@ -165,7 +167,7 @@ class BottomUpDetector(BaseSegmenter):
         model: str = "l2",
         min_size: int = 2,
         jump: int = 5,
-        penalty: float | None = 10,
+        penalty: float | None = None,
         pen_scale: str | None = None,
         epsilon: float | None = None,
         cost_params: dict | None = None,
@@ -180,8 +182,8 @@ class BottomUpDetector(BaseSegmenter):
 
         if self.n_cps is None:
             if penalty_value is None and epsilon_value is None:
-                raise ValueError("Provide at least one of n_cps, penalty, epsilon")
-            if penalty_value is not None and epsilon_value is not None:
+                penalty_value = _DEFAULT_PENALTY
+            elif penalty_value is not None and epsilon_value is not None:
                 raise ValueError("Provide at most one of n_cps, penalty, epsilon")
         else:
             if penalty_value is not None:

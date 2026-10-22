@@ -23,6 +23,9 @@ from ..ruptures.utils import bic_penalty
 
 __all__ = ["BinSegDetector"]
 
+# penalty used when none of n_cps, penalty and epsilon is given
+_DEFAULT_PENALTY = 10.0
+
 
 def _ensure_time_major(X: Any, *, axis: int) -> np.ndarray:
     """Coerce input into a 2D time-major array."""
@@ -47,9 +50,8 @@ class BinSegDetector(BaseSegmenter):
     ----------
     n_cps : int or None, default=None
         Number of change points to return. When given, ``penalty`` and
-        ``epsilon`` are ignored, with a ``UserWarning`` for each one that is not
-        ``None`` (``penalty`` is 10 by default, so pass ``penalty=None`` to
-        avoid the warning). When ``None``, splitting stops on ``penalty`` or
+        ``epsilon`` are ignored, with a ``UserWarning`` for each one that is
+        also given. When ``None``, splitting stops on ``penalty`` or
         ``epsilon``.
     model : str, default="l2"
         Cost model passed to ruptures. Examples include "l2", "l1", "rbf".
@@ -57,18 +59,19 @@ class BinSegDetector(BaseSegmenter):
         Minimum segment length enforced during the binary search.
     jump : int, default=5
         Sub-sampling factor for candidate breakpoints.
-    penalty : float or None, default=10
+    penalty : float or None, default=None
         Penalty per change point, used when ``n_cps`` is ``None``: splitting
         continues while the best split lowers the cost by more than
-        ``penalty``. Must be strictly positive. At most one of ``penalty`` and
-        ``epsilon`` may be set, so ``epsilon`` requires ``penalty=None``.
+        ``penalty``. Must be strictly positive. ``None`` means 10 when neither
+        ``n_cps`` nor ``epsilon`` is given, and no penalty otherwise. At most
+        one of ``penalty`` and ``epsilon`` may be set.
     pen_scale : {None, "bic"}, default=None
         ``"bic"``: ``penalty`` is a coefficient on ``log(n) * u``, u the cost of
         one sample of the whole signal (d for ``"l2"`` on unit-variance
         channels, where it is the BIC penalty; 1 for the kernel costs).
     epsilon : float or None, default=None
-        Reconstruction budget, used when ``n_cps`` is ``None`` and
-        ``penalty=None``: splitting continues while the total cost of the
+        Reconstruction budget, used when ``n_cps`` and ``penalty`` are
+        ``None``: splitting continues while the total cost of the
         segmentation exceeds ``epsilon``. Must be strictly positive.
     custom_cost : BaseCost, optional
         Pre-instantiated ruptures cost object.
@@ -85,8 +88,7 @@ class BinSegDetector(BaseSegmenter):
     Raises
     ------
     ValueError
-        If ``n_cps``, ``penalty`` and ``epsilon`` are all ``None``, if both
-        ``penalty`` and ``epsilon`` are set without ``n_cps``, or if
+        If both ``penalty`` and ``epsilon`` are set without ``n_cps``, or if
         ``penalty`` or ``epsilon`` is not strictly positive.
     """
 
@@ -185,7 +187,7 @@ class BinSegDetector(BaseSegmenter):
         model: str = "l2",
         min_size: int = 2,
         jump: int = 5,
-        penalty: float | None = 10,
+        penalty: float | None = None,
         pen_scale: str | None = None,
         epsilon: float | None = None,
         custom_cost: BaseCost | None = None,
@@ -202,8 +204,8 @@ class BinSegDetector(BaseSegmenter):
 
         if self.n_cps is None:
             if penalty_value is None and epsilon_value is None:
-                raise ValueError("Provide at least one of n_cps, penalty, epsilon")
-            if penalty_value is not None and epsilon_value is not None:
+                penalty_value = _DEFAULT_PENALTY
+            elif penalty_value is not None and epsilon_value is not None:
                 raise ValueError("Provide at most one of n_cps, penalty, epsilon")
         else:
             if penalty_value is not None:

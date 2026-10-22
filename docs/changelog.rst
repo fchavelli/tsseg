@@ -47,6 +47,13 @@ Unreleased
   order in which ``stumpy.fluss`` extracts them (lowest corrected arc curve
   first), for example ``[3278, 1600]`` on MoCap trial 0. The change points and
   their scores are unchanged, only their order.
+* ``BinSegDetector`` and ``BottomUpDetector``: ``penalty`` defaults to
+  ``None``, which means 10 when neither ``n_cps`` nor ``epsilon`` is given.
+  With the former default of 10, ``n_cps=k`` alone always warned that the
+  penalty was ignored, and ``epsilon`` alone raised ``ValueError`` (it needed
+  ``penalty=None``). The change points are the same in every case that was
+  accepted before; ``penalty=None`` alone now means a penalty of 10 instead of
+  raising ``ValueError``.
 * Docs: the BinSeg page listed an ``"ar"`` cost model, which the parameter
   check refuses, and omitted ``"cosine"``, which it accepts.
 * Docs: the docstrings of ``ClaspDetector``, ``EspressoDetector``,

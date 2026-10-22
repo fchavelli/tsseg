@@ -49,8 +49,9 @@ Parameters
      - Grid step for candidate change points.
    * - ``penalty``
      - float / None
-     - ``10``
+     - ``None``
      - Penalty value.  Mutually exclusive with ``n_cps`` / ``epsilon``.
+       ``None`` means 10 when neither ``n_cps`` nor ``epsilon`` is given.
    * - ``pen_scale``
      - str / None
      - ``None``
