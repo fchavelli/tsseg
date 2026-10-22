@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New ``SeededBinSegDetector``: seeded binary segmentation (Kovács, Bühlmann,
+  Li and Munk, 2023), written from the paper. Best split of every interval of
+  a deterministic, near-linear collection, then greedy or
+  narrowest-over-threshold selection; number of change points from
+  ``n_cps``, a ``penalty`` on the gain, or the strengthened Schwarz
+  information criterion. ``intervals="wild"`` gives wild binary segmentation
+  (Fryzlewicz, 2014). Any ruptures cost; ``"l2"`` is the CUSUM of the papers.
 * Add a ``CITATION.cff`` file, read by GitHub's *Cite this repository*
   button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
   README.
@@ -28,6 +35,18 @@ Unreleased
   (``AttributeError``). Lists, tuples and arrays are accepted.
 * ``ClaspDetector`` accepts ``score="f1"``, which ClaSP implements and
   documents; the parameter check refused it.
+* Guided mode on a series without any change point: ``TSCP2Detector(n_cps=0)``,
+  ``BOCDDetector(max_cps=0)``, ``BeastDetector(max_cps=0)`` and
+  ``GreedyGaussianDetector(k_max=0)`` return no change point; their parameter
+  check refused ``0`` (``ValueError``). ``BOCDDetector`` also checked
+  ``max_cps`` only after selecting a change point, so ``max_cps=0`` alone would
+  still have returned one on univariate series and with the ``"l2"`` strategy.
+* ``FLUSSDetector`` with ``n_segments`` set returns its change points sorted,
+  as the change point detection output requires. On one channel or with
+  ``multivariate_strategy="l2"`` and three segments or more, they came in the
+  order in which ``stumpy.fluss`` extracts them (lowest corrected arc curve
+  first), for example ``[3278, 1600]`` on MoCap trial 0. The change points and
+  their scores are unchanged, only their order.
 * Docs: the BinSeg page listed an ``"ar"`` cost model, which the parameter
   check refuses, and omitted ``"cosine"``, which it accepts.
 * Docs: the docstrings of ``ClaspDetector``, ``EspressoDetector``,
@@ -37,9 +56,16 @@ Unreleased
   instead of ``window_size``, and ``InformationGainDetector`` a
   ``change_points_`` attribute that is never set. The FLUSS, HMM and IGTS
   examples use tsseg instead of aeon. Now documented: ``RandomDetector``
-  ignores ``n_change_points`` and ``n_states`` unless ``semi_supervised=True``;
-  ``TireDetector`` returns window indices when ``stride > 1``, and selects the
-  peaks by ``prominence_threshold`` when ``n_segments=1``.
+  ignores ``n_change_points`` and ``n_states`` unless ``semi_supervised=True``.
+* ``TireDetector`` with ``stride > 1`` returns time point indices. It returned
+  window indices (with ``stride=4``, the three changes of a 600-point series
+  at 150, 300 and 450 came out at 42, 76 and 113), and ``change_scores_`` had
+  one value per window instead of one per time point, so
+  ``peak_distance_fraction`` was counted in windows. The scores are now placed
+  midway between the two compared windows and interpolated to every time
+  point; ``stride=1``, the default, gives the same output as before.
+* ``TireDetector(n_segments=1)`` returns no change point; it selected the
+  peaks by ``prominence_threshold``, as without ``n_segments``.
 * Docs: the contributing guide names the six modules of the generic detector
   test suite (it listed four), states the change-point output they check
   (strictly increasing indices in ``[1, N - 1]``) and the extras the CI
@@ -83,6 +109,11 @@ Unreleased
   fitted series are unchanged. With ``member``, a series of another length
   raises a ``ValueError`` that says so (a longer one failed in pandas, a
   shorter one was completed).
+* The pages of IGTS, TS-CP2, PaTSS and SNLDS give their time complexity, so
+  every detector page now does. The SNLDS page said that a training step
+  costs :math:`O(B\,L\,K^{2})`; :math:`K^{2}` is only the forward-backward
+  recursion, and the discrete transition network costs :math:`O(K^{4})` per
+  time step.
 
 0.3.0 (2026-10-14)
 ------------------

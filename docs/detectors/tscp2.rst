@@ -20,6 +20,15 @@ thresholded (or top-*K* peaks selected) to produce change points.
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(n\,\ell\,F\,(d + F + \ell)/s)` per training epoch,
+  where :math:`\ell` is ``window_size``, *s* ``stride`` and *F* ``nb_filters``
+  (kernel size and depth of the TCN fixed): the encoder runs on both windows
+  of the :math:`n/s` window pairs, and its first dense layer maps the
+  :math:`\ell\,F` outputs of the TCN to about :math:`\ell` units (default
+  ``dense_units``). Prediction costs one such pass. On a CPU, the time hardly
+  grows with :math:`\ell` up to 128 or with *d* up to 64, and is about
+  proportional to the number of batches: 5 to 8 s per epoch for 4,000 points
+  (14 cores)
 | **Requires:** TensorFlow and ``tcn``
 
 Parameters

@@ -47,7 +47,7 @@ class BOCDDetector(BaseSegmenter):
         points.
     max_cps : int | None, default=None
         Optional cap on the number of change points to return. ``None`` keeps
-        all candidates above the probability threshold.
+        all candidates above the probability threshold; ``0`` returns none.
     multivariate_strategy : str, default="l2"
         Strategy for handling multivariate data:
 
@@ -106,7 +106,7 @@ class BOCDDetector(BaseSegmenter):
             description="Minimum samples between successive change points.",
         ),
         "max_cps": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Maximum number of change points to return.",
             nullable=True,
         ),
@@ -324,6 +324,9 @@ def _select_change_points(
     order = np.argsort(probabilities)[::-1]
     selected: list[int] = []
     for idx in order:
+        # Checked before selecting: ``max_cps=0`` selects no change point.
+        if max_cps is not None and len(selected) >= max_cps:
+            break
         prob = probabilities[idx]
         if prob < threshold:
             break
@@ -339,8 +342,6 @@ def _select_change_points(
             continue
 
         selected.append(cp_position)
-        if max_cps is not None and len(selected) >= max_cps:
-            break
 
     selected.sort()
     return np.asarray(selected, dtype=np.int64)

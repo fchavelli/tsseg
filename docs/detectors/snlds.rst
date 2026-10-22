@@ -47,13 +47,20 @@ the single series it segments.
 | **Type:** state detection
 | **Supervision:** semi-supervised (``n_states`` is the number of regimes)
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(S\,B\,L)` time steps for training, independent of
+  *n* (*S* is ``n_train_steps``, *B* ``batch_size``, *L* ``train_window``, or
+  *n* if smaller), then :math:`O(n)` time steps for the prediction pass. Each
+  time step evaluates the *K* continuous transition networks (*K* is
+  ``n_states``), the discrete transition network, :math:`O(d\,K^{2} + K^{4})`,
+  and the forward-backward recursion, :math:`O(K^{2})`
 | **Requires:** TensorFlow, TensorFlow Probability and ``tf-keras``
   (``pip install tsseg[snlds]``)
 
 .. note::
 
-   Training is slow. A step costs :math:`O(BLK^2)` for ``batch_size`` :math:`B`
-   windows of :math:`L` points, independent of the length of the series: about
+   Training is slow. A step processes :math:`B\,L` time steps for ``batch_size``
+   :math:`B` windows of :math:`L` points, independent of the length of the
+   series: about
    0.1 s on one CPU thread with the defaults, so about 3 minutes for the 2,000
    default steps. The first call also spends a few seconds compiling the training
    graph.
