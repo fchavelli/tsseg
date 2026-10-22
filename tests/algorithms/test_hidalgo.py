@@ -1,5 +1,6 @@
 """Tests specific to HidalgoDetector."""
 
+import inspect
 import warnings
 
 import numpy as np
@@ -80,3 +81,37 @@ def test_points_without_a_probable_state_are_labelled_minus_one():
         labels[best >= 0.8], detector._Pi.argmax(axis=0)[best >= 0.8]
     )
     assert set(labels.tolist()) == {-1, 0, 1}
+
+
+def test_constructor_arguments_are_keyword_only_with_axis_last():
+    params = list(inspect.signature(HidalgoDetector.__init__).parameters.values())[1:]
+    assert all(p.kind is inspect.Parameter.KEYWORD_ONLY for p in params)
+    assert params[-1].name == "axis"
+    assert params[-1].default == 0
+    with pytest.raises(TypeError):
+        HidalgoDetector("euclidean")
+
+
+@pytest.mark.parametrize("fit_axis", [None, 0, 1])
+def test_axis_one_reads_time_along_the_columns(fit_axis):
+    x = _two_groups()
+    # the detector's axis tells how fit() reads X when no axis is given
+    data = x if fit_axis == 0 else x.T
+    detector = HidalgoDetector(**PARAMS, axis=1)
+    labels = detector.fit_predict(data, axis=fit_axis)
+    assert labels.tolist() == FIT_LABELS
+    assert detector.axis == 1
+    with pytest.warns(UserWarning, match="differs from that given to fit"):
+        reverse = x[::-1] if fit_axis == 0 else x[::-1].T
+        assert detector.predict(reverse, axis=fit_axis).tolist() == [
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+        ]

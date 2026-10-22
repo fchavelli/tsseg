@@ -81,6 +81,10 @@ Parameters
      - int
      - ``0``
      - Random seed.
+   * - ``axis``
+     - int
+     - ``0``
+     - Time axis.
 
 Usage
 -----

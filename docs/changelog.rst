@@ -21,6 +21,10 @@ Unreleased
 * Add a ``CITATION.cff`` file, read by GitHub's *Cite this repository*
   button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
   README.
+* ``HidalgoDetector`` takes its arguments by keyword only and has a last
+  parameter ``axis`` (default ``0``): ``HidalgoDetector(axis=1)`` reads series
+  of shape ``(n_channels, n_timepoints)``. A positional call such as ``HidalgoDetector("euclidean")``
+  now raises a ``TypeError``; ``fit(X, axis=1)`` works as before.
 * Installation from source no longer needs conda. ``make install`` creates a
   virtual environment in ``.venv`` with the ``venv`` module and installs tsseg
   in it, editable, with the ``all`` and ``dev`` extras (options ``EXTRAS``,
