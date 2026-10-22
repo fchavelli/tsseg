@@ -14,6 +14,12 @@ Unreleased
 * Add a ``CITATION.cff`` file, read by GitHub's *Cite this repository*
   button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
   README.
+* ``EspressoDetector(random_state=...)`` seeds the matrix profile: the seed was
+  stored but never passed on, so every call drew a fresh random order of the
+  subsequences. That order decides which nearest neighbour is kept when
+  distances tie, which happens on exactly repeated patterns; there, the
+  change points changed from one run to the next whatever the seed. A fixed
+  seed now gives the same change points at every run.
 * ``ClapDetector`` accepts the classifiers and merge scores that CLaP
   implements: ``classifier`` in {``"rocket"``, ``"mrhydra"``, ``"weasel"``,
   ``"quant"``, ``"rdst"``, ``"proximityforest"``, ``"freshprince"``,
