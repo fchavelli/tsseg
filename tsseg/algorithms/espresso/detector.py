@@ -36,9 +36,9 @@ class EspressoDetector(BaseSegmenter):
 
     Parameters
     ----------
-    subsequence_length : int, default=64
+    window_size : int, default=64
         Length of the subsequences used to compute the matrix profile; must be
-        at least 4.
+        at least 4 and at most half the series length.
     chain_len : int, default=3
         Number of iterations used when expanding arc sets to build the
         semantic density matrix.
