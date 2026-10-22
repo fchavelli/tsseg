@@ -26,25 +26,9 @@ import numpy as np
 import pytest
 from sklearn.exceptions import NotFittedError
 
+from tsseg.algorithms.base import BaseSegmenter
+
 from .conftest import apply_supervision, make_instance
-
-# The Tirex detectors inherit from a *different* BaseSegmenter
-# (``segmenter.base.BaseSegmenter``) that shares the same public API but
-# is a distinct class.  We import both and accept either.
-_SEGMENTER_BASES = []
-
-from tsseg.algorithms.base import BaseSegmenter  # noqa: E402
-
-_SEGMENTER_BASES.append(BaseSegmenter)
-try:
-    from segmenter.base import BaseSegmenter as _TirexBase  # noqa: E402
-
-    _SEGMENTER_BASES.append(_TirexBase)
-except ImportError:
-    pass
-
-_SEGMENTER_BASES = tuple(_SEGMENTER_BASES)
-
 
 # ------------------------------------------------------------------
 # Helpers
@@ -75,10 +59,10 @@ class TestBaseSegmenterContract:
     """Every detector must satisfy the ``BaseSegmenter`` API contract."""
 
     def test_is_base_segmenter(self, algorithm):
-        """All algorithms must inherit from a ``BaseSegmenter`` variant."""
-        _name, _cls, _ovr, instance = algorithm
-        assert isinstance(instance, _SEGMENTER_BASES), (
-            f"{_name} does not inherit from any known BaseSegmenter"
+        """All algorithms must inherit from ``tsseg``'s ``BaseSegmenter``."""
+        name, _cls, _ovr, instance = algorithm
+        assert isinstance(instance, BaseSegmenter), (
+            f"{name} does not inherit from BaseSegmenter"
         )
 
     def test_get_params_returns_dict(self, algorithm):
