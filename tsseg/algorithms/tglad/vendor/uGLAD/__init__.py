@@ -1,6 +1,8 @@
 """Vendored copy of the uGLAD library (non-commercial license).
 
-The original project is available at https://github.com/Harshs27/uGLAD.
+Copied from the ``uGLAD/`` folder of https://github.com/Harshs27/tGLAD
+(imports made relative); the standalone uGLAD project, whose code has since
+diverged, is https://github.com/Harshs27/uGLAD.
 """
 
 from .uglad import (

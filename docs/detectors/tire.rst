@@ -142,7 +142,14 @@ Usage
    detector = TireDetector(window_size=30, domain="both", n_segments=5)
    change_points = detector.fit_predict(X)
 
-**Implementation:** *Origin: new code.*
+**Implementation:** PyTorch reimplementation of the authors' TensorFlow/Keras
+code (`deryckt/TIRE <https://github.com/deryckt/TIRE>`_): the parallel
+autoencoders and their training follow ``TIRE.py``, and the helpers of
+``tsseg.algorithms.tire.utils`` are copied from its ``utils.py``.  No licence
+found in the original repository.  The original code returns a change score
+per time step; picking change points from it (``n_segments``,
+``prominence_threshold``) is specific to tsseg.  *Origin: reimplemented from
+the original code.*
 
 **Reference:** De Ryck, De Vos, Bertrand & Verhoest (2021), *Change Point
 Detection in Time Series Data Using Autoencoders with a Time-Invariant

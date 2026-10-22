@@ -63,8 +63,8 @@ class TGLADDetector(BaseSegmenter):
     batch_size : int, default=8
         Number of windows processed together by the multitask solver.
     threshold : float, default=0.5
-        Minimum Frobenius distance between adjacent precision matrices that
-        triggers a change point.
+        Minimum window score (absolute second difference, across windows, of
+        the sum of partial correlations) that triggers a change point.
     min_spacing : int, optional
         Minimum distance (in samples) required between two emitted change
         points. Defaults to the stride when ``None``.
@@ -112,7 +112,7 @@ class TGLADDetector(BaseSegmenter):
         ),
         "threshold": ParamDef(
             constraint=Interval(float, 0, None, Closed.NEITHER),
-            description="Frobenius distance threshold for emitting a change point.",
+            description="Window score threshold for emitting a change point.",
         ),
         "min_spacing": ParamDef(
             constraint=Interval(int, 1, None, Closed.LEFT),
@@ -370,7 +370,7 @@ class TGLADDetector(BaseSegmenter):
 
     @property
     def change_scores_(self) -> np.ndarray:
-        """Frobenius distances for each window."""
+        """Score of each window (0 for the first and the last)."""
 
         self._check_is_fitted()
         return np.asarray([summary.score for summary in self._window_summaries])

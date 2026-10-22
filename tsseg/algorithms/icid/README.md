@@ -25,9 +25,12 @@ Adapted from the original MATLAB implementation by Yang Cao (Deakin University).
 
 ```bibtex
 @article{cao2024icid,
-  title   = {Isolation Distributional Kernel Change-Interval Detection},
-  author  = {Cao, Yang and others},
+  title   = {Detecting Change Intervals with Isolation Distributional Kernel},
+  author  = {Cao, Yang and Zhu, Ye and Ting, Kai Ming and Salim, Flora and
+             Li, Hong Xian and Yang, Luxing and Li, Gang},
   journal = {Journal of Artificial Intelligence Research},
+  volume  = {79},
+  pages   = {273--306},
   year    = {2024}
 }
 ```
