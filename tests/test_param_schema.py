@@ -835,10 +835,9 @@ class TestSchemaConsistency:
             test_params = cls._get_test_params()
             if isinstance(test_params, list):
                 test_params = test_params[0]
-            try:
-                instance = cls(**test_params)
-            except Exception:
-                continue  # some test params may need deps
+            # Pilots with optional dependencies are only listed when importable,
+            # so a failure here is a wrong parameter set, not a missing package.
+            instance = cls(**test_params)
             errors = validate_params(instance)
             assert errors == [], (
                 f"{cls.__name__}._get_test_params() fails validation: {errors}"
