@@ -65,6 +65,23 @@ Unreleased
   (``AttributeError``). Lists, tuples and arrays are accepted.
 * ``ClaspDetector`` accepts ``score="f1"``, which ClaSP implements and
   documents; the parameter check refused it.
+* ``ClaspDetector`` and ``ClapDetector`` in guided mode (``n_change_points``,
+  or an integer ``n_segments``) return the number of change points they are
+  given, fewer only when the segments are too short to split further. ClaSP
+  validated each candidate in this mode too, as claspy does, so a count could
+  give fewer change points, or none: on a series of mean shifts in noise,
+  ``n_change_points=2`` gave no change point and ``ClapDetector`` a single
+  state. The validation now applies only when the number is learned
+  (``n_segments="learn"``, the default), and ``validation`` and
+  ``threshold`` of ``ClaspDetector`` have no effect in guided mode. Guided
+  results change; unsupervised results do not.
+* ``ClapDetector`` has a ``distance`` parameter, passed to ClaSP:
+  ``"znormed_euclidean_distance"`` (default, unchanged),
+  ``"euclidean_distance"`` or ``"cinvariant_euclidean_distance"``, as in
+  ``ClaspDetector``. The z-normalised default compares the shapes of the
+  windows and misses a change of level alone, such as a mean shift in noise.
+* Docs: ``ClapDetector(random_state=...)`` seeds the classifiers of CLaP only;
+  ClaSP keeps the fixed seed of claspy (2357).
 * Guided mode on a series without any change point: ``TSCP2Detector(n_cps=0)``,
   ``BOCDDetector(max_cps=0)``, ``BeastDetector(max_cps=0)`` and
   ``GreedyGaussianDetector(k_max=0)`` return no change point; their parameter

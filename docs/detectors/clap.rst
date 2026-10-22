@@ -25,6 +25,9 @@ Both algorithms support three usage modes:
 
 - **Fully unsupervised** — the number of segments is learned automatically.
 - **Guided semi-supervised** — provide ``n_segments`` or ``n_change_points``.
+  The count is returned as it is, fewer only when the segments are too short
+  to split further: ClaSP validates its change points only when it learns
+  their number (claspy validates them in both modes).
 - **Exact semi-supervised** — provide pre-computed ``change_points``.
 
 | **Type:** change point detection (ClaSP) / state detection (CLaP)
@@ -47,11 +50,12 @@ ClaSP parameters
    * - ``n_segments``
      - str / int
      - ``"learn"``
-     - Number of segments (``"learn"`` = auto-detect).
+     - Number of segments (``"learn"`` = auto-detect, each change point
+       validated; an integer = guided mode, no validation).
    * - ``n_change_points``
      - int / None
      - ``None``
-     - Exact number of change points (semi-supervised mode; ``0`` = none).
+     - Number of change points (guided mode, no validation; ``0`` = none).
    * - ``n_estimators``
      - int
      - ``10``
@@ -83,7 +87,8 @@ ClaSP parameters
    * - ``validation``
      - str
      - ``"significance_test"``
-     - Validation method for change point significance.
+     - Validation method for change point significance (learned number of
+       segments only).
    * - ``threshold``
      - str / float
      - ``"default"``
@@ -144,7 +149,19 @@ CLaP parameters
    * - ``n_segments``
      - int / None
      - ``None``
-     - Number of segments.
+     - Number of segments (guided mode).
+   * - ``distance``
+     - str
+     - ``"znormed_euclidean_distance"``
+     - Distance of ClaSP's k-NN: ``"znormed_euclidean_distance"``,
+       ``"euclidean_distance"`` or ``"cinvariant_euclidean_distance"``. The
+       z-normalised default misses a change of level alone (a mean shift in
+       noise).
+   * - ``random_state``
+     - int
+     - ``42``
+     - Seed of CLaP's classifiers; ClaSP keeps the fixed seed of claspy
+       (2357).
 
 Usage
 -----

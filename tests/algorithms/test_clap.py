@@ -143,6 +143,7 @@ def _str_options(detector, parameter: str) -> frozenset[str]:
     ("detector", "parameter", "mapping"),
     [
         (ClapDetector, "window_size", _WINDOW_SIZE_MAPPING),
+        (ClapDetector, "distance", _DISTANCE_MAPPING),
         (ClaspDetector, "window_size", _WINDOW_SIZE_MAPPING),
         (ClaspDetector, "distance", _DISTANCE_MAPPING),
         (ClaspDetector, "score", _SCORE_MAPPING),
@@ -161,3 +162,55 @@ def test_clasp_f1_score():
     ).fit_predict(x)
     assert len(cps) == 1
     assert abs(int(cps[0]) - 400) <= 20
+
+
+def _mean_shifts():
+    """White noise with two mean shifts, at 300 and 700 (the easy series)."""
+    rng = np.random.default_rng(42)
+    return np.concatenate(
+        [
+            rng.normal(-0.8, 0.2, 300),
+            rng.normal(0.5, 0.25, 400),
+            rng.normal(-0.1, 0.1, 300),
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"n_change_points": 2}, {"n_segments": 3}],
+    ids=["n_change_points", "n_segments"],
+)
+def test_clasp_guided_returns_the_count(kwargs):
+    # A given count is not validated: the significance test refused both
+    # change points of this series, so the guided mode returned none.
+    cps = ClaspDetector(**kwargs, n_jobs=1).fit_predict(_mean_shifts())
+    assert len(cps) == 2
+
+
+def test_clasp_learned_count_is_still_validated():
+    # Without a count, the change points still pass the significance test:
+    # white noise has none.
+    noise = np.random.default_rng(1).normal(0, 1, 600)
+    assert ClaspDetector(n_jobs=1).fit_predict(noise).size == 0
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"n_change_points": 2}, {"n_segments": 3}],
+    ids=["n_change_points", "n_segments"],
+)
+def test_clap_guided_uses_the_count(kwargs):
+    pytest.importorskip("aeon")
+    detector = ClapDetector(**kwargs).fit(_mean_shifts())
+    assert len(detector.change_points_) == 2
+
+
+def test_clap_forwards_the_distance():
+    # The z-normalised default finds no change point on this series (its
+    # windows have the same shape in every segment); the Euclidean distance
+    # sees the mean shifts.
+    pytest.importorskip("aeon")
+    detector = ClapDetector(distance="euclidean_distance").fit(_mean_shifts())
+    assert len(detector.change_points_) == 2
+    assert np.all(np.abs(np.asarray(detector.change_points_) - [300, 700]) <= 50)
