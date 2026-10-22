@@ -116,6 +116,13 @@ Unreleased
   fitted series are unchanged. With ``member``, a series of another length
   raises a ``ValueError`` that says so (a longer one failed in pandas, a
   shorter one was completed).
+* ``HidalgoDetector.predict(X)`` labels ``X`` when it is not the series given
+  to ``fit``. It returned the labels of the fitted series whatever ``X``, so as
+  many labels as the fitted series has time points. A new series is labelled
+  with a new fit, with a warning, and the fitted attributes are left
+  unchanged; ``fit_predict`` and ``predict`` on the fitted series are
+  unchanged. The docstring now says that time points whose most probable state
+  has a posterior probability below 0.8 are labelled ``-1``.
 * The pages of IGTS, TS-CP2, PaTSS and SNLDS give their time complexity, so
   every detector page now does. The SNLDS page said that a training step
   costs :math:`O(B\,L\,K^{2})`; :math:`K^{2}` is only the forward-backward
