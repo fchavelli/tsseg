@@ -16,7 +16,9 @@ lowest cost increase until a stopping criterion is reached.
 
 Wraps the vendored ruptures `BottomUp` solver.
 
-- Origin: vendored from ruptures v1.1.8
+- Origin: vendored from ruptures v1.1.8, with the speed-up of v1.1.9
+  ([PR #309](https://github.com/deepcharles/ruptures/pull/309): a heap of
+  segments to grow the initial partition, same change points)
 - Costs `l1`, `l2`, `rbf`, `cosine`: with numba installed (`backend="auto"`),
   the segment costs are computed in numba (`ruptures/accel/`): the kernel costs
   without the n x n Gram matrix, `l1` and `l2` bit for bit as numpy computes
