@@ -87,6 +87,11 @@ class EAggloDetector(BaseSegmenter):
     divergence enters the statistic and they may be merged, giving a cluster that
     wraps around the end of the series (``cluster_`` then labels both ends alike).
 
+    E-Agglo segments the series given to ``fit``: ``predict(X)`` returns those
+    change points when ``X`` has the same values, and otherwise segments ``X``
+    with a new fit, with a warning, leaving the fitted attributes unchanged. With
+    ``member``, ``X`` must then have as many time points as ``member`` has labels.
+
     Time is :math:`O(n^2)` for a series of length :math:`n`. Memory is
     :math:`O(m^2)` for :math:`m` initial clusters, hence :math:`O(n^2)` with
     ``member=None``. Requires ``numba``.
@@ -171,7 +176,8 @@ class EAggloDetector(BaseSegmenter):
         of change points is estimated by the clustering that maximizes the goodness-of-
         fit statistic over the entire merging sequence.
         """
-        self._X = X
+        # a copy: an array modified in place after fit is a new series
+        self._X = X.copy()
 
         if self.alpha <= 0 or self.alpha > 2:
             raise ValueError(
@@ -242,7 +248,9 @@ class EAggloDetector(BaseSegmenter):
         Parameters
         ----------
         X : pd.Dataframe
-            Data to be transformed
+            Series to segment. If its values differ from those given to ``fit``,
+            it is segmented with a new fit, with a warning, and the fitted
+            attributes are left unchanged.
         y : default=None
             Ignored, for interface compatibility
 
@@ -251,26 +259,31 @@ class EAggloDetector(BaseSegmenter):
         np.ndarray
             Sorted 1-D integer array of change point indices (exclusive of 0
             and series length).
+
+        Raises
+        ------
+        ValueError
+            If ``member`` is set and ``X`` is a new series whose length differs
+            from the number of labels in ``member``.
         """
         n = X.shape[0]
-        # fit again if indices not seen, but don't store anything
-        if not X.index.equals(self._X.index):
-            X_full = X.combine_first(self._X)
-            new_eagglo = EAggloDetector(
-                member=self.member,
-                alpha=self.alpha,
-                penalty=self.penalty,
-            ).fit(X_full)
-            warnings.warn(
-                "Warning: Input data X differs from that given to fit(). "
-                "Refitting with both the data in fit and new input data, not storing "
-                "updated public class attributes. For this, explicitly use fit(X) or "
-                "fit_predict(X).",
-                stacklevel=1,
-            )
-            estimates = new_eagglo._estimates
-        else:
+        if np.array_equal(X.to_numpy(), self._X.to_numpy()):
             estimates = self._estimates
+        else:
+            if self.member is not None and len(self.member) != n:
+                raise ValueError(
+                    f"member has {len(self.member)} labels, one per time point of "
+                    f"the series given to fit, but X has {n} time points: use "
+                    f"fit_predict(X) with a member of {n} labels."
+                )
+            warnings.warn(
+                "Input data X differs from that given to fit(): segmenting X with "
+                "a new fit, without updating the fitted attributes. To store them, "
+                "use fit(X) or fit_predict(X).",
+                UserWarning,
+                stacklevel=3,
+            )
+            estimates = self.clone().fit(X)._estimates
 
         return np.array(
             sorted(int(cp) for cp in estimates if 0 < cp < n), dtype=np.int64

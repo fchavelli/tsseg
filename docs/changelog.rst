@@ -100,6 +100,15 @@ Unreleased
   computes, at each iteration, a k-means clustering and confusion matrices
   that it did not use. It no longer reseeds NumPy's global random generator
   nor changes the print options of NumPy and pandas.
+* ``EAggloDetector.predict(X)`` segments ``X`` when it is not the series given
+  to ``fit``. It compared the pandas index only, so on another series of the
+  same length it returned the change points of the fitted series; a shorter
+  series was completed with the end of the fitted series before being
+  segmented. A new series is segmented alone, with a warning as before, and the
+  fitted attributes are left unchanged; ``fit_predict`` and ``predict`` on the
+  fitted series are unchanged. With ``member``, a series of another length
+  raises a ``ValueError`` that says so (a longer one failed in pandas, a
+  shorter one was completed).
 * The pages of IGTS, TS-CP2, PaTSS and SNLDS give their time complexity, so
   every detector page now does. The SNLDS page said that a training step
   costs :math:`O(B\,L\,K^{2})`; :math:`K^{2}` is only the forward-backward
