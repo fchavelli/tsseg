@@ -1,3 +1,4 @@
+import copy
 import os
 import time
 import numpy as np
@@ -68,9 +69,12 @@ def run_patss(directory, multivariate_time_series, length_time_series: int, conf
              embeddings were concatenated for segmentation, but we separate them such that we can verify on which parts
              PaTSS focuses within each attribute.
     """
+    # Work on a copy: the caller's dictionary (a detector parameter) and the
+    # module-level defaults must not change.
     if config is None:
-        config = __DEFAULTS_HYPER_PARAMETERS
+        config = copy.deepcopy(__DEFAULTS_HYPER_PARAMETERS)
     else:
+        config = copy.deepcopy(config)
         __add_default_parameters(config)
     # If no window size is given, then the smallest window size equals the word size of SAX
     if config['pattern_mining']['resolution'] == -1:
@@ -185,7 +189,7 @@ def __add_defaults_from_dictionary(config, defaults):
     """
     for key in defaults.keys():
         if key not in config.keys():
-            config[key] = defaults[key]
+            config[key] = copy.deepcopy(defaults[key])
         elif type(defaults[key]) == dict:
             __add_defaults_from_dictionary(config[key], defaults[key])
 
