@@ -835,9 +835,12 @@ class TestSchemaConsistency:
             test_params = cls._get_test_params()
             if isinstance(test_params, list):
                 test_params = test_params[0]
-            # Pilots with optional dependencies are only listed when importable,
-            # so a failure here is a wrong parameter set, not a missing package.
-            instance = cls(**test_params)
+            # Some pilots import their optional dependency in the constructor
+            # (FLUSS: stumpy). Any other error is a wrong parameter set.
+            try:
+                instance = cls(**test_params)
+            except ImportError:
+                continue
             errors = validate_params(instance)
             assert errors == [], (
                 f"{cls.__name__}._get_test_params() fails validation: {errors}"
