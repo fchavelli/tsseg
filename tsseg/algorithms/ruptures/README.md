@@ -23,6 +23,12 @@ Vendored from the ruptures library to avoid an external dependency and to allow
 minor modifications.
 
 - Origin: vendored from ruptures v1.1.8
+- Change: `BottomUp` has the speed-up of upstream v1.1.9
+  ([PR #309](https://github.com/deepcharles/ruptures/pull/309)): it grows its
+  initial partition from a heap of segments ordered by length, and updates the
+  start positions of the leaves at each merge instead of rebuilding the list.
+  The change points are those of v1.1.8. Upstream releases up to v1.1.10 change
+  no other code
 - Change: `Pelt` delays pruning by `min_size`, as in upstream
   [PR #383](https://github.com/deepcharles/ruptures/pull/383) (not merged yet)
 - Change: `CostRbf` sets its median heuristic in `fit` without the Gram matrix,

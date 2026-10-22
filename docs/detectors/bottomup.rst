@@ -94,8 +94,10 @@ Usage
    detector = BottomUpDetector(model="l2", penalty=10)
    change_points = detector.fit_predict(X)
 
-**Implementation:** Vendored from ruptures v1.1.8.  BSD 2-Clause.  With the
-``"l1"``, ``"l2"``, ``"rbf"`` or ``"cosine"`` cost and numba installed, the
+**Implementation:** Vendored from ruptures v1.1.8, with the speed-up of
+v1.1.9 (`PR #309 <https://github.com/deepcharles/ruptures/pull/309>`_: a heap
+of segments grows the initial partition; the change points are unchanged).
+BSD 2-Clause.  With the ``"l1"``, ``"l2"``, ``"rbf"`` or ``"cosine"`` cost and numba installed, the
 segment costs are computed in numba: the kernel costs without the
 :math:`n \times n` Gram matrix, ``"l1"`` and ``"l2"`` bit for bit as numpy
 computes them. Merge gains closer than :math:`10^{-9}` of the segments' costs

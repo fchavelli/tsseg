@@ -74,6 +74,11 @@ Unreleased
   raising ``ValueError``.
 * Docs: the BinSeg page listed an ``"ar"`` cost model, which the parameter
   check refuses, and omitted ``"cosine"``, which it accepts.
+* Docs: the BottomUp and vendored ruptures pages state that ``BottomUp`` has
+  the speed-up of ruptures v1.1.9 (PR #309), which tsseg has shipped since its
+  first release; they said v1.1.8 only. On 100,000 points, the Python backend
+  segments in 2 s instead of 15 s for the v1.1.8 code, with the same change
+  points.
 * Docs: the docstrings of ``ClaspDetector``, ``EspressoDetector``,
   ``FLUSSDetector``, ``HMMDetector``, ``InformationGainDetector``,
   ``RandomDetector``, ``TireDetector`` and ``TSCP2Detector`` document every
