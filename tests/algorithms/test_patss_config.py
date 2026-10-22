@@ -83,3 +83,14 @@ def test_documented_custom_config_changes_the_output(mined_configs):
     labels = PatssDetector(config={"segmentation": {"n_clusters": [2]}}).fit_predict(X)
     assert len(np.unique(default_labels)) == 3
     assert len(np.unique(labels)) == 2
+
+
+@pytest.mark.parametrize("algorithm", ["logistic_regression", "gmm", "k_means"])
+def test_every_segmentation_algorithm_returns_one_label_per_point(
+    mined_configs, algorithm
+):
+    config = {"segmentation": {"algorithm": algorithm}}
+    labels = PatssDetector(config=config).fit_predict(X)
+    assert labels.shape == (N_TIMEPOINTS,)
+    assert np.issubdtype(labels.dtype, np.integer)
+    assert len(np.unique(labels)) == 3
