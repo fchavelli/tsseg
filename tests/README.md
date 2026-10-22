@@ -20,6 +20,7 @@ tests/
 │   ├── test_input_validation.py        # invalid inputs, pandas inputs
 │   ├── test_docstrings.py              # the class docstring documents the constructor
 │   ├── test_guided_no_change_point.py  # guided mode, including on a single regime
+│   ├── test_quality.py                 # detection quality on the synthetic series (slow)
 │   └── test_<detector>.py              # tests of one detector
 ├── reproduction/                       # published results on downloaded data
 └── test_*.py                           # metrics, parameter schemas, base class, utilities,
@@ -52,6 +53,13 @@ tests/
 Every test function that takes the `algorithm` fixture runs once per
 detector.
 
+`test_quality.py` asks each detector, in guided mode when it has one, to find
+the segments of the `synthetic_data` series: F1 score of at least 0.75 with
+a margin of 50 points, or adjusted Rand index of at least 0.8. The detectors
+below this bar are listed in its `KNOWN_FAILURES`, with what they returned;
+their test is an `xfail`, strict for deterministic detectors, so a fix shows
+up as a failing test until its entry is removed.
+
 ### Adding a detector to the suite
 
 1. Export the detector in `tsseg.algorithms.__all__`: the generic suite then
@@ -74,6 +82,7 @@ pytest tests/test_metrics.py        # one module
 pytest tests/algorithms -k Pelt     # one detector
 pytest -x --tb=short                # stop at the first failure
 pytest -m reproduction              # reproduction tests (deselected by default)
+pytest -m "not slow"                # without the slow tests (detection quality)
 ```
 
 `pyproject.toml` sets the options (`--strict-markers`, `-m "not reproduction"`).
