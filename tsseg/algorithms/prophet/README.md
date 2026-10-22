@@ -29,9 +29,12 @@ The defaults (`changepoint_prior_scale=500`, `n_candidates=200`,
 forecasting default prior (0.05) spreads a level shift over a long smooth ramp,
 whose kinks fall far from the change.
 
-A level shift falling between two candidates shows as two opposite rate
-changes on consecutive candidates, so two returned change points are at least
-`tolerance` apart (greedy non-maximum suppression). Series longer than
+Two returned change points are at least `tolerance` apart (greedy non-maximum
+suppression). A piecewise-linear trend cannot jump, so Prophet fits a level
+shift as a steep ramp: a run of rate changes of one sign on the candidates just
+before the shift, then a run of the opposite sign just after it. A ramp wider
+than `tolerance` can give two change points for one shift, which may leave a
+smaller shift out of the `n_changepoints` returned. Series longer than
 `max_points` are reduced to block means before the fit, which bounds Prophet's
 cost (it grows with the length times the number of candidates); the candidates
 stay evenly spaced over the full series. Seasonalities are off by default (the

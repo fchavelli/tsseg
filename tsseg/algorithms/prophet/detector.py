@@ -171,10 +171,14 @@ class ProphetDetector(BaseSegmenter):
     candidates (averaged over the channels with ``"ensembling"``). It returns
     the ``n_changepoints`` strongest when this number is given
     (semi-supervised), otherwise those whose score exceeds
-    ``delta_threshold``, a relative form of TCPDBench's rule [2]_. A level shift
-    falling between two candidates shows as two opposite rate changes on
-    consecutive candidates, so two returned change points are at least
-    ``tolerance`` apart (non-maximum suppression).
+    ``delta_threshold``, a relative form of TCPDBench's rule [2]_. Two
+    returned change points are at least ``tolerance`` apart (non-maximum
+    suppression). A piecewise-linear trend cannot jump, so Prophet fits a
+    level shift as a steep ramp: a run of rate changes of one sign on the
+    candidates just before the shift, then a run of the opposite sign just
+    after it. A ramp wider than ``tolerance`` can give two change points for
+    one shift, which may leave a smaller shift out of the ``n_changepoints``
+    returned.
 
     The defaults were calibrated for change point detection on 24 series of
     TSB-SEG (3 per dataset): a prior scale far above Prophet's forecasting

@@ -62,7 +62,11 @@ KNOWN_FAILURES: dict[str, str] = {
         "window size and validation"
     ),
     "FLUSSDetector": "[485, 739] guided; [485] unsupervised",
-    "ProphetDetector": "[288, 308] guided; 14 change points unsupervised",
+    "ProphetDetector": (
+        "[288, 308] guided; 14 change points unsupervised: the trend fits the "
+        "shift at 300 as a ramp wider than tolerance (two change points), and "
+        "the shift at 700 scores at the level of the noise"
+    ),
     "TGLADDetector": (
         "unsupervised: [250] with the suite's window_size=100, stride=50, "
         "epochs=100; no change point with the defaults"
