@@ -28,6 +28,12 @@ Unreleased
   (``AttributeError``). Lists, tuples and arrays are accepted.
 * ``ClaspDetector`` accepts ``score="f1"``, which ClaSP implements and
   documents; the parameter check refused it.
+* ``FLUSSDetector`` with ``n_segments`` set returns its change points sorted,
+  as the change point detection output requires. On one channel or with
+  ``multivariate_strategy="l2"`` and three segments or more, they came in the
+  order in which ``stumpy.fluss`` extracts them (lowest corrected arc curve
+  first), for example ``[3278, 1600]`` on MoCap trial 0. The change points and
+  their scores are unchanged, only their order.
 * Docs: the BinSeg page listed an ``"ar"`` cost model, which the parameter
   check refuses, and omitted ``"cosine"``, which it accepts.
 * Docs: the docstrings of ``ClaspDetector``, ``EspressoDetector``,
