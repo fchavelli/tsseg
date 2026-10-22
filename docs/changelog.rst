@@ -34,6 +34,12 @@ Unreleased
   check refused ``0`` (``ValueError``). ``BOCDDetector`` also checked
   ``max_cps`` only after selecting a change point, so ``max_cps=0`` alone would
   still have returned one on univariate series and with the ``"l2"`` strategy.
+* ``FLUSSDetector`` with ``n_segments`` set returns its change points sorted,
+  as the change point detection output requires. On one channel or with
+  ``multivariate_strategy="l2"`` and three segments or more, they came in the
+  order in which ``stumpy.fluss`` extracts them (lowest corrected arc curve
+  first), for example ``[3278, 1600]`` on MoCap trial 0. The change points and
+  their scores are unchanged, only their order.
 * Docs: the BinSeg page listed an ``"ar"`` cost model, which the parameter
   check refuses, and omitted ``"cosine"``, which it accepts.
 * Docs: the docstrings of ``ClaspDetector``, ``EspressoDetector``,
@@ -80,6 +86,11 @@ Unreleased
   computes, at each iteration, a k-means clustering and confusion matrices
   that it did not use. It no longer reseeds NumPy's global random generator
   nor changes the print options of NumPy and pandas.
+* The pages of IGTS, TS-CP2, PaTSS and SNLDS give their time complexity, so
+  every detector page now does. The SNLDS page said that a training step
+  costs :math:`O(B\,L\,K^{2})`; :math:`K^{2}` is only the forward-backward
+  recursion, and the discrete transition network costs :math:`O(K^{4})` per
+  time step.
 
 0.3.0 (2026-10-14)
 ------------------
