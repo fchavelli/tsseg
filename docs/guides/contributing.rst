@@ -53,7 +53,7 @@ in ``PYTEST_ARGS``:
     make test PYTEST_ARGS="tests/algorithms -k PeltDetector"
 
 Tests whose optional dependency is not installed are skipped. The CI installs
-``pip install -e .[dev,aeon,prophet,tglad,beast]``, so it skips the
+``pip install -e .[dev,aeon,prophet,tglad,beast,changeforest]``, so it skips the
 TensorFlow-based detectors among others.
 
 When adding a new feature, please include relevant tests in ``tests/``.
@@ -68,7 +68,7 @@ that **automatically discovers** every algorithm listed in
 sufficient for it to be exercised by all generic checks — no manual test
 registration required.
 
-The suite is organised into four modules:
+The generic checks are organised into six modules:
 
 ``test_common.py`` — **Estimator contract** (scikit-learn style)
     Verifies the generic API contract that every ``BaseSegmenter`` must honour:
@@ -92,7 +92,8 @@ The suite is organised into four modules:
 ``test_predict.py`` — **Prediction output contract**
     Validates that ``fit_predict`` output conforms to declared tags:
 
-    * Sparse detectors: 1-D sorted array of indices in ``[0, N)``
+    * Change-point detectors (``returns_dense=True``): 1-D strictly increasing
+      array of indices in ``[1, N - 1]``
     * State detectors: array of integer labels of length ``N``
     * ``fit_predict(X)`` equals ``fit(X); predict(X)`` for deterministic algorithms
     * Repeated calls produce identical results (determinism check)
@@ -106,6 +107,17 @@ The suite is organised into four modules:
     * NaN values when ``capability:missing_values`` is ``False``
     * ``pd.Series`` and ``pd.DataFrame`` are accepted
 
+``test_docstrings.py`` — **Docstring contract**
+    The ``Parameters`` section of the class docstring lists exactly the
+    constructor parameters, and the defaults it states are the actual ones.
+
+``test_guided_no_change_point.py`` — **Guided mode**
+    ``apply_supervision`` (in ``conftest.py``) sets the count of every
+    detector tagged ``capability:semi_supervised``, and a guidance without
+    any change point (``n_cps=0``, ``n_segments=1``, ``n_states=1``) passes
+    the parameter validation; the module lists the detectors that still
+    refuse it as expected failures.
+
 Running a single algorithm:
 
 .. code-block:: bash
@@ -116,11 +128,14 @@ Running only the fast contract checks (no fit/predict):
 
 .. code-block:: bash
 
-    pytest tests/algorithms/test_common.py tests/algorithms/test_tags.py -v
+    pytest tests/algorithms/test_tags.py tests/algorithms/test_docstrings.py -v
 
 If your algorithm requires non-default constructor arguments or optional
 dependencies, add an entry to ``ALGORITHM_OVERRIDES`` in
-``tests/algorithms/conftest.py``.
+``tests/algorithms/conftest.py``. If it has a guided mode and takes the number
+of change points, segments or states under a new parameter name, add the name
+to ``SUPERVISION_PARAMS`` in the same file. ``tests/README.md`` describes these
+helpers.
 
 Reproduction tests
 ^^^^^^^^^^^^^^^^^^

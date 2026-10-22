@@ -40,6 +40,11 @@ Unreleased
   ignores ``n_change_points`` and ``n_states`` unless ``semi_supervised=True``;
   ``TireDetector`` returns window indices when ``stride > 1``, and selects the
   peaks by ``prominence_threshold`` when ``n_segments=1``.
+* Docs: the contributing guide names the six modules of the generic detector
+  test suite (it listed four), states the change-point output they check
+  (strictly increasing indices in ``[1, N - 1]``) and the extras the CI
+  installs; ``tests/README.md`` describes the current helpers of
+  ``tests/algorithms/conftest.py``.
 
 * ``AutoPlaitDetector`` no longer needs a C binary: the C code of Matsubara et
   al. (version of June 18, 2014) is translated to Python and compiled with
