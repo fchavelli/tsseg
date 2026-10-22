@@ -58,12 +58,15 @@ class ChangeFinderDetector(BaseSegmenter):
         Scoring function: ``"logarithmic"`` (negative log-likelihood) or
         ``"quadratic"`` (squared prediction error).
     n_cps : int or None, default=None
-        Number of change points to return.  If ``None``, all peaks above
-        ``threshold`` are returned.
+        Number of change points to return: the ``n_cps`` highest local maxima
+        of the score curve that lie at least ``min_distance`` apart, whether
+        they pass the threshold or not (fewer only when the curve has fewer
+        such maxima).  If ``None``, all peaks above the threshold are
+        returned.
     threshold : float or None, default=None
-        Minimum score for a peak to be accepted as a change point.  When
-        ``None``, a data-driven threshold of ``mean + threshold_factor * std``
-        of the non-zero scores is used.
+        Minimum score for a peak to be accepted as a change point when
+        ``n_cps`` is ``None``.  When ``None``, a data-driven threshold of
+        ``mean + threshold_factor * std`` of the non-zero scores is used.
     threshold_factor : float, default=2.0
         Number of standard deviations above the mean score of the
         data-driven threshold (used when ``threshold`` is ``None``).
@@ -282,7 +285,15 @@ class ChangeFinderDetector(BaseSegmenter):
         )
 
     def _select_peaks(self, scores: np.ndarray) -> np.ndarray:
-        """Select change points as peaks of the score curve."""
+        """Select change points as peaks of the score curve.
+
+        The local maxima are taken by decreasing score, each at least
+        ``min_distance`` from those already kept.  Without ``n_cps``, those
+        above the threshold are returned.  With ``n_cps``, the first
+        ``n_cps`` are returned; when fewer pass the threshold, the local
+        maxima below it complete the selection, so that the output no longer
+        depends on the threshold.
+        """
         n = len(scores)
         min_dist = self._min_distance_samples(n)
 
@@ -293,7 +304,7 @@ class ChangeFinderDetector(BaseSegmenter):
         if len(peaks) == 0:
             return np.empty(0, dtype=np.int64)
 
-        # Filter by threshold
+        # Threshold
         if self.threshold is not None:
             thr = self.threshold
         else:
@@ -303,38 +314,25 @@ class ChangeFinderDetector(BaseSegmenter):
                 thr = float(np.mean(valid) + self.threshold_factor * np.std(valid))
             else:
                 thr = 0.0
-        peaks = peaks[scores[peaks] > thr]
+        above = scores[peaks] > thr
 
-        if len(peaks) == 0:
-            return np.empty(0, dtype=np.int64)
-
-        # Sort by score (descending), enforce min_distance
-        idx_sorted = peaks[np.argsort(scores[peaks])[::-1]]
+        # Candidates: the local maxima above the threshold; with n_cps, when
+        # fewer than n_cps of them are kept, the local maxima below it
+        # complete the selection.  Each group is taken by decreasing score,
+        # with min_distance enforced.
+        groups = [peaks[above]]
+        if self.n_cps is not None:
+            groups.append(peaks[~above])
         selected: list[int] = []
-        for cp in idx_sorted:
-            if cp < min_dist or cp > n - min_dist:
-                continue
-            if selected and min(abs(cp - s) for s in selected) < min_dist:
-                continue
-            selected.append(int(cp))
-            if self.n_cps is not None and len(selected) >= self.n_cps:
-                break
-
-        # If n_cps requested but threshold too strict, relax
-        if self.n_cps is not None and len(selected) < self.n_cps:
-            remaining = [
-                int(p)
-                for p in idx_sorted
-                if int(p) not in selected
-                and min_dist <= p <= n - min_dist
-                and (not selected or min(abs(p - s) for s in selected) >= min_dist)
-            ]
-            for cp in remaining:
+        for group in groups:
+            for cp in group[np.argsort(scores[group])[::-1]]:
+                if self.n_cps is not None and len(selected) >= self.n_cps:
+                    break
+                if cp < min_dist or cp > n - min_dist:
+                    continue
                 if selected and min(abs(cp - s) for s in selected) < min_dist:
                     continue
-                selected.append(cp)
-                if len(selected) >= self.n_cps:
-                    break
+                selected.append(int(cp))
 
         selected.sort()
         return np.asarray(selected, dtype=np.int64)
