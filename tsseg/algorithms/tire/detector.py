@@ -147,10 +147,12 @@ class TireDetector(BaseSegmenter):
         also the lag between the two representations compared by the
         dissimilarity and the half-width of the matched filter that smooths it.
     stride : int, default=1
-        Step between consecutive windows, at most ``window_size``. Only
-        ``stride=1`` returns time point indices: with a larger stride the
-        change scores are computed per window, and the returned indices are
-        window indices.
+        Step between consecutive windows, at most ``window_size``. The
+        dissimilarity compares the windows starting at ``i * stride`` and
+        ``(i + window_size) * stride``, adjacent only when ``stride=1``; it is
+        placed midway between the end of the first and the start of the
+        second, and interpolated linearly between these points, so that the
+        change points are time point indices whatever the stride.
     domain : {"TD", "FD", "both"}, default="both"
         Representations learned in the time domain (``"TD"``), the frequency
         domain (``"FD"``) or both, concatenated with weights that equalise
@@ -197,11 +199,11 @@ class TireDetector(BaseSegmenter):
         Learning rate of the Adam optimiser.
     n_segments : int, optional
         Number of segments: the ``n_segments - 1`` most prominent peaks are
-        returned. ``None`` or ``1`` select the peaks by
+        returned (none when ``n_segments=1``). ``None`` selects the peaks by
         ``prominence_threshold``.
     prominence_threshold : float, default=0.5
         Minimum prominence of a returned peak, relative to the highest one,
-        when ``n_segments`` is ``None`` or ``1``.
+        when ``n_segments`` is ``None``.
     axis : int, default=0
         The time axis of ``X``: ``0`` if time points are rows.
     random_state : int, optional
@@ -583,14 +585,19 @@ class TireDetector(BaseSegmenter):
         if scores.size == 0:
             scores = np.zeros_like(distances)
         scores = scores / (np.max(scores) + 1e-8)
-        change_scores = np.concatenate(
-            (
-                np.zeros((self.config.window_size,)),
-                scores,
-                np.zeros((self.config.window_size - 1,)),
-            )
+        n_timepoints = X.shape[0]
+        if scores.size == 0:
+            return np.zeros(n_timepoints)
+        # Score i compares the windows starting at i * stride and
+        # (i + window_size) * stride.  It is placed midway between the end of
+        # the first and the start of the second (at i + window_size when
+        # stride == 1, where the two windows are adjacent), then interpolated
+        # linearly between these points; 0 before the first and after the last.
+        window_size, stride = self.config.window_size, self.config.stride
+        positions = np.arange(scores.size) * stride + (window_size * (stride + 1)) // 2
+        return np.interp(
+            np.arange(n_timepoints), positions, scores, left=0.0, right=0.0
         )
-        return change_scores
 
     def _fit(self, X, y=None):
         self._rng = np.random.default_rng(self.random_state)
@@ -609,7 +616,9 @@ class TireDetector(BaseSegmenter):
         self.change_scores_ = scores
         distance = max(1, int(round(self.peak_distance_fraction * X.shape[0])))
 
-        if self.n_segments is None or self.n_segments < 2:
+        if self.n_segments == 1:
+            return np.empty(0, dtype=int)
+        if self.n_segments is None:
             peaks, _ = find_peaks(
                 scores, distance=distance, prominence=self.prominence_threshold
             )
