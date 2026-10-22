@@ -1,4 +1,6 @@
-"""Penalties and initial blocks of EAggloDetector."""
+"""Penalties, initial blocks and predict() of EAggloDetector."""
+
+import warnings
 
 import numpy as np
 import pytest
@@ -87,17 +89,65 @@ def test_predict_on_a_longer_series_refits_with_a_warning():
     assert np.any(pred >= 200)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="predict() reuses the fit() result for any series of the same length "
-    "(the index is compared, not the values)",
-)
-def test_predict_on_another_series_of_the_same_length():
+def _two_series_of_the_same_length():
     rng = np.random.default_rng(0)
     x1 = np.r_[rng.normal(0, 1, 60), rng.normal(6, 1, 60)]
     x2 = np.r_[rng.normal(0, 1, 30), rng.normal(6, 1, 90)]
+    return x1, x2
+
+
+def test_predict_on_another_series_of_the_same_length():
+    # the index of both series is 0..119: predict() used to compare it and
+    # return the change point of x1 (60)
+    x1, x2 = _two_series_of_the_same_length()
     member = np.repeat(np.arange(12), 10)
     detector = EAggloDetector(member=member).fit(x1)
     expected = EAggloDetector(member=member).fit_predict(x2)
     assert expected.tolist() == [30]
-    assert detector.predict(x2).tolist() == expected.tolist()
+    with pytest.warns(UserWarning, match="differs from that given to fit"):
+        assert detector.predict(x2).tolist() == expected.tolist()
+    # the fitted attributes still describe x1
+    assert detector.predict(x1).tolist() == [60]
+
+
+def test_predict_on_a_shorter_series_segments_it_alone():
+    # predict() used to complete the shorter series with the end of the series
+    # given to fit, segment the result and drop the change points past its end
+    rng = np.random.default_rng(3)
+    x_fit = np.r_[rng.normal(0, 1, 100), rng.normal(3, 1, 100)]
+    x_short = np.r_[rng.normal(0, 1, 50), rng.normal(3, 1, 50)]
+    expected = EAggloDetector(penalty="len_penalty").fit_predict(x_short)
+    assert expected.tolist() == [50, 98]
+    detector = EAggloDetector(penalty="len_penalty").fit(x_fit)
+    with pytest.warns(UserWarning, match="differs from that given to fit"):
+        assert detector.predict(x_short).tolist() == expected.tolist()
+
+
+def test_predict_after_the_fit_series_is_modified_in_place():
+    x1, x2 = _two_series_of_the_same_length()
+    x = x1.copy()
+    detector = EAggloDetector(member=np.repeat(np.arange(12), 10)).fit(x)
+    x[:] = x2
+    with pytest.warns(UserWarning, match="differs from that given to fit"):
+        assert detector.predict(x).tolist() == [30]
+
+
+def test_predict_on_the_fit_series_reuses_the_fit():
+    x1, _ = _two_series_of_the_same_length()
+    detector = EAggloDetector(member=np.repeat(np.arange(12), 10)).fit(x1)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        # equal values in a new array are the series given to fit
+        assert detector.predict(x1.copy()).tolist() == [60]
+        assert detector.fit_predict(x1).tolist() == [60]
+
+
+@pytest.mark.parametrize("n_timepoints", [60, 240])
+def test_predict_with_initial_blocks_on_a_series_of_another_length(n_timepoints):
+    # member labels the time points of the series given to fit: it cannot
+    # segment a series of another length (a shorter one used to be completed
+    # with the end of the fitted series)
+    x1, _ = _two_series_of_the_same_length()
+    detector = EAggloDetector(member=np.repeat(np.arange(12), 10)).fit(x1)
+    with pytest.raises(ValueError, match="member has 120 labels"):
+        detector.predict(np.resize(x1, n_timepoints))
