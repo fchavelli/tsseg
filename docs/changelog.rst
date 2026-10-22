@@ -21,6 +21,18 @@ Unreleased
 * Add a ``CITATION.cff`` file, read by GitHub's *Cite this repository*
   button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
   README.
+* Installation from source no longer needs conda. ``make install`` creates a
+  virtual environment in ``.venv`` with the ``venv`` module and installs tsseg
+  in it, editable, with the ``all`` and ``dev`` extras (options ``EXTRAS``,
+  ``VENV``, ``VENV_PYTHON``, and ``TORCH_INDEX_URL`` to take torch from
+  another index, such as its CPU build). The conda environment ``tsseg-env``
+  is now created by ``make install-conda`` (which installs ``EXTRAS`` too,
+  hence ``dev`` besides ``all``) and removed by ``make clean-conda``;
+  ``make clean`` removes ``.venv`` only. The README, the
+  documentation home page and the getting started and contributing guides
+  give the ``venv`` + ``pip`` steps first, and say that ``tsseg[all]`` needs
+  Python 3.10 to 3.12 (the TensorFlow versions pinned by ``tsseg[tscp2]`` have
+  no wheel for 3.13 or later).
 * ``EspressoDetector(random_state=...)`` seeds the matrix profile: the seed was
   stored but never passed on, so every call drew a fresh random order of the
   subsequences. That order decides which nearest neighbour is kept when

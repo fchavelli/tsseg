@@ -60,14 +60,23 @@ With optional extras:
    pip install tsseg[torch]   # PyTorch-based detectors
    pip install tsseg[all]     # everything
 
-From source (requires ``conda``):
+From source, in a virtual environment (``make install`` does the same in
+``.venv``; ``make install-conda`` creates the conda environment ``tsseg-env``
+instead):
 
 .. code-block:: bash
 
    git clone https://github.com/fchavelli/tsseg.git
    cd tsseg
-   make install
-   conda activate tsseg-env
+   python -m venv .venv
+   source .venv/bin/activate      # Windows: .venv\Scripts\activate
+   pip install -e ".[all,dev]"
+
+``tsseg[tscp2]``, hence ``tsseg[all]``, needs Python 3.10 to 3.12: the
+TensorFlow versions it pins (below 2.19) have no wheel for Python 3.13 or later.
+On Linux, ``torch`` from PyPI comes with the CUDA libraries; without a GPU,
+install its CPU build first, as the CI does:
+``pip install torch --index-url https://download.pytorch.org/whl/cpu``.
 
 Most detectors work out of the box. Heavier dependencies are opt-in:
 

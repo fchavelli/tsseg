@@ -17,12 +17,25 @@ Development Setup
         cd tsseg
 
 2.  **Install Development Dependencies**:
-    We use ``ruff`` for linting/formatting and ``pytest`` for testing.
+    We use ``ruff`` for linting/formatting and ``pytest`` for testing, both in
+    the ``dev`` extra. In a virtual environment:
 
     .. code-block:: bash
 
-        make install
-        conda activate tsseg-env
+        python -m venv .venv
+        source .venv/bin/activate
+        pip install -e ".[all,dev]"
+
+    ``make install`` runs these steps (``make help`` lists its options:
+    ``EXTRAS``, ``VENV``, ``VENV_PYTHON``, ``TORCH_INDEX_URL``);
+    ``make install-conda`` creates the conda environment ``tsseg-env`` from
+    ``environment.yml`` instead. To install what the CI installs, with the CPU
+    build of torch:
+
+    .. code-block:: bash
+
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
+        pip install -e ".[dev,aeon,prophet,tglad,beast,changeforest]"
 
 Code Style
 ----------

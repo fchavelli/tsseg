@@ -1,6 +1,7 @@
 # Environnements Conda/Python
 /tsseg-env/
 /venv/
+/.venv/
 /env/
 /.env
 

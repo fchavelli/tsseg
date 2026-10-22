@@ -21,7 +21,7 @@ dependencies:
     # NOTE: tensorflow / keras-tcn (needed only by TSCP2Detector) are NOT
     # pinned here to avoid fragile exact-version constraints that break
     # across platforms.  They are installed automatically by the
-    # `make install` step (pip install -e .[all]) via the [tscp2] extra
+    # `make install-conda` step (pip install -e .[all,dev]) via the [tscp2] extra
     # defined in pyproject.toml with flexible ranges.
     # To install them manually:  pip install -e .[tscp2]
     #

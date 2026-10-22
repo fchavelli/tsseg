@@ -105,25 +105,36 @@ extra, for instance `pip install "tsseg[torch]"`, or all of them at once with
 The `tsseg[patss]` extra installs nothing: the deprecated `PatssDetector` needs
 `npbad`, which is not on PyPI and must be installed by hand.
 
-<details>
-<summary><b>From source, with conda</b></summary>
+`tsseg[tscp2]`, hence `tsseg[all]`, needs Python 3.10 to 3.12: the TensorFlow
+versions it pins (below 2.19) have no wheel for Python 3.13 or later. On Linux,
+`torch` from PyPI comes with the CUDA libraries; without a GPU, install its CPU
+build first, as the CI does:
+`pip install torch --index-url https://download.pytorch.org/whl/cpu`.
 
-`make install` needs `conda` in your `PATH` (or set in a `.env` file, see
-`.env.example`):
+<details>
+<summary><b>From source</b></summary>
+
+In a virtual environment:
 
 ```bash
 git clone https://github.com/fchavelli/tsseg.git
 cd tsseg
-make install          # creates the conda env and installs tsseg
-conda activate tsseg-env
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -e ".[all,dev]"
 ```
 
-Or step by step:
+`make install` does the same in `.venv` (`make help` lists its options, such as
+`EXTRAS=dev,torch`, `VENV_PYTHON=python3.12` or
+`TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu`).
+
+With conda, `make install-conda` creates the `tsseg-env` environment from
+`environment.yml` and installs tsseg in it (it needs `conda` in your `PATH`, or
+set in a `.env` file, see `.env.example`):
 
 ```bash
-conda env create -f environment.yml
+make install-conda
 conda activate tsseg-env
-pip install -e ".[all]"
 ```
 
 </details>
