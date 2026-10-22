@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New ``SeededBinSegDetector``: seeded binary segmentation (Kovács, Bühlmann,
+  Li and Munk, 2023), written from the paper. Best split of every interval of
+  a deterministic, near-linear collection, then greedy or
+  narrowest-over-threshold selection; number of change points from
+  ``n_cps``, a ``penalty`` on the gain, or the strengthened Schwarz
+  information criterion. ``intervals="wild"`` gives wild binary segmentation
+  (Fryzlewicz, 2014). Any ruptures cost; ``"l2"`` is the CUSUM of the papers.
 * Add a ``CITATION.cff`` file, read by GitHub's *Cite this repository*
   button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
   README.
