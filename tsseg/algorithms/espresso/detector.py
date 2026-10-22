@@ -51,8 +51,11 @@ class EspressoDetector(BaseSegmenter):
     axis : int, default=0
         Axis corresponding to the time dimension in the input array.
     random_state : int, optional
-        Seed for the internal random number generator used when sampling
-        subsequences for the matrix profile.
+        Seed of the random order in which the subsequences are visited to
+        compute the matrix profile. The order only matters when distances tie
+        (for instance on exactly repeated patterns): the nearest neighbour kept
+        for a tie, and so the change points, can then change with the seed.
+        ``None`` draws a fresh seed at each call to ``predict``.
     """
 
     _tags = {
@@ -116,7 +119,6 @@ class EspressoDetector(BaseSegmenter):
         self.n_segments = n_segments
         self.peak_distance_fraction = float(peak_distance_fraction)
         self.random_state = random_state
-        self._rng: np.random.Generator | None = None
         self._fitted_change_points: np.ndarray | None = None
 
         super().__init__(axis=axis)
@@ -155,7 +157,7 @@ class EspressoDetector(BaseSegmenter):
             self.window_size,
             self.chain_len,
             pdist_fraction=self.peak_distance_fraction,
-            rng=self._rng,
+            random_state=self.random_state,
         )
 
         change_points = np.asarray(change_points, dtype=int)

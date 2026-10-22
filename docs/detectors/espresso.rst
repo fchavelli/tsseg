@@ -58,7 +58,9 @@ Parameters
    * - ``random_state``
      - int / None
      - ``None``
-     - Seed for the internal RNG.
+     - Seed of the order in which subsequences are visited for the matrix
+       profile; it changes the result only when distances tie (exactly
+       repeated patterns). ``None`` draws a fresh seed at each ``predict``.
 
 Usage
 -----

@@ -33,6 +33,12 @@ Unreleased
   give the ``venv`` + ``pip`` steps first, and say that ``tsseg[all]`` needs
   Python 3.10 to 3.12 (the TensorFlow versions pinned by ``tsseg[tscp2]`` have
   no wheel for 3.13 or later).
+* ``EspressoDetector(random_state=...)`` seeds the matrix profile: the seed was
+  stored but never passed on, so every call drew a fresh random order of the
+  subsequences. That order decides which nearest neighbour is kept when
+  distances tie, which happens on exactly repeated patterns; there, the
+  change points changed from one run to the next whatever the seed. A fixed
+  seed now gives the same change points at every run.
 * ``ClapDetector`` accepts the classifiers and merge scores that CLaP
   implements: ``classifier`` in {``"rocket"``, ``"mrhydra"``, ``"weasel"``,
   ``"quant"``, ``"rdst"``, ``"proximityforest"``, ``"freshprince"``,
@@ -59,6 +65,13 @@ Unreleased
   order in which ``stumpy.fluss`` extracts them (lowest corrected arc curve
   first), for example ``[3278, 1600]`` on MoCap trial 0. The change points and
   their scores are unchanged, only their order.
+* ``BinSegDetector`` and ``BottomUpDetector``: ``penalty`` defaults to
+  ``None``, which means 10 when neither ``n_cps`` nor ``epsilon`` is given.
+  With the former default of 10, ``n_cps=k`` alone always warned that the
+  penalty was ignored, and ``epsilon`` alone raised ``ValueError`` (it needed
+  ``penalty=None``). The change points are the same in every case that was
+  accepted before; ``penalty=None`` alone now means a penalty of 10 instead of
+  raising ``ValueError``.
 * Docs: the BinSeg page listed an ``"ar"`` cost model, which the parameter
   check refuses, and omitted ``"cosine"``, which it accepts.
 * Docs: the docstrings of ``ClaspDetector``, ``EspressoDetector``,
@@ -121,6 +134,13 @@ Unreleased
   fitted series are unchanged. With ``member``, a series of another length
   raises a ``ValueError`` that says so (a longer one failed in pandas, a
   shorter one was completed).
+* ``HidalgoDetector.predict(X)`` labels ``X`` when it is not the series given
+  to ``fit``. It returned the labels of the fitted series whatever ``X``, so as
+  many labels as the fitted series has time points. A new series is labelled
+  with a new fit, with a warning, and the fitted attributes are left
+  unchanged; ``fit_predict`` and ``predict`` on the fitted series are
+  unchanged. The docstring now says that time points whose most probable state
+  has a posterior probability below 0.8 are labelled ``-1``.
 * The pages of IGTS, TS-CP2, PaTSS and SNLDS give their time complexity, so
   every detector page now does. The SNLDS page said that a training step
   costs :math:`O(B\,L\,K^{2})`; :math:`K^{2}` is only the forward-backward
