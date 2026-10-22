@@ -25,14 +25,8 @@ _GUIDED_WITHOUT_COUNT = {
 
 # Detectors whose schema still refuses a single-regime guidance, because the
 # detector itself has not been checked with it yet.
-_NOT_YET_CHECKED = {
-    "TSCP2Detector": "n_cps=0 not yet checked against the TensorFlow model",
-    "BOCDDetector": "the schema requires max_cps >= 1; max_cps=0 not yet checked",
-    "BeastDetector": "the schema requires max_cps >= 1; max_cps=0 not yet checked",
-    "GreedyGaussianDetector": (
-        "the schema requires k_max >= 1; k_max=0 not yet checked"
-    ),
-}
+# Empty: every guided detector is checked by a test of this module.
+_NOT_YET_CHECKED: dict[str, str] = {}
 
 
 def _supervision_errors(instance, n_samples: int) -> list[str]:
@@ -165,3 +159,60 @@ def test_ticc_guided_single_state():
     labels = detector.fit_predict(X)
     assert labels.shape == (X.shape[0],)
     assert np.unique(labels).size == 1
+
+
+def test_tscp2_guided_zero_change_points():
+    pytest.importorskip("tensorflow")
+    pytest.importorskip("tcn")
+    from tsseg.algorithms import TSCP2Detector
+
+    X = _two_regime_series(n_samples=300)
+    detector = TSCP2Detector(
+        n_cps=0, window_size=16, epochs=2, batch_size=16, random_state=0
+    )
+    cps = detector.fit_predict(X)
+    assert isinstance(cps, np.ndarray)
+    assert cps.size == 0
+
+
+@pytest.mark.parametrize(
+    ("n_channels", "strategy"), [(1, "l2"), (2, "l2"), (2, "ensembling")]
+)
+def test_bocd_guided_zero_change_points(n_channels, strategy):
+    from tsseg.algorithms import BOCDDetector
+
+    x = _two_regime_series(n_samples=300)
+    X = x if n_channels == 1 else np.c_[x, _two_regime_series(300, seed=1)]
+    params = {"multivariate_strategy": strategy, "cp_prob_threshold": 0.02}
+    # The data alone yield a change point: the guidance must rule it out.
+    assert BOCDDetector(max_cps=1, **params).fit_predict(X).size == 1
+    cps = BOCDDetector(max_cps=0, **params).fit_predict(X)
+    assert isinstance(cps, np.ndarray)
+    assert cps.size == 0
+
+
+@pytest.mark.parametrize(
+    ("n_channels", "strategy"),
+    [(1, "native"), (2, "native"), (2, "l2"), (2, "ensembling")],
+)
+def test_beast_guided_zero_change_points(n_channels, strategy):
+    pytest.importorskip("Rbeast")
+    from tsseg.algorithms import BeastDetector
+
+    x = _two_regime_series(n_samples=300)
+    X = x if n_channels == 1 else np.c_[x, _two_regime_series(300, seed=1)]
+    params = {"multivariate_strategy": strategy, "mcmc_seed": 1}
+    assert BeastDetector(max_cps=1, **params).fit_predict(X).size == 1
+    cps = BeastDetector(max_cps=0, **params).fit_predict(X)
+    assert isinstance(cps, np.ndarray)
+    assert cps.size == 0
+
+
+def test_ggs_guided_zero_change_points():
+    from tsseg.algorithms import GreedyGaussianDetector
+
+    X = _two_regime_series(n_samples=300)
+    assert GreedyGaussianDetector(k_max=1, random_state=0).fit_predict(X).size == 1
+    cps = GreedyGaussianDetector(k_max=0, random_state=0).fit_predict(X)
+    assert isinstance(cps, np.ndarray)
+    assert cps.size == 0
