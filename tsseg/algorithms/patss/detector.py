@@ -120,7 +120,10 @@ class PatssDetector(BaseSegmenter):
             return np.zeros(X.shape[0], dtype=int)
 
         # 4. Convert the probability matrix to a dense array of state labels.
-        #    The original implementation returns probabilities, so we take the argmax.
+        #    The original implementation returns probabilities, so we take the
+        #    argmax; with the "k_means" algorithm it returns the labels.
+        if segmentation_probas.ndim == 1:
+            return segmentation_probas.astype(int)
         labels = np.argmax(segmentation_probas, axis=0)
         
         return labels

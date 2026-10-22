@@ -172,6 +172,8 @@ Unreleased
   ``get_params()["config"]`` changed after the first ``predict``, and the
   sections it added were the module-level default dictionaries themselves
   (editing them changed the defaults of every later run).
+* ``PatssDetector`` with ``config={"segmentation": {"algorithm": "k_means"}}``
+  returns one state label per time point; it returned a single integer.
 * ``PatssDetector`` writes nothing to the standard output; it printed the
   temporary directory of every window size it tried.
 
