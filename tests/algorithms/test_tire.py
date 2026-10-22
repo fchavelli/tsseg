@@ -1,4 +1,4 @@
-"""Change point selection of TireDetector (peak distance and threshold)."""
+"""Change point selection of TireDetector (stride, peak distance, threshold)."""
 
 import numpy as np
 import pytest
@@ -48,3 +48,29 @@ def test_prominence_threshold():
 def test_guided_returns_n_segments_minus_one():
     pred = TireDetector(**SMALL, n_segments=4).fit_predict(_steps())
     assert len(pred) == 3
+
+
+@pytest.mark.parametrize("stride", [2, 4])
+def test_stride_returns_time_points(stride):
+    """With ``stride > 1`` the change points are time points, not windows.
+
+    The compared windows are ``window_size * stride`` points apart, so a step
+    change gives a plateau of ``window_size * (stride - 1)`` points in the
+    dissimilarity: the tolerance grows with the stride.
+    """
+    x = _steps()
+    det = TireDetector(**SMALL, stride=stride, n_segments=4)
+    pred = det.fit_predict(x)
+    assert det.change_scores_.shape == (len(x),)
+    assert len(pred) == 3
+    tolerance = SMALL["window_size"] * stride / 2
+    assert np.all(np.abs(pred - np.array([150, 300, 450])) <= tolerance)
+
+
+def test_stride_change_points_are_peaks_of_the_scores():
+    x = _steps()
+    det = TireDetector(**SMALL, stride=3, prominence_threshold=0.2)
+    pred = det.fit_predict(x)
+    assert len(pred) > 0
+    prominences = peak_prominences(det.change_scores_, pred)[0]
+    assert np.all(prominences >= 0.2)
