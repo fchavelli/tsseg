@@ -161,6 +161,12 @@ Unreleased
   exactly two windows scores its single window pair instead of failing.
 * ``PatssDetector`` writes nothing to the standard output; it printed the
   temporary directory of every window size it tried.
+* ``BeastDetector`` no longer fails with ``ValueError: cannot convert float
+  NaN to integer`` when Rbeast returns NaN for the median number of change
+  points (``ncp_median``), as it did in CI on a 6,000-point series. It warns
+  (``RuntimeWarning``) and keeps the change points above
+  ``cp_prob_threshold`` without capping their number; if every Rbeast output
+  is NaN, it returns no change point.
 
 0.3.0 (2026-10-14)
 ------------------

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from importlib import metadata
 
 import numpy as np
@@ -19,6 +20,33 @@ __all__ = ["BeastDetector"]
 
 
 _MIN_RBEAST = (0, 1, 25)
+
+
+def _median_ncp(ncp_median, index: int, where: str) -> int | None:
+    """Rbeast's median number of change points, or ``None`` if it gave none.
+
+    Rbeast returns NaN for ``ncp_median`` when its run gives no estimate: on
+    a series that is almost all NaN, every output is NaN. It also did in CI
+    on a 6,000-point univariate series (not reproduced locally), where
+    ``int(round(nan))`` raised ``ValueError``. The change points are then not
+    capped by this count.
+    """
+    if ncp_median is None:
+        return None
+    values = np.asarray(ncp_median, dtype=float).ravel()
+    if index >= len(values):
+        return None
+    value = values[index]
+    if not np.isfinite(value):
+        warnings.warn(
+            f"Rbeast returned {value} for ncp_median ({where}): the number of "
+            "change points is not capped, they are kept by cp_prob_threshold "
+            "alone (none if every Rbeast output is NaN).",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None
+    return int(round(float(value)))
 
 
 def _import_rbeast():
@@ -113,6 +141,15 @@ class BeastDetector(BaseSegmenter):
         Tolerance for aggregating change points (ensembling strategy only).
     axis : int, default=0
         Time axis of the input array.
+
+    Notes
+    -----
+    Change points are read from Rbeast's ranked list of the most likely
+    locations (``cp``, with probabilities ``cpPr``): those with a probability
+    of at least ``cp_prob_threshold``, at most ``ncp_median`` of them
+    (Rbeast's median number of change points) per component and, with
+    ``"native"``, per channel. When Rbeast returns NaN for ``ncp_median``, a
+    ``RuntimeWarning`` is raised and their number is not capped.
     """
 
     _tags = {
@@ -394,11 +431,7 @@ class BeastDetector(BaseSegmenter):
                 cp_pr = np.asarray(cp_pr)
                 pr_col = cp_pr[:, ch] if cp_pr.ndim == 2 else cp_pr.ravel()
 
-            n_expected = None
-            if ncp_med is not None:
-                ncp_med = np.asarray(ncp_med).ravel()
-                if ch < len(ncp_med):
-                    n_expected = int(round(float(ncp_med[ch])))
+            n_expected = _median_ncp(ncp_med, ch, f"{comp_name}, channel {ch}")
 
             comp_cps: list[int] = []
             for i, cp in enumerate(cp_col):
@@ -449,11 +482,11 @@ class BeastDetector(BaseSegmenter):
         all_cps = []
 
         if self.component in ("trend", "both") and hasattr(o, "trend"):
-            trend_cps = self._cps_from_component(o.trend)
+            trend_cps = self._cps_from_component(o.trend, "trend")
             all_cps.extend(trend_cps)
 
         if self.component in ("season", "both") and hasattr(o, "season"):
-            season_cps = self._cps_from_component(o.season)
+            season_cps = self._cps_from_component(o.season, "season")
             all_cps.extend(season_cps)
 
         if not all_cps:
@@ -461,14 +494,15 @@ class BeastDetector(BaseSegmenter):
 
         return np.unique(np.array(all_cps, dtype=np.int64))
 
-    def _cps_from_component(self, component) -> list[int]:
+    def _cps_from_component(self, component, name: str = "trend") -> list[int]:
         """Extract filtered CPs from a single BEAST component (trend/season).
 
         Uses the ranked ``cp`` / ``cpPr`` arrays from BEAST's output. These
         list the most likely change-point locations sorted by descending
         probability, which is more reliable than thresholding the dense
         ``cpOccPr`` curve (which can be diffuse around the true location).
-        The number of CPs is guided by ``ncp_median``.
+        The number of CPs is guided by ``ncp_median``; ``name`` (``"trend"``
+        or ``"season"``) only labels the warning raised when it is NaN.
         """
         cps: list[int] = []
 
@@ -480,11 +514,7 @@ class BeastDetector(BaseSegmenter):
                 cp_pr = np.asarray(component.cpPr).ravel()
 
             # Use ncp_median as the expected number of CPs
-            n_expected = None
-            if hasattr(component, "ncp_median") and component.ncp_median is not None:
-                val = np.asarray(component.ncp_median).ravel()
-                if len(val) > 0:
-                    n_expected = int(round(float(val[0])))
+            n_expected = _median_ncp(getattr(component, "ncp_median", None), 0, name)
 
             for i, cp in enumerate(cp_arr):
                 if np.isnan(cp):
