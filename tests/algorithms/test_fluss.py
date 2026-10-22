@@ -113,3 +113,76 @@ def test_one_segment_returns_an_empty_array():
     pred = FLUSSDetector(n_segments=1).fit_predict(_regimes())
     _assert_change_points(pred, 3000)
     assert pred.size == 0
+
+
+def _mean_shifts(rng=0):
+    # Three segments that differ by their mean only: white noise around -0.8,
+    # 0.5 and -0.1, change points at 300 and 700.
+    rng = np.random.default_rng(rng)
+    means = np.repeat([-0.8, 0.5, -0.1], [300, 400, 300])
+    return means + 0.2 * rng.normal(size=means.size)
+
+
+def _near(pred, cps, margin):
+    return [bool(pred.size) and np.min(np.abs(pred - cp)) <= margin for cp in cps]
+
+
+def test_default_matrix_profile_is_z_normalized():
+    # Z-normalized windows of white noise look alike whatever their mean: the
+    # default (the matrix profile of the paper) misses these change points.
+    det = FLUSSDetector(window_size=10, n_segments=3)
+    assert det.get_params()["normalize"] is True
+    pred = det.fit_predict(_mean_shifts())
+    assert not all(_near(pred, (300, 700), 20))
+
+
+@pytest.mark.parametrize("window_size", [10, 20, 50])
+def test_non_normalized_matrix_profile_finds_shifts_in_mean(window_size):
+    det = FLUSSDetector(window_size=window_size, n_segments=3, normalize=False)
+    pred = det.fit_predict(_mean_shifts())
+    _assert_change_points(pred, 1000)
+    assert len(pred) == 2
+    assert all(_near(pred, (300, 700), 40))
+
+
+@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("strategy", ["ensembling", "l2"])
+def test_normalize_is_passed_to_the_matrix_profile(monkeypatch, normalize, strategy):
+    import stumpy
+
+    calls = []
+    stump = stumpy.stump
+
+    def spy(*args, **kwargs):
+        calls.append(kwargs.get("normalize"))
+        return stump(*args, **kwargs)
+
+    monkeypatch.setattr(stumpy, "stump", spy)
+    x = _mean_shifts()
+    X = np.column_stack([x, -x])
+    FLUSSDetector(
+        window_size=20,
+        n_segments=3,
+        normalize=normalize,
+        multivariate_strategy=strategy,
+    ).fit_predict(X)
+    assert calls == [normalize] * (2 if strategy == "ensembling" else 1)
+
+
+def test_normalize_without_a_known_number_of_segments():
+    # On raw windows the arcs stay in their segment, so the corrected arc
+    # curve is low over whole segments: the default threshold of 0.5 keeps
+    # minima inside them, a lower one keeps the two change points only.
+    x = _mean_shifts()
+    loose = FLUSSDetector(window_size=20, n_segments=None, normalize=False)
+    assert len(loose.fit_predict(x)) > 2
+    det = FLUSSDetector(window_size=20, n_segments=None, normalize=False, threshold=0.1)
+    pred = det.fit_predict(x)
+    _assert_change_points(pred, 1000)
+    assert len(pred) == 2
+    assert all(_near(pred, (300, 700), 40))
+
+
+def test_normalize_must_be_a_bool():
+    with pytest.raises(ValueError, match="normalize"):
+        FLUSSDetector(normalize="no").fit(_mean_shifts())

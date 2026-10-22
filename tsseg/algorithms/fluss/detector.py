@@ -17,6 +17,7 @@ from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
     DataDependent,
+    HasType,
     Interval,
     ParamDef,
     StrOptions,
@@ -69,6 +70,14 @@ class FLUSSDetector(BaseSegmenter):
         that lie within ``tolerance`` of each other are merged into one,
         returned if at least ``consensus`` of the channels (one at least)
         detected it.
+    normalize : bool, default=True
+        ``True``: the matrix profile compares z-normalized subsequences, as in
+        the FLUSS paper, so only the shape of a window counts and a change in
+        mean or scale alone does not show. ``False``: it compares the raw
+        subsequences (Euclidean distance), and a shift in level does show;
+        the corrected arc curve is then low over whole segments, so
+        ``n_segments=None`` needs a lower ``threshold``. Passed to
+        ``stumpy.stump``.
 
     References
     ----------
@@ -130,6 +139,10 @@ class FLUSSDetector(BaseSegmenter):
             constraint=Interval(float, 0, 1, Closed.BOTH),
             description="Fraction of channels that must agree (ensembling, no n_segments).",
         ),
+        "normalize": ParamDef(
+            constraint=HasType((bool,)),
+            description="Z-normalize the subsequences of the matrix profile.",
+        ),
         "_cross_constraints": [
             DataDependent(
                 "window_size < n_samples",
@@ -152,6 +165,7 @@ class FLUSSDetector(BaseSegmenter):
         tolerance=0.01,
         threshold=0.5,
         consensus=0.0,
+        normalize=True,
     ):
         if not _HAS_STUMPY:
             raise ImportError(
@@ -164,6 +178,7 @@ class FLUSSDetector(BaseSegmenter):
         self.tolerance = tolerance
         self.threshold = threshold
         self.consensus = consensus
+        self.normalize = normalize
         super().__init__(axis=axis)
 
     def _fit(self, X, y=None):
@@ -272,7 +287,7 @@ class FLUSSDetector(BaseSegmenter):
         return int(self.tolerance)
 
     def _run_fluss(self, X):
-        mp = stumpy.stump(X, m=self.window_size)
+        mp = stumpy.stump(X, m=self.window_size, normalize=self.normalize)
         if self.n_segments is None:
             # Corrected arc curve only; the regimes are read off with the threshold.
             self.profile, _ = stumpy.fluss(

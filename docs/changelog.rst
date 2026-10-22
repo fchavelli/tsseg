@@ -88,6 +88,14 @@ Unreleased
   the others are unchanged. With ``"ensembling"``, the channels no longer vote
   for ``0``, and the change points they agree on can change.
   ``n_segments=1`` returns an empty array instead of an empty list.
+* ``FLUSSDetector`` has a new parameter ``normalize`` (default ``True``,
+  passed to ``stumpy.stump``). The default keeps the z-normalized matrix
+  profile of the FLUSS paper, to which a change in mean or scale alone is
+  invisible; ``normalize=False`` compares the raw subsequences, so shifts in
+  level show (``[293, 692]`` instead of ``[485, 739]`` for change points at
+  300 and 700 of white noise with three means). Without ``n_segments``, it
+  needs a lower ``threshold`` than the default 0.5. Outputs with the default
+  are unchanged.
 * ``BinSegDetector`` and ``BottomUpDetector``: ``penalty`` defaults to
   ``None``, which means 10 when neither ``n_cps`` nor ``epsilon`` is given.
   With the former default of 10, ``n_cps=k`` alone always warned that the
