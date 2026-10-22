@@ -280,12 +280,15 @@ class FLUSSDetector(BaseSegmenter):
             )
             self.found_cps = self._threshold_regimes(self.profile)
         else:
-            self.profile, self.found_cps = stumpy.fluss(
+            self.profile, regime_locs = stumpy.fluss(
                 mp[:, 1],
                 L=self.window_size,
                 excl_factor=self.exclusion_factor,
                 n_regimes=self.n_segments,  # regimes -> segments for consistency with state detection naming
             )
+            # stumpy returns the locations in extraction order (lowest corrected
+            # arc curve first); change points are returned in time order.
+            self.found_cps = np.sort(regime_locs)
         self.scores = self.profile[self.found_cps]
 
         return self.found_cps, self.profile, self.scores
