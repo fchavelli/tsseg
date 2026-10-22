@@ -181,6 +181,16 @@ Unreleased
   reference of the paper (SDM 2024).
 * ``PatssDetector`` writes nothing to the standard output; it printed the
   temporary directory of every window size it tried.
+* The iCID, tGLAD and TIRE pages said "*Origin: new code.*" They now say where
+  the code comes from: a translation of the authors' MATLAB code (iCID,
+  GPLv3), a wrapper around the uGLAD solver vendored from the authors'
+  repository under a non-commercial licence (tGLAD), and a PyTorch
+  reimplementation of the authors' TensorFlow code (TIRE). The ``threshold``
+  of ``TGLADDetector`` applies to the absolute second difference of the sum of
+  partial correlations, not to a Frobenius distance as the page, the README
+  and the docstring said. The iCID page and README give the right title and
+  authors of the JAIR paper, and the tGLAD README cites the paper of its
+  authors.
 
 0.3.0 (2026-10-14)
 ------------------
