@@ -417,7 +417,6 @@ class DDEM(BasicEncoder):
         return self.network
 
     def encode(self, X, batch_size=500):
-        print(X.shape)
         varying = bool(numpy.isnan(numpy.sum(X)))
 
         test = Dataset(X)

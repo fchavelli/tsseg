@@ -114,6 +114,9 @@ Unreleased
   costs :math:`O(B\,L\,K^{2})`; :math:`K^{2}` is only the forward-backward
   recursion, and the discrete transition network costs :math:`O(K^{4})` per
   time step.
+* ``E2USDDetector.predict`` and ``fit_predict`` write nothing to the standard
+  output. Since 0.1.0 they printed the shape of the array of windows, for
+  example ``(17, 1, 32)``, on every call.
 
 0.3.0 (2026-10-14)
 ------------------
