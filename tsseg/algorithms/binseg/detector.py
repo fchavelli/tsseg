@@ -313,4 +313,4 @@ class BinSegDetector(BaseSegmenter):
             Each dict are parameters to construct an "interesting" test instance, i.e.,
             `MyClass(**params)` or `MyClass(**params[i])` creates a valid test instance.
         """
-        return {"n_cps": 1, "semi_supervised": True}
+        return {"n_cps": 1}
