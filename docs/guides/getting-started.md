@@ -6,23 +6,29 @@ environment.
 
 ## Installation
 
-This library relies on a robust environment. It is recommended to use `conda` or `mamba`.
+From PyPI, in a virtual environment:
 
 ```bash
-# Clone the repository
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install tsseg
+```
+
+Detectors built on heavier libraries need an extra, such as `tsseg[torch]`, or
+`tsseg[all]` for all of them (see [Installation](../index)).
+
+From source, for development:
+
+```bash
 git clone https://github.com/fchavelli/tsseg.git
 cd tsseg
-
-# Install the environment using the provided makefile
-make install
-conda activate tsseg-env
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[all,dev]"
 ```
 
-If you prefer `pip` and want to install it as a library in an existing environment:
-
-```bash
-pip install -e .[all]
-```
+`make install` runs these steps in `.venv`. With conda, `make install-conda`
+creates the `tsseg-env` environment from `environment.yml` instead.
 
 ## Basic usage
 
