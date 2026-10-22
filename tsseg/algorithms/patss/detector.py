@@ -48,8 +48,12 @@ class PatssDetector(BaseSegmenter):
     Parameters
     ----------
     config : dict, optional
-        A dictionary containing the settings to use within PaTSS. If not provided,
-        the default hyperparameters defined in PaTSS_perso.py will be used.
+        Settings of PaTSS: up to three dictionaries, ``"pattern_mining"``,
+        ``"pattern_filter"`` and ``"segmentation"``, and an integer
+        ``"n_jobs"`` (keys and defaults: PaTSS page of the documentation).
+        A missing key takes its default value, also inside a section given in
+        part; ``config`` itself is not modified. If ``None``, every default
+        is used.
     axis : int, default=0
         The axis of the time series data. Assumes (n_timepoints, n_channels).
     """

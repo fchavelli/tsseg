@@ -174,6 +174,11 @@ Unreleased
   (editing them changed the defaults of every later run).
 * ``PatssDetector`` with ``config={"segmentation": {"algorithm": "k_means"}}``
   returns one state label per time point; it returned a single integer.
+* The PaTSS page lists the keys that ``config`` takes, with their defaults:
+  the keys it cited (``pattern_length``, ``min_frequency``, ``max_overlap``,
+  ``n_segments``) do not exist, so its custom configuration example had no
+  effect. It describes the three steps as the code runs them and gives the
+  reference of the paper (SDM 2024).
 * ``PatssDetector`` writes nothing to the standard output; it printed the
   temporary directory of every window size it tried.
 

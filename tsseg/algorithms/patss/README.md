@@ -24,9 +24,15 @@ KU Leuven. The core logic lives in `algorithms/PaTSS_perso.py` and in the
 ## Citation
 
 ```bibtex
-@article{carpentier2024patss,
-  title   = {{PaTSS}: Pattern-based Time Series Segmentation},
-  author  = {Carpentier, Louis and others},
-  year    = {2024}
+@inproceedings{carpentier2024patss,
+  title     = {Pattern-based Time Series Semantic Segmentation with Gradual
+               State Transitions},
+  author    = {Carpentier, Louis and Feremans, Len and Meert, Wannes and
+               Verbeke, Mathias},
+  booktitle = {Proceedings of the 2024 SIAM International Conference on Data
+               Mining (SDM)},
+  pages     = {316--324},
+  year      = {2024},
+  doi       = {10.1137/1.9781611978032.36}
 }
 ```
