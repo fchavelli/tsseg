@@ -13,8 +13,15 @@ index is counted.  Valleys in the arc curve indicate semantic boundaries because
 few matching subsequences span across a true regime change.
 
 A sequential peak search on the inverted arc curve yields the requested number
-of change points.  FLUSS has only one parameter — the window size — which
+of change points, or fewer when the curve left outside the exclusion zones of
+the first ones is flat.  FLUSS has only one parameter — the window size — which
 corresponds to the dominant period length.
+
+The matrix profile compares z-normalized subsequences, that is their shapes:
+a change in the mean or the scale of the series alone does not show.  On
+three segments of white noise with different means, the nearest neighbour of
+a window lies in its own segment for a third of the windows only, as by
+chance, and no change point stands out.
 
 | **Type:** change point detection
 | **Supervision:** semi-supervised or unsupervised
@@ -41,8 +48,9 @@ Parameters
    * - ``n_segments``
      - int / None
      - ``2``
-     - Number of segments (= change points + 1). ``None``: unknown, change
-       points are the minima of the corrected arc curve below ``threshold``.
+     - Number of segments (= change points + 1), at most. ``None``: unknown,
+       change points are the minima of the corrected arc curve below
+       ``threshold``.
    * - ``exclusion_factor``
      - int
      - ``5``

@@ -45,7 +45,10 @@ class FLUSSDetector(BaseSegmenter):
     n_segments : int or None, default = 2
         The number of segments to search (change points + 1). ``None``: the
         number is not known, and every minimum of the corrected arc curve below
-        ``threshold`` is a change point.
+        ``threshold`` is a change point. With a number, fewer change points
+        come out when the corrected arc curve left after the exclusion zones
+        of the first ones is flat (1 everywhere: no point is crossed by fewer
+        arcs than expected).
     exclusion_factor : int, default=5
         The multiplying factor for the segment exclusion zone.
     axis : int, default=0
@@ -186,7 +189,7 @@ class FLUSSDetector(BaseSegmenter):
 
         # Short-circuit for 1 segment (no change points)
         if self.n_segments == 1:
-            self.found_cps = []
+            self.found_cps = np.empty(0, dtype=np.int64)
             self.scores = np.array([])
             self.profile = None
             return self.found_cps
@@ -286,6 +289,10 @@ class FLUSSDetector(BaseSegmenter):
                 excl_factor=self.exclusion_factor,
                 n_regimes=self.n_segments,  # regimes -> segments for consistency with state detection naming
             )
+            # Once the corrected arc curve left unmasked is flat (1 everywhere:
+            # no point with fewer arcs than expected), stumpy takes its argmin,
+            # 0, for every regime still to extract. Those are not change points.
+            regime_locs = regime_locs[self.profile[regime_locs] < 1.0]
             # stumpy returns the locations in extraction order (lowest corrected
             # arc curve first); change points are returned in time order.
             self.found_cps = np.sort(regime_locs)
