@@ -39,6 +39,14 @@ Unreleased
   distances tie, which happens on exactly repeated patterns; there, the
   change points changed from one run to the next whatever the seed. A fixed
   seed now gives the same change points at every run.
+* Docs: the ESPRESSO page described the method wrongly. It said that the
+  matrix profile is computed with ``stumpy`` (tsseg computes it in NumPy and
+  never imports ``stumpy`` for ESPRESSO) and that the peaks of the density
+  curve are the change points (its minima are candidates, among which a greedy
+  information-gain search picks ``n_segments - 1``), and called the code new
+  while it translates the authors' MATLAB code. It now describes the four
+  steps, the bounds of ``window_size`` and the published reference
+  (Proc. ACM IMWUT).
 * ``ClapDetector`` accepts the classifiers and merge scores that CLaP
   implements: ``classifier`` in {``"rocket"``, ``"mrhydra"``, ``"weasel"``,
   ``"quant"``, ``"rdst"``, ``"proximityforest"``, ``"freshprince"``,
