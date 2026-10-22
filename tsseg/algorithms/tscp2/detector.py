@@ -85,7 +85,8 @@ class TSCP2Detector(BaseSegmenter):
     n_cps : int, optional
         Number of change points: the centres of the ``n_cps`` window pairs with
         the highest change score, with no minimum spacing. Takes precedence over
-        ``similarity_threshold``.
+        ``similarity_threshold``. ``0`` returns no change point (the encoder is
+        still trained by ``fit``).
     similarity_threshold : float, optional
         Every pair centre whose similarity is below this value is a change
         point. With neither ``n_cps`` nor ``similarity_threshold``, the
@@ -165,7 +166,7 @@ class TSCP2Detector(BaseSegmenter):
             group="windowing",
         ),
         "n_cps": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Number of change points (None = auto-threshold).",
             nullable=True,
             group="stopping_criterion",

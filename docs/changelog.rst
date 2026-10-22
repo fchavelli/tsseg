@@ -28,6 +28,12 @@ Unreleased
   (``AttributeError``). Lists, tuples and arrays are accepted.
 * ``ClaspDetector`` accepts ``score="f1"``, which ClaSP implements and
   documents; the parameter check refused it.
+* Guided mode on a series without any change point: ``TSCP2Detector(n_cps=0)``,
+  ``BOCDDetector(max_cps=0)``, ``BeastDetector(max_cps=0)`` and
+  ``GreedyGaussianDetector(k_max=0)`` return no change point; their parameter
+  check refused ``0`` (``ValueError``). ``BOCDDetector`` also checked
+  ``max_cps`` only after selecting a change point, so ``max_cps=0`` alone would
+  still have returned one on univariate series and with the ``"l2"`` strategy.
 * ``FLUSSDetector`` with ``n_segments`` set returns its change points sorted,
   as the change point detection output requires. On one channel or with
   ``multivariate_strategy="l2"`` and three segments or more, they came in the
