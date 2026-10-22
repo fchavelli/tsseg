@@ -10,6 +10,7 @@ import pytest
 from tsseg.algorithms import SeededBinSegDetector
 from tsseg.algorithms.ruptures.detection.binseg import Binseg
 from tsseg.algorithms.seeded_binseg._core import (
+    augmented_greedy_path,
     greedy_path,
     narrowest_over_threshold,
     narrowest_path,
@@ -171,6 +172,44 @@ def test_greedy_path_drops_intervals_containing_a_change_point():
     assert greedy_path(*_CANDIDATES) == [(5, 9.0), (2, 5.0), (8, 1.0)]
 
 
+def test_augmented_path_without_augmentation_is_the_greedy_path():
+    no_split = lambda start, end: (None, 0.0)  # noqa: E731
+    assert augmented_greedy_path(*_CANDIDATES, 10, no_split) == greedy_path(
+        *_CANDIDATES
+    )
+    for seed in range(5):
+        x = _steps([0, 2, -1, 1, 0], 40, 1.0, seed=seed)[:, np.newaxis]
+        for intervals in ("seeded", "wild"):
+            detector = SeededBinSegDetector(
+                intervals=intervals, n_intervals=300, random_state=seed
+            )
+            candidates = detector._candidates(x)
+            expected = greedy_path(*candidates)
+            path = augmented_greedy_path(*candidates, x.shape[0], no_split)
+            assert path == expected
+            capped = augmented_greedy_path(*candidates, x.shape[0], no_split, limit=3)
+            assert capped == expected[:3]
+
+
+def test_augmented_path_examines_the_current_interval():
+    # one candidate interval (0, 10), split at 5; the segments (0, 5) and
+    # (5, 10) are examined in their entirety (Fryzlewicz, 2014, Sec. 3.3)
+    candidates = (np.array([0]), np.array([10]), np.array([5]), np.array([9.0]))
+    splits = {(0, 5): (2, 4.0), (5, 10): (8, 3.0), (0, 2): (1, 0.5)}
+
+    def split(start, end):
+        return splits.get((start, end), (None, 0.0))
+
+    assert greedy_path(*candidates) == [(5, 9.0)]
+    path = augmented_greedy_path(*candidates, 10, split)
+    assert path == [(5, 9.0), (2, 4.0), (8, 3.0), (1, 0.5)]
+    assert augmented_greedy_path(*candidates, 10, split, limit=2) == path[:2]
+    # a gain above the one of an ancestor is capped by it: WBS stops at the
+    # ancestor first when the threshold lies in between
+    splits[(5, 10)] = (8, 20.0)
+    assert augmented_greedy_path(*candidates, 10, split)[1] == (8, 9.0)
+
+
 def test_narrowest_over_threshold():
     # narrowest first: (0, 4) -> 2, (6, 10) -> 8, (3, 8) -> 6; (0, 10) holds 2
     assert narrowest_over_threshold(*_CANDIDATES, 0.0) == [
@@ -260,6 +299,111 @@ def test_multivariate_change_in_one_channel():
     X[150:, 1] += 2.0
     cps = SeededBinSegDetector().fit_predict(X)
     assert len(cps) == 1 and abs(cps[0] - 150) <= 3
+
+
+def _two_noise_levels(seed, quiet=0.01):
+    # steps of 0.5 under noise of sd `quiet` in channel 0, pure noise in
+    # channel 1 (the case of the independent review)
+    rng = np.random.default_rng(seed)
+    step = np.repeat([0.0, 0.5, 0.0, 0.5], 150)
+    noise = rng.standard_normal((600, 2))
+    return np.column_stack([step + quiet * noise[:, 0], noise[:, 1]])
+
+
+@pytest.mark.parametrize("seed", [1, 3, 4, 6])
+def test_multivariate_channels_are_put_on_the_same_noise_level(seed):
+    # without it the quiet channel's steps rank among the noise of the other
+    # channel, while the sSIC weighs each channel by its own variance:
+    # 43, 13, 7 and 24 change points instead of 3
+    X = _two_noise_levels(seed)
+    np.testing.assert_array_equal(
+        SeededBinSegDetector().fit_predict(X), [150, 300, 450]
+    )
+
+
+@pytest.mark.parametrize("stop", [{}, {"n_cps": 3}], ids=["ssic", "n_cps"])
+def test_invariant_to_the_scale_of_each_channel(stop):
+    X = _two_noise_levels(0, quiet=0.2)
+    expected = SeededBinSegDetector(**stop).fit_predict(X)
+    for scales in ([1e-3, 1.0], [1.0, 1e3], [50.0, 0.02]):
+        np.testing.assert_array_equal(
+            SeededBinSegDetector(**stop).fit_predict(X * np.asarray(scales)),
+            expected,
+        )
+
+
+@pytest.mark.parametrize("stop", [{}, {"n_cps": 2}], ids=["ssic", "n_cps"])
+def test_univariate_invariant_to_scale(stop):
+    x = _steps([0, 1, -1, 0.5], 80, 0.4, seed=2)
+    expected = SeededBinSegDetector(**stop).fit_predict(x)
+    for scale in (1e-4, 3.0, 1e5):
+        np.testing.assert_array_equal(
+            SeededBinSegDetector(**stop).fit_predict(scale * x), expected
+        )
+
+
+@pytest.mark.parametrize("seed", [0, 2])
+def test_noiseless_and_constant_channels(seed):
+    # median |diff| is 0 for a noiseless step channel: its noise level falls
+    # back to the standard deviation of the differences; a constant channel
+    # is left as it is
+    rng = np.random.default_rng(seed)
+    step = np.repeat([0.0, 0.5, 0.0, 0.5], 150)
+    X = np.column_stack([step, rng.standard_normal(600), np.zeros(600)])
+    np.testing.assert_array_equal(
+        SeededBinSegDetector().fit_predict(X), [150, 300, 450]
+    )
+
+
+def test_penalty_thresholds_the_gain_of_the_series_as_given():
+    X = _two_noise_levels(0, quiet=0.2)
+    penalty = 30.0
+    candidates = SeededBinSegDetector()._candidates(X)
+    expected = sorted(cp for cp, gain in greedy_path(*candidates) if gain > penalty)
+    np.testing.assert_array_equal(
+        SeededBinSegDetector(penalty=penalty).fit_predict(X), expected
+    )
+
+
+def test_non_deterministic_only_for_unseeded_random_intervals():
+    def tag(**params):
+        detector = SeededBinSegDetector(**params)
+        return detector.get_tag("non_deterministic")
+
+    assert tag(intervals="wild") is True
+    assert tag(intervals="wild", random_state=0) is False
+    assert tag() is False and tag(random_state=None) is False
+    detector = SeededBinSegDetector(intervals="wild", n_intervals=50)
+    detector.fit(_steps([0, 2], 50, 1.0))  # fit resets the estimator
+    assert detector.get_tag("non_deterministic") is True
+
+
+_TEETH10 = np.repeat([0.0, 1.0] * 7, [11] + [10] * 12 + [9])
+
+
+@pytest.mark.parametrize("seed", [84, 88])
+def test_augment_examines_the_segments_between_change_points(seed):
+    # teeth10 of Kovács et al. (2023, Table 1); over seeds 0-99 the
+    # augmentation brings g-SeedBS from 61 to 69 exact counts
+    x = _TEETH10 + 0.4 * np.random.default_rng(seed).standard_normal(140)
+    assert len(SeededBinSegDetector().fit_predict(x)) != 13
+    np.testing.assert_array_equal(
+        SeededBinSegDetector(augment=True).fit_predict(x), np.arange(11, 132, 10)
+    )
+
+
+@pytest.mark.parametrize(
+    "stop", [{}, {"n_cps": 4}, {"penalty": 50.0}], ids=["ssic", "n_cps", "penalty"]
+)
+def test_augment_with_each_stopping_rule(stop):
+    x = _steps([0, 3, -1, 2, 0], 60, 1.0)
+    cps = SeededBinSegDetector(augment=True, **stop).fit_predict(x)
+    np.testing.assert_allclose(cps, [60, 120, 180, 240], atol=6)
+
+
+def test_augment_needs_the_greedy_selection():
+    with pytest.raises(ValueError, match="augment"):
+        SeededBinSegDetector(augment=True, selection="narrowest")
 
 
 def test_other_cost_with_penalty():

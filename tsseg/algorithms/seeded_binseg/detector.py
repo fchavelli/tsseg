@@ -20,6 +20,7 @@ from ..param_schema import (
 )
 from ..ruptures.detection.binseg import Binseg
 from ._core import (
+    augmented_greedy_path,
     greedy_path,
     narrowest_over_threshold,
     narrowest_path,
@@ -29,6 +30,24 @@ from ._core import (
 )
 
 __all__ = ["SeededBinSegDetector"]
+
+#: ``sqrt(2) * Phi^-1(3/4)``: ``median(|diff(x)|)`` over it estimates the
+#: standard deviation of i.i.d. Gaussian noise
+_MAD_DIFF = np.sqrt(2) * 0.6744897501960817
+
+
+def _noise_levels(X: np.ndarray) -> np.ndarray:
+    """Noise standard deviation of each channel, from its differences.
+
+    ``median(|diff(x)|) / (sqrt(2) * Phi^-1(3/4))`` (Fryzlewicz, 2014, Sec.
+    4.1; Baranowski et al., 2019, Sec. 2.1); the standard deviation of
+    ``diff(x)`` over ``sqrt(2)`` when more than half the differences are 0 (a
+    noiseless or quantised channel); 1 for a constant channel.
+    """
+    diff = np.diff(X, axis=0)
+    levels = np.median(np.abs(diff), axis=0) / _MAD_DIFF
+    levels = np.where(levels > 0, levels, diff.std(axis=0) / np.sqrt(2))
+    return np.where(levels > 0, levels, 1.0)
 
 
 def _segment_rss(csum, csum2, start, end):
@@ -59,7 +78,9 @@ class SeededBinSegDetector(BaseSegmenter):
         Number of change points (guided mode): the first ``n_cps`` of the
         greedy path, or, with ``selection="narrowest"``, the first solution of
         at least ``n_cps`` change points met while the threshold decreases,
-        cut to the ``n_cps`` largest gains. Takes precedence over ``penalty``.
+        cut to the ``n_cps`` largest gains (the papers have no guided mode:
+        this cut is a choice of this implementation). Takes precedence over
+        ``penalty``.
     penalty : float or None, default=None
         Threshold on the gain: a change point is kept when the gain of the
         interval that selects it exceeds ``penalty`` (for ``"l2"`` and noise
@@ -89,6 +110,16 @@ class SeededBinSegDetector(BaseSegmenter):
         intervals over the threshold, the narrowest first (narrowest over
         threshold, Baranowski et al., 2019), which the consistency theory of
         Kovács et al. (2023, Theorem 3) covers.
+    augment : bool, default=False
+        With ``selection="greedy"`` only: also examine in its entirety each
+        segment between two selected change points, its best split competing
+        with the intervals it contains (the optional augmentation of WBS,
+        Fryzlewicz, 2014, Sec. 3.3). A change point found this way can have a
+        larger gain than the one above it in the recursion, so each change
+        point is ranked by the smallest gain along its recursion, the
+        threshold at which WBS stops before reaching it. Off by default, as in
+        the greedy selection of Kovács et al. (2023, Sec. 2.4); costs one more
+        best split of each half at each selected change point.
     alpha : float, default=1.01
         Exponent of the sSIC penalty ``k (d + 1)/2 log(n)^alpha``; 1 gives the
         Schwarz criterion. 1.01 is the value of Fryzlewicz (2014).
@@ -120,7 +151,9 @@ class SeededBinSegDetector(BaseSegmenter):
         Backend of the best split of the ``"l1"``, ``"l2"``, ``"rbf"`` and
         ``"cosine"`` costs, as for :class:`BinSegDetector`. Same result.
     random_state : int or None, default=None
-        Seed of the random intervals (``intervals="wild"`` only).
+        Seed of the random intervals (``intervals="wild"`` only). With
+        ``intervals="wild"`` and no seed, the estimator carries the
+        ``non_deterministic`` tag.
     axis : int, default=0
         Time axis.
 
@@ -131,10 +164,9 @@ class SeededBinSegDetector(BaseSegmenter):
     ``min_size=1``, ``decay=2 ** -0.5``, ``selection="greedy"`` or
     ``"narrowest"`` and the sSIC, this is g-SeedBS or n-SeedBS of Kovács et
     al. (2023, Table 1). ``intervals="wild"`` with ``selection="greedy"`` is
-    WBS with the sSIC, with the optional augmentation of Fryzlewicz (2014,
-    Sec. 3.3) at the top level only: the whole series is always a candidate
-    interval, but the segment between two selected change points is not
-    added as a new candidate at each later step.
+    WBS with the sSIC, the whole series being always a candidate interval;
+    ``augment=True`` adds the optional augmentation of Fryzlewicz (2014,
+    Sec. 3.3) at every later step.
 
     Section, theorem and table numbers of Kovács et al. (2023) are those of
     arXiv:2002.06633v1, and those of Baranowski et al. (2019) those of its
@@ -146,13 +178,18 @@ class SeededBinSegDetector(BaseSegmenter):
     log-likelihood plus ``log(n)^alpha`` per parameter, halved here) to
     Gaussian channels with their own variances, a change point counting its
     location and ``d`` means; it reduces to the univariate criterion for
-    ``d = 1``. This multivariate model is not in the papers. The gain sums
-    the channels as they are while the criterion weighs each by its own
-    variance: when the channels have different noise levels, put them on the
-    same noise level first, e.g. divide each by ``median(|diff(x)|) /
-    (sqrt(2) * 0.6745)``, the noise estimate of Baranowski et al. (2019, Sec.
-    2.1). A z-normalisation is not enough when a channel has large changes
-    and little noise.
+    ``d = 1``. This multivariate model is not in the papers. So that the gain
+    weighs the channels as this criterion does, with ``model="l2"`` and the
+    sSIC or ``n_cps`` each channel of a multivariate series is first divided
+    by its noise level ``median(|diff(x)|) / (sqrt(2) * 0.6745)``, the
+    estimate of Fryzlewicz (2014, Sec. 4.1) and Baranowski et al. (2019, Sec.
+    2.1); when more than half the differences of a channel are 0 (a noiseless
+    or quantised channel), by the standard deviation of ``diff(x)`` over
+    ``sqrt(2)``; a constant channel is left as it is. The result then does not
+    depend on the scale of each channel. A univariate series is left as it is,
+    the sSIC and the order of the gains not depending on its scale. With
+    ``penalty``, the gain is that of the series as given, the threshold being
+    in its units.
 
     Cost: the best split of every interval, ``O(n log n)`` points in all for
     the seeded intervals (``O(n_intervals * n)`` for the random ones), each in
@@ -222,6 +259,11 @@ class SeededBinSegDetector(BaseSegmenter):
             constraint=StrOptions({"greedy", "narrowest"}),
             description="Largest gain first, or narrowest interval over the threshold.",
         ),
+        "augment": ParamDef(
+            constraint=HasType((bool,)),
+            description="Also examine each segment between selected change points "
+            "in its entirety (greedy selection, WBS augmentation).",
+        ),
         "alpha": ParamDef(
             constraint=Interval(float, 1, None, Closed.LEFT),
             description="Exponent of the sSIC penalty.",
@@ -275,6 +317,7 @@ class SeededBinSegDetector(BaseSegmenter):
         decay: float = 2**-0.5,
         n_intervals: int = 5000,
         selection: str = "greedy",
+        augment: bool = False,
         alpha: float = 1.01,
         max_cps: int = 50,
         model: str = "l2",
@@ -293,12 +336,15 @@ class SeededBinSegDetector(BaseSegmenter):
                 "the sSIC (penalty=None) is defined for model='l2' only; "
                 "give penalty or n_cps"
             )
+        if augment and selection != "greedy":
+            raise ValueError("augment=True needs selection='greedy'")
         self.n_cps = n_cps
         self.penalty = penalty
         self.intervals = intervals
         self.decay = decay
         self.n_intervals = n_intervals
         self.selection = selection
+        self.augment = augment
         self.alpha = alpha
         self.max_cps = max_cps
         self.model = model
@@ -307,12 +353,14 @@ class SeededBinSegDetector(BaseSegmenter):
         self.backend = backend
         self.random_state = random_state
         super().__init__(axis=axis)
+        if intervals == "wild" and random_state is None:
+            self.set_tags(non_deterministic=True)
 
     def _fit(self, X, y=None):
         return self
 
-    def _candidates(self, X: np.ndarray):
-        """Bounds, best split and gain of every interval with a split."""
+    def _solver(self, X: np.ndarray) -> Binseg:
+        """Ruptures binary segmentation fitted on X: best split of a segment."""
         solver = Binseg(
             model=self.model,
             min_size=self.min_size,
@@ -320,7 +368,12 @@ class SeededBinSegDetector(BaseSegmenter):
             params=self.cost_params or None,
             backend=self.backend,
         )
-        solver.fit(X)
+        return solver.fit(X)
+
+    def _candidates(self, X: np.ndarray, solver: Binseg | None = None):
+        """Bounds, best split and gain of every interval with a split."""
+        if solver is None:
+            solver = self._solver(X)
         n = X.shape[0]
         min_length = 2 * solver.min_size
         if self.intervals == "seeded":
@@ -346,11 +399,28 @@ class SeededBinSegDetector(BaseSegmenter):
             np.asarray(gains, dtype=float),
         )
 
+    def _greedy_path(self, solver, starts, ends, bkps, gains, limit=None):
+        """Path of the greedy selection, with the augmentation if asked."""
+        if not self.augment:
+            path = greedy_path(starts, ends, bkps, gains)
+            return path if limit is None else path[:limit]
+
+        def split(start, end):
+            bkp, gain, _ = solver.single_bkp(start, end)
+            return bkp, gain
+
+        n = solver.n_samples
+        return augmented_greedy_path(starts, ends, bkps, gains, n, split, limit)
+
     def _predict(self, X):
         X = np.asarray(X, dtype=float)
         if X.ndim == 1:
             X = X[:, np.newaxis]
-        starts, ends, bkps, gains = self._candidates(X)
+        by_count = self.n_cps is not None or self.penalty is None
+        if self.model == "l2" and by_count and X.shape[1] > 1:
+            X = X / _noise_levels(X)
+        solver = self._solver(X)
+        starts, ends, bkps, gains = self._candidates(X, solver)
         greedy = self.selection == "greedy"
 
         if self.n_cps is not None:
@@ -358,7 +428,7 @@ class SeededBinSegDetector(BaseSegmenter):
             if k == 0:
                 found = []
             elif greedy:
-                found = greedy_path(starts, ends, bkps, gains)[:k]
+                found = self._greedy_path(solver, starts, ends, bkps, gains, k)
             else:
                 # last solution of the path: the first with k change points
                 # or more (or the one at the lowest threshold)
@@ -370,7 +440,7 @@ class SeededBinSegDetector(BaseSegmenter):
             if greedy:
                 found = [
                     item
-                    for item in greedy_path(starts, ends, bkps, gains)
+                    for item in self._greedy_path(solver, starts, ends, bkps, gains)
                     if item[1] > self.penalty
                 ]
             else:
@@ -378,10 +448,10 @@ class SeededBinSegDetector(BaseSegmenter):
                     starts, ends, bkps, gains, float(self.penalty)
                 )
         else:
-            found = self._select_ssic(X, starts, ends, bkps, gains, greedy)
+            found = self._select_ssic(X, solver, starts, ends, bkps, gains, greedy)
         return np.array(sorted(cp for cp, _ in found), dtype=np.int64)
 
-    def _select_ssic(self, X, starts, ends, bkps, gains, greedy):
+    def _select_ssic(self, X, solver, starts, ends, bkps, gains, greedy):
         """The model of smallest sSIC along the solution path."""
         centred = X - X.mean(axis=0)
         zeros = np.zeros((1, X.shape[1]))
@@ -392,7 +462,7 @@ class SeededBinSegDetector(BaseSegmenter):
         if greedy:
             # nested models: each change point splits one segment, whose
             # residual sum of squares is updated in O(d)
-            path = greedy_path(starts, ends, bkps, gains)[:limit]
+            path = self._greedy_path(solver, starts, ends, bkps, gains, limit)
             n, d = X.shape
             penalty = (d + 1) / 2 * np.log(n) ** self.alpha
             rss = np.maximum(csum2[-1] - csum[-1] ** 2 / n, 0.0)

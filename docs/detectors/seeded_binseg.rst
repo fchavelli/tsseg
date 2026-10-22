@@ -24,9 +24,9 @@ The number of change points comes from ``n_cps``, from a threshold
 ``penalty`` on the gain, or, by default, from the strengthened Schwarz
 information criterion (sSIC) along the solution path, as in the experiments
 of the paper. ``intervals="wild"`` draws ``n_intervals`` random intervals
-instead (WBS, with its optional augmentation at the top level only: the whole
-series is a candidate, the segments between selected change points are not
-added at later steps).
+instead (WBS; the whole series is always a candidate). With the greedy
+selection, ``augment=True`` also examines in its entirety each segment
+between two selected change points, the optional augmentation of WBS.
 
 The gain of a split is the decrease of a ruptures cost: for ``"l2"``, the
 squared CUSUM statistic of the papers, summed over channels.
@@ -74,6 +74,13 @@ Parameters
      - str
      - ``"greedy"``
      - ``"greedy"`` or ``"narrowest"``.
+   * - ``augment``
+     - bool
+     - ``False``
+     - With ``selection="greedy"``: also examine each segment between two
+       selected change points in its entirety (optional augmentation of
+       WBS, Fryzlewicz, 2014, Sec. 3.3); off in the greedy selection of the
+       paper.
    * - ``alpha``
      - float
      - ``1.01``
@@ -107,7 +114,8 @@ Parameters
    * - ``random_state``
      - int / None
      - ``None``
-     - Seed of the random intervals.
+     - Seed of the random intervals. With ``intervals="wild"`` and no seed,
+       the estimator carries the ``non_deterministic`` tag.
    * - ``axis``
      - int
      - ``0``
@@ -135,12 +143,18 @@ Usage
 the R packages ``wbs`` and ``not`` are GPL-2.0-only). The sSIC assumes
 Gaussian noise; for a multivariate series each channel has its own variance
 and each change point counts :math:`d + 1` parameters, an extension that is
-not in the papers. The gain sums the channels as they are while the
-criterion weighs each by its own variance: put channels with different noise
-levels on the same noise level first, e.g. divide each by the median absolute
-deviation estimate of its noise, :math:`\operatorname{median}|\Delta x| /
-(\sqrt{2}\,\Phi^{-1}(3/4))`; a z-normalisation is not enough when a channel
-has large changes and little noise.
+not in the papers. So that the gain weighs the channels as the criterion
+does, with ``model="l2"`` and the sSIC or ``n_cps`` each channel of a
+multivariate series is first divided by its noise level, the median absolute
+deviation estimate :math:`\operatorname{median}|\Delta x| /
+(\sqrt{2}\,\Phi^{-1}(3/4))` of the papers (the standard deviation of
+:math:`\Delta x` over :math:`\sqrt{2}` when more than half the differences
+are 0; a constant channel is left as it is): the result does not depend on
+the scale of each channel. A univariate series, or a threshold ``penalty``
+(in the units of the series), uses the series as given. In guided mode with
+``selection="narrowest"``, the first solution with at least ``n_cps`` change
+points is cut to the ``n_cps`` largest gains, a choice of this
+implementation (the papers have no guided mode).
 
 **References:** Kovács, Bühlmann, Li and Munk (2023), Biometrika; Fryzlewicz
 (2014), The Annals of Statistics; Baranowski, Chen and Fryzlewicz (2019),

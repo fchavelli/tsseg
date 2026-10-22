@@ -18,6 +18,12 @@ Unreleased
   ``n_cps``, a ``penalty`` on the gain, or the strengthened Schwarz
   information criterion. ``intervals="wild"`` gives wild binary segmentation
   (Fryzlewicz, 2014). Any ruptures cost; ``"l2"`` is the CUSUM of the papers.
+  For a multivariate series, ``"l2"`` with the criterion or ``n_cps`` first
+  divides each channel by its noise level (median absolute deviation of its
+  differences), so that the result does not depend on the scale of each
+  channel. ``augment=True`` adds the optional augmentation of wild binary
+  segmentation to the greedy selection. With ``intervals="wild"`` and no
+  ``random_state``, the detector is tagged ``non_deterministic``.
 * Add a ``CITATION.cff`` file, read by GitHub's *Cite this repository*
   button, and the citation of the TSB-SEG benchmark (NeurIPS 2026) to the
   README.

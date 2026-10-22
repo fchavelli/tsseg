@@ -30,10 +30,11 @@ was opened.
   2019; the path is followed by recomputing a solution only from the first
   newly eligible interval that it accepts), sSIC (Fryzlewicz, 2014, Sec. 3.4,
   eq. (4)).
-- WBS (`intervals="wild"`, `selection="greedy"`) applies the optional
-  augmentation of Fryzlewicz (2014, Sec. 3.3) at the top level only: the whole
-  series is a candidate, the segments between selected change points are not
-  added at later steps.
+- WBS (`intervals="wild"`, `selection="greedy"`): the whole series is always
+  a candidate; `augment=True` adds the optional augmentation of Fryzlewicz
+  (2014, Sec. 3.3) at every later step (each segment between two selected
+  change points examined in its entirety; `_core.augmented_greedy_path`). Off
+  by default, as in the greedy selection of Kovács et al. (2023, Sec. 2.4).
 - `detector.py`: the best split and gain of each interval come from the
   vendored ruptures `Binseg.single_bkp` (`jump=1`), on the numba backend when
   it is available.
@@ -42,9 +43,16 @@ was opened.
   al. (2019) follow its arXiv version.
 - Extension not in the papers: for a multivariate series the sSIC gives each
   channel its own variance and counts d + 1 parameters per change point (the
-  general form of Baranowski et al., 2019, eq. (3.1)). The gain sums the
-  channels unweighted: channels with different noise levels must be put on the
-  same noise level first.
+  general form of Baranowski et al., 2019, eq. (3.1)). So that the gain
+  weighs the channels as the criterion does, with `model="l2"` and the sSIC or
+  `n_cps`, each channel is first divided by its noise level
+  `median(|diff(x)|) / (sqrt(2) * Phi^-1(3/4))` (Fryzlewicz, 2014, Sec. 4.1;
+  Baranowski et al., 2019, Sec. 2.1), or the standard deviation of `diff(x)`
+  over `sqrt(2)` when that median is 0 (constant channel: left as it is).
+  Not with `penalty`, a threshold in the units of the series.
+- Guided mode with `selection="narrowest"` (no guided mode in the papers): the
+  first solution of at least `n_cps` change points, cut to the `n_cps` largest
+  gains.
 
 ## Source
 
