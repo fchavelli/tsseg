@@ -181,6 +181,12 @@ Unreleased
   reference of the paper (SDM 2024).
 * ``PatssDetector`` writes nothing to the standard output; it printed the
   temporary directory of every window size it tried.
+* ``BeastDetector`` no longer fails with ``ValueError: cannot convert float
+  NaN to integer`` when Rbeast returns NaN for the median number of change
+  points (``ncp_median``), as it did in CI on a 6,000-point series. It warns
+  (``RuntimeWarning``) and keeps the change points above
+  ``cp_prob_threshold`` without capping their number; if every Rbeast output
+  is NaN, it returns no change point.
 * The iCID, tGLAD and TIRE pages said "*Origin: new code.*" They now say where
   the code comes from: a translation of the authors' MATLAB code (iCID,
   GPLv3), a wrapper around the uGLAD solver vendored from the authors'
