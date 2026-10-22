@@ -18,8 +18,8 @@ from .kcpd.detector import KCPDDetector
 from .patss.detector import PatssDetector
 from .pelt.detector import PeltDetector
 from .random.detector import RandomDetector
-from .seeded_binseg.detector import SeededBinSegDetector
 from .rulsif.detector import RuLSIFDetector
+from .seeded_binseg.detector import SeededBinSegDetector
 from .ticc.detector import TiccDetector
 from .window.detector import WindowDetector
 
