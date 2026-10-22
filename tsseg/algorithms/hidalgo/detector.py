@@ -3,7 +3,7 @@
 __maintainer__ = []
 __all__ = ["HidalgoDetector"]
 
-
+import warnings
 from functools import reduce
 
 import numpy as np
@@ -66,6 +66,20 @@ class HidalgoDetector(BaseSegmenter):
         parameters of zeta
     seed : int, optional, default = 0
         generate random numbers with seed
+
+    Notes
+    -----
+    Each time point is labelled with its most probable manifold. Its posterior
+    probability of belonging to manifold ``k`` is the fraction of the Gibbs
+    samples kept (after burn-in, one every ``sampling_rate`` iterations, from
+    the replica of highest mean likelihood) that assign it to ``k``. A time
+    point whose most probable manifold has a posterior probability below 0.8 is
+    labelled ``-1``: the labels take values in ``{-1, 0, ..., K_states - 1}``.
+
+    Hidalgo labels the time points of the series given to ``fit``:
+    ``predict(X)`` returns those labels when ``X`` has the same values, and
+    otherwise labels ``X`` with a new fit, with a warning, leaving the fitted
+    attributes unchanged.
 
     References
     ----------
@@ -695,7 +709,10 @@ class HidalgoDetector(BaseSegmenter):
             probability of posterior of z_i = k, point i can be safely
             assigned to manifold k if Pi > 0.8
         _Z : 1D np.ndarray of length N
-            base-zero integer values corresponding to segment (manifold k)
+            base-zero integer values corresponding to segment (manifold k),
+            -1 where the largest posterior probability in _Pi is below 0.8
+        _X : 2D np.ndarray of shape (N, dim)
+            copy of the data, to tell it from another series in predict
 
         Parameters
         ----------
@@ -706,6 +723,8 @@ class HidalgoDetector(BaseSegmenter):
         -------
         self
         """
+        # a copy: an array modified in place after fit is a new series
+        self._X = X.copy()
         K = self.K_states
         n_replicas = self.n_replicas
         n_iter = self.n_iter
@@ -786,7 +805,34 @@ class HidalgoDetector(BaseSegmenter):
         return self
 
     def _predict(self, X, y=None):
-        return self._Z
+        """Return the state label of each time point of X.
+
+        Parameters
+        ----------
+        X : 2D np.ndarray of shape (N, dim), where dim > 1
+            Series to label. If its values differ from those given to ``fit``,
+            it is labelled with a new fit, with a warning, and the fitted
+            attributes are left unchanged.
+        y : default=None
+            Ignored, for interface compatibility.
+
+        Returns
+        -------
+        np.ndarray of shape (N,)
+            Integer labels in ``{-1, 0, ..., K_states - 1}``; ``-1`` marks the
+            time points whose most probable manifold has a posterior probability
+            below 0.8.
+        """
+        if np.array_equal(X, self._X):
+            return self._Z
+        warnings.warn(
+            "Input data X differs from that given to fit(): labelling X with a "
+            "new fit, without updating the fitted attributes. To store them, "
+            "use fit(X) or fit_predict(X).",
+            UserWarning,
+            stacklevel=3,
+        )
+        return self.clone().fit(X)._Z
 
     @classmethod
     def _get_test_params(cls, parameter_set="default"):

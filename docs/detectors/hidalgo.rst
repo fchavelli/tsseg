@@ -9,7 +9,8 @@ Description
 Hidalgo performs Bayesian clustering by estimating the local intrinsic
 dimensionality of data manifolds.  It assigns each observation to one of
 ``K_states`` manifolds using Gibbs sampling, a Potts-model spatial prior and
-nearest-neighbour distance statistics.
+nearest-neighbour distance statistics. An observation whose most probable
+manifold has a posterior probability below 0.8 is labelled ``-1``.
 
 The algorithm is designed for high-dimensional data and is particularly suited
 when different states occupy manifolds of different dimensionality.
