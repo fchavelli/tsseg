@@ -66,6 +66,11 @@ class HidalgoDetector(BaseSegmenter):
         parameters of zeta
     seed : int, optional, default = 0
         generate random numbers with seed
+    axis : int, default=0
+        Axis of the time points in ``X``: 0 for an array of shape
+        ``(n_timepoints, n_channels)``, 1 for ``(n_channels, n_timepoints)``.
+        ``fit`` and ``predict`` read ``X`` along this axis unless they are
+        given one.
 
     Notes
     -----
@@ -193,6 +198,7 @@ class HidalgoDetector(BaseSegmenter):
 
     def __init__(
         self,
+        *,
         metric="euclidean",
         K_states=1,
         zeta=0.8,
@@ -209,6 +215,7 @@ class HidalgoDetector(BaseSegmenter):
         c=None,
         f=None,
         seed=0,
+        axis: int = 0,
     ):
         self.metric = metric
         self.K_states = K_states
@@ -227,7 +234,11 @@ class HidalgoDetector(BaseSegmenter):
         self.f = f
         self.seed = seed
 
-        super().__init__(axis=0)
+        super().__init__(axis=axis)
+
+    def _time_major(self, X):
+        """Return ``X`` with the time points along the rows."""
+        return X.T if self.axis == 1 else X
 
     def _get_neighbourhood_params(self, X):
         """
@@ -716,13 +727,14 @@ class HidalgoDetector(BaseSegmenter):
 
         Parameters
         ----------
-        X : 2D np.ndarray of shape (N, dim), where dim > 1
+        X : 2D np.ndarray of shape (N, dim), or (dim, N) if axis=1, where dim > 1
             data to fit the algorithm to
 
         Returns
         -------
         self
         """
+        X = self._time_major(X)
         # a copy: an array modified in place after fit is a new series
         self._X = X.copy()
         K = self.K_states
@@ -809,7 +821,7 @@ class HidalgoDetector(BaseSegmenter):
 
         Parameters
         ----------
-        X : 2D np.ndarray of shape (N, dim), where dim > 1
+        X : 2D np.ndarray of shape (N, dim), or (dim, N) if axis=1, where dim > 1
             Series to label. If its values differ from those given to ``fit``,
             it is labelled with a new fit, with a warning, and the fitted
             attributes are left unchanged.
@@ -823,7 +835,7 @@ class HidalgoDetector(BaseSegmenter):
             time points whose most probable manifold has a posterior probability
             below 0.8.
         """
-        if np.array_equal(X, self._X):
+        if np.array_equal(self._time_major(X), self._X):
             return self._Z
         warnings.warn(
             "Input data X differs from that given to fit(): labelling X with a "
