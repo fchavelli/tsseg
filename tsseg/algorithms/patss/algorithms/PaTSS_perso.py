@@ -207,7 +207,6 @@ def __create_attribute_resolution_embedding(data: pd.DataFrame, directory, attri
 
     files_prefix = os.path.join(directory, f"{attribute_id}_{interval}/")
     os.makedirs(files_prefix, exist_ok=True)
-    print(f"Temporary files will be saved in {files_prefix}")
 
     # Mine the patterns in the time series
     start = time.time()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -79,9 +80,13 @@ class TSCP2Detector(BaseSegmenter):
     Parameters
     ----------
     window_size : int, default=128
-        Length of the history and of the future window. If the series has at
-        most ``2 * window_size`` points, ``window_size`` is halved (with a
-        printed warning) until it fits.
+        Length of the history and of the future window. ``fit`` needs at
+        least ``2 * window_size`` points. A series of exactly that many points
+        holds a single window pair: ``fit`` then trains on windows of
+        ``window_size // 2`` points, with a ``UserWarning``; ``window_size``
+        itself is left unchanged. ``predict`` uses the window of ``fit`` and
+        needs at least twice as many points, unless ``refit_on_predict`` is
+        set (the window is then halved as often as the series requires).
     n_cps : int, optional
         Number of change points: the centres of the ``n_cps`` window pairs with
         the highest change score, with no minimum spacing. Takes precedence over
@@ -110,8 +115,9 @@ class TSCP2Detector(BaseSegmenter):
         Dropout rate of the TCN.
     dense_units : tuple of int, optional
         Units of the ReLU dense layers between the TCN and the final linear
-        projection to ``code_size``. ``None`` means
-        ``(2 * (window_size // 2), window_size // 2)``.
+        projection to ``code_size``. ``None`` means ``(2 * (w // 2), w // 2)``,
+        with ``w`` the window trained on (``window_size`` but on a short
+        series).
     batch_size : int, default=64
         Training batch size; the last incomplete batch is dropped when there
         are at least ``batch_size`` window pairs.
@@ -345,6 +351,8 @@ class TSCP2Detector(BaseSegmenter):
         self._encoder: TemporalEncoder | None = None
         self._train_stats: _TrainingStats | None = None
         self._train_signal: np.ndarray | None = None
+        # Window of the fitted encoder: ``window_size``, or less on a short series.
+        self._window_size: int | None = None
         self._loss_fn: LossFn = _LOSS_REGISTRY[self.loss_name]
         self._similarity_matrix_fn = _SIMILARITY_REGISTRY[self.similarity_name]
         self._similarity_diag_fn = _SIMILARITY_DIAG_REGISTRY[self.similarity_name]
@@ -358,33 +366,45 @@ class TSCP2Detector(BaseSegmenter):
             raise ValueError("TSCP2Detector expects 1D or 2D arrays")
         return X
 
-    def _build_pairs(
-        self, signal: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        n_samples, _ = signal.shape
+    def _fit_window_size(self, n_samples: int) -> int:
+        """Return the window to train on: ``window_size``, halved while too long.
 
-        while n_samples <= 2 * self.window_size:
-            if self.window_size <= 1:
+        A series of at most ``2 * window`` points holds a single window pair,
+        too few to contrast. ``window_size`` is a hyper-parameter and is left
+        unchanged.
+        """
+        window = self.window_size
+        while n_samples <= 2 * window:
+            if window <= 1:
                 raise ValueError(
                     f"Input series (length={n_samples}) is too short for analysis. "
                     "Cannot reduce window_size further."
                 )
-            print(
-                f"Warning: Input series ({n_samples}) shorter than 2*window_size ({self.window_size}). "
-                f"Reducing window_size to {self.window_size // 2}."
+            warnings.warn(
+                f"Input series ({n_samples} points) is not longer than two "
+                f"windows of {window} points: training on windows of "
+                f"{window // 2} points (window_size={self.window_size} is "
+                "left unchanged).",
+                UserWarning,
+                stacklevel=3,
             )
-            self.window_size //= 2
+            window //= 2
+        return window
 
-        total = n_samples - 2 * self.window_size
+    def _build_pairs(
+        self, signal: np.ndarray, window: int
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        n_samples, _ = signal.shape
+        total = n_samples - 2 * window
         histories: list[np.ndarray] = []
         futures: list[np.ndarray] = []
         centers: list[int] = []
         for start in range(0, total + 1, self.stride):
-            hist = signal[start : start + self.window_size]
-            fut = signal[start + self.window_size : start + 2 * self.window_size]
+            hist = signal[start : start + window]
+            fut = signal[start + window : start + 2 * window]
             histories.append(hist)
             futures.append(fut)
-            centers.append(start + self.window_size)
+            centers.append(start + window)
         history_arr = np.stack(histories)
         future_arr = np.stack(futures)
         center_arr = np.asarray(centers, dtype=int)
@@ -415,7 +435,8 @@ class TSCP2Detector(BaseSegmenter):
 
     def _fit(self, X, y=None):  # noqa: D401 - docstring inherited
         signal = self._ensure_2d(X)
-        history, future, _ = self._build_pairs(signal)
+        window = self._fit_window_size(signal.shape[0])
+        history, future, _ = self._build_pairs(signal, window)
         if history.shape[0] < 2:
             raise ValueError("Not enough windowed samples for contrastive training")
         n_features = signal.shape[1]
@@ -425,7 +446,7 @@ class TSCP2Detector(BaseSegmenter):
             tf.keras.utils.set_random_seed(self.random_state)
         encoder = TemporalEncoder(
             input_features=n_features,
-            window_size=self.window_size,
+            window_size=window,
             code_size=self.code_size,
             nb_filters=self.nb_filters,
             kernel_size=self.kernel_size,
@@ -460,6 +481,7 @@ class TSCP2Detector(BaseSegmenter):
                 last_neg = float(neg_sim.numpy())
 
         self._encoder = encoder
+        self._window_size = window
         self._train_stats = _TrainingStats(pos_sim=last_pos, neg_sim=last_neg)
         self._train_signal = signal
         if self._auto_threshold and self._train_stats is not None:
@@ -482,7 +504,14 @@ class TSCP2Detector(BaseSegmenter):
         ):
             self._fit(signal)
             signal = self._train_signal
-        history, future, centers = self._build_pairs(signal)
+        window = self._window_size
+        if signal.shape[0] < 2 * window:
+            raise ValueError(
+                f"TSCP2Detector.predict needs at least {2 * window} points (two "
+                f"windows of {window} points, as in fit), got {signal.shape[0]}. "
+                "Set refit_on_predict=True to train on this series instead."
+            )
+        history, future, centers = self._build_pairs(signal, window)
         history_tensor = tf.convert_to_tensor(history.astype(np.float32))
         future_tensor = tf.convert_to_tensor(future.astype(np.float32))
         z_hist = self._encoder(history_tensor, training=False)

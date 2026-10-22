@@ -149,6 +149,18 @@ Unreleased
 * ``E2USDDetector.predict`` and ``fit_predict`` write nothing to the standard
   output. Since 0.1.0 they printed the shape of the array of windows, for
   example ``(17, 1, 32)``, on every call.
+* ``TSCP2Detector`` leaves ``window_size`` unchanged on a short series. On a
+  series of exactly ``2 * window_size`` points, ``fit`` halved
+  ``window_size`` in place and printed a warning to the standard output:
+  ``get_params`` returned the halved value, and a later ``fit`` of the same
+  instance on a longer series kept it. ``fit`` now trains on the halved
+  window with a ``UserWarning``; its change points are unchanged.
+  ``predict`` on a series shorter than two windows of ``fit`` raises a
+  ``ValueError`` that says so: it failed inside the encoder and left the
+  detector unusable for every later ``predict``. ``predict`` on a series of
+  exactly two windows scores its single window pair instead of failing.
+* ``PatssDetector`` writes nothing to the standard output; it printed the
+  temporary directory of every window size it tried.
 
 0.3.0 (2026-10-14)
 ------------------
