@@ -39,6 +39,14 @@ Unreleased
   distances tie, which happens on exactly repeated patterns; there, the
   change points changed from one run to the next whatever the seed. A fixed
   seed now gives the same change points at every run.
+* Docs: the ESPRESSO page described the method wrongly. It said that the
+  matrix profile is computed with ``stumpy`` (tsseg computes it in NumPy and
+  never imports ``stumpy`` for ESPRESSO) and that the peaks of the density
+  curve are the change points (its minima are candidates, among which a greedy
+  information-gain search picks ``n_segments - 1``), and called the code new
+  while it translates the authors' MATLAB code. It now describes the four
+  steps, the bounds of ``window_size`` and the published reference
+  (Proc. ACM IMWUT).
 * ``ClapDetector`` accepts the classifiers and merge scores that CLaP
   implements: ``classifier`` in {``"rocket"``, ``"mrhydra"``, ``"weasel"``,
   ``"quant"``, ``"rdst"``, ``"proximityforest"``, ``"freshprince"``,
@@ -159,6 +167,18 @@ Unreleased
   ``ValueError`` that says so: it failed inside the encoder and left the
   detector unusable for every later ``predict``. ``predict`` on a series of
   exactly two windows scores its single window pair instead of failing.
+* ``PatssDetector(config=...)`` leaves the dictionary it is given unchanged:
+  ``predict`` completed it in place with every missing default, so
+  ``get_params()["config"]`` changed after the first ``predict``, and the
+  sections it added were the module-level default dictionaries themselves
+  (editing them changed the defaults of every later run).
+* ``PatssDetector`` with ``config={"segmentation": {"algorithm": "k_means"}}``
+  returns one state label per time point; it returned a single integer.
+* The PaTSS page lists the keys that ``config`` takes, with their defaults:
+  the keys it cited (``pattern_length``, ``min_frequency``, ``max_overlap``,
+  ``n_segments``) do not exist, so its custom configuration example had no
+  effect. It describes the three steps as the code runs them and gives the
+  reference of the paper (SDM 2024).
 * ``PatssDetector`` writes nothing to the standard output; it printed the
   temporary directory of every window size it tried.
 * ``BeastDetector`` no longer fails with ``ValueError: cannot convert float
@@ -167,6 +187,16 @@ Unreleased
   (``RuntimeWarning``) and keeps the change points above
   ``cp_prob_threshold`` without capping their number; if every Rbeast output
   is NaN, it returns no change point.
+* The iCID, tGLAD and TIRE pages said "*Origin: new code.*" They now say where
+  the code comes from: a translation of the authors' MATLAB code (iCID,
+  GPLv3), a wrapper around the uGLAD solver vendored from the authors'
+  repository under a non-commercial licence (tGLAD), and a PyTorch
+  reimplementation of the authors' TensorFlow code (TIRE). The ``threshold``
+  of ``TGLADDetector`` applies to the absolute second difference of the sum of
+  partial correlations, not to a Frobenius distance as the page, the README
+  and the docstring said. The iCID page and README give the right title and
+  authors of the JAIR paper, and the tGLAD README cites the paper of its
+  authors.
 
 0.3.0 (2026-10-14)
 ------------------

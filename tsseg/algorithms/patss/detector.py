@@ -48,8 +48,12 @@ class PatssDetector(BaseSegmenter):
     Parameters
     ----------
     config : dict, optional
-        A dictionary containing the settings to use within PaTSS. If not provided,
-        the default hyperparameters defined in PaTSS_perso.py will be used.
+        Settings of PaTSS: up to three dictionaries, ``"pattern_mining"``,
+        ``"pattern_filter"`` and ``"segmentation"``, and an integer
+        ``"n_jobs"`` (keys and defaults: PaTSS page of the documentation).
+        A missing key takes its default value, also inside a section given in
+        part; ``config`` itself is not modified. If ``None``, every default
+        is used.
     axis : int, default=0
         The axis of the time series data. Assumes (n_timepoints, n_channels).
     """
@@ -120,7 +124,10 @@ class PatssDetector(BaseSegmenter):
             return np.zeros(X.shape[0], dtype=int)
 
         # 4. Convert the probability matrix to a dense array of state labels.
-        #    The original implementation returns probabilities, so we take the argmax.
+        #    The original implementation returns probabilities, so we take the
+        #    argmax; with the "k_means" algorithm it returns the labels.
+        if segmentation_probas.ndim == 1:
+            return segmentation_probas.astype(int)
         labels = np.argmax(segmentation_probas, axis=0)
         
         return labels

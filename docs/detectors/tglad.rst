@@ -10,9 +10,12 @@ tGLAD segments multivariate time series by tracking the evolution of
 conditional independence (CI) graphs over time.  A sliding window converts the
 series into overlapping intervals; the uGLAD sparse graph recovery model
 (multitask mode) recovers a precision matrix (CI graph) for each interval
-simultaneously.  A second-order trajectory-tracking algorithm measures
-graph-difference scores, and an allocation algorithm produces the final
-segmentation.
+simultaneously.  Following the authors' code, the score of a window is the
+absolute second difference, across windows, of the sum of its partial
+correlations (for a univariate series, tsseg uses the precision of the single
+channel).  In place of the allocation algorithm of the paper, tsseg returns the
+start of each window whose score reaches ``threshold``, keeping change points
+at least ``min_spacing`` apart.
 
 | **Type:** change point detection
 | **Supervision:** fully unsupervised
@@ -53,7 +56,7 @@ Parameters
    * - ``threshold``
      - float
      - ``0.5``
-     - Min Frobenius distance to trigger a change point.
+     - Min window score to trigger a change point.
    * - ``min_spacing``
      - int / None
      - ``None``
@@ -93,7 +96,13 @@ Usage
    detector = TGLADDetector(window_size=256, stride=64, threshold=0.4)
    change_points = detector.fit_predict(X)
 
-**Implementation:** *Origin: new code.*  Inspired by the tGLAD paper.
+**Implementation:** Re-coding, with NumPy, of the scoring in ``main.py`` of the
+authors' repository (`Harshs27/tGLAD <https://github.com/Harshs27/tGLAD>`_),
+around the uGLAD multitask solver of that repository, vendored in
+``tsseg/algorithms/tglad/vendor/uGLAD/`` (imports made relative).  uGLAD is
+under the uGLAD Non-Commercial License, which allows non-commercial use only; a
+copy is in ``tsseg/algorithms/tglad/vendor/LICENSE``.  *Origin: wrapper around
+vendored third-party code.*
 
 **Reference:** Imani & Shrivastava (2023), *Are uGLAD?  Time will tell!*
 

@@ -64,10 +64,16 @@ Usage
    detector = ICIDDetector(window_size=100, alpha=0.3)
    change_points = detector.fit_predict(X)
 
-**Implementation:** *Origin: new code.*
+**Implementation:** Python translation of the authors' MATLAB code
+(`IsolationKernel/iCID <https://github.com/IsolationKernel/iCID>`_:
+``aNNEspace``, ``point_score``, ``best_psi``, ``best_threshold``), which is not
+shipped with tsseg.  GPLv3; a copy of the licence is in
+``tsseg/algorithms/icid/LICENSE``.  The MATLAB code labels each point 0 or 1
+against the threshold; returning the first point of each run of 1 as a change
+point is specific to tsseg.  *Origin: adapted from the original MATLAB code.*
 
-**Reference:** Cao, Ting, Liu, Cek & Angelova (2024), *A new framework for
-change interval detection*, JAIR.
+**Reference:** Cao, Zhu, Ting, Salim, Li, Yang & Li (2024), *Detecting Change
+Intervals with Isolation Distributional Kernel*, JAIR 79, 273–306.
 
 API reference
 -------------

@@ -1,9 +1,10 @@
 # tGLAD
 
-Change point detection by comparing successive Graphical Lasso precision
-matrices estimated on sliding windows. A significant change in the graph
-structure (measured by Frobenius distance between precision matrices) indicates
-a regime transition.
+Change point detection by comparing the conditional independence graphs that
+uGLAD (unrolled graphical lasso) recovers on sliding windows. The score of a
+window is the absolute second difference, across windows, of the sum of its
+partial correlations, as in `main.py` of the authors' repository; a score above
+`threshold` marks a regime transition.
 
 ## Key properties
 
@@ -14,7 +15,8 @@ a regime transition.
 
 ## Implementation
 
-Wraps the uGLAD multitask solver, which is vendored under `vendor/uGLAD/`. The
+Wraps the uGLAD multitask solver, which is vendored under `vendor/uGLAD/` (a
+copy of the `uGLAD/` folder of the tGLAD repository, imports made relative). The
 `vendor/__init__.py` module registers the vendored package into `sys.modules` so
 that existing absolute imports work without modification.
 
@@ -26,10 +28,10 @@ that existing absolute imports work without modification.
 ## Citation
 
 ```bibtex
-@article{shrivastava2022tglad,
-  title   = {{tGLAD}: A Sparse Graph Recovery based Approach for
-             Multivariate Time Series Segmentation},
-  author  = {Shrivastava, Harsh and others},
-  year    = {2022}
+@article{imani2023uglad,
+  title   = {Are {uGLAD}? Time will tell!},
+  author  = {Imani, Shima and Shrivastava, Harsh},
+  journal = {arXiv preprint arXiv:2303.11647},
+  year    = {2023}
 }
 ```
