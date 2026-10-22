@@ -74,3 +74,12 @@ def test_stride_change_points_are_peaks_of_the_scores():
     assert len(pred) > 0
     prominences = peak_prominences(det.change_scores_, pred)[0]
     assert np.all(prominences >= 0.2)
+
+
+def test_single_segment_returns_no_change_point():
+    """Guided with one segment: no change point, whatever the scores."""
+    det = TireDetector(**SMALL, n_segments=1, prominence_threshold=0.0)
+    pred = det.fit_predict(_steps())
+    assert isinstance(pred, np.ndarray)
+    assert pred.size == 0
+    assert det.change_scores_.shape == (600,)

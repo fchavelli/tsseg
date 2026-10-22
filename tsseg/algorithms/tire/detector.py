@@ -199,11 +199,11 @@ class TireDetector(BaseSegmenter):
         Learning rate of the Adam optimiser.
     n_segments : int, optional
         Number of segments: the ``n_segments - 1`` most prominent peaks are
-        returned. ``None`` or ``1`` select the peaks by
+        returned (none when ``n_segments=1``). ``None`` selects the peaks by
         ``prominence_threshold``.
     prominence_threshold : float, default=0.5
         Minimum prominence of a returned peak, relative to the highest one,
-        when ``n_segments`` is ``None`` or ``1``.
+        when ``n_segments`` is ``None``.
     axis : int, default=0
         The time axis of ``X``: ``0`` if time points are rows.
     random_state : int, optional
@@ -616,7 +616,9 @@ class TireDetector(BaseSegmenter):
         self.change_scores_ = scores
         distance = max(1, int(round(self.peak_distance_fraction * X.shape[0])))
 
-        if self.n_segments is None or self.n_segments < 2:
+        if self.n_segments == 1:
+            return np.empty(0, dtype=int)
+        if self.n_segments is None:
             peaks, _ = find_peaks(
                 scores, distance=distance, prominence=self.prominence_threshold
             )

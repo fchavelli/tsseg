@@ -37,9 +37,7 @@ Unreleased
   instead of ``window_size``, and ``InformationGainDetector`` a
   ``change_points_`` attribute that is never set. The FLUSS, HMM and IGTS
   examples use tsseg instead of aeon. Now documented: ``RandomDetector``
-  ignores ``n_change_points`` and ``n_states`` unless ``semi_supervised=True``;
-  ``TireDetector`` selects the peaks by ``prominence_threshold`` when
-  ``n_segments=1``.
+  ignores ``n_change_points`` and ``n_states`` unless ``semi_supervised=True``.
 * ``TireDetector`` with ``stride > 1`` returns time point indices. It returned
   window indices (with ``stride=4``, the three changes of a 600-point series
   at 150, 300 and 450 came out at 42, 76 and 113), and ``change_scores_`` had
@@ -47,6 +45,8 @@ Unreleased
   ``peak_distance_fraction`` was counted in windows. The scores are now placed
   midway between the two compared windows and interpolated to every time
   point; ``stride=1``, the default, gives the same output as before.
+* ``TireDetector(n_segments=1)`` returns no change point; it selected the
+  peaks by ``prominence_threshold``, as without ``n_segments``.
 * Docs: the contributing guide names the six modules of the generic detector
   test suite (it listed four), states the change-point output they check
   (strictly increasing indices in ``[1, N - 1]``) and the extras the CI
