@@ -11,30 +11,14 @@ falls back to sensible defaults (default constructor, no special dependencies).
 
 from __future__ import annotations
 
-import shutil
 from dataclasses import dataclass
 from importlib.util import find_spec
-from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
 
 import tsseg.algorithms as _algorithms_module
-
-
-def _autoplait_binary_available() -> bool:
-    """Check if the AutoPlait C binary is available."""
-    # Check relative to the package
-    try:
-        pkg_root = Path(__file__).resolve().parents[2]
-        binary = pkg_root / "c" / "autoplait" / "autoplait"
-        if binary.is_file():
-            return True
-    except Exception:
-        pass
-    return shutil.which("autoplait") is not None
-
 
 # ======================================================================
 # Per-algorithm overrides
@@ -54,8 +38,9 @@ class AlgorithmOverride:
         Optional third-party packages.  The algorithm is skipped when any
         of these is missing from the current environment.
     semi_supervised : bool
-        If ``True``, the algorithm requires supervision info (``y``, and
-        sometimes ``n_segments`` / ``n_states``) to be set before predict.
+        If ``True``, the generic tests run the algorithm in guided mode:
+        :func:`apply_supervision` sets its counts from the labels, and
+        ``fit`` receives ``y``.  For detectors without an unsupervised mode.
     skip_reason : str | None
         If set, the algorithm is unconditionally skipped with this message.
     """
@@ -69,18 +54,16 @@ class AlgorithmOverride:
 # Only algorithms that *cannot* be instantiated with a bare ``Cls()`` need
 # an entry here.  Everything else is discovered and tested automatically.
 ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
-    # --- Semi-supervised (need n_cps / n_segments via y) ---------------
-    "AutoPlaitDetector": AlgorithmOverride(
-        init_kwargs={"n_cps": None},
-        semi_supervised=True,
-        skip_reason=(
-            None if _autoplait_binary_available() else "AutoPlait C binary not built"
-        ),
-    ),
+    "AutoPlaitDetector": AlgorithmOverride(dependencies=("numba",)),
     # --- Rbeast (tsseg[beast]) -----------------------------------------
     "BeastDetector": AlgorithmOverride(dependencies=("Rbeast",)),
+    "ChangeForestDetector": AlgorithmOverride(dependencies=("changeforest",)),
     "DynpDetector": AlgorithmOverride(semi_supervised=True),
-    "HidalgoDetector": AlgorithmOverride(semi_supervised=True),
+    # 100 Gibbs iterations instead of 1000: with the 3 states of the
+    # synthetic series, a fit took 90 s (8 s with 100).
+    "HidalgoDetector": AlgorithmOverride(
+        semi_supervised=True, init_kwargs={"n_iter": 100}
+    ),
     # --- Need an explicit stopping criterion --------------------------
     "ClaspDetector": AlgorithmOverride(
         init_kwargs={
@@ -97,8 +80,13 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     "EspressoDetector": AlgorithmOverride(
         init_kwargs={"n_segments": 3, "window_size": 10},
     ),
+    # Without n_states, TICC is fitted for each number of states up to
+    # max_states (8 by default): three candidates keep the tests short.
+    "TiccDetector": AlgorithmOverride(
+        init_kwargs={"window_size": 3, "max_states": 3},
+    ),
     # --- Optional heavy dependencies ----------------------------------
-    "ClapDetector": AlgorithmOverride(dependencies=("numba",)),
+    "ClapDetector": AlgorithmOverride(dependencies=("numba", "aeon")),
     "EAggloDetector": AlgorithmOverride(dependencies=("numba",)),
     "E2USDDetector": AlgorithmOverride(dependencies=("torch",)),
     "FLUSSDetector": AlgorithmOverride(dependencies=("stumpy",)),
@@ -114,17 +102,12 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
         dependencies=("torch", "networkx"),
         init_kwargs={"window_size": 100, "stride": 50, "epochs": 100},
     ),
-    "TSCP2Detector": AlgorithmOverride(dependencies=("tensorflow",)),
-    # --- Tirex detectors (need torch + tirex runtime) -----------------
-    "TirexHiddenCPD": AlgorithmOverride(dependencies=("torch", "moment")),
-    "TirexCosineCPD": AlgorithmOverride(dependencies=("torch", "moment")),
-    "TirexL2CPD": AlgorithmOverride(dependencies=("torch", "moment")),
-    "TirexMMDCPD": AlgorithmOverride(dependencies=("torch", "moment")),
-    "TirexEnergyCPD": AlgorithmOverride(dependencies=("torch", "moment")),
-    "TirexDerivativeCPD": AlgorithmOverride(dependencies=("torch", "moment")),
-    "TirexGateRatioCPD": AlgorithmOverride(dependencies=("torch", "moment")),
-    "TirexForgetDropCPD": AlgorithmOverride(dependencies=("torch", "moment")),
-    "TirexForecastErrorCPD": AlgorithmOverride(dependencies=("torch", "moment")),
+    "TSCP2Detector": AlgorithmOverride(
+        dependencies=("tensorflow", "tcn"),
+        # Two epochs instead of 100: the contract does not depend on the
+        # quality of the encoder, and each test took 3 to 6 minutes.
+        init_kwargs={"random_state": 0, "epochs": 2},
+    ),
 }
 
 _DEFAULT = AlgorithmOverride()
@@ -154,36 +137,49 @@ def make_instance(cls, override: AlgorithmOverride | None = None):
     return cls(**kwargs)
 
 
+#: Constructor parameters through which detectors take the guidance, with the
+#: count each one receives: ``"change_points"``, ``"segments"`` or
+#: ``"states"``. These are the names a benchmark harness fills from the
+#: ground truth; a new guided detector whose count goes by another name must
+#: be added here (``test_supervision_sets_a_constructor_parameter`` checks it).
+SUPERVISION_PARAMS: dict[str, str] = {
+    # number of change points (an upper bound for max_cps and k_max)
+    "n_cps": "change_points",
+    "n_change_points": "change_points",
+    "n_changepoints": "change_points",
+    "max_cps": "change_points",
+    "k_max": "change_points",
+    # number of segments
+    "n_segments": "segments",
+    # number of states (an upper bound for n_max_states)
+    "n_states": "states",
+    "n_max_states": "states",
+    "K_states": "states",
+}
+
+
 def apply_supervision(instance, y: np.ndarray) -> None:
-    """Inject supervision info for semi-supervised algorithms.
+    """Pass the counts of ``y`` to a detector, as guided mode does.
 
-    Sets ``n_segments``, ``n_states``, etc. on the instance based on ``y``,
-    mimicking what a benchmark harness would do.
+    Sets every constructor parameter of ``instance`` listed in
+    :data:`SUPERVISION_PARAMS` to the number of change points, segments or
+    states of the label sequence ``y``, mimicking what a benchmark harness
+    does in guided (semi-supervised) mode.
     """
-    cps = np.flatnonzero(np.diff(y) != 0) + 1
-    n_cps = len(cps)
-    n_segments = n_cps + 1
-    n_states = len(np.unique(y))
-
-    attr_map = {
-        # change-point count aliases
-        "n_cps": n_cps,
-        "n_change_points": n_cps,
-        "n_bkps": n_cps,
-        "n_breakpoints": n_cps,
-        "N": n_cps,
-        # segment count aliases
-        "n_segments": n_segments,
-        # state count aliases
-        "n_states": n_states,
-        "n_regimes": n_states,
-        "n_clusters": n_states,
-        "n_components": n_states,
-        "K": n_states,
+    n_cps = int(np.count_nonzero(np.diff(y) != 0))
+    counts = {
+        "change_points": n_cps,
+        "segments": n_cps + 1,
+        "states": len(np.unique(y)),
     }
-    for attr, value in attr_map.items():
-        if hasattr(instance, attr):
-            setattr(instance, attr, value)
+    params = instance.get_params(deep=False)
+    instance.set_params(
+        **{
+            name: counts[kind]
+            for name, kind in SUPERVISION_PARAMS.items()
+            if name in params
+        }
+    )
 
 
 # ======================================================================

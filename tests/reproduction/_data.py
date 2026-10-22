@@ -104,7 +104,19 @@ class DataFile:
 
 #: Datasets available to reproduction tests, by name. Add an entry here (with
 #: its source and license) rather than calling pooch directly from a test.
-REGISTRY: dict[str, DataFile] = {}
+REGISTRY: dict[str, DataFile] = {
+    "uci-glass": DataFile(
+        url="https://archive.ics.uci.edu/ml/machine-learning-databases/glass/glass.data",
+        sha256="dd67373f4baf2807345df02cbfef2093d342e61ad0d82a4fb79af43ef8ce449d",
+        reference=(
+            "Londschien, Bühlmann and Kovács, Random forests for change point "
+            "detection, JMLR 2023 (Section 4.2); Evett and Spiehler, Glass "
+            "Identification, UCI Machine Learning Repository, 1987"
+        ),
+        license="CC BY 4.0 (UCI Machine Learning Repository)",
+        fname="glass.data",
+    ),
+}
 
 
 def cache_dir() -> Path:

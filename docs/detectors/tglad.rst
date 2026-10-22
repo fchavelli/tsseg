@@ -17,7 +17,15 @@ segmentation.
 | **Type:** change point detection
 | **Supervision:** fully unsupervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d^{3}\,n)` per training epoch
 | **Requires:** PyTorch, networkx
+
+.. note::
+
+   The tGLAD paper (Imani & Shrivastava, AALTD 2023, Sec. 3.3) reports
+   :math:`O(n)` when :math:`d^{3} \ll n`. This counts :math:`d` and the number
+   of epochs as constants and assumes the batches run in parallel; the
+   sequential cost it derives, :math:`O(d^{3}\,n)` per epoch, is the one above.
 
 Parameters
 ----------
@@ -52,7 +60,7 @@ Parameters
      - Min distance between emitted CPs (default: ``stride``).
    * - ``epochs``
      - int
-     - ``2000``
+     - ``100``
      - uGLAD training epochs per batch.
    * - ``learning_rate``
      - float

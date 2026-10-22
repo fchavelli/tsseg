@@ -139,6 +139,82 @@ class TireDetector(BaseSegmenter):
     returned; otherwise every peak whose relative prominence reaches
     ``prominence_threshold``. Two returned peaks are at least
     ``peak_distance_fraction`` of the series length apart (0: no constraint).
+
+    Parameters
+    ----------
+    window_size : int, default=20
+        Length of the sliding windows (at least 4, below the series length);
+        also the lag between the two representations compared by the
+        dissimilarity and the half-width of the matched filter that smooths it.
+    stride : int, default=1
+        Step between consecutive windows, at most ``window_size``. The
+        dissimilarity compares the windows starting at ``i * stride`` and
+        ``(i + window_size) * stride``, adjacent only when ``stride=1``; it is
+        placed midway between the end of the first and the start of the
+        second, and interpolated linearly between these points, so that the
+        change points are time point indices whatever the stride.
+    domain : {"TD", "FD", "both"}, default="both"
+        Representations learned in the time domain (``"TD"``), the frequency
+        domain (``"FD"``) or both, concatenated with weights that equalise
+        the 95th percentiles of their dissimilarities.
+    intermediate_dim_td : int, default=0
+        Width of the hidden layer of each time domain autoencoder; ``0``
+        means no hidden layer.
+    latent_dim_td : int, default=1
+        Dimension of the latent code of each time domain autoencoder.
+    nr_shared_td : int, default=1
+        Number of latent dimensions that are shared, that is, kept close for
+        consecutive windows; at most ``latent_dim_td``. Only they form the
+        representation.
+    nr_ae_td : int, default=3
+        Number of consecutive windows encoded in parallel, with the same
+        weights, by the time domain autoencoder.
+    loss_weight_td : float, default=1.0
+        Weight of the term that keeps the shared codes of consecutive windows
+        close, added to the reconstruction error.
+    intermediate_dim_fd : int, default=10
+        As ``intermediate_dim_td``, for the frequency domain autoencoders.
+    latent_dim_fd : int, default=1
+        As ``latent_dim_td``, for the frequency domain.
+    nr_shared_fd : int, default=1
+        As ``nr_shared_td``, for the frequency domain.
+    nr_ae_fd : int, default=3
+        As ``nr_ae_td``, for the frequency domain.
+    loss_weight_fd : float, default=1.0
+        As ``loss_weight_td``, for the frequency domain.
+    nfft : int, default=30
+        Number of points of the discrete Fourier transform of each window.
+    norm_mode : {"window", "timeseries"}, default="timeseries"
+        Mean removed before the Fourier transform: that of each window, or
+        that of the whole series.
+    peak_distance_fraction : float, default=0.0
+        Minimum distance between two returned peaks, as a fraction of the
+        series length (``0``: no constraint).
+    max_epochs : int, default=20
+        Maximum number of training epochs of each autoencoder.
+    patience : int, default=5
+        Training stops after ``patience`` epochs in which the loss does not
+        decrease by more than 1e-6; the weights of the best epoch are kept.
+    learning_rate : float, default=1e-3
+        Learning rate of the Adam optimiser.
+    n_segments : int, optional
+        Number of segments: the ``n_segments - 1`` most prominent peaks are
+        returned (none when ``n_segments=1``). ``None`` selects the peaks by
+        ``prominence_threshold``.
+    prominence_threshold : float, default=0.5
+        Minimum prominence of a returned peak, relative to the highest one,
+        when ``n_segments`` is ``None``.
+    axis : int, default=0
+        The time axis of ``X``: ``0`` if time points are rows.
+    random_state : int, optional
+        Seed of torch's global random generator (weights, batch shuffling),
+        set when the detector is built and at each ``fit``; ``None`` sets 0.
+
+    Notes
+    -----
+    ``fit`` only stores the series: the autoencoders are trained on ``X`` by
+    ``predict``. ``change_scores_`` holds the change score of each time point
+    after ``predict``.
     """
 
     _tags = {
@@ -146,7 +222,7 @@ class TireDetector(BaseSegmenter):
         "capability:multivariate": True,
         "returns_dense": True,
         "fit_is_empty": False,
-        "python_dependencies": "torch",
+        "python_dependencies": ["torch"],
         "detector_type": "change_point_detection",
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
@@ -509,14 +585,19 @@ class TireDetector(BaseSegmenter):
         if scores.size == 0:
             scores = np.zeros_like(distances)
         scores = scores / (np.max(scores) + 1e-8)
-        change_scores = np.concatenate(
-            (
-                np.zeros((self.config.window_size,)),
-                scores,
-                np.zeros((self.config.window_size - 1,)),
-            )
+        n_timepoints = X.shape[0]
+        if scores.size == 0:
+            return np.zeros(n_timepoints)
+        # Score i compares the windows starting at i * stride and
+        # (i + window_size) * stride.  It is placed midway between the end of
+        # the first and the start of the second (at i + window_size when
+        # stride == 1, where the two windows are adjacent), then interpolated
+        # linearly between these points; 0 before the first and after the last.
+        window_size, stride = self.config.window_size, self.config.stride
+        positions = np.arange(scores.size) * stride + (window_size * (stride + 1)) // 2
+        return np.interp(
+            np.arange(n_timepoints), positions, scores, left=0.0, right=0.0
         )
-        return change_scores
 
     def _fit(self, X, y=None):
         self._rng = np.random.default_rng(self.random_state)
@@ -535,7 +616,9 @@ class TireDetector(BaseSegmenter):
         self.change_scores_ = scores
         distance = max(1, int(round(self.peak_distance_fraction * X.shape[0])))
 
-        if self.n_segments is None or self.n_segments < 2:
+        if self.n_segments == 1:
+            return np.empty(0, dtype=int)
+        if self.n_segments is None:
             peaks, _ = find_peaks(
                 scores, distance=distance, prominence=self.prominence_threshold
             )

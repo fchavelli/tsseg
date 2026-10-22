@@ -44,13 +44,11 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    "_scripts",
 ]
 
 # Mock optional dependencies so autodoc can import modules without installing
 # heavy libraries on the documentation builder.
 autodoc_mock_imports = [
-    "baselines",
     "claspy",
     "keras",
     "keras_tcn",

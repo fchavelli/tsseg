@@ -31,9 +31,10 @@ from ..utils import (
 class FLUSSDetector(BaseSegmenter):
     """FLUSS (Fast Low-cost Unipotent Semantic Segmentation) Segmenter.
 
-    FLOSS [1]_ FLUSS is a domain-agnostic online semantic segmentation method that
-    operates on the assumption that a low number of arcs crossing a given index point
-    indicates a high probability of a semantic change. Segments are called regimes in
+    FLUSS [1]_ is a domain-agnostic semantic segmentation method (FLOSS, from the
+    same paper, is its online variant) that operates on the assumption that a low
+    number of arcs crossing a given index point indicates a high probability of a
+    semantic change. Segments are called regimes in
     the original paper and stumpy package, but here we use the term segments to be
     consistent with state detection terminology.
 
@@ -45,8 +46,10 @@ class FLUSSDetector(BaseSegmenter):
         The number of segments to search (change points + 1). ``None``: the
         number is not known, and every minimum of the corrected arc curve below
         ``threshold`` is a change point.
-    exclusion_factor : int, default 5
-        The multiplying factor for the segment exclusion zone
+    exclusion_factor : int, default=5
+        The multiplying factor for the segment exclusion zone.
+    axis : int, default=0
+        The time axis of ``X``: ``0`` if time points are rows.
     multivariate_strategy : str, default="ensembling"
         Strategy for handling multivariate data: "ensembling" or "l2".
     tolerance : int or float, default=0.01
@@ -73,13 +76,14 @@ class FLUSSDetector(BaseSegmenter):
 
     Examples
     --------
-    >>> from aeon.segmentation import FLUSSSegmenter
-    >>> from aeon.datasets import load_gun_point_segmentation
-    >>> X, true_period_size, cps = load_gun_point_segmentation()
-    >>> fluss = FLUSSSegmenter(window_size=10, n_segments=2)  # doctest: +SKIP
-    >>> found_cps = fluss.fit_predict(X)  # doctest: +SKIP
-    >>> profiles = fluss.profiles  # doctest: +SKIP
-    >>> scores = fluss.scores  # doctest: +SKIP
+    FLUSS needs ``stumpy`` (``pip install stumpy``).
+
+    >>> from tsseg import load_mocap
+    >>> from tsseg.algorithms import FLUSSDetector
+    >>> X, y = load_mocap(trial=0)
+    >>> fluss = FLUSSDetector(window_size=50, n_segments=7)  # doctest: +SKIP
+    >>> fluss.fit_predict(X)  # doctest: +SKIP
+    array([ 471, 1689, 1949, 3090, 3255, 3793])
     """
 
     _tags = {
@@ -88,6 +92,7 @@ class FLUSSDetector(BaseSegmenter):
         "capability:multivariate": True,
         "returns_dense": True,
         "detector_type": "change_point_detection",
+        "python_dependencies": ["stumpy"],
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
     }
@@ -275,12 +280,15 @@ class FLUSSDetector(BaseSegmenter):
             )
             self.found_cps = self._threshold_regimes(self.profile)
         else:
-            self.profile, self.found_cps = stumpy.fluss(
+            self.profile, regime_locs = stumpy.fluss(
                 mp[:, 1],
                 L=self.window_size,
                 excl_factor=self.exclusion_factor,
                 n_regimes=self.n_segments,  # regimes -> segments for consistency with state detection naming
             )
+            # stumpy returns the locations in extraction order (lowest corrected
+            # arc curve first); change points are returned in time order.
+            self.found_cps = np.sort(regime_locs)
         self.scores = self.profile[self.found_cps]
 
         return self.found_cps, self.profile, self.scores

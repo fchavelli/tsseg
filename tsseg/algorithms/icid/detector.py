@@ -39,9 +39,9 @@ class ICIDDetector(BaseSegmenter):
     t : int, default=200
         The number of iterations for the aNNEspace transformation, controlling
         the dimensionality of the feature space.
-    psi_list : list of int, default=[2, 4, 8, 16, 32, 64]
+    psi_list : list of int or None, default=None
         The list of `psi` values to test for granularity. The best one is
-        selected automatically.
+        selected automatically. ``None`` means ``[2, 4, 8, 16, 32, 64]``.
     axis : int, default=0
         The axis to segment along if passed a multivariate series.
 

@@ -21,6 +21,45 @@ class RandomDetector(BaseSegmenter):
     purely unsupervised fashion, where the number of change points and states is
     drawn at random (with bounds derived from available data), or in a semi-supervised
     mode where those quantities are given but locations and assignments remain random.
+
+    Parameters
+    ----------
+    semi_supervised : bool, default=False
+        If ``True``, ``n_change_points`` and ``n_states`` are required and used
+        as given. If ``False``, both counts are drawn at random and these two
+        parameters are ignored.
+    n_change_points : int, optional
+        Number of change points, used when ``semi_supervised=True``; at most
+        ``n - 1`` for a series of ``n`` points. ``0`` gives a single segment.
+    n_states : int, optional
+        Number of distinct states, used when ``semi_supervised=True``; at least
+        2 when there is a change point.
+    random_state : int, optional
+        Seed of the random generator, drawn again at each ``fit``. ``None``
+        gives a different segmentation at each ``fit``.
+
+    Attributes
+    ----------
+    breakpoints_ : np.ndarray of int
+        Sorted change points of the last segmentation drawn.
+    segment_states_ : np.ndarray of int
+        State of each segment of that segmentation.
+    state_sequence_ : np.ndarray of int
+        State label of each time point, as returned by ``predict``.
+    n_change_points_drawn_ : int
+        Number of change points of that segmentation.
+    n_states_drawn_ : int
+        Number of states it was drawn with (not all of them need to occur).
+
+    Notes
+    -----
+    Without ``semi_supervised``, the number of change points is drawn
+    uniformly in {3, ..., min(14, n - 1)} (``n - 1`` change points if
+    ``n < 4``) and the number of states uniformly in
+    {min(n_change_points + 1, 10), ..., 10}. Change points are drawn without
+    replacement among 1, ..., n - 1, and two consecutive segments never share
+    a state. ``predict`` on a series whose length differs from the one seen
+    by ``fit`` draws a new segmentation.
     """
 
     _tags = {
@@ -31,7 +70,6 @@ class RandomDetector(BaseSegmenter):
         "returns_dense": False,
         "detector_type": "state_detection",
         "non_deterministic": True,
-        "semi_supervised": False,
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
     }

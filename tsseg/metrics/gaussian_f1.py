@@ -132,13 +132,14 @@ def _max_weight_matching(
     pred_cps: Sequence[int],
     sigma_getter: Callable[[int, int], float],
 ) -> GaussianMatchResult:
-    """Greedy bipartite matching that maximises the summed Gaussian weight.
+    """Greedy bipartite matching on the Gaussian weights.
 
-    A full Hungarian assignment would require an additional dependency. The
-    greedy alternative is sufficient here because the Gaussian reward already
-    penalises distant matches, making the cost surface well behaved. We build
-    every possible (true, predicted) pair, sort them by weight in descending
-    order, then keep the best non-conflicting matches.
+    Every (true, predicted) pair is built, the pairs are sorted by weight in
+    descending order, and the best non-conflicting ones are kept. This is
+    not a maximum-weight matching: when the Gaussian width is comparable to
+    the spacing of the change points, pairing the closest points first can
+    leave the others badly paired (with ``sigma = 4``, true ``[100, 104]``
+    and predicted ``[103, 107]`` give ``1.19`` instead of ``1.51``).
     """
 
     if not true_cps or not pred_cps:

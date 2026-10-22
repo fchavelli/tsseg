@@ -17,6 +17,9 @@ provide discriminative evidence.
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** multivariate (primarily)
+| **Complexity:** :math:`O(d\,n + K^{2}\,d\,n/s)`, where *K* is ``k_max`` and *s*
+  is ``step``: each of the *K* greedy steps scores the :math:`n/s` candidate
+  locations from cumulative sums, over at most :math:`K + 1` segments
 
 Parameters
 ----------
@@ -32,7 +35,9 @@ Parameters
    * - ``k_max``
      - int
      - ``10``
-     - Maximum number of change points.
+     - Maximum number of change points. Fewer are returned when every
+       candidate location (the multiples of ``step``) is already a change
+       point.
    * - ``step``
      - int
      - ``5``

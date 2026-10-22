@@ -8,20 +8,25 @@ determine the number of regimes and their boundaries.
 ## Key properties
 
 - Type: state detection
-- Semi-supervised (requires $n_cps$)
+- Unsupervised: the number of segments and regimes is chosen by MDL
+  (`n_cps` is deprecated and ignored, AutoPlait has no guided mode)
 - Regime-based: each segment is assigned to a shared HMM regime
 - Multivariate
-- Requires a compiled C binary (`c/autoplait/` at the repository root)
+- Needs numba (`tsseg[accelerators]`)
 
 ## Implementation
 
-Wraps the original C code by Yasuko Matsubara (Kumamoto University). The
-`autoplait_c.py` module handles I/O with the binary. A `deprecated/` folder
-contains an incomplete pure-Python port (based on hayato0311/autoplait-python,
-depends on `hmmlearn`) kept for reference only.
+`_plait.py` translates to Python, compiled with numba, the original C code by
+Yasuko Matsubara (version of June 18, 2014), file by file: `plait.c`, `cps.c`,
+`segbox.c`, `baum.c`, `forbackward.c`, `kmeans.c`, `viterbi.c`, `hmmutils.c`
+and `tool.c`. It reproduces the `rand()` generator of the GNU C library, so
+that it draws the same random numbers as the C binary, and returns the same
+segmentation as the binary built with GCC on Linux. The departures from the C
+code, where it fails or reads uninitialised memory, are listed at the top of
+`_plait.py`.
 
-- Origin: wrapper around original C code
-- Source: https://sites.google.com/site/onlinesemanticsegmentation/
+- Origin: translation of the original C code
+- Source: https://www.dm.sanken.osaka-u.ac.jp/~yasuko/software.html
 - Licence: no explicit licence provided with the original C code
 
 ## Citation

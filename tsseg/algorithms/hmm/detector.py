@@ -66,8 +66,9 @@ class HMMDetector(BaseSegmenter):
 
     Parameters
     ----------
-    emission_funcs : list, shape = [num hidden states]
-        List should be of length n (the number of hidden states)
+    emission_funcs : list, shape = [num hidden states], optional
+        List should be of length n (the number of hidden states).
+        ``None`` (default) means two Gaussian states, N(0, 1) and N(1, 1).
         Either a list of callables [fx_1, fx_2] with signature fx_1(X) -> float
         or a list of callables and matched keyword arguments for those
         callables [(fx_1, kwarg_1), (fx_2, kwarg_2)] with signature
@@ -75,11 +76,12 @@ class HMMDetector(BaseSegmenter):
         The callables should take a value and return a probability when passed
         a single observation. All functions should be properly normalized PDFs
         over the same space as the observed data.
-    transition_prob_mat: 2D np.ndarry, shape = [num_states, num_states]
+    transition_prob_mat : 2D np.ndarray, shape = [num_states, num_states], optional
         Each row should sum to 1 in order to be properly normalized
         (ie the j'th column in the i'th row represents the
         probability of transitioning from state i to state j.)
-    initial_probs: 1D np.ndarray, shape = [num hidden states], optional
+        ``None`` (default) means ``[[0.9, 0.1], [0.1, 0.9]]``.
+    initial_probs : 1D np.ndarray, shape = [num hidden states], optional
         A array of probabilities that the sequence of hidden states starts in each
         of the hidden states. If passed, should be of length ``n`` the number of
         hidden states and  should match the length of both the emission funcs
@@ -92,7 +94,7 @@ class HMMDetector(BaseSegmenter):
     emission_funcs : list, shape = [num_hidden_states]
         The functions to use in calculating the emission probabilities. Taken
         from the __init__ param of same name.
-    transition_prob_mat: 2D np.ndarry, shape = [num_states, num_states]
+    transition_prob_mat : 2D np.ndarray, shape = [num_states, num_states]
         Matrix of transition probabilities from hidden state to hidden state.
         Taken from the __init__ param of same name.
     initial_probs : 1D np.ndarray, shape = [num_hidden_states]
@@ -119,7 +121,7 @@ class HMMDetector(BaseSegmenter):
 
     Examples
     --------
-    >>> from aeon.segmentation import HMMSegmenter
+    >>> from tsseg.algorithms import HMMDetector
     >>> from scipy.stats import norm
     >>> from numpy import asarray
     >>> # define the emission probs for our HMM model:
@@ -127,11 +129,11 @@ class HMMDetector(BaseSegmenter):
     >>> sd = [.25 for i in centers]
     >>> emi_funcs = [(norm.pdf, {'loc': mean,
     ...  'scale': sd[ind]}) for ind, mean in enumerate(centers)]
-    >>> hmm = HMMSegmenter(emi_funcs, asarray([[0.25,0.75], [0.666, 0.333]]))
+    >>> hmm = HMMDetector(emi_funcs, asarray([[0.25,0.75], [0.666, 0.333]]))
     >>> # generate synthetic data (or of course use your own!)
     >>> obs = asarray([3.7,3.2,3.4,3.6,-5.1,-5.2,-4.9])
     >>> hmm.fit_predict(obs)
-    array([0., 0., 0., 0., 1., 1., 1.])
+    array([0, 0, 0, 0, 1, 1, 1])
     """
 
     _tags = {
@@ -140,8 +142,10 @@ class HMMDetector(BaseSegmenter):
         "fit_is_empty": True,
         "returns_dense": False,
         "detector_type": "state_detection",
+        # The number of states is not inferred: it is the length of the
+        # user-supplied ``emission_funcs`` (two by default).
         "capability:unsupervised": False,
-        "capability:semi_supervised": False,
+        "capability:semi_supervised": True,
     }
 
     # Default: two-state Gaussian HMM  (μ=0, σ=1) and (μ=1, σ=1)

@@ -99,7 +99,8 @@ class BeastDetector(BaseSegmenter):
         step to be selected.
     max_cps : int or None, default=None
         Maximum number of change points to return (by decreasing probability).
-        ``None`` returns all candidates above ``cp_prob_threshold``.
+        ``None`` returns all candidates above ``cp_prob_threshold``; ``0``
+        returns none.
     component : str, default="trend"
         Which component's change points to return: ``"trend"`` or
         ``"season"`` or ``"both"``.
@@ -120,6 +121,7 @@ class BeastDetector(BaseSegmenter):
         "fit_is_empty": True,
         "returns_dense": True,
         "detector_type": "change_point_detection",
+        "python_dependencies": ["Rbeast"],
         "capability:unsupervised": True,
         "capability:semi_supervised": True,
     }
@@ -180,7 +182,7 @@ class BeastDetector(BaseSegmenter):
             description="Min posterior probability to accept a change point.",
         ),
         "max_cps": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Maximum number of change points to return.",
             nullable=True,
         ),

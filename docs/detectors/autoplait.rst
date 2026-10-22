@@ -6,29 +6,34 @@ AutoPlait — parameter-free mining of co-evolving time sequences.
 Description
 -----------
 
-AutoPlait is a fully automatic algorithm for segmenting and summarising large
-collections of co-evolving time series.  It discovers an unknown number of
-*regimes* (recurring patterns of different durations) by compressing the data
-into a hierarchy of Hidden Markov Models.  Each regime is modelled as a separate
-AR-HMM, and the algorithm uses a Minimum Description Length (MDL) criterion to
-jointly determine the optimal number of regimes, their boundaries and their
-internal structure — all without user-specified parameters.
+AutoPlait describes a (multivariate) time series as segments, each generated
+by one of a few *regimes*. A regime is a hidden Markov model with diagonal
+Gaussian emissions; segments of the same regime share it. The number of
+regimes, the number of hidden states of each model and the cut points are
+chosen by minimising the total description length (MDL) of the models and of
+the data, without any user parameter.
 
-The method operates in four steps:
+The search is top-down. Starting from a single regime that covers the whole
+series, AutoPlait tries to split each regime in two:
 
-1. **CutPointSearch** — locate candidate segment boundaries by fitting HMMs.
-2. **CreateRegime** — build an AR-HMM for each candidate segment.
-3. **MergeRegime** — greedily merge similar regimes to reduce the description
-   length.
-4. **Iterate** — repeat until convergence.
+1. **Seeds** — pairs of windows of length :math:`\lceil n/10 \rceil` taken
+   uniformly in the regime each initialise an HMM; the pair whose split is the
+   shortest to describe is kept.
+2. **CutPointSearch** — a Viterbi pass over the two HMMs, with a switching
+   probability per regime, assigns each part of the regime to one of them;
+   segments that the other model describes almost as well are moved to it.
+3. **RegimeSplit** — model estimation (Baum-Welch, number of states chosen by
+   MDL) and cut point search alternate until the description length stops
+   decreasing.
 
-AutoPlait is linear in the input size and achieves near-perfect precision and
-recall on the benchmarks reported in the original paper.
+The split is kept when it shortens the description of the regime by more than
+3 %; the two new regimes are then split in turn.
 
 | **Type:** state detection
-| **Supervision:** semi-supervised (requires ``n_cps``)
+| **Supervision:** unsupervised
 | **Scope:** univariate and multivariate
-| **Complexity:** :math:`O(n)`
+| **Complexity:** :math:`O(n)` per cut point search (for a bounded number of
+  states and of seeds)
 
 Parameters
 ----------
@@ -44,7 +49,10 @@ Parameters
    * - ``n_cps``
      - int / None
      - ``None``
-     - Number of change points.  Required if ground-truth ``y`` is not provided.
+     - Deprecated and ignored. AutoPlait chooses the number of segments
+       itself and has no guided mode, so this value has never changed the
+       output. Passing it emits a ``FutureWarning`` at ``fit``; it will be
+       removed in a future release.
 
 Usage
 -----
@@ -53,15 +61,29 @@ Usage
 
    from tsseg.algorithms import AutoPlaitDetector
 
-   detector = AutoPlaitDetector(n_cps=4)
+   detector = AutoPlaitDetector()
    labels = detector.fit_predict(X)
 
-.. note::
-   AutoPlait relies on a compiled C binary (``autoplait_c``).  The binary is
-   bundled in ``tsseg/c/autoplait/`` and must be built before first use.
+``labels`` holds, for each time point, the number of the AutoPlait regime its
+segment belongs to: segments of the same regime share a label.
 
-**Implementation:** Adapted from the original C implementation by Matsubara et al.
-BSD 3-Clause.
+.. note::
+   AutoPlait needs numba (``pip install "tsseg[accelerators]"``).
+
+   The C code floors the log-density of an observation, summed over its
+   channels, at :math:`\log 10^{-6}`, and the translation keeps this floor.
+   With many channels, the observations reach it under every model and the
+   models can no longer be told apart. About 20 % of the time points of a HAS
+   series (9 channels) and of ActRecTut subject 1 (10 channels) reach it under
+   their own regime, and every time point of a 20-channel Gaussian series with
+   a 3-sigma mean shift, on which AutoPlait finds a single regime.
+
+**Implementation:** Python translation, compiled with numba, of the C code of
+Matsubara et al. (version of June 18, 2014), random draws included: it returns
+the segmentation of the C binary built with GCC on Linux. Each channel is
+z-normalised in float32, as the C code reads its input. Unlike the binary, the
+translation has no limit on the number of channels, of regimes or of segments,
+and sets a constant channel to zero.
 
 **Reference:** Matsubara, Sakurai & Faloutsos (2014), *AutoPlait: Automatic Mining
 of Co-evolving Time Sequences*, SIGMOD.

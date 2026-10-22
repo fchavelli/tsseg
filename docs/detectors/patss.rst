@@ -30,6 +30,14 @@ All configuration is passed through a ``config`` dictionary.
 | **Type:** state detection
 | **Supervision:** fully unsupervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d\,R\,n^{2})` asymptotically: for each channel and
+  each of the :math:`R \le 7` window lengths (16 to 1024 by default),
+  ``npbad`` cuts the :math:`n` windows with a mask over the whole series. Add
+  the Java pattern miner, whose cost depends on the patterns found, then
+  k-means and a silhouette score (quadratic in its sample of at most
+  :math:`2000 + 0.1\,(n - 2000)` points) for each of the 8 candidate numbers of
+  states. The per-window overhead dominates in practice: about 15 s for 4,000
+  univariate points, close to linear in :math:`n` up to 8,000 points
 
 Parameters
 ----------

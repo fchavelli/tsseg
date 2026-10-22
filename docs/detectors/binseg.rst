@@ -38,7 +38,7 @@ Parameters
    * - ``model``
      - str
      - ``"l2"``
-     - Ruptures cost model (``"l2"``, ``"l1"``, ``"rbf"``, ``"linear"``, ``"normal"``, ``"ar"``).
+     - Ruptures cost model (``"l2"``, ``"l1"``, ``"rbf"``, ``"linear"``, ``"normal"``, ``"cosine"``).
    * - ``min_size``
      - int
      - ``2``

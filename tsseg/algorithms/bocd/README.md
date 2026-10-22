@@ -18,7 +18,8 @@ Adapted from the reference implementation by hildensia
 inference routine is in `bayesian_models.py`.
 
 - Origin: adapted from hildensia/bayesian_changepoint_detection
-- Licence: Apache License 2.0
+- Licence: MIT (Copyright (c) 2014 Johannes Kulick)
+- Licence file: `LICENSE` in this directory
 
 ## Citation
 

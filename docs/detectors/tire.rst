@@ -22,6 +22,8 @@ changes (FD) or both.
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
+| **Complexity:** :math:`O(d\,n\,\ell)` per training epoch, where
+  :math:`\ell` is ``window_size``
 | **Requires:** PyTorch
 
 Parameters

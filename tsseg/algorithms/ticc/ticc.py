@@ -1,23 +1,28 @@
-# Taken from: https://github.com/davidhallac/TICC
+# Adapted from https://github.com/davidhallac/TICC (BSD 2-Clause, see LICENSE).
+#
+# Changes from the original solver, none of which changes its output:
+# - the random draws use a local ``RandomState(102)`` instead of reseeding
+#   NumPy's global generator, and the global print options of NumPy and pandas
+#   are left untouched;
+# - the solver runs in the calling process when ``num_proc == 1``;
+# - the Z-update of the ADMM, the log-likelihoods of the assignment step and
+#   its dynamic programme are vectorised over the clusters;
+# - the confusion matrices, F1 scores and k-means clustering that the original
+#   computed at each iteration without using them are removed.
+# ``log_likelihood`` and ``n_free_parameters`` are additions.
+"""Core solver of TICC (Toeplitz inverse covariance-based clustering)."""
+
+from __future__ import annotations
 
 import collections
-import errno
 import math
-
-# import matplotlib
-import os
 from multiprocessing import Pool
 
 import numpy as np
-import pandas as pd
-
-# matplotlib.use('Agg')
-# import matplotlib.pyplot as plt
 from sklearn import mixture
-from sklearn.cluster import KMeans
 
 
-def getTrainTestSplit(m, num_blocks, num_stacked):
+def getTrainTestSplit(m, num_blocks, num_stacked, rng=None):
     """Compute the training indices for the TICC model.
 
     Parameters
@@ -28,18 +33,21 @@ def getTrainTestSplit(m, num_blocks, num_stacked):
         ``window_size + 1``.
     num_stacked : int
         ``window_size``.
+    rng : numpy.random.RandomState or None, default=None
+        Random generator; ``None`` uses NumPy's global one.
 
     Returns
     -------
     list[int]
         Sorted list of training indices.
     """
+    choice = np.random.choice if rng is None else rng.choice
     # Now splitting up stuff
     # split1 : Training and Test
     # split2 : Training and Test - different clusters
     training_percent = 1
     # list of training indices
-    training_idx = np.random.choice(
+    training_idx = choice(
         m - num_blocks + 1,
         size=int((m - num_stacked) * training_percent),
         replace=False,
@@ -52,40 +60,6 @@ def getTrainTestSplit(m, num_blocks, num_stacked):
         training_idx.append(m - num_stacked)
     training_idx = np.array(training_idx)
     return sorted(training_idx)
-
-
-def compute_confusion_matrix(num_clusters, clustered_points_algo, sorted_indices_algo):
-    """
-    computes a confusion matrix and returns it
-    """
-    seg_len = 400
-    true_confusion_matrix = np.zeros([num_clusters, num_clusters])
-    for point in range(len(clustered_points_algo)):
-        cluster = clustered_points_algo[point]
-        num = int(sorted_indices_algo[point] / seg_len) % num_clusters
-        true_confusion_matrix[int(num), int(cluster)] += 1
-    return true_confusion_matrix
-
-
-def find_matching(confusion_matrix):
-    """
-    returns the perfect matching
-    """
-    _, n = confusion_matrix.shape
-    path = []
-    for i in range(n):
-        max_val = -1e10
-        max_ind = -1
-        for j in range(n):
-            if j in path:
-                pass
-            else:
-                temp = confusion_matrix[i, j]
-                if temp > max_val:
-                    max_val = temp
-                    max_ind = j
-        path.append(max_ind)
-    return path
 
 
 def upperToFull(a, eps=0):
@@ -109,17 +83,16 @@ def updateClusters(LLE_node_vals, switch_penalty=1):
     """
     (T, num_clusters) = LLE_node_vals.shape
     future_cost_vals = np.zeros(LLE_node_vals.shape)
+    stay = np.eye(num_clusters, dtype=bool)
 
-    # compute future costs
+    # compute future costs: row ``cluster`` of ``total_vals`` is the cost of
+    # each next cluster, minus the switch penalty for staying in ``cluster``
     for i in range(T - 2, -1, -1):
         j = i + 1
-        indicator = np.zeros(num_clusters)
-        future_costs = future_cost_vals[j, :]
-        lle_vals = LLE_node_vals[j, :]
-        for cluster in range(num_clusters):
-            total_vals = future_costs + lle_vals + switch_penalty
-            total_vals[cluster] -= switch_penalty
-            future_cost_vals[i, cluster] = np.min(total_vals)
+        switch_vals = future_cost_vals[j, :] + LLE_node_vals[j, :] + switch_penalty
+        stay_vals = switch_vals - switch_penalty
+        total_vals = np.where(stay, stay_vals[:, None], switch_vals[None, :])
+        future_cost_vals[i, :] = total_vals.min(axis=1)
 
     # compute the best path
     path = np.zeros(T)
@@ -166,6 +139,61 @@ def computeBIC(K, T, clustered_points, inverse_covariances, empirical_covariance
     return non_zero_params * np.log(T) - 2 * mod_lle
 
 
+def n_free_parameters(theta, window_size, n_channels, threshold=2e-5):
+    """Number of free entries of a block Toeplitz precision above a threshold.
+
+    A symmetric block Toeplitz matrix is defined by its diagonal block
+    :math:`A^{(0)}` (symmetric, :math:`d(d+1)/2` free entries) and the blocks
+    :math:`A^{(1)}, \\dots, A^{(w-1)}` below it (:math:`d^2` each). The ADMM
+    returns the dense variable of the splitting, whose entries are never
+    exactly zero: an entry counts when its absolute value exceeds
+    ``threshold`` (the threshold of ``computeBIC``).
+
+    Parameters
+    ----------
+    theta : np.ndarray
+        Precision matrix of shape ``(window_size * n_channels,) * 2``.
+    window_size : int
+        Number of blocks :math:`w`.
+    n_channels : int
+        Size :math:`d` of each block.
+    threshold : float, default=2e-5
+        Entries whose absolute value is at most ``threshold`` count as zero.
+
+    Returns
+    -------
+    int
+        Number of free entries above the threshold.
+    """
+    d = n_channels
+    nonzero = np.abs(theta[:, :d]) > threshold
+    count = int(np.triu(nonzero[:d]).sum())
+    return count + int(nonzero[d : window_size * d].sum())
+
+
+class _Result:
+    """Result of a call run in the calling process (``Pool.apply_async`` API)."""
+
+    def __init__(self, value):
+        self._value = value
+
+    def get(self):
+        return self._value
+
+
+class _SerialPool:
+    """Stand-in for ``multiprocessing.Pool`` that runs each call immediately."""
+
+    def apply_async(self, func, args=()):
+        return _Result(func(*args))
+
+    def close(self):
+        pass
+
+    def join(self):
+        pass
+
+
 class ADMMSolver:
     def __init__(self, lamb, num_stacked, size_blocks, rho, S, rho_update_func=None):
         self.lamb = lamb
@@ -180,45 +208,24 @@ class ADMMSolver:
         self.S = S
         self.status = "initialized"
         self.rho_update_func = rho_update_func
+        self._triu = np.triu_indices(probSize)
+        self._triu_size = probSize
+        self._build_z_groups()
 
     def ij2symmetric(self, i, j, size):
         return (size * (size + 1)) / 2 - (size - i) * (size - i + 1) / 2 + j - i
 
-    def upper2Full(self, a):
-        n = int((-1 + np.sqrt(1 + 8 * a.shape[0])) / 2)
-        A = np.zeros([n, n])
-        A[np.triu_indices(n)] = a
-        temp = A.diagonal()
-        A = (A + A.T) - np.diag(temp)
-        return A
+    def _build_z_groups(self):
+        """Index the entries of ``z`` that the Z-update sets to a common value.
 
-    def Prox_logdet(self, S, A, eta):
-        d, q = np.linalg.eigh(eta * A - S)
-        q = np.matrix(q)
-        X_var = (
-            (1 / (2 * float(eta)))
-            * q
-            * (np.diag(d + np.sqrt(np.square(d) + (4 * eta) * np.ones(d.shape))))
-            * q.T
-        )
-        x_var = X_var[
-            np.triu_indices(S.shape[1])
-        ]  # extract upper triangular part as update variable
-        return np.matrix(x_var).T
-
-    def ADMM_x(self):
-        a = self.z - self.u
-        A = self.upper2Full(a)
-        eta = self.rho
-        x_update = self.Prox_logdet(self.S, A, eta)
-        self.x = np.array(x_update).T.reshape(-1)
-
-    def ADMM_z(self, index_penalty=1):
-        a = self.x + self.u
+        Each group gathers the occurrences of one free entry of the block
+        Toeplitz matrix (one entry of :math:`A^{(0)}` on or above the diagonal,
+        or of a block :math:`A^{(m)}` below it), in the order in which the
+        original loop of the Z-update visits them. The sums of ``lamb`` over each
+        group do not change between iterations and are computed once.
+        """
         probSize = self.numBlocks * self.sizeBlocks
-        z_update = np.zeros(self.length)
-
-        # TODO: can we parallelize these?
+        entries, groups, lam_sums, elems_list = [], [], [], []
         for i in range(self.numBlocks):
             elems = (
                 self.numBlocks if i == 0 else (2 * self.numBlocks - 2 * i) / 2
@@ -242,19 +249,66 @@ class ADMMSolver:
                             self.ij2symmetric(loc2, loc1, probSize)
                             for (loc1, loc2) in locList
                         ]
-                    pointSum = sum(a[int(index)] for index in indices)
-                    rhoPointSum = self.rho * pointSum
+                    groups.extend([len(lam_sums)] * len(indices))
+                    entries.extend(int(index) for index in indices)
+                    lam_sums.append(lamSum)
+                    elems_list.append(elems)
+        self._z_entries = np.asarray(entries, dtype=np.intp)
+        self._z_groups = np.asarray(groups, dtype=np.intp)
+        self._z_lam_sums = np.asarray(lam_sums, dtype=float)
+        self._z_elems = np.asarray(elems_list, dtype=float)
 
-                    # Calculate soft threshold
-                    ans = 0
-                    # If answer is positive
-                    if rhoPointSum > lamSum:
-                        ans = max((rhoPointSum - lamSum) / (self.rho * elems), 0)
-                    elif rhoPointSum < -1 * lamSum:
-                        ans = min((rhoPointSum + lamSum) / (self.rho * elems), 0)
+    def upper2Full(self, a):
+        n = int((-1 + np.sqrt(1 + 8 * a.shape[0])) / 2)
+        A = np.zeros([n, n])
+        A[self._triu if n == self._triu_size else np.triu_indices(n)] = a
+        temp = A.diagonal()
+        A = (A + A.T) - np.diag(temp)
+        return A
 
-                    for index in indices:
-                        z_update[int(index)] = ans
+    def Prox_logdet(self, S, A, eta):
+        d, q = np.linalg.eigh(eta * A - S)
+        X_var = (
+            ((1 / (2 * float(eta))) * q)
+            @ np.diag(d + np.sqrt(np.square(d) + (4 * eta) * np.ones(d.shape)))
+        ) @ q.T
+        # extract upper triangular part as update variable
+        n = S.shape[1]
+        return X_var[self._triu if n == self._triu_size else np.triu_indices(n)]
+
+    def ADMM_x(self):
+        a = self.z - self.u
+        A = self.upper2Full(a)
+        eta = self.rho
+        self.x = self.Prox_logdet(self.S, A, eta)
+
+    def ADMM_z(self, index_penalty=1):
+        """Soft-threshold the mean of each group of tied entries of ``x + u``."""
+        a = self.x + self.u
+        n_groups = self._z_lam_sums.size
+        # np.bincount adds the weights in their order, from 0.0, as the
+        # original loop did with ``sum``
+        pointSum = np.bincount(
+            self._z_groups, weights=a[self._z_entries], minlength=n_groups
+        )
+        rhoPointSum = self.rho * pointSum
+        lamSum = self._z_lam_sums
+        denom = self.rho * self._z_elems
+
+        # Calculate soft threshold
+        ans = np.zeros(n_groups)
+        # If answer is positive
+        positive = rhoPointSum > lamSum
+        negative = ~positive & (rhoPointSum < -1 * lamSum)
+        ans[positive] = np.maximum(
+            (rhoPointSum[positive] - lamSum[positive]) / denom[positive], 0
+        )
+        ans[negative] = np.minimum(
+            (rhoPointSum[negative] + lamSum[negative]) / denom[negative], 0
+        )
+
+        z_update = np.zeros(self.length)
+        z_update[self._z_entries] = ans[self._z_groups]
         self.z = z_update
 
     def ADMM_u(self):
@@ -297,7 +351,6 @@ class ADMMSolver:
 
     # solve
     def __call__(self, maxIters, eps_abs, eps_rel, verbose):
-        num_iterations = 0
         self.status = "Incomplete: max iterations reached"
         for i in range(maxIters):
             z_old = np.copy(self.z)
@@ -317,7 +370,6 @@ class ADMMSolver:
                         self.rho, res_pri, e_pri, res_dual, e_dual
                     )
                 scale = self.rho / new_rho
-                rho = new_rho
                 self.u = scale * self.u
             if verbose:
                 # Debugging information prints current iteration #
@@ -349,8 +401,8 @@ class TICC:
             - switch_penalty: temporal consistency parameter
             - maxIters: number of iterations
             - threshold: convergence threshold
-            - write_out_file: (bool) if true, prefix_string is output file dir
-            - prefix_string: output directory if necessary
+            - write_out_file: (bool) unused, kept for compatibility
+            - prefix_string: unused, kept for compatibility
             - cluster_reassignment: number of points to reassign to a 0 cluster
             - biased: Using the biased or the unbiased covariance
         """
@@ -367,31 +419,25 @@ class TICC:
         self.cluster_reassignment = cluster_reassignment
         self.num_blocks = self.window_size + 1
         self.biased = biased
-        pd.set_option("display.max_columns", 500)
-        np.set_printoptions(formatter={"float": lambda x: f"{x:0.4f}"})
-        np.random.seed(102)
 
     def fit_transform(self, series):
         """
         Main method for TICC solver.
         Parameters:
-            - input_file: location of the data file
+            - series: array of shape (n_timepoints, n_channels)
         """
         if self.maxIters <= 0:
             raise ValueError(f"maxIters must be > 0, got {self.maxIters}")
-        self.log_parameters()
+        # The seed of the original code, which reseeded NumPy's global generator
+        rng = np.random.RandomState(102)
 
         # Get data into proper format
         times_series_arr = series
         time_series_rows_size, time_series_col_size = times_series_arr.shape
 
-        ############
-        # The basic folder to be created
-        # str_NULL = self.prepare_out_directory()
-
         # Train test split
         training_indices = getTrainTestSplit(
-            time_series_rows_size, self.num_blocks, self.window_size
+            time_series_rows_size, self.num_blocks, self.window_size, rng
         )  # indices of the training samples
         num_train_points = len(training_indices)
 
@@ -403,19 +449,12 @@ class TICC:
         # Initialization
         # Gaussian Mixture
         gmm = mixture.GaussianMixture(
-            n_components=self.number_of_clusters, covariance_type="full"
+            n_components=self.number_of_clusters,
+            covariance_type="full",
+            random_state=rng,
         )
         gmm.fit(complete_D_train)
         clustered_points = gmm.predict(complete_D_train)
-        gmm_clustered_pts = clustered_points + 0
-        # K-means
-        kmeans = KMeans(n_clusters=self.number_of_clusters, random_state=0).fit(
-            complete_D_train
-        )
-        clustered_points_kmeans = (
-            kmeans.labels_
-        )  # todo, is there a difference between these two?
-        kmeans_clustered_pts = kmeans.labels_
 
         train_cluster_inverse = {}
         log_det_values = {}  # log dets of the thetas
@@ -427,9 +466,8 @@ class TICC:
         empirical_covariances = {}
 
         # PERFORM TRAINING ITERATIONS
-        pool = Pool(processes=self.num_proc)  # multi-threading
+        pool = Pool(processes=self.num_proc) if self.num_proc > 1 else _SerialPool()
         for iters in range(self.maxIters):
-            # #print("\n\n\nITERATION ###", iters)
             # Get the train and test points
             train_clusters_arr = collections.defaultdict(
                 list
@@ -464,8 +502,6 @@ class TICC:
 
             # update old computed covariance
             old_computed_covariance = computed_covariance
-
-            # #print("UPDATED THE OLD COVARIANCE")
 
             self.trained_model = {
                 "cluster_mean_info": cluster_mean_info,
@@ -514,8 +550,7 @@ class TICC:
                             counter
                         ]  # a cluster that is not len 0
                         counter = (counter + 1) % len(valid_clusters)
-                        # #print("cluster that is zero is:", cluster_num, "selected cluster instead is:", cluster_selected)
-                        start_point = np.random.choice(
+                        start_point = rng.choice(
                             new_train_clusters[cluster_selected]
                         )  # random point number from that cluster
                         for i in range(0, self.cluster_reassignment):
@@ -540,62 +575,15 @@ class TICC:
                                 ]
                             )
 
-            for cluster_num in range(self.number_of_clusters):
-                # print("length of cluster #", cluster_num, "-------->", sum([x == cluster_num for x in clustered_points]))
-                pass
-
-            # self.write_plot(clustered_points, str_NULL, training_indices)
-
-            # TEST SETS STUFF
-            # LLE + swtiching_penalty
-            # Segment length
-            # Create the F1 score from the graphs from k-means and GMM
-            # Get the train and test points
-            train_confusion_matrix_EM = compute_confusion_matrix(
-                self.number_of_clusters, clustered_points, training_indices
-            )
-            train_confusion_matrix_GMM = compute_confusion_matrix(
-                self.number_of_clusters, gmm_clustered_pts, training_indices
-            )
-            train_confusion_matrix_kmeans = compute_confusion_matrix(
-                self.number_of_clusters, kmeans_clustered_pts, training_indices
-            )
-            ###compute the matchings
-            matching_EM, matching_GMM, matching_Kmeans = self.compute_matches(
-                train_confusion_matrix_EM,
-                train_confusion_matrix_GMM,
-                train_confusion_matrix_kmeans,
-            )
-
-            # #print("\n\n\n")
-
             if np.array_equal(old_clustered_points, clustered_points):
-                # print("\n\n\n\nCONVERGED!!! BREAKING EARLY!!!")
                 break
             old_clustered_points = before_empty_cluster_assign
             # end of training
-        if pool is not None:
-            pool.close()
-            pool.join()
-        train_confusion_matrix_EM = compute_confusion_matrix(
-            self.number_of_clusters, clustered_points, training_indices
-        )
-        train_confusion_matrix_GMM = compute_confusion_matrix(
-            self.number_of_clusters, gmm_clustered_pts, training_indices
-        )
-        train_confusion_matrix_kmeans = compute_confusion_matrix(
-            self.number_of_clusters, clustered_points_kmeans, training_indices
-        )
+        pool.close()
+        pool.join()
 
-        self.compute_f_score(
-            matching_EM,
-            matching_GMM,
-            matching_Kmeans,
-            train_confusion_matrix_EM,
-            train_confusion_matrix_GMM,
-            train_confusion_matrix_kmeans,
-        )
-
+        self.clustered_points_ = clustered_points
+        self.train_cluster_inverse_ = train_cluster_inverse
         if self.compute_BIC:
             bic = computeBIC(
                 self.number_of_clusters,
@@ -608,74 +596,37 @@ class TICC:
 
         return clustered_points, train_cluster_inverse
 
-    def compute_f_score(
-        self,
-        matching_EM,
-        matching_GMM,
-        matching_Kmeans,
-        train_confusion_matrix_EM,
-        train_confusion_matrix_GMM,
-        train_confusion_matrix_kmeans,
-    ):
-        f1_EM_tr = (
-            -1
-        )  # computeF1_macro(train_confusion_matrix_EM,matching_EM,num_clusters)
-        f1_GMM_tr = (
-            -1
-        )  # computeF1_macro(train_confusion_matrix_GMM,matching_GMM,num_clusters)
-        f1_kmeans_tr = (
-            -1
-        )  # computeF1_macro(train_confusion_matrix_kmeans,matching_Kmeans,num_clusters)
-        # print("\n\n")
-        # print("TRAINING F1 score:", f1_EM_tr, f1_GMM_tr, f1_kmeans_tr)
-        correct_e_m = 0
-        correct_g_m_m = 0
-        correct_k_means = 0
-        for cluster in range(self.number_of_clusters):
-            matched_cluster__e_m = matching_EM[cluster]
-            matched_cluster__g_m_m = matching_GMM[cluster]
-            matched_cluster__k_means = matching_Kmeans[cluster]
+    def log_likelihood(self):
+        """Gaussian log-likelihood of the stacked windows under the fitted model.
 
-            correct_e_m += train_confusion_matrix_EM[cluster, matched_cluster__e_m]
-            correct_g_m_m += train_confusion_matrix_GMM[cluster, matched_cluster__g_m_m]
-            correct_k_means += train_confusion_matrix_kmeans[
-                cluster, matched_cluster__k_means
+        Sum over the windows of Eq. (2) of the paper, each window under the
+        precision matrix and the mean of the cluster it is assigned to after
+        the last iteration. The last ``window_size - 1`` windows, which the
+        solver pads with zeros and leaves out of the assignment step, are left
+        out.
+
+        Returns
+        -------
+        float
+            The log-likelihood.
+        """
+        D = self.trained_model["complete_D_train"]
+        n_windows, dim = D.shape
+        valid = n_windows - (self.window_size - 1)
+        labels = np.asarray(self.clustered_points_[:valid], dtype=int)
+        total = 0.0
+        for cluster in np.unique(labels):
+            theta = self.train_cluster_inverse_[cluster]
+            mean = self.trained_model["cluster_mean_stacked_info"][
+                self.number_of_clusters, cluster
             ]
-
-    def compute_matches(
-        self,
-        train_confusion_matrix_EM,
-        train_confusion_matrix_GMM,
-        train_confusion_matrix_kmeans,
-    ):
-        matching_Kmeans = find_matching(train_confusion_matrix_kmeans)
-        matching_GMM = find_matching(train_confusion_matrix_GMM)
-        matching_EM = find_matching(train_confusion_matrix_EM)
-        correct_e_m = 0
-        correct_g_m_m = 0
-        correct_k_means = 0
-        for cluster in range(self.number_of_clusters):
-            matched_cluster_e_m = matching_EM[cluster]
-            matched_cluster_g_m_m = matching_GMM[cluster]
-            matched_cluster_k_means = matching_Kmeans[cluster]
-
-            correct_e_m += train_confusion_matrix_EM[cluster, matched_cluster_e_m]
-            correct_g_m_m += train_confusion_matrix_GMM[cluster, matched_cluster_g_m_m]
-            correct_k_means += train_confusion_matrix_kmeans[
-                cluster, matched_cluster_k_means
-            ]
-        return matching_EM, matching_GMM, matching_Kmeans
-
-    # def write_plot(self, clustered_points, str_NULL, training_indices):
-    #     # Save a figure of segmentation
-    #     plt.figure()
-    #     plt.plot(training_indices[0:len(clustered_points)], clustered_points, color="r")  # ,marker = ".",s =100)
-    #     plt.ylim((-0.5, self.number_of_clusters + 0.5))
-    #     if self.write_out_file: plt.savefig(
-    #         str_NULL + "TRAINING_EM_lam_sparse=" + str(self.lambda_parameter) + "switch_penalty = " + str(
-    #             self.switch_penalty) + ".jpg")
-    #     plt.close("all")
-    #     # print("Done writing the figure")
+            xc = D[:valid][labels == cluster] - mean
+            quad = np.einsum("ij,ij->i", xc @ theta, xc)
+            _, logdet = np.linalg.slogdet(theta)
+            total += float(
+                np.sum(-0.5 * quad + 0.5 * logdet - 0.5 * dim * np.log(2 * np.pi))
+            )
+        return total
 
     def smoothen_clusters(
         self,
@@ -686,45 +637,27 @@ class TICC:
         n,
     ):
         clustered_points_len = len(complete_D_train)
-        inv_cov_dict = {}  # cluster to inv_cov
-        log_det_dict = {}  # cluster to log_det
+        # For each point compute the LLE; the last window_size - 1 points keep 0
+        valid = max(clustered_points_len - (self.window_size - 1), 0)
+        LLE_all_points_clusters = np.zeros(
+            [clustered_points_len, self.number_of_clusters]
+        )
         for cluster in range(self.number_of_clusters):
             cov_matrix = computed_covariance[self.number_of_clusters, cluster][
                 0 : (self.num_blocks - 1) * n, 0 : (self.num_blocks - 1) * n
             ]
             inv_cov_matrix = np.linalg.inv(cov_matrix)
             log_det_cov = np.log(np.linalg.det(cov_matrix))  # log(det(sigma2|1))
-            inv_cov_dict[cluster] = inv_cov_matrix
-            log_det_dict[cluster] = log_det_cov
-        # For each point compute the LLE
-        # print("beginning the smoothening ALGORITHM")
-        LLE_all_points_clusters = np.zeros(
-            [clustered_points_len, self.number_of_clusters]
-        )
-        for point in range(clustered_points_len):
-            if point + self.window_size - 1 < complete_D_train.shape[0]:
-                for cluster in range(self.number_of_clusters):
-                    cluster_mean = cluster_mean_info[self.number_of_clusters, cluster]
-                    cluster_mean_stacked = cluster_mean_stacked_info[
-                        self.number_of_clusters, cluster
-                    ]
-                    x = (
-                        complete_D_train[point, :]
-                        - cluster_mean_stacked[0 : (self.num_blocks - 1) * n]
-                    )
-                    inv_cov_matrix = inv_cov_dict[cluster]
-                    log_det_cov = log_det_dict[cluster]
-                    lle = (
-                        np.dot(
-                            x.reshape([1, (self.num_blocks - 1) * n]),
-                            np.dot(
-                                inv_cov_matrix,
-                                x.reshape([n * (self.num_blocks - 1), 1]),
-                            ),
-                        )
-                        + log_det_cov
-                    )
-                    LLE_all_points_clusters[point, cluster] = lle
+            cluster_mean_stacked = cluster_mean_stacked_info[
+                self.number_of_clusters, cluster
+            ]
+            x = (
+                complete_D_train[:valid]
+                - cluster_mean_stacked[0 : (self.num_blocks - 1) * n]
+            )
+            # row t: x_t^T (inv_cov_matrix x_t)
+            lle = np.einsum("ij,ij->i", x @ inv_cov_matrix.T, x) + log_det_cov
+            LLE_all_points_clusters[:valid, cluster] = lle
 
         return LLE_all_points_clusters
 
@@ -737,14 +670,12 @@ class TICC:
         train_cluster_inverse,
     ):
         for cluster in range(self.number_of_clusters):
-            if optRes[cluster] == None:
+            if optRes[cluster] is None:
                 continue
             val = optRes[cluster].get()
-            # print("OPTIMIZATION for Cluster #", cluster, "DONE!!!")
             # THIS IS THE SOLUTION
             S_est = upperToFull(val, 0)
             X2 = S_est
-            u, _ = np.linalg.eig(S_est)
             cov_out = np.linalg.inv(X2)
 
             # Store the log-det, covariance, inverse-covariance, cluster means, stacked means
@@ -753,9 +684,6 @@ class TICC:
             )
             computed_covariance[self.number_of_clusters, cluster] = cov_out
             train_cluster_inverse[cluster] = X2
-        for cluster in range(self.number_of_clusters):
-            # print("length of the cluster ", cluster, "------>", len_train_clusters[cluster])
-            pass
 
     def train_clusters(
         self,
@@ -776,38 +704,33 @@ class TICC:
             if cluster_length < 2:
                 continue
 
-            if cluster_length != 0:
-                size_blocks = n
-                indices = train_clusters_arr[cluster]
-                D_train = np.zeros([cluster_length, self.window_size * n])
-                for i in range(cluster_length):
-                    point = indices[i]
-                    D_train[i, :] = complete_D_train[point, :]
+            size_blocks = n
+            indices = train_clusters_arr[cluster]
+            D_train = complete_D_train[indices, :]
 
-                cluster_mean_info[self.number_of_clusters, cluster] = np.mean(
-                    D_train, axis=0
-                )[(self.window_size - 1) * n : self.window_size * n].reshape([1, n])
-                cluster_mean_stacked_info[self.number_of_clusters, cluster] = np.mean(
-                    D_train, axis=0
-                )
-                ##Fit a model - OPTIMIZATION
-                probSize = self.window_size * size_blocks
-                lamb = np.zeros((probSize, probSize)) + self.lambda_parameter
-                S = np.cov(np.transpose(D_train), bias=self.biased)
-                empirical_covariances[cluster] = S
+            cluster_mean_info[self.number_of_clusters, cluster] = np.mean(
+                D_train, axis=0
+            )[(self.window_size - 1) * n : self.window_size * n].reshape([1, n])
+            cluster_mean_stacked_info[self.number_of_clusters, cluster] = np.mean(
+                D_train, axis=0
+            )
+            ##Fit a model - OPTIMIZATION
+            probSize = self.window_size * size_blocks
+            lamb = np.zeros((probSize, probSize)) + self.lambda_parameter
+            S = np.cov(np.transpose(D_train), bias=self.biased)
+            empirical_covariances[cluster] = S
 
-                rho = 1
-                solver = ADMMSolver(lamb, self.window_size, size_blocks, 1, S)
-                # apply to process pool
-                optRes[cluster] = pool.apply_async(
-                    solver,
-                    (
-                        1000,
-                        1e-6,
-                        1e-6,
-                        False,
-                    ),
-                )
+            solver = ADMMSolver(lamb, self.window_size, size_blocks, 1, S)
+            # apply to process pool
+            optRes[cluster] = pool.apply_async(
+                solver,
+                (
+                    1000,
+                    1e-6,
+                    1e-6,
+                    False,
+                ),
+            )
         return optRes
 
     def stack_training_data(self, Data, n, num_train_points, training_indices):
@@ -818,39 +741,6 @@ class TICC:
                     idx_k = training_indices[i + k]
                     complete_D_train[i][k * n : (k + 1) * n] = Data[idx_k][0:n]
         return complete_D_train
-
-    def prepare_out_directory(self):
-        str_NULL = (
-            self.prefix_string
-            + "lam_sparse="
-            + str(self.lambda_parameter)
-            + "maxClusters="
-            + str(self.number_of_clusters + 1)
-            + "/"
-        )
-        if not os.path.exists(os.path.dirname(str_NULL)):
-            try:
-                os.makedirs(os.path.dirname(str_NULL))
-            except (
-                OSError
-            ) as exc:  # Guard against race condition of path already existing
-                if exc.errno != errno.EEXIST:
-                    raise
-
-        return str_NULL
-
-    def load_data(self, input_file):
-        Data = np.loadtxt(input_file, delimiter=",")
-        (m, n) = Data.shape  # m: num of observations, n: size of observation vector
-        # print("completed getting the data")
-        return Data, m, n
-
-    def log_parameters(self):
-        # print("lam_sparse", self.lambda_parameter)
-        # print("switch_penalty", self.switch_penalty)
-        # print("num_cluster", self.number_of_clusters)
-        # print("num stacked", self.window_size)
-        return
 
     def predict_clusters(self, test_data=None):
         """

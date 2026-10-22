@@ -395,6 +395,7 @@ class GreedyGaussianDetector(BaseSegmenter):
     ----------
     k_max : int, default=10
         Maximum number of change points to find. The number of segments is thus k+1.
+        ``0`` returns no change point.
     lamb : float, default=1.0
         Regularization parameter lambda (>= 0), which controls the amount of
         (inverse) covariance regularization, see Eq (1) in [1]_. Regularization
@@ -455,7 +456,7 @@ class GreedyGaussianDetector(BaseSegmenter):
 
     _parameter_schema = {
         "k_max": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
+            constraint=Interval(int, 0, None, Closed.LEFT),
             description="Maximum number of change points.",
         ),
         "lamb": ParamDef(

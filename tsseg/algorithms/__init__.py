@@ -19,6 +19,7 @@ from .patss.detector import PatssDetector
 from .pelt.detector import PeltDetector
 from .random.detector import RandomDetector
 from .seeded_binseg.detector import SeededBinSegDetector
+from .rulsif.detector import RuLSIFDetector
 from .ticc.detector import TiccDetector
 from .window.detector import WindowDetector
 
@@ -31,6 +32,8 @@ _LAZY_IMPORTS = {
     "EAggloDetector": (".eagglo.detector", "EAggloDetector"),
     # Rbeast (tsseg[beast])
     "BeastDetector": (".beast.detector", "BeastDetector"),
+    # changeforest (tsseg[changeforest])
+    "ChangeForestDetector": (".changeforest.detector", "ChangeForestDetector"),
     # PyTorch-based
     "E2USDDetector": (".e2usd.detector", "E2USDDetector"),
     "TGLADDetector": (".tglad.detector", "TGLADDetector"),
@@ -64,6 +67,7 @@ __all__ = [
     "BOCDDetector",
     "BottomUpDetector",
     "ChangeFinderDetector",
+    "ChangeForestDetector",
     "ClapDetector",
     "ClaspDetector",
     "DynpDetector",
@@ -84,6 +88,7 @@ __all__ = [
     "ProphetDetector",
     "RandomDetector",
     "SeededBinSegDetector",
+    "RuLSIFDetector",
     "SNLDSDetector",
     "TGLADDetector",
     "TiccDetector",

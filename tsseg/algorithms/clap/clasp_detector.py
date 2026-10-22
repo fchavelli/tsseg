@@ -38,10 +38,33 @@ class ClaspDetector(BaseSegmenter):
         The number of nearest neighbors to use in the ClaSP algorithm.
     excl_radius : int, default=5
         The exclusion radius, in multiples of the window size.
+    distance : str, default="znormed_euclidean_distance"
+        The distance used to find the k nearest neighbours:
+        ``"znormed_euclidean_distance"``, ``"euclidean_distance"`` or
+        ``"cinvariant_euclidean_distance"`` (complexity invariant).
+    score : str, default="roc_auc"
+        The classification score of the profile: ``"roc_auc"`` or ``"f1"``.
+    early_stopping : bool, default=True
+        Stop adding ClaSPs to the ensemble once a validated change point is
+        found or a new ClaSP does not improve the best score.
+    validation : str, default="significance_test"
+        How a candidate change point is accepted: ``"significance_test"``
+        (statistical test on the score profile) or ``"score_threshold"``
+        (minimum score).
+    threshold : str or float, default="default"
+        The threshold of the validation: a p-value for
+        ``"significance_test"``, a minimum score for ``"score_threshold"``.
+        ``"default"`` means ``1e-15`` (univariate) or ``1e-30``
+        (multivariate) for the test, and ``0.75`` for the score.
+    n_jobs : int, default=-1
+        The number of numba threads. Values below 1 mean all the threads
+        numba may use; larger values are capped at that number.
+    axis : int, default=0
+        The time axis of ``X``: ``0`` if time points are rows.
 
     Attributes
     ----------
-    change_points_ : list of int
+    change_points_ : np.ndarray of int
         The indices of the detected change points, sorted in ascending order.
         Available only after calling the `fit` or `fit_predict` method.
     """
@@ -51,6 +74,7 @@ class ClaspDetector(BaseSegmenter):
         "capability:univariate": True,
         "capability:multivariate": True,
         "detector_type": "change_point_detection",
+        "python_dependencies": ["numba"],
         "fit_is_empty": False,
         "returns_dense": True,
         "capability:unsupervised": True,
@@ -101,8 +125,8 @@ class ClaspDetector(BaseSegmenter):
             description="Distance function for k-NN.",
         ),
         "score": ParamDef(
-            constraint=StrOptions({"roc_auc"}),
-            description="Scoring function for the profile.",
+            constraint=StrOptions({"roc_auc", "f1"}),
+            description="Scoring function for the profile ('roc_auc' or 'f1').",
         ),
         "early_stopping": ParamDef(
             constraint=HasType((bool,)),

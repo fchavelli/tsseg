@@ -24,6 +24,7 @@ L2 = 1
 RBF = 2
 COSINE = 3
 
+
 @njit(cache=True)
 def _sq_dist(x, i, j):
     s = 0.0
