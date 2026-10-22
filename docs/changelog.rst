@@ -167,6 +167,11 @@ Unreleased
   ``ValueError`` that says so: it failed inside the encoder and left the
   detector unusable for every later ``predict``. ``predict`` on a series of
   exactly two windows scores its single window pair instead of failing.
+* ``PatssDetector(config=...)`` leaves the dictionary it is given unchanged:
+  ``predict`` completed it in place with every missing default, so
+  ``get_params()["config"]`` changed after the first ``predict``, and the
+  sections it added were the module-level default dictionaries themselves
+  (editing them changed the defaults of every later run).
 * ``PatssDetector`` writes nothing to the standard output; it printed the
   temporary directory of every window size it tried.
 
