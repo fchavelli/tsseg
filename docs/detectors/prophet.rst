@@ -14,9 +14,13 @@ places ``n_candidates`` potential change points evenly over the series and
 scores each one by its fitted ``|delta|`` relative to the median ``|delta|``
 over the candidates.  It returns the ``n_changepoints`` strongest when this
 number is given, otherwise those whose score exceeds ``delta_threshold`` (a
-relative form of TCPDBench's rule).  Two returned change
-points are at least ``tolerance`` apart, since a level shift between two
-candidates shows as two opposite rate changes on consecutive candidates.
+relative form of TCPDBench's rule).  Two returned change points are at least
+``tolerance`` apart (non-maximum suppression).  A piecewise-linear trend
+cannot jump, so Prophet fits a level shift as a steep ramp: a run of rate
+changes of one sign on the candidates just before the shift, then a run of the
+opposite sign just after it.  A ramp wider than ``tolerance`` can give two
+change points for one shift, which may leave a smaller shift out of the
+``n_changepoints`` returned.
 
 Key parameters:
 

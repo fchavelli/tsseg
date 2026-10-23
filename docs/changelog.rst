@@ -252,6 +252,12 @@ Unreleased
   and the docstring said. The iCID page and README give the right title and
   authors of the JAIR paper, and the tGLAD README cites the paper of its
   authors.
+* Docs: the Prophet page, README and docstring said that a level shift shows
+  as two opposite rate changes on consecutive candidates. Prophet fits it as a
+  steep ramp, a run of rate changes of one sign before the shift and a run of
+  the opposite sign after it, which can be wider than ``tolerance``: one shift
+  can then give two change points and leave a smaller shift out of the
+  ``n_changepoints`` returned. The detector is unchanged.
 
 0.3.0 (2026-10-14)
 ------------------
