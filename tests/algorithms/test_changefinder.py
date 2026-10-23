@@ -1,4 +1,4 @@
-"""Change point selection of ChangeFinderDetector without K."""
+"""Change point selection of ChangeFinderDetector."""
 
 import numpy as np
 
@@ -75,3 +75,22 @@ def test_guided_ensembling_returns_n_cps():
         multivariate_strategy="ensembling", n_cps=3
     ).fit_predict(X)
     assert len(pred) <= 3
+
+
+def test_guided_completes_with_peaks_below_the_threshold():
+    x = _steps()
+    unsupervised = ChangeFinderDetector().fit_predict(x)
+    k = len(unsupervised) + 2
+    guided = ChangeFinderDetector(n_cps=k).fit_predict(x)
+    assert len(guided) == k
+    assert set(unsupervised) <= set(guided)
+    assert np.all(np.diff(guided) >= 10)
+
+
+def test_guided_output_does_not_depend_on_the_threshold():
+    x = _steps()
+    for k in (1, 3, 6):
+        default = ChangeFinderDetector(n_cps=k).fit_predict(x)
+        unreachable = ChangeFinderDetector(n_cps=k, threshold=1e9).fit_predict(x)
+        assert len(default) == k
+        np.testing.assert_array_equal(unreachable, default)

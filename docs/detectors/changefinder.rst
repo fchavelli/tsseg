@@ -64,12 +64,13 @@ Parameters
    * - ``n_cps``
      - int / None
      - ``None``
-     - Number of change points to return.  If ``None``, all peaks above
-       threshold are returned.
+     - Number of change points to return: the ``n_cps`` highest local maxima
+       of the score, ``min_distance`` apart, above the threshold or not.  If
+       ``None``, all peaks above threshold are returned.
    * - ``threshold``
      - float / None
      - ``None``
-     - Minimum score for a peak.  If ``None``, uses
+     - Minimum score for a peak (without ``n_cps``).  If ``None``, uses
        ``mean + threshold_factor * std`` of the non-zero scores.
    * - ``threshold_factor``
      - float

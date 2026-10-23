@@ -11,6 +11,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``ChangeFinderDetector(n_cps=k)`` returns ``k`` change points. When fewer
+  than ``k`` peaks of the score passed the threshold, it returned only those
+  (``[306]`` for ``n_cps=2`` on a series with two changes): the step meant to
+  relax the threshold went over the same thresholded peaks and added none.
+  The local maxima below the threshold now complete the selection, by
+  decreasing score, ``min_distance`` apart; fewer than ``k`` change points
+  remain possible only when the score has fewer such maxima. Guided outputs
+  change when the threshold kept fewer than ``k`` peaks, including per
+  channel with ``multivariate_strategy="ensembling"``; outputs without
+  ``n_cps`` do not change.
 * New ``SeededBinSegDetector``: seeded binary segmentation (Kovács, Bühlmann,
   Li and Munk, 2023), written from the paper. Best split of every interval of
   a deterministic, near-linear collection, then greedy or

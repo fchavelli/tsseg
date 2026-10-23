@@ -55,7 +55,10 @@ AT_MOST_ONE_CHANGE_POINT = {"AmocDetector"}
 #: series, in the mode and with the constructor arguments of this test.
 KNOWN_FAILURES: dict[str, str] = {
     # --- change point detectors ----------------------------------------
-    "ChangeFinderDetector": "a single change point, [306], guided as unsupervised",
+    "ChangeFinderDetector": (
+        "[144, 306] guided; [306] unsupervised: the AR model predicts the "
+        "change at 700, which leaves no peak near it"
+    ),
     "ClaspDetector": (
         "[167, 305] with the suite's window_size=10 and "
         "validation='score_threshold'; no change point with the default "
