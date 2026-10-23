@@ -12,11 +12,15 @@ point of the new segment), and an interval *contains* ``b`` when
 from __future__ import annotations
 
 import bisect
+import heapq
+import itertools
 import math
+from collections.abc import Callable
 
 import numpy as np
 
 __all__ = [
+    "augmented_greedy_path",
     "greedy_path",
     "narrowest_over_threshold",
     "narrowest_path",
@@ -161,6 +165,86 @@ def greedy_path(
             continue
         bisect.insort(accepted, int(bkps[i]))
         path.append((int(bkps[i]), float(gains[i])))
+    return path
+
+
+def augmented_greedy_path(
+    starts: np.ndarray,
+    ends: np.ndarray,
+    bkps: np.ndarray,
+    gains: np.ndarray,
+    n: int,
+    split: Callable[[int, int], tuple[int | None, float]],
+    limit: int | None = None,
+) -> list[tuple[int, float]]:
+    """Greedy selection with the augmentation of WBS, whole path.
+
+    As :func:`greedy_path`, but every segment between two selected change
+    points is also examined in its entirety: its own best split competes with
+    the intervals it contains (the optional augmentation of Fryzlewicz, 2014,
+    Sec. 3.3). The recursion of WBS keeps a change point at the threshold
+    ``zeta`` when its gain and the gains of all the change points above it in
+    the recursion exceed ``zeta``, and the gain of a whole segment can exceed
+    the gain that selected its parent: each change point is therefore
+    returned with the smallest of these gains, and the path is ordered by it,
+    so that a threshold still keeps one of its prefixes. Without augmentation
+    (``split`` never finds a split) this is :func:`greedy_path`.
+
+    Parameters
+    ----------
+    starts, ends, bkps, gains : np.ndarray
+        One entry per interval with an admissible split: bounds, best split
+        and its gain.
+    n : int
+        Length of the series; the first segment is ``(0, n)``.
+    split : callable
+        ``split(start, end)`` returns the best split of the segment
+        ``x[start:end]`` and its gain, or ``(None, gain)`` when the segment
+        has no admissible split.
+    limit : int or None, default=None
+        Stop once the path holds ``limit`` change points.
+
+    Returns
+    -------
+    list of (int, float)
+        Change points and the smallest gain along their recursion, in the
+        order they are selected (non-increasing gains).
+
+    Notes
+    -----
+    Each segment carries the intervals it contains, in the order of
+    :func:`greedy_path`, and hands them to its two halves: an interval is
+    examined once per level of the recursion. Each selected change point also
+    costs the best split of its two halves.
+    """
+    order = np.lexsort((starts, ends - starts, -gains))
+    order = order[gains[order] > 0]
+    heap: list = []
+    tie = itertools.count()
+
+    def push(start: int, end: int, inside: np.ndarray, cap: float) -> None:
+        best = None
+        if inside.size:
+            i = inside[0]
+            best = (float(gains[i]), int(ends[i] - starts[i]), int(starts[i]))
+            bkp = int(bkps[i])
+        own, own_gain = split(start, end)
+        if own is not None and own_gain > 0 and (best is None or own_gain > best[0]):
+            best, bkp = (float(own_gain), end - start, start), int(own)
+        if best is None:
+            return
+        gain, length, first = best
+        key = (-min(cap, gain), length, first, next(tie))
+        heapq.heappush(heap, (key, bkp, start, end, inside))
+
+    push(0, int(n), order, math.inf)
+    path: list[tuple[int, float]] = []
+    while heap and (limit is None or len(path) < limit):
+        key, bkp, start, end, inside = heapq.heappop(heap)
+        gain = -key[0]
+        path.append((bkp, gain))
+        push(start, bkp, inside[ends[inside] <= bkp], gain)
+        push(bkp, end, inside[starts[inside] >= bkp], gain)
     return path
 
 

@@ -69,7 +69,8 @@ above), and the selection. Kovács et al. ran g-SeedBS with the R package
 the optional augmentation of WBS (Fryzlewicz, 2014, Sec. 3.3: the segment
 between selected change points is a candidate at each step) was on; their
 greedy selection (Section 2.4) does not include it, nor does this
-implementation. With it, on seeds 0-99, g-SeedBS on teeth10 gives V 0.916
+implementation by default. With it (``augment=True``), on seeds 0-99,
+g-SeedBS on teeth10 gives V 0.916
 instead of 0.879, N̂ - N -0.65 instead of -1.11 and N̂ = N in 69 runs instead
 of 61 (Table 1: V 0.933, N̂ - N -0.19); on random intervals it changes almost
 nothing (N̂ = N in 74 runs instead of 75).
