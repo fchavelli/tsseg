@@ -87,6 +87,25 @@ Unreleased
   order in which ``stumpy.fluss`` extracts them (lowest corrected arc curve
   first), for example ``[3278, 1600]`` on MoCap trial 0. The change points and
   their scores are unchanged, only their order.
+* ``FLUSSDetector`` with ``n_segments`` set no longer returns ``0`` as a change
+  point. Once the corrected arc curve left after the exclusion zones of the
+  change points found is flat (1 everywhere), ``stumpy.fluss`` takes its
+  minimum at index 0 for each change point still to find: ``[0, 681]`` on 1000
+  points of white noise (``window_size=50``, three segments), ``0`` repeated
+  when ``n_segments`` asks for more change points than the exclusion zones
+  leave room for. These are dropped, so fewer than ``n_segments - 1`` change
+  points can come out; on one channel or with ``multivariate_strategy="l2"``,
+  the others are unchanged. With ``"ensembling"``, the channels no longer vote
+  for ``0``, and the change points they agree on can change.
+  ``n_segments=1`` returns an empty array instead of an empty list.
+* ``FLUSSDetector`` has a new parameter ``normalize`` (default ``True``,
+  passed to ``stumpy.stump``). The default keeps the z-normalized matrix
+  profile of the FLUSS paper, to which a change in mean or scale alone is
+  invisible; ``normalize=False`` compares the raw subsequences, so shifts in
+  level show (``[293, 692]`` instead of ``[485, 739]`` for change points at
+  300 and 700 of white noise with three means). Without ``n_segments``, it
+  needs a lower ``threshold`` than the default 0.5. Outputs with the default
+  are unchanged.
 * ``BinSegDetector`` and ``BottomUpDetector``: ``penalty`` defaults to
   ``None``, which means 10 when neither ``n_cps`` nor ``epsilon`` is given.
   With the former default of 10, ``n_cps=k`` alone always warned that the

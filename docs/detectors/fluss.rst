@@ -13,8 +13,22 @@ index is counted.  Valleys in the arc curve indicate semantic boundaries because
 few matching subsequences span across a true regime change.
 
 A sequential peak search on the inverted arc curve yields the requested number
-of change points.  FLUSS has only one parameter — the window size — which
+of change points, or fewer when the curve left outside the exclusion zones of
+the first ones is flat.  FLUSS has only one parameter — the window size — which
 corresponds to the dominant period length.
+
+By default, as in the FLUSS paper, the matrix profile compares z-normalized
+subsequences, that is their shapes: a change in the mean or the scale of the
+series alone does not show.  On three segments of white noise with different
+means, the nearest neighbour of a window lies in its own segment for a third
+of the windows only, as by chance, and no change point stands out.
+
+``normalize=False`` compares the raw subsequences (Euclidean distance), so a
+shift in level shows: on the same series (change points at 300 and 700,
+default ``window_size=10``), three segments give ``[293, 692]``.  The arcs then stay in their segment and
+the corrected arc curve is low over whole segments, not only at the change
+points: without ``n_segments``, the default ``threshold=0.5`` returns twelve
+change points there, ``threshold=0.1`` the two true ones.
 
 | **Type:** change point detection
 | **Supervision:** semi-supervised or unsupervised
@@ -41,8 +55,9 @@ Parameters
    * - ``n_segments``
      - int / None
      - ``2``
-     - Number of segments (= change points + 1). ``None``: unknown, change
-       points are the minima of the corrected arc curve below ``threshold``.
+     - Number of segments (= change points + 1), at most. ``None``: unknown,
+       change points are the minima of the corrected arc curve below
+       ``threshold``.
    * - ``exclusion_factor``
      - int
      - ``5``
@@ -66,6 +81,12 @@ Parameters
      - Ensembling with ``n_segments=None``: detections of the channels within
        ``tolerance`` are merged; a merged change point is returned if at
        least this fraction of the channels (one at least) detected it.
+   * - ``normalize``
+     - bool
+     - ``True``
+     - ``True``: matrix profile of z-normalized subsequences (FLUSS paper).
+       ``False``: raw subsequences, Euclidean distance (shifts in level
+       show).
    * - ``axis``
      - int
      - ``0``

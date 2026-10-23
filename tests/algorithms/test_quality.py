@@ -64,7 +64,11 @@ KNOWN_FAILURES: dict[str, str] = {
         "validation='score_threshold'; no change point with the default "
         "window size and validation"
     ),
-    "FLUSSDetector": "[485, 739] guided; [485] unsupervised",
+    "FLUSSDetector": (
+        "[485, 739] guided; none unsupervised (threshold 0.5): on z-normalized "
+        "windows of white noise the mean shifts do not show, the corrected arc "
+        "curve stays above 0.95 ([293, 692] guided with normalize=False)"
+    ),
     "ProphetDetector": "[288, 308] guided; 14 change points unsupervised",
     "TGLADDetector": (
         "unsupervised: [250] with the suite's window_size=100, stride=50, "

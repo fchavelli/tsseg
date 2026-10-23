@@ -17,6 +17,7 @@ from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
     DataDependent,
+    HasType,
     Interval,
     ParamDef,
     StrOptions,
@@ -45,7 +46,10 @@ class FLUSSDetector(BaseSegmenter):
     n_segments : int or None, default = 2
         The number of segments to search (change points + 1). ``None``: the
         number is not known, and every minimum of the corrected arc curve below
-        ``threshold`` is a change point.
+        ``threshold`` is a change point. With a number, fewer change points
+        come out when the corrected arc curve left after the exclusion zones
+        of the first ones is flat (1 everywhere: no point is crossed by fewer
+        arcs than expected).
     exclusion_factor : int, default=5
         The multiplying factor for the segment exclusion zone.
     axis : int, default=0
@@ -66,6 +70,14 @@ class FLUSSDetector(BaseSegmenter):
         that lie within ``tolerance`` of each other are merged into one,
         returned if at least ``consensus`` of the channels (one at least)
         detected it.
+    normalize : bool, default=True
+        ``True``: the matrix profile compares z-normalized subsequences, as in
+        the FLUSS paper, so only the shape of a window counts and a change in
+        mean or scale alone does not show. ``False``: it compares the raw
+        subsequences (Euclidean distance), and a shift in level does show;
+        the corrected arc curve is then low over whole segments, so
+        ``n_segments=None`` needs a lower ``threshold``. Passed to
+        ``stumpy.stump``.
 
     References
     ----------
@@ -127,6 +139,10 @@ class FLUSSDetector(BaseSegmenter):
             constraint=Interval(float, 0, 1, Closed.BOTH),
             description="Fraction of channels that must agree (ensembling, no n_segments).",
         ),
+        "normalize": ParamDef(
+            constraint=HasType((bool,)),
+            description="Z-normalize the subsequences of the matrix profile.",
+        ),
         "_cross_constraints": [
             DataDependent(
                 "window_size < n_samples",
@@ -149,6 +165,7 @@ class FLUSSDetector(BaseSegmenter):
         tolerance=0.01,
         threshold=0.5,
         consensus=0.0,
+        normalize=True,
     ):
         if not _HAS_STUMPY:
             raise ImportError(
@@ -161,6 +178,7 @@ class FLUSSDetector(BaseSegmenter):
         self.tolerance = tolerance
         self.threshold = threshold
         self.consensus = consensus
+        self.normalize = normalize
         super().__init__(axis=axis)
 
     def _fit(self, X, y=None):
@@ -186,7 +204,7 @@ class FLUSSDetector(BaseSegmenter):
 
         # Short-circuit for 1 segment (no change points)
         if self.n_segments == 1:
-            self.found_cps = []
+            self.found_cps = np.empty(0, dtype=np.int64)
             self.scores = np.array([])
             self.profile = None
             return self.found_cps
@@ -269,7 +287,7 @@ class FLUSSDetector(BaseSegmenter):
         return int(self.tolerance)
 
     def _run_fluss(self, X):
-        mp = stumpy.stump(X, m=self.window_size)
+        mp = stumpy.stump(X, m=self.window_size, normalize=self.normalize)
         if self.n_segments is None:
             # Corrected arc curve only; the regimes are read off with the threshold.
             self.profile, _ = stumpy.fluss(
@@ -286,6 +304,10 @@ class FLUSSDetector(BaseSegmenter):
                 excl_factor=self.exclusion_factor,
                 n_regimes=self.n_segments,  # regimes -> segments for consistency with state detection naming
             )
+            # Once the corrected arc curve left unmasked is flat (1 everywhere:
+            # no point with fewer arcs than expected), stumpy takes its argmin,
+            # 0, for every regime still to extract. Those are not change points.
+            regime_locs = regime_locs[self.profile[regime_locs] < 1.0]
             # stumpy returns the locations in extraction order (lowest corrected
             # arc curve first); change points are returned in time order.
             self.found_cps = np.sort(regime_locs)
