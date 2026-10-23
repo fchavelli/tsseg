@@ -51,7 +51,9 @@ class ClapDetector(BaseSegmenter):
     sample_size : int, default=1000
         The number of samples to use for training the classifier.
     random_state : int, default=42
-        Random seed for reproducibility.
+        Seed of the classifiers of CLaP. ClaSP, which finds the change points
+        when ``change_points`` is not given, does not use it: its ensemble
+        draws with a fixed seed (2357, as in claspy).
     axis : int, default=0
         The axis of the time series data.
     n_change_points : int, optional
@@ -62,6 +64,12 @@ class ClapDetector(BaseSegmenter):
         ``n_change_points`` and ``n_segments`` are ignored.
     n_segments : int, optional
         The number of segments to find (guided mode), passed to ClaSP.
+    distance : str, default="znormed_euclidean_distance"
+        The distance ClaSP uses to find the k nearest neighbours of each
+        window: ``"znormed_euclidean_distance"``, ``"euclidean_distance"`` or
+        ``"cinvariant_euclidean_distance"`` (complexity invariant). The
+        z-normalised default compares the shapes of the windows, so it misses
+        a change of level alone (a mean shift in noise); the other two see it.
 
     Notes
     -----
@@ -71,10 +79,17 @@ class ClapDetector(BaseSegmenter):
     * **Exact** – pass the known change points as ``change_points``; they are
       used as they are.
     * **Guided** – pass ``n_change_points`` (or ``n_segments``). The count is
-      forwarded to ``BinaryClaSPSegmentation``, which finds that many change
-      points.
+      forwarded to ``BinaryClaSPSegmentation``, without its validation:
+      ``n_change_points=k`` gives ``k`` change points, fewer only when the
+      segments are too short to split further (each part must span at least
+      five windows). claspy validates them in this mode too, so it may return
+      fewer, or none.
     * **Fully unsupervised** – the default behaviour: ClaSP estimates the
-      change points and their number.
+      change points and their number, each change point passing its
+      significance test.
+
+    CLaP may then give two segments the same state label, so the number of
+    states can be lower than the number of segments.
 
     ``y`` is never used: :meth:`fit` ignores it.
 
@@ -161,6 +176,16 @@ class ClapDetector(BaseSegmenter):
             nullable=True,
             ui_hidden=True,
         ),
+        "distance": ParamDef(
+            constraint=StrOptions(
+                {
+                    "znormed_euclidean_distance",
+                    "euclidean_distance",
+                    "cinvariant_euclidean_distance",
+                }
+            ),
+            description="Distance of ClaSP's k-NN.",
+        ),
         "_cross_constraints": [
             DataDependent(
                 "window_size < n_samples or isinstance(window_size, str)",
@@ -182,6 +207,7 @@ class ClapDetector(BaseSegmenter):
         n_change_points=None,
         change_points=None,
         n_segments=None,
+        distance="znormed_euclidean_distance",
     ):
         self.window_size = window_size
         self.classifier = classifier
@@ -193,6 +219,7 @@ class ClapDetector(BaseSegmenter):
         self.n_change_points = n_change_points
         self.change_points = change_points
         self.n_segments = n_segments
+        self.distance = distance
         super().__init__(axis=axis)
 
     def _fit(self, X, y=None):
@@ -234,18 +261,23 @@ class ClapDetector(BaseSegmenter):
         else:
             # Unsupervised or Guided Semi-Supervised
             target_n_segments = self.n_segments
-            # Extra logic to handle n_change_points if provided.
-            # For some reason (to investigate later), providing target_n_segments directly
-            # to BinaryClaSPSegmentation does not work when it is "learn".
-            # Edit: issue was inconsistency with base class, solved.
             if self.n_change_points is not None:
                 target_n_segments = int(self.n_change_points) + 1
 
-            # If target_n_segments is None, BinaryClaSPSegmentation uses "learn"
-            n_seg_arg = target_n_segments if target_n_segments is not None else "learn"
+            # Without a count, ClaSP learns it and validates each change point
+            # by its significance test; a given count is returned as it is
+            # (claspy validates both).
+            if target_n_segments is None:
+                n_seg_arg, validation = "learn", "significance_test"
+            else:
+                n_seg_arg, validation = target_n_segments, None
 
             clasp = BinaryClaSPSegmentation(
-                n_segments=n_seg_arg, n_jobs=self.n_jobs, window_size=self.window_size
+                n_segments=n_seg_arg,
+                n_jobs=self.n_jobs,
+                window_size=self.window_size,
+                distance=self.distance,
+                validation=validation,
             )
             clasp.fit_predict(X)
             self.change_points_ = clasp.change_points

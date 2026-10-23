@@ -26,7 +26,9 @@ class ClaspDetector(BaseSegmenter):
     ----------
     n_segments : str or int, default="learn"
         The number of segments to split the time series into. If "learn", the
-        number is inferred automatically. ``1`` returns no change point.
+        number is inferred automatically: each change point must pass the
+        ``validation``. An integer is a given number (guided mode), returned
+        without validation. ``1`` returns no change point.
     n_change_points : int, optional
         The number of change points (guided mode). Takes precedence over
         ``n_segments`` when set; ``0`` returns no change point.
@@ -46,11 +48,14 @@ class ClaspDetector(BaseSegmenter):
         The classification score of the profile: ``"roc_auc"`` or ``"f1"``.
     early_stopping : bool, default=True
         Stop adding ClaSPs to the ensemble once a validated change point is
-        found or a new ClaSP does not improve the best score.
+        found or a new ClaSP does not improve the best score. In the guided
+        mode, where nothing is validated, the ensemble stops after its first
+        ClaSP, fitted on the whole segment.
     validation : str, default="significance_test"
-        How a candidate change point is accepted: ``"significance_test"``
-        (statistical test on the score profile) or ``"score_threshold"``
-        (minimum score).
+        How a candidate change point is accepted when the number of segments
+        is learned: ``"significance_test"`` (statistical test on the score
+        profile) or ``"score_threshold"`` (minimum score). Not used in the
+        guided mode.
     threshold : str or float, default="default"
         The threshold of the validation: a p-value for
         ``"significance_test"``, a minimum score for ``"score_threshold"``.
@@ -67,6 +72,18 @@ class ClaspDetector(BaseSegmenter):
     change_points_ : np.ndarray of int
         The indices of the detected change points, sorted in ascending order.
         Available only after calling the `fit` or `fit_predict` method.
+
+    Notes
+    -----
+    In the guided mode (``n_change_points``, or an integer ``n_segments``),
+    the count is returned as it is: the candidate change points are not
+    validated, so ``n_change_points=k`` gives ``k`` change points, fewer only
+    when the segments are too short to split further (each part must span at
+    least ``excl_radius`` windows). claspy validates them in this mode too, so
+    it may return fewer, or none.
+
+    The ensemble draws its temporal constraints with a fixed seed (2357, as in
+    claspy).
     """
 
     _tags = {
@@ -189,13 +206,12 @@ class ClaspDetector(BaseSegmenter):
         """
         Fits the ClaSP model to the provided time series data.
         """
-        # Extra logic to handle n_change_points if provided.
-        # For some reason (to investigate later), providing self.n_segments directly
-        # to BinaryClaSPSegmentation does not work when it is "learn".
-        # Edit: issue was inconsistency with base class, solved.
         effective_n_segments = self.n_segments
         if self.n_change_points is not None:
             effective_n_segments = int(self.n_change_points) + 1
+        # A given number of segments is returned as it is: only a learned
+        # number is validated (claspy validates both).
+        validation = self.validation if effective_n_segments == "learn" else None
 
         self.model = BinaryClaSPSegmentation(
             n_segments=effective_n_segments,
@@ -206,7 +222,7 @@ class ClaspDetector(BaseSegmenter):
             distance=self.distance,
             score=self.score,
             early_stopping=self.early_stopping,
-            validation=self.validation,
+            validation=validation,
             threshold=self.threshold,
             n_jobs=self.n_jobs,
         )

@@ -60,9 +60,9 @@ KNOWN_FAILURES: dict[str, str] = {
         "change at 700, which leaves no peak near it"
     ),
     "ClaspDetector": (
-        "[167, 305] with the suite's window_size=10 and "
-        "validation='score_threshold'; no change point with the default "
-        "window size and validation"
+        "[167, 305] guided with the suite's window_size=10, [206, 637] with "
+        "the default: z-normalised windows miss mean shifts in noise "
+        "([273, 679] with distance='euclidean_distance')"
     ),
     "FLUSSDetector": (
         "[485, 739] guided; none unsupervised (threshold 0.5): on z-normalized "
@@ -78,7 +78,11 @@ KNOWN_FAILURES: dict[str, str] = {
         "[303, 308] after the suite's 2 epochs; [333, 348] after the default 100"
     ),
     # --- state detectors -----------------------------------------------
-    "ClapDetector": "a single state, guided as unsupervised",
+    "ClapDetector": (
+        "ARI 0.26 (2 states) guided, ClaSP's change points [206, 637]: "
+        "z-normalised windows miss mean shifts in noise (0.86, 3 states, with "
+        "distance='euclidean_distance'); a single state unsupervised"
+    ),
     "E2USDDetector": "ARI 0.35 (3 states) guided; 0.37 (6 states) unsupervised",
     "HidalgoDetector": (
         "multivariate series: ARI 0.01 (3 states) with the suite's n_iter=100; "
