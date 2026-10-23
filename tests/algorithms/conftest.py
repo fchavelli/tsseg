@@ -66,11 +66,7 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     ),
     # --- Need an explicit stopping criterion --------------------------
     "ClaspDetector": AlgorithmOverride(
-        init_kwargs={
-            "n_change_points": 2,
-            "window_size": 10,
-            "validation": "score_threshold",
-        },
+        init_kwargs={"n_change_points": 2, "window_size": 10},
         dependencies=("numba",),
     ),
     "WindowDetector": AlgorithmOverride(init_kwargs={"n_cps": 2}),

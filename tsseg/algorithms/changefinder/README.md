@@ -58,8 +58,8 @@ changes.
 | `discount`               | float      | `0.005`          | Discounting rate *r* ∈ (0, 1). Controls forgetting speed.                                       |
 | `smooth_window`          | int        | `7`              | Moving-average window length *T* applied after each SDAR stage.                                  |
 | `score`                  | str        | `"logarithmic"`  | Scoring function: `"logarithmic"` (neg. log-likelihood) or `"quadratic"` (squared error).        |
-| `n_cps`                  | int / None | `None`           | Number of change points to return. If `None`, all peaks above threshold are returned.            |
-| `threshold`              | float / None | `None`         | Minimum score for a peak. If `None`, uses `mean + 2*std` of the score curve.                     |
+| `n_cps`                  | int / None | `None`           | Number of change points to return: the `n_cps` highest local maxima, `min_distance` apart, above the threshold or not. If `None`, all peaks above threshold are returned. |
+| `threshold`              | float / None | `None`         | Minimum score for a peak (without `n_cps`). If `None`, uses `mean + threshold_factor*std` of the non-zero scores. |
 | `min_distance`           | int        | `10`             | Minimum number of samples between successive change points.                                      |
 | `multivariate_strategy`  | str        | `"l2"`           | Strategy for multivariate data: `"l2"` (L2 norm reduction) or `"ensembling"` (per-channel).      |
 | `tolerance`              | float      | `0`              | Tolerance for aggregating change points across channels (ensembling only).                       |

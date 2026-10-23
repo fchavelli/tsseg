@@ -55,11 +55,19 @@ AT_MOST_ONE_CHANGE_POINT = {"AmocDetector"}
 #: series, in the mode and with the constructor arguments of this test.
 KNOWN_FAILURES: dict[str, str] = {
     # --- change point detectors ----------------------------------------
-    "ChangeFinderDetector": "a single change point, [306], guided as unsupervised",
+    "ChangeFinderDetector": (
+        "[144, 306] guided; [306] unsupervised: the AR model predicts the "
+        "change at 700, which leaves no peak near it"
+    ),
     "ClaspDetector": (
-        "[167, 305] with the suite's window_size=10 and "
-        "validation='score_threshold'; no change point with the default "
-        "window size and validation"
+        "[167, 305] guided with the suite's window_size=10, [206, 637] with "
+        "the default: z-normalised windows miss mean shifts in noise "
+        "([273, 679] with distance='euclidean_distance')"
+    ),
+    "FLUSSDetector": (
+        "[485, 739] guided; none unsupervised (threshold 0.5): on z-normalized "
+        "windows of white noise the mean shifts do not show, the corrected arc "
+        "curve stays above 0.95 ([293, 692] guided with normalize=False)"
     ),
     "FLUSSDetector": "[485, 739] guided; [485] unsupervised",
     "ProphetDetector": (
@@ -67,6 +75,7 @@ KNOWN_FAILURES: dict[str, str] = {
         "shift at 300 as a ramp wider than tolerance (two change points), and "
         "the shift at 700 scores at the level of the noise"
     ),
+    "ProphetDetector": "[288, 308] guided; 14 change points unsupervised",
     "TGLADDetector": (
         "unsupervised: [250] with the suite's window_size=100, stride=50, "
         "epochs=100; no change point with the defaults"
@@ -75,7 +84,11 @@ KNOWN_FAILURES: dict[str, str] = {
         "[303, 308] after the suite's 2 epochs; [333, 348] after the default 100"
     ),
     # --- state detectors -----------------------------------------------
-    "ClapDetector": "a single state, guided as unsupervised",
+    "ClapDetector": (
+        "ARI 0.26 (2 states) guided, ClaSP's change points [206, 637]: "
+        "z-normalised windows miss mean shifts in noise (0.86, 3 states, with "
+        "distance='euclidean_distance'); a single state unsupervised"
+    ),
     "E2USDDetector": "ARI 0.35 (3 states) guided; 0.37 (6 states) unsupervised",
     "HidalgoDetector": (
         "multivariate series: ARI 0.01 (3 states) with the suite's n_iter=100; "

@@ -11,6 +11,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``ChangeFinderDetector(n_cps=k)`` returns ``k`` change points. When fewer
+  than ``k`` peaks of the score passed the threshold, it returned only those
+  (``[306]`` for ``n_cps=2`` on a series with two changes): the step meant to
+  relax the threshold went over the same thresholded peaks and added none.
+  The local maxima below the threshold now complete the selection, by
+  decreasing score, ``min_distance`` apart; fewer than ``k`` change points
+  remain possible only when the score has fewer such maxima. Guided outputs
+  change when the threshold kept fewer than ``k`` peaks, including per
+  channel with ``multivariate_strategy="ensembling"``; outputs without
+  ``n_cps`` do not change.
 * New ``SeededBinSegDetector``: seeded binary segmentation (Kovács, Bühlmann,
   Li and Munk, 2023), written from the paper. Best split of every interval of
   a deterministic, near-linear collection, then greedy or
@@ -65,6 +75,23 @@ Unreleased
   (``AttributeError``). Lists, tuples and arrays are accepted.
 * ``ClaspDetector`` accepts ``score="f1"``, which ClaSP implements and
   documents; the parameter check refused it.
+* ``ClaspDetector`` and ``ClapDetector`` in guided mode (``n_change_points``,
+  or an integer ``n_segments``) return the number of change points they are
+  given, fewer only when the segments are too short to split further. ClaSP
+  validated each candidate in this mode too, as claspy does, so a count could
+  give fewer change points, or none: on a series of mean shifts in noise,
+  ``n_change_points=2`` gave no change point and ``ClapDetector`` a single
+  state. The validation now applies only when the number is learned
+  (``n_segments="learn"``, the default), and ``validation`` and
+  ``threshold`` of ``ClaspDetector`` have no effect in guided mode. Guided
+  results change; unsupervised results do not.
+* ``ClapDetector`` has a ``distance`` parameter, passed to ClaSP:
+  ``"znormed_euclidean_distance"`` (default, unchanged),
+  ``"euclidean_distance"`` or ``"cinvariant_euclidean_distance"``, as in
+  ``ClaspDetector``. The z-normalised default compares the shapes of the
+  windows and misses a change of level alone, such as a mean shift in noise.
+* Docs: ``ClapDetector(random_state=...)`` seeds the classifiers of CLaP only;
+  ClaSP keeps the fixed seed of claspy (2357).
 * Guided mode on a series without any change point: ``TSCP2Detector(n_cps=0)``,
   ``BOCDDetector(max_cps=0)``, ``BeastDetector(max_cps=0)`` and
   ``GreedyGaussianDetector(k_max=0)`` return no change point; their parameter
@@ -77,6 +104,25 @@ Unreleased
   order in which ``stumpy.fluss`` extracts them (lowest corrected arc curve
   first), for example ``[3278, 1600]`` on MoCap trial 0. The change points and
   their scores are unchanged, only their order.
+* ``FLUSSDetector`` with ``n_segments`` set no longer returns ``0`` as a change
+  point. Once the corrected arc curve left after the exclusion zones of the
+  change points found is flat (1 everywhere), ``stumpy.fluss`` takes its
+  minimum at index 0 for each change point still to find: ``[0, 681]`` on 1000
+  points of white noise (``window_size=50``, three segments), ``0`` repeated
+  when ``n_segments`` asks for more change points than the exclusion zones
+  leave room for. These are dropped, so fewer than ``n_segments - 1`` change
+  points can come out; on one channel or with ``multivariate_strategy="l2"``,
+  the others are unchanged. With ``"ensembling"``, the channels no longer vote
+  for ``0``, and the change points they agree on can change.
+  ``n_segments=1`` returns an empty array instead of an empty list.
+* ``FLUSSDetector`` has a new parameter ``normalize`` (default ``True``,
+  passed to ``stumpy.stump``). The default keeps the z-normalized matrix
+  profile of the FLUSS paper, to which a change in mean or scale alone is
+  invisible; ``normalize=False`` compares the raw subsequences, so shifts in
+  level show (``[293, 692]`` instead of ``[485, 739]`` for change points at
+  300 and 700 of white noise with three means). Without ``n_segments``, it
+  needs a lower ``threshold`` than the default 0.5. Outputs with the default
+  are unchanged.
 * ``BinSegDetector`` and ``BottomUpDetector``: ``penalty`` defaults to
   ``None``, which means 10 when neither ``n_cps`` nor ``epsilon`` is given.
   With the former default of 10, ``n_cps=k`` alone always warned that the
