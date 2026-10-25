@@ -1,6 +1,4 @@
-"""
-This module provides an aeon-compatible wrapper for the E2USD algorithm.
-"""
+"""E2USD state detector: a wrapper around the reference implementation."""
 
 import numpy as np
 
@@ -24,43 +22,119 @@ def _cuda_available() -> bool:
 
 
 class E2USDDetector(BaseSegmenter):
-    """
-    A wrapper for the E2USD algorithm, compatible with the aeon library.
+    """E2USD: unsupervised state detection from decomposed window embeddings.
 
-    E2USD uses a deep learning based encoder to learn representations of
-    time series windows, which are then clustered to identify states.
+    An encoder trained without labels on the series itself maps sliding
+    windows to embeddings; a Dirichlet process Gaussian mixture (DPGMM)
+    clusters the embeddings; each time point then takes the state that most
+    windows covering it received [1]_.
 
     Parameters
     ----------
     axis : int
-        Axis along which to segment if passed a multivariate series (2D input).
-        Default is 0, assuming shape (n_timepoints, n_channels).
+        Axis along which to segment if passed a multivariate series (2D input). If axis
+        is 0, it is assumed each column is a time series and each row is a
+        timepoint. i.e. the shape of the data is ``(n_timepoints,n_channels)``.
+        ``axis == 1`` indicates the time series are in rows, i.e. the shape of the data
+        is ``(n_channels, n_timepoints)``.
     window_size : int, default=256
-        The size of the sliding window.
+        Length of the sliding windows, in time points. Must be even: an odd
+        value is accepted by the constructor and by ``fit``, but ``predict``
+        raises ``ValueError``.
     step : int, default=50
-        The step size of the sliding window.
+        Distance between the starts of consecutive windows, at most
+        ``window_size``.
     n_states : int, default=20
-        The maximum number of states for the DPGMM clustering.
+        Upper bound on the number of states: the number of components of the
+        DPGMM, capped at the number of windows. The DPGMM can leave
+        components empty, so fewer states may be returned.
     alpha : float, default=1e3
-        The concentration parameter for the DPGMM clustering.
+        Weight concentration prior of the Dirichlet process
+        (``weight_concentration_prior`` of
+        ``sklearn.mixture.BayesianGaussianMixture``); larger values favour
+        more states.
     batch_size : int, default=1
-        Batch size for training the neural network.
+        Batch size of the training data loader. The training set is a single
+        sample, the whole series, so this value has no effect.
     nb_steps : int, default=20
-        Number of optimization steps for training.
+        Number of optimisation steps of the encoder.
     lr : float, default=0.003
-        Learning rate for the optimizer.
+        Learning rate of the Adam optimiser.
     depth : int, default=1
-        Depth of the DDEM Network.
+        Passed to the encoder network, which does not use it: this value has
+        no effect.
     out_channels : int, default=4
-        Number of output channels of the encoder.
+        Dimension of the window embeddings.
     reduced_size : int, default=80
-        Size of the output of the CNN before the final linear layer.
+        Number of output channels of each of the two convolutions of the
+        encoder (one for the trend, one for the seasonal part), max-pooled
+        over time before the linear layers.
     kernel_size : int, default=3
-        Kernel size for the convolutions in the CNN.
+        Kernel size of the two convolutions of the encoder. At most
+        ``min(window_size, 64)``, the length of a window after the low-pass
+        filter of the encoder: a larger value makes ``fit`` raise
+        ``RuntimeError``.
     use_gpu : bool, optional
-        Whether to use GPU if available. If None, it will be auto-detected.
+        Whether to run the encoder on CUDA device 0. ``None`` uses it when
+        available; ``True`` without CUDA falls back to the CPU. The attribute
+        stores the resolved boolean.
     random_state : int, optional
-        Random state for reproducibility.
+        Seed of PyTorch and of NumPy's global generator, set at the start of
+        ``fit``. The DPGMM of ``predict`` draws from NumPy's global generator
+        without its own seed: ``fit_predict`` with a seed is reproducible on
+        one machine, but two ``predict`` calls after one ``fit`` can differ.
+
+    Notes
+    -----
+    ``fit`` and ``predict`` z-normalise the series with one mean and one
+    variance computed over all channels together (a constant series becomes
+    NaN, and ``predict`` raises ``ValueError``). ``fit`` then trains the
+    encoder for ``nb_steps`` steps.
+
+    The encoder (DDEM, decomposed dual-view embedding module [1]_) keeps the
+    33 lowest frequencies of the Fourier transform of each window, which
+    resamples a window of 64 points or more to 64 points, then splits it
+    into a trend (moving average over 5 points) and a seasonal part (the
+    residual). Each part goes through its own convolution, a max pooling over
+    time and a linear layer; a last linear layer combines the two. The
+    convolutions keep their random initial weights: only the linear layers
+    are trained. At each step, the loss (FNCC, false negative cancellation
+    contrastive learning [1]_) draws 20 random positions and, at each
+    position, 4 windows shifted by one point. It pulls together the
+    embeddings of the windows of a position. Among the pairs of windows from
+    different positions, it pushes apart the half with the lowest product of
+    their trend and seasonal similarities, and leaves out the other half as
+    likely false negatives (windows of the same state). The positions are
+    drawn among the first ``n_timepoints - 2 * window_size + 1`` points, so
+    the last ``window_size - 3`` points never enter a training window.
+
+    ``predict`` embeds the ``(n_timepoints - window_size) // step + 1``
+    windows of the series, fits the DPGMM (full covariances, k-means
+    initialisation) on these embeddings and numbers the window labels in
+    order of first appearance. Each window votes for its label on the points
+    it covers, and each point takes the label with the most votes (the
+    smallest label on a tie). The last points of the series, fewer than
+    ``step``, lie in no window: they take the label of the last window (the
+    reference implementation gives them label 0).
+
+    ``fit`` raises ``ValueError`` on a series of fewer than
+    ``2 * window_size`` points; ``predict`` labels every point of such a
+    series 0. ``y`` is ignored.
+
+    The wrapped code is that of the reference implementation
+    (https://github.com/AI4CTS/E2Usd), which publishes no licence. Its
+    ``Dataset`` class comes from the code of Franceschi et al. (2019)
+    (Apache License 2.0) and its ``moving_avg`` and ``series_decomp`` blocks
+    from Autoformer (MIT licence); the ``LICENSE`` file of
+    ``tsseg/algorithms/e2usd`` holds these two licences and covers these
+    parts only.
+
+    References
+    ----------
+    .. [1] Z. Lai, H. Li, D. Zhang, Y. Zhao, W. Qian and C. S. Jensen,
+       "E2Usd: Efficient-yet-effective Unsupervised State Detection for
+       Multivariate Time Series", Proceedings of the ACM Web Conference 2024
+       (WWW '24), pp. 3010-3021, doi: 10.1145/3589334.3645593.
     """
 
     _tags = {
@@ -193,16 +267,19 @@ class E2USDDetector(BaseSegmenter):
 
     def _fit(self, X, y=None):
         """
-        Fit the E2-USD model.
-
-        This involves training the DDEM encoder on the input time series X.
+        Train the E2USD encoder on X.
 
         Parameters
         ----------
         X : np.ndarray of shape (n_timepoints, n_channels)
             The training time series.
         y : np.ndarray, optional
-            The target segmentation. If provided, n_states is inferred from y.
+            Ignored.
+
+        Returns
+        -------
+        self : E2USDDetector
+            The fitted detector.
         """
         # Deferred: torch is optional (checked at construction).
         import torch
@@ -261,8 +338,10 @@ class E2USDDetector(BaseSegmenter):
 
         Returns
         -------
-        np.ndarray
-            An array of segment labels for each time point.
+        np.ndarray of shape (n_timepoints,)
+            Integer state labels, numbered from 0 in order of first
+            appearance among the windows. All zeros if ``X`` has fewer than
+            ``2 * window_size`` points.
         """
         from .e2usd import E2USD
 

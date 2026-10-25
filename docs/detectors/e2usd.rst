@@ -20,7 +20,7 @@ used to counteract false negatives and produce cluster-friendly embedding spaces
 
 | **Type:** state detection
 | **Supervision:** unsupervised or semi-supervised
-| **Scope:** multivariate
+| **Scope:** univariate and multivariate
 | **Complexity:** :math:`O(d\,n\,\ell\log\ell)` per pass over the sliding
   windows, where :math:`\ell` is ``window_size``
 | **Requires:** PyTorch
@@ -39,7 +39,7 @@ Parameters
    * - ``window_size``
      - int
      - ``256``
-     - Size of the sliding window.
+     - Size of the sliding window; must be even.
    * - ``step``
      - int
      - ``50``
@@ -47,7 +47,7 @@ Parameters
    * - ``n_states``
      - int
      - ``20``
-     - Maximum number of states for DPGMM clustering.
+     - Upper bound on the number of states (DPGMM components).
    * - ``alpha``
      - float
      - ``1e3``
@@ -55,7 +55,7 @@ Parameters
    * - ``batch_size``
      - int
      - ``1``
-     - Training batch size.
+     - No effect: the training set is one sample, the whole series.
    * - ``nb_steps``
      - int
      - ``20``
@@ -67,7 +67,7 @@ Parameters
    * - ``depth``
      - int
      - ``1``
-     - Depth of the DDEM encoder network.
+     - No effect: the encoder network does not use it.
    * - ``out_channels``
      - int
      - ``4``
@@ -79,11 +79,11 @@ Parameters
    * - ``kernel_size``
      - int
      - ``3``
-     - Kernel size for CNN convolutions.
+     - Kernel size of the two convolutions; at most ``min(window_size, 64)``.
    * - ``use_gpu``
      - bool / None
      - ``None``
-     - Force GPU usage (``None`` = auto-detect).
+     - Run on CUDA device 0 (``None``: when available).
    * - ``random_state``
      - int / None
      - ``None``
@@ -113,9 +113,10 @@ Apache License 2.0, and the ``moving_avg`` and ``series_decomp`` blocks from
 ``LICENSE`` file of ``tsseg/algorithms/e2usd`` holds these two licences and
 covers these parts only.
 
-**Reference:** Lai, Zhao, Li, Qian, Zhang & Jensen (2024), *E2Usd:
+**Reference:** Lai, Li, Zhang, Zhao, Qian & Jensen (2024), *E2Usd:
 Efficient-yet-effective Unsupervised State Detection for Multivariate Time
-Series*, WWW.
+Series*, Proceedings of the ACM Web Conference 2024 (WWW), pp. 3010–3021,
+doi:10.1145/3589334.3645593.
 
 API reference
 -------------
