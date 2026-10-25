@@ -626,6 +626,11 @@ class E2USD:
             vote_matrix[i : i + self.__win_size, l] += weight_vector
             i += self.__step
         self.__state_seq = np.array([np.argmax(row) for row in vote_matrix])
+        # Change from the reference code, where the points after the last
+        # window (fewer than ``step``) get no vote, hence label 0: they take
+        # the label of the last window, which alone covers the point before.
+        covered = (len(self.__embedding_label) - 1) * self.__step + self.__win_size
+        self.__state_seq[covered:] = self.__embedding_label[-1]
 
     def save_encoder(self):
         pass
