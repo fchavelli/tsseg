@@ -106,6 +106,8 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
      - Rbeast (``BeastDetector``)
    * - ``tsseg[changeforest]``
      - changeforest (``ChangeForestDetector``)
+   * - ``tsseg[fluss]``
+     - stumpy (``FLUSSDetector``)
    * - ``tsseg[accelerators]``
      - Numba / Cython: needed by CLaP, ClaSP and E-Agglo; speeds up HDP-HSMM
    * - ``tsseg[docs]``
