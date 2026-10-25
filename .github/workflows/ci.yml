@@ -45,7 +45,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -e .[dev,aeon,prophet,tglad,beast,changeforest]
+          pip install -e .[dev,aeon,prophet,tglad,beast,changeforest,fluss]
 
       - name: Run tests
         run: pytest --tb=short -q

@@ -87,5 +87,5 @@ pytest -m "not slow"                # without the slow tests (detection quality)
 
 `pyproject.toml` sets the options (`--strict-markers`, `-m "not reproduction"`).
 Tests whose optional dependency is not installed are skipped: the CI installs
-`pip install -e .[dev,aeon,prophet,tglad,beast,changeforest]` and the CPU build of torch,
-so it skips the TensorFlow-based detectors among others.
+`pip install -e .[dev,aeon,prophet,tglad,beast,changeforest,fluss]` and the CPU
+build of torch, so it skips the TensorFlow-based detectors among others.

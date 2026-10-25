@@ -35,7 +35,7 @@ Development Setup
     .. code-block:: bash
 
         pip install torch --index-url https://download.pytorch.org/whl/cpu
-        pip install -e ".[dev,aeon,prophet,tglad,beast,changeforest]"
+        pip install -e ".[dev,aeon,prophet,tglad,beast,changeforest,fluss]"
 
 Code Style
 ----------
@@ -66,8 +66,8 @@ in ``PYTEST_ARGS``:
     make test PYTEST_ARGS="tests/algorithms -k PeltDetector"
 
 Tests whose optional dependency is not installed are skipped. The CI installs
-``pip install -e .[dev,aeon,prophet,tglad,beast,changeforest]``, so it skips the
-TensorFlow-based detectors among others.
+``pip install -e .[dev,aeon,prophet,tglad,beast,changeforest,fluss]``, so it
+skips the TensorFlow-based detectors among others.
 
 When adding a new feature, please include relevant tests in ``tests/``.
 If adding a new algorithm, ensure it passes the common estimator checks (see :doc:`../detectors/index`).

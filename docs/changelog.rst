@@ -13,7 +13,9 @@ Unreleased
 
 * New extra ``tsseg[fluss]``, which installs stumpy for ``FLUSSDetector``;
   ``tsseg[all]`` now includes it. stumpy was declared nowhere, so
-  ``pip install "tsseg[all]"`` left ``FLUSSDetector`` unusable.
+  ``pip install "tsseg[all]"`` left ``FLUSSDetector`` unusable. The CI
+  installs the extra, so the tests of ``FLUSSDetector``, which it skipped,
+  now run there; the extras table of the documentation lists it.
 * tsseg no longer depends on ``future``, which nothing imports, and the
   ``dev`` extra no longer installs ``black``: the code is formatted with
   ``ruff format``.
