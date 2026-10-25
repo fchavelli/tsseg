@@ -203,7 +203,10 @@ class _GGS:
         orig_cov = np.cov(data.T, bias=True)
         orig_ll = self.log_likelihood(data)
         total_sum = m * (orig_cov + np.outer(orig_mean, orig_mean))
-        mu_left = data[0, :] / n
+        # Mean of the left part, data[:1]. The reference implementation starts
+        # from data[0] / n (n = number of channels), which is only right for
+        # univariate data and makes the split depend on a constant offset.
+        mu_left = data[0, :].astype(float)
         mu_right = (m * orig_mean - data[0, :]) / (m - 1)
         runSum = np.outer(data[0, :], data[0, :])
         # Loop through all samples
@@ -425,6 +428,13 @@ class GreedyGaussianDetector(BaseSegmenter):
 
     - source code adapted based on: https://github.com/cvxgrp/GGS
     - paper available at: https://stanford.edu/~boyd/papers/pdf/ggs.pdf
+
+    Unlike the reference code, the split search starts the running mean of
+    the left part from the first sample, not from the first sample divided
+    by the number of channels. Each candidate split is thus scored by the
+    regularised log-likelihood of the paper, and the change points of a
+    multivariate series do not depend on a constant offset. Univariate
+    results are the same as with the reference code.
 
     References
     ----------

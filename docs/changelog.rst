@@ -11,6 +11,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``GreedyGaussianDetector`` no longer depends on the level of a
+  multivariate series. Its split search started the running mean of the
+  left part from the first sample divided by the number of channels, a line
+  taken from the reference implementation of GGS, so every candidate split
+  was scored with a wrong left covariance: on three segments of two
+  channels, ``k_max=2`` found ``[150, 250]``, and only ``[250]`` once 10 was
+  added to the series. Each split is now scored by the regularised
+  log-likelihood of the paper, the one ``log_likelihood`` computes.
+  Multivariate outputs change; univariate outputs, where the two starts
+  agree, do not.
 * The wheel and the source distribution now include the license of the
   PaTSS code, ``tsseg/algorithms/patss/LICENCE``, which the package-data
   patterns (``**/LICENSE``) left out. MATLAB data files (``*.mat``) are no
