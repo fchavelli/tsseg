@@ -110,9 +110,9 @@ exclude = ["tests*", "docs*", "examples*"]
     "**/*.yaml",
     "**/*.yml",
     "**/*.csv",
-    "**/*.mat",
     "**/*.txt",
     "**/LICENSE",
+    "**/LICENCE",
 ]
 
 [tool.setuptools.exclude-package-data]
@@ -124,6 +124,7 @@ exclude = ["tests*", "docs*", "examples*"]
     "*.nbi",
     "*.mlx",
     "*.m",
+    "*.mat",
     "*.md",
 ]
 
