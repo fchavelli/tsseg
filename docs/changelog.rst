@@ -19,6 +19,10 @@ Unreleased
 * tsseg no longer depends on ``future``, which nothing imports, and the
   ``dev`` extra no longer installs ``black``: the code is formatted with
   ``ruff format``.
+* ``tsseg/algorithms/base.py``, whose base classes are adapted from aeon, now
+  opens with aeon's BSD 3-Clause license, which asks redistributed source
+  code to keep it. The README said that this license covered the file, but
+  neither the file nor its directory held a copy.
 * ``ChangeFinderDetector(n_cps=k)`` returns ``k`` change points. When fewer
   than ``k`` peaks of the score passed the threshold, it returned only those
   (``[306]`` for ``n_cps=2`` on a series with two changes): the step meant to

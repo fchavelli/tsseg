@@ -152,7 +152,8 @@ License
 Several detectors bundle adapted or vendored code under their own licenses
 (BSD, MIT, Apache-2.0, GPLv3, etc.). Where the original code publishes a
 license, the directory that bundles it contains a copy (``LICENSE``, or
-``LICENCE`` for PaTSS); the
+``LICENCE`` for PaTSS), and the base classes adapted from aeon carry its
+license in the opening comment of ``tsseg/algorithms/base.py``; the
 `README <https://github.com/fchavelli/tsseg#third-party-components>`_ lists
 every component, including those whose source publishes no license.
 

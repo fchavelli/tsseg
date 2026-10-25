@@ -391,8 +391,9 @@ Several algorithms bundle adapted or vendored code under their own licenses.
 
 Each directory above that bundles code under a published license contains a
 copy of it (`LICENSE`, or `LICENCE` in `patss/`). The aeon license is copied in
-`eagglo/`, `hidalgo/`, `hmm/` and `igts/`, and also covers the base classes in
-`tsseg/algorithms/base.py`. The sources marked *not specified* publish no
+`eagglo/`, `hidalgo/`, `hmm/` and `igts/`, and in the opening comment of
+`tsseg/algorithms/base.py`, whose base classes are adapted from aeon. The
+sources marked *not specified* publish no
 license. Rbeast, which `beast/` only wraps, is installed by `tsseg[beast]`;
 tsseg follows the license of its R package, GPL (>= 2), although its PyPI
 wheel declares MIT.
