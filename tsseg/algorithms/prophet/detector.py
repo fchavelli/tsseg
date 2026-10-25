@@ -7,7 +7,6 @@ from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
-from prophet import Prophet
 
 from ..base import BaseSegmenter
 from ..param_schema import (
@@ -53,6 +52,8 @@ def _rate_changes(
     """Rate change ``delta`` of Prophet's trend at each candidate (one channel)."""
     if np.ptp(values) == 0:
         return np.zeros(len(candidates))
+    from prophet import Prophet  # optional: checked at construction
+
     model = Prophet(
         changepoints=list(ds[candidates]),
         changepoint_prior_scale=changepoint_prior_scale,
