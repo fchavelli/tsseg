@@ -150,6 +150,16 @@ of change points, segments or states under a new parameter name, add the name
 to ``SUPERVISION_PARAMS`` in the same file. ``tests/README.md`` describes these
 helpers.
 
+A detector with optional dependencies lists their top-level modules in its
+``python_dependencies`` tag; ``BaseSegmenter.__init__`` checks them at
+construction. Its module must import without them
+(``tests/test_optional_dependencies.py`` checks it): import them inside the
+methods that use them, and move code that needs them at definition time
+(numba kernels, ``torch.nn.Module`` subclasses) to a private sub-module. A
+module installed by an extra not yet in ``EXTRAS``
+(``tsseg/algorithms/_dependencies.py``) is added there, so that the error
+message names the extra.
+
 Reproduction tests
 ^^^^^^^^^^^^^^^^^^
 

@@ -9,22 +9,38 @@ import numpy as np
 import pytest
 
 import tsseg.algorithms.snlds as snlds_pkg
+from tsseg.algorithms import SNLDSDetector
+from tsseg.algorithms._dependencies import missing_dependencies
 
 VENDOR = Path(snlds_pkg.__file__).parent / "vendor"
 
 
 def test_import_does_not_load_tensorflow():
-    """The detector must be importable without TensorFlow installed."""
+    """Importing and constructing the detector does not load TensorFlow.
+
+    Without the TensorFlow stack the detector still imports; construction then
+    raises ``ModuleNotFoundError``, which names the ``snlds`` extra.
+    """
     code = (
         "import sys\n"
         "from tsseg.algorithms import SNLDSDetector\n"
-        "SNLDSDetector(n_states=2)\n"
+        "try:\n"
+        "    SNLDSDetector(n_states=2)\n"
+        "except ModuleNotFoundError as error:\n"
+        "    print(error)\n"
+        "else:\n"
+        "    print('constructed')\n"
         "print('tensorflow' in sys.modules)\n"
     )
     out = subprocess.run(
         [sys.executable, "-c", code], capture_output=True, text=True, check=True
     )
-    assert out.stdout.strip() == "False"
+    constructed, loaded = out.stdout.strip().splitlines()
+    if missing_dependencies(SNLDSDetector.get_class_tag("python_dependencies")):
+        assert 'pip install "tsseg[snlds]"' in constructed
+    else:
+        assert constructed == "constructed"
+    assert loaded == "False"
 
 
 def test_vendored_code_is_self_contained():

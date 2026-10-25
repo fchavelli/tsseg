@@ -115,6 +115,13 @@ Most detectors work out of the box. Heavier dependencies are opt-in:
    * - ``tsseg[all]``
      - Everything above
 
+Every detector imports without its extra: ``from tsseg.algorithms import *``
+works on a bare ``pip install tsseg``. Constructing a detector whose
+dependencies are missing raises ``ModuleNotFoundError`` with the extra to
+install, e.g. ``ClapDetector requires numba, aeon: pip install
+"tsseg[accelerators,aeon]"``. The modules a detector needs are listed in its
+``python_dependencies`` tag (``ClapDetector.get_class_tag("python_dependencies")``).
+
 
 Usage
 -----

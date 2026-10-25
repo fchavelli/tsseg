@@ -1,7 +1,6 @@
 """Time2State state detector: a wrapper around the reference implementation."""
 
 import numpy as np
-import torch
 
 from ..base import BaseSegmenter
 from ..param_schema import (
@@ -12,7 +11,14 @@ from ..param_schema import (
     Interval,
     ParamDef,
 )
-from .time2state import DPGMM, CausalConv_LSE_Adaper, Time2State, params_LSE
+
+
+def _cuda_available() -> bool:
+    try:
+        import torch
+    except ImportError:  # reported by the dependency check at construction
+        return False
+    return torch.cuda.is_available()
 
 
 class Time2StateDetector(BaseSegmenter):
@@ -233,9 +239,9 @@ class Time2StateDetector(BaseSegmenter):
         self.random_state = random_state
 
         if use_gpu is None:
-            self.use_gpu = torch.cuda.is_available()
+            self.use_gpu = _cuda_available()
         else:
-            self.use_gpu = use_gpu and torch.cuda.is_available()
+            self.use_gpu = use_gpu and _cuda_available()
 
         super().__init__(axis=axis)
 
@@ -260,6 +266,11 @@ class Time2StateDetector(BaseSegmenter):
             The fitted detector. If ``n_timepoints <= 2 * window_size``, no
             encoder is trained and ``predict`` labels every point 0.
         """
+        # Deferred: torch is optional (checked at construction).
+        import torch
+
+        from .time2state import DPGMM, CausalConv_LSE_Adaper, params_LSE
+
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
             np.random.seed(self.random_state)
@@ -324,6 +335,8 @@ class Time2StateDetector(BaseSegmenter):
             appearance among the windows. All zeros if ``X`` or the fitted
             series has at most ``2 * window_size`` points.
         """
+        from .time2state import Time2State
+
         self._check_is_fitted()
         X = self._validate_data(X)
         n_timepoints, n_channels = X.shape
