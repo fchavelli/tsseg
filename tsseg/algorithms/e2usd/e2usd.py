@@ -1,4 +1,6 @@
-# Taken from: https://github.com/AI4CTS/E2Usd
+# Taken from: https://github.com/AI4CTS/E2Usd (no licence published).
+# Dataset, moving_avg and series_decomp come from projects under the Apache
+# License 2.0 and the MIT License: see LICENSE in this directory.
 
 import abc
 import os
@@ -30,6 +32,13 @@ params = {
     "M": 20,
     "N": 4,
 }
+
+
+# Dataset: taken, as in E2Usd, from utils.py of
+# https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries
+# Copyright 2019 Jean-Yves Franceschi, Aymeric Dieuleveut, Martin Jaggi,
+# licensed under the Apache License, Version 2.0. Modified: np.shape for
+# numpy.shape, docstring removed. Licence and NOTICE: LICENSE in this directory.
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -118,6 +127,13 @@ def apply_scaling(data, mean=1.0, std=0.1):
 
 
 # 随机选择数据增强方法
+
+
+# moving_avg and series_decomp: taken from layers/Autoformer_EncDec.py of
+# https://github.com/thuml/Autoformer, Copyright (c) 2021 THUML @ Tsinghua
+# University, MIT License. Modified: moving_avg works on (batch, channels,
+# length) tensors along the last axis, without permuting; docstrings removed.
+# Licence: LICENSE in this directory.
 
 
 class moving_avg(nn.Module):

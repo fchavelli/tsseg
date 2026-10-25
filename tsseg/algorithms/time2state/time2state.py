@@ -1,10 +1,14 @@
 """Time2State encoder, loss and clustering, from the reference implementation.
 
-Taken from https://github.com/Lab-ANT/Time2State (MIT licence, see
-``LICENSE`` in this directory). The causal CNN encoder (:class:`Chomp1d` to
-:class:`CausalCNNEncoder`) comes from the code of Franceschi et al. (2019),
+Taken from https://github.com/Lab-ANT/Time2State (MIT licence). The causal
+CNN encoder (:class:`Chomp1d` to :class:`CausalCNNEncoder`) and
+:class:`Dataset` come from the code of Franceschi et al. (2019),
 https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries,
-on which Time2State builds. Public entry point:
+on which Time2State builds (Apache License 2.0); :class:`Chomp1d` and
+:class:`CausalConvolutionBlock` are there partly taken from
+https://github.com/locuslab/TCN (MIT licence). The three licences, the
+``NOTICE`` of Franceschi et al. and the changes made to their code are in
+``LICENSE``, in this directory. Public entry point:
 :class:`tsseg.algorithms.Time2StateDetector`, which uses
 :class:`CausalConv_LSE_Adaper`, :class:`DPGMM` and :class:`Time2State`.
 
@@ -387,6 +391,17 @@ def hanning_numpy(X):
     return weight * X
 
 
+# Chomp1d, SqueezeChannels, CausalConvolutionBlock, CausalCNN and
+# CausalCNNEncoder: taken from networks/causal_cnn.py of
+# https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries
+# Copyright 2019 Jean-Yves Franceschi, Aymeric Dieuleveut, Martin Jaggi,
+# licensed under the Apache License, Version 2.0. Chomp1d and
+# CausalConvolutionBlock are partly taken from
+# https://github.com/locuslab/TCN, Copyright (c) 2018 CMU Locus Lab, MIT
+# License. Modified: weight_norm from torch.nn.utils.parametrizations,
+# docstrings edited. Licences and NOTICE: LICENSE in this directory.
+
+
 class Chomp1d(torch.nn.Module):
     """
     Removes the last elements of a time series.
@@ -602,6 +617,13 @@ class CausalCNNEncoder(torch.nn.Module):
     def forward(self, x):
         """Embed each series of ``x`` of shape (`B`, `C`, `L`)."""
         return self.network(x)
+
+
+# Dataset: taken from utils.py of
+# https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries
+# Copyright 2019 Jean-Yves Franceschi, Aymeric Dieuleveut, Martin Jaggi,
+# licensed under the Apache License, Version 2.0. Modified: np.shape for
+# numpy.shape. Licence and NOTICE: LICENSE in this directory.
 
 
 class Dataset(torch.utils.data.Dataset):
