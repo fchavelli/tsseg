@@ -11,6 +11,18 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* The documentation of ``Time2StateDetector`` now describes what the
+  detector computes and where it fails: ``batch_size`` has no effect,
+  ``window_size`` must be even, ``kernel_size`` must be at least 2,
+  ``random_state`` does not seed the clustering of ``predict``, the last
+  points that no window covers get state 0, and a constant series makes
+  ``predict`` raise. Every public member of
+  ``tsseg.algorithms.time2state.time2state`` has a docstring; wrong ones are
+  corrected (the ``final`` flag of ``CausalConvolutionBlock`` adds the last
+  activation, ``reduced_size`` of ``CausalCNNEncoder`` is a number of
+  channels, the encoder outputs two-dimensional tensors). The README of the
+  detector attributed the method to the wrong authors and venue; it now
+  cites Wang, Wu, Zhou and Cai, *Proc. ACM Manag. Data* 1(1), 2023.
 * The wheel and the source distribution now include the license of the
   PaTSS code, ``tsseg/algorithms/patss/LICENCE``, which the package-data
   patterns (``**/LICENSE``) left out. MATLAB data files (``*.mat``) are no

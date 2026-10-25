@@ -63,7 +63,8 @@ class Time2StateDetector(BaseSegmenter):
         Number of channels output by the causal CNN, max-pooled over time
         before the final linear layer.
     kernel_size : int, default=3
-        Kernel size of the convolutions of the causal CNN.
+        Kernel size of the convolutions of the causal CNN. Must be at least
+        2: with 1, ``fit`` raises ``RuntimeError``.
     use_gpu : bool, optional
         Whether to run the encoder on CUDA device 0. ``None`` uses it when
         available; ``True`` without CUDA falls back to the CPU. The attribute
@@ -77,7 +78,8 @@ class Time2StateDetector(BaseSegmenter):
     Notes
     -----
     ``fit`` and ``predict`` z-normalise the series with one mean and one
-    variance computed over all channels together. ``fit`` then trains the
+    variance computed over all channels together (a constant series becomes
+    NaN, and ``predict`` raises ``ValueError``). ``fit`` then trains the
     encoder for ``nb_steps`` steps. At each step, the LSE loss draws 10 random positions and, at each
     position, 4 windows shifted by one point; it pulls the embeddings of the
     windows of a position together and pushes the mean embeddings of
