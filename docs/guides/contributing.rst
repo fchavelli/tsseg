@@ -180,3 +180,24 @@ warning is an error, and writes the HTML pages to ``docs/_build/html``:
 
 It rereads every source file (``-E``), so that a rebuild in an existing
 directory reports the warnings of unchanged files, as the fresh CI build does.
+
+Packaging
+---------
+
+The packages published on PyPI are built by the CI, from a fresh checkout,
+when a ``v*`` tag is pushed. A build from a working copy can ship more:
+setuptools packages every ``tsseg*`` package it finds on disk, git-ignored
+folders included. To see what a release of a commit contains, build it from
+an export of that commit (``build`` is in the ``dev`` extra):
+
+.. code-block:: bash
+
+    src=$(mktemp -d)
+    git archive HEAD | tar -x -C "$src"
+    python -m build "$src" --outdir dist
+
+Besides the code, the wheel carries the data files that
+``[tool.setuptools.package-data]`` selects in ``pyproject.toml``: the MoCap
+trials of ``tsseg/data`` and the license file of each vendored component.
+README files and MATLAB files stay out. ``tests/test_packaging.py`` checks
+that every license file under ``tsseg/`` is selected.

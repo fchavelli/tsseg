@@ -11,6 +11,10 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* The wheel and the source distribution now include the license of the
+  PaTSS code, ``tsseg/algorithms/patss/LICENCE``, which the package-data
+  patterns (``**/LICENSE``) left out. MATLAB data files (``*.mat``) are no
+  longer selected as package data; none is left in the package.
 * New extra ``tsseg[fluss]``, which installs stumpy for ``FLUSSDetector``;
   ``tsseg[all]`` now includes it. stumpy was declared nowhere, so
   ``pip install "tsseg[all]"`` left ``FLUSSDetector`` unusable. The CI
