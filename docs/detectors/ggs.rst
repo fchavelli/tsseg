@@ -40,6 +40,9 @@ Parameters
      - float
      - ``1.0``
      - Regularisation :math:`\lambda` (>= 0).  Controls covariance shrinkage.
+       Must be > 0 for a multivariate series: with :math:`\lambda = 0`,
+       the covariance of a segment with no more points than channels is
+       singular, and ``fit`` raises ``ValueError``.
    * - ``max_shuffles``
      - int
      - ``250``
