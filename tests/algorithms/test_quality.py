@@ -90,7 +90,9 @@ KNOWN_FAILURES: dict[str, str] = {
     "E2USDDetector": "ARI 0.35 (3 states) guided; 0.37 (6 states) unsupervised",
     "HidalgoDetector": (
         "multivariate series: ARI 0.01 (3 states) with the suite's n_iter=100; "
-        "0.03 (4 states) with the default 1000"
+        "0.03 (4 states) with the default 1000: the segments are Gaussian "
+        "clouds of the same intrinsic dimension (TwoNN estimate 2.0 to 2.2), "
+        "and Hidalgo tells states apart by dimension only"
     ),
     "HMMDetector": "a single state (deprecated detector)",
     "SNLDSDetector": (

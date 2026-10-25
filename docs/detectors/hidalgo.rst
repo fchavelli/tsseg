@@ -15,6 +15,17 @@ manifold has a posterior probability below 0.8 is labelled ``-1``.
 The algorithm is designed for high-dimensional data and is particularly suited
 when different states occupy manifolds of different dimensionality.
 
+Manifolds are told apart by their intrinsic dimension only: the likelihood
+depends on the data through the ratio of the distances from each observation
+to its second and first nearest neighbours, which location and scale leave
+unchanged, and the order of the observations in time is not used. States that
+differ in mean or variance but have the same dimension, such as Gaussian
+segments of a 2-channel series, are not separated. Two spatially separated
+regions of the same dimension are distinct manifolds of the model, but the
+Gibbs chain is slow to reach that labelling: the paper runs :math:`10^5`
+iterations from 10 random starts, against ``n_iter=1000`` and
+``n_replicas=1`` by default.
+
 | **Type:** state detection
 | **Supervision:** semi-supervised (``K_states`` required)
 | **Scope:** multivariate (uses nearest-neighbour distances)
