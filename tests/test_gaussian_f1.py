@@ -183,6 +183,20 @@ class TestDegenerateCases:
 
 
 class TestInputs:
+    @pytest.mark.parametrize("value", [-1.0, float("nan"), float("inf")])
+    def test_invalid_sigma_fraction_is_rejected(self, value):
+        with pytest.raises(ValueError, match="sigma_fraction"):
+            GaussianF1Score(sigma_fraction=value)
+
+    @pytest.mark.parametrize("value", [0.0, -1.0, float("nan"), float("inf")])
+    def test_invalid_min_sigma_is_rejected(self, value):
+        with pytest.raises(ValueError, match="min_sigma"):
+            GaussianF1Score(min_sigma=value)
+
+    def test_zero_fraction_uses_positive_minimum_width(self):
+        result = _scores(GaussianF1Score(sigma_fraction=0, min_sigma=2), [500], [502])
+        assert result["score"] == pytest.approx(_reward(2, 2))
+
     def test_arrays_lists_and_order_are_equivalent(self):
         expected = _scores(GaussianF1Score(), [250, 750], [260, 740])
         as_arrays = _scores(

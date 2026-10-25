@@ -36,7 +36,7 @@ $$
 G(p) = \exp\!\left( -\frac{(p - c)^2}{2\sigma^2} \right), \qquad \sigma = \alpha \cdot T
 $$
 
-where $T$ is the series length and $\alpha$ (default 0.01) controls the width. A greedy bipartite matching maximises the total Gaussian reward $W$, from which soft precision ($W / |P|$) and recall ($W / |C|$) are computed. The Gaussian F1 is their harmonic mean.
+where $T$ is the series length and $\alpha$ (default 0.01) controls the width. A greedy bipartite matching takes the highest available reward first, without guaranteeing the maximum possible total reward $W$. Soft precision ($W / |P|$) and recall ($W / |C|$) are computed from that reward. The Gaussian F1 is their harmonic mean. The width is clamped by `min_sigma`, which must be positive; `sigma_fraction` must be non-negative.
 
 **Advantages over classic F1:**
 - Eliminates the arbitrary tolerance hyperparameter.

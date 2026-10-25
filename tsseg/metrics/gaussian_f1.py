@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
+from math import isfinite
 
 import numpy as np
 
@@ -190,6 +191,9 @@ class GaussianF1Score(BaseMetric):
         Conversely, predicting spurious changes yields a zero score.
     * **Single change point** – the Gaussian spread still follows the global
         fraction, ensuring a consistent reward scale across all events.
+
+    ``sigma_fraction`` must be finite and non-negative. ``min_sigma`` must be
+    finite and strictly positive so the Gaussian width never reaches zero.
     """
 
     def __init__(
@@ -203,6 +207,10 @@ class GaussianF1Score(BaseMetric):
         super().__init__()
         self.sigma_fraction = float(sigma_fraction)
         self.min_sigma = float(min_sigma)
+        if not isfinite(self.sigma_fraction) or self.sigma_fraction < 0:
+            raise ValueError("sigma_fraction must be finite and non-negative")
+        if not isfinite(self.min_sigma) or self.min_sigma <= 0:
+            raise ValueError("min_sigma must be finite and strictly positive")
         self.adaptive_sigma = bool(adaptive_sigma)
         self.convert_labels_to_segments = bool(convert_labels_to_segments)
 
