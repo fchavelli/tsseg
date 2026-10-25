@@ -70,6 +70,8 @@ import pandas as pd
 from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 
+from ._dependencies import check_python_dependencies
+
 # Public surface of this module.
 __all__ = ["BaseAeonEstimator", "BaseSeriesEstimator", "BaseSegmenter"]
 
@@ -392,6 +394,9 @@ class BaseSegmenter(BaseSeriesEstimator):
     _parameter_schema: dict[str, Any] = {}
 
     def __init__(self, axis: int) -> None:
+        # As aeon's ``_check_estimator_deps``: a detector's module imports
+        # without its optional dependencies, which are checked here.
+        check_python_dependencies(self)
         super().__init__(axis=axis)
 
     # Public API -------------------------------------------------------

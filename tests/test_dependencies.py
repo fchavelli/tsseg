@@ -21,6 +21,7 @@ except ModuleNotFoundError:  # Python 3.10
     tomllib = pytest.importorskip("tomli")
 
 import tsseg.algorithms as algorithms
+from tsseg.algorithms._dependencies import EXTRAS
 
 ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = ROOT / "pyproject.toml"
@@ -101,3 +102,22 @@ def test_core_dependency_is_imported(requirement):
     dist = _distribution(requirement)
     module = MODULE_OF_DISTRIBUTION.get(dist, dist.replace("-", "_"))
     assert module in _imported_modules(), f"{requirement} is imported nowhere in tsseg"
+
+
+@pytest.mark.parametrize("extra", sorted(EXTRAS))
+def test_error_message_extras_install_their_modules(extra):
+    """The extras named by the missing-dependency error install those modules."""
+    assert extra in _EXTRAS, f"tsseg[{extra}] is not an extra"
+    installed = _resolve(extra)
+    for module in EXTRAS[extra]:
+        dist = _normalise(DISTRIBUTION_OF_MODULE.get(module, module))
+        assert dist in installed, f"tsseg[{extra}] does not install {module}"
+
+
+@pytest.mark.parametrize("name", algorithms.__all__)
+def test_error_message_names_an_extra(name):
+    """Every optional module of a detector is installed by an extra of EXTRAS."""
+    modules = getattr(algorithms, name).get_class_tag("python_dependencies") or []
+    covered = set().union(*EXTRAS.values())
+    for module in set(modules) - NOT_ON_PYPI:
+        assert module in covered, f"{name}: add the extra of {module} to EXTRAS"

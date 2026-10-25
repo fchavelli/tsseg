@@ -19,6 +19,53 @@ Unreleased
   distinct in the model, but the Gibbs chain is slow to split them; the paper
   runs :math:`10^5` iterations from 10 random starts, the detector 1000 from
   one by default. The detector is unchanged.
+* The documentation of ``Time2StateDetector`` now describes what the
+  detector computes and where it fails: ``batch_size`` has no effect,
+  ``window_size`` must be even, ``kernel_size`` must be at least 2,
+  ``random_state`` does not seed the clustering of ``predict``, the last
+  points that no window covers get state 0, and a constant series makes
+  ``predict`` raise. Every public member of
+  ``tsseg.algorithms.time2state.time2state`` has a docstring; wrong ones are
+  corrected (the ``final`` flag of ``CausalConvolutionBlock`` adds the last
+  activation, ``reduced_size`` of ``CausalCNNEncoder`` is a number of
+  channels, the encoder outputs two-dimensional tensors). The README of the
+  detector attributed the method to the wrong authors and venue; it now
+  cites Wang, Wu, Zhou and Cai, *Proc. ACM Manag. Data* 1(1), 2023.
+* The documentation of ``BeastDetector`` now says that a fixed
+  ``mcmc_seed`` reproduces the output on one machine only: Rbeast picks its
+  numerical routines by CPU instruction set, and their rounding differences
+  change the MCMC samples. It also says that, on some machines, Rbeast
+  returned NaN for every output on a 6,000-point series, so that the detector
+  returned no change point. The test of that series, which failed on such
+  machines, now expects this failure on CPUs that support AVX-512.
+* ``GreedyGaussianDetector`` no longer depends on the level of a
+  multivariate series. Its split search started the running mean of the
+  left part from the first sample divided by the number of channels, a line
+  taken from the reference implementation of GGS, so every candidate split
+  was scored with a wrong left covariance: on three segments of two
+  channels, ``k_max=2`` found ``[150, 250]``, and only ``[250]`` once 10 was
+  added to the series. Each split is now scored by the regularised
+  log-likelihood of the paper, the one ``log_likelihood`` computes.
+  Multivariate outputs change; univariate outputs, where the two starts
+  agree, do not.
+* Every detector can be imported without its optional dependencies, so
+  ``from tsseg.algorithms import *`` and ``hasattr(tsseg.algorithms, name)``
+  work after a bare ``pip install tsseg``. Seven detectors (``ClapDetector``,
+  ``ClaspDetector``, ``EAggloDetector``, ``E2USDDetector``,
+  ``Time2StateDetector``, ``TireDetector``, ``ProphetDetector``) raised
+  ``ModuleNotFoundError: No module named 'numba'`` (or ``'torch'``,
+  ``'prophet'``) on import, which made the star import fail. The
+  dependencies listed in a detector's ``python_dependencies`` tag are now
+  checked once, when it is constructed, as in aeon; a missing one raises
+  ``ModuleNotFoundError`` with the extra to install, the same way for all
+  fourteen detectors with optional dependencies, e.g. ``ClapDetector
+  requires numba, aeon: pip install "tsseg[accelerators,aeon]"``. Before,
+  some failed only at ``fit`` (``AutoPlaitDetector``, ``SNLDSDetector``,
+  ``BeastDetector``, ``ChangeForestDetector``) and some without naming the
+  extra. Accessing ``tsseg.algorithms.TireDetector`` (or E2USD, Time2State)
+  no longer imports torch, and ``import tsseg.algorithms`` no longer imports
+  stumpy: they are imported when a detector that needs them is constructed
+  or fitted. Outputs do not change.
 * The wheel and the source distribution now include the license of the
   PaTSS code, ``tsseg/algorithms/patss/LICENCE``, which the package-data
   patterns (``**/LICENSE``) left out. MATLAB data files (``*.mat``) are no

@@ -4,8 +4,8 @@
 do so in place: after ``predict`` the dictionary passed by the user (so also
 ``get_params()["config"]``) held every default, and its missing sections were
 the module-level default dictionaries themselves. The pattern mining (``npbad``
-and its Java miner) is replaced by a synthetic embedding, so these tests run
-without ``npbad``.
+and its Java miner) is replaced by a synthetic embedding, and the dependency
+check at construction is skipped, so these tests run without ``npbad``.
 """
 
 from __future__ import annotations
@@ -44,6 +44,10 @@ def mined_configs(monkeypatch):
 
     monkeypatch.setattr(
         PaTSS_perso, "__create_attribute_resolution_embedding", fake_mining
+    )
+    # Skip the dependency check at construction, which looks npbad up.
+    monkeypatch.setattr(
+        PatssDetector, "_tags", {**PatssDetector._tags, "python_dependencies": None}
     )
     return configs
 

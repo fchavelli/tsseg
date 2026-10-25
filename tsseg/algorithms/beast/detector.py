@@ -121,7 +121,10 @@ class BeastDetector(BaseSegmenter):
         Thinning factor for the MCMC chains.
     mcmc_seed : int, default=1
         Seed of the MCMC sampler. ``0`` lets Rbeast pick a random seed, so the
-        output changes from one call to the next.
+        output changes from one call to the next. A fixed seed gives the same
+        output on one machine, not necessarily on another: Rbeast picks its
+        numerical routines by CPU instruction set (SSE, AVX2, AVX-512), and
+        the sampler amplifies their rounding differences (Rbeast issue #53).
     cp_prob_threshold : float, default=0.1
         Minimum posterior probability of being a change point for a time
         step to be selected.
@@ -150,6 +153,11 @@ class BeastDetector(BaseSegmenter):
     (Rbeast's median number of change points) per component and, with
     ``"native"``, per channel. When Rbeast returns NaN for ``ncp_median``, a
     ``RuntimeWarning`` is raised and their number is not capped.
+
+    On some machines, Rbeast 0.1.25 returned NaN for every output on a
+    6,000-point series in which it finds the change point elsewhere; the
+    detector then returns no change point, with that warning. Rbeast issue
+    #56 reports wrong outputs on Intel Xeon CPUs.
     """
 
     _tags = {

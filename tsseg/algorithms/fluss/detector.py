@@ -6,13 +6,6 @@ __all__ = ["FLUSSDetector"]
 import numpy as np
 import pandas as pd
 
-try:
-    import stumpy
-
-    _HAS_STUMPY = True
-except ImportError:
-    _HAS_STUMPY = False
-
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -167,8 +160,6 @@ class FLUSSDetector(BaseSegmenter):
         consensus=0.0,
         normalize=True,
     ):
-        if not _HAS_STUMPY:
-            raise ImportError('FLUSSDetector needs stumpy: pip install "tsseg[fluss]".')
         self.window_size = window_size
         self.n_segments = n_segments
         self.exclusion_factor = exclusion_factor
@@ -285,6 +276,8 @@ class FLUSSDetector(BaseSegmenter):
         return int(self.tolerance)
 
     def _run_fluss(self, X):
+        import stumpy  # optional: checked at construction
+
         mp = stumpy.stump(X, m=self.window_size, normalize=self.normalize)
         if self.n_segments is None:
             # Corrected arc curve only; the regimes are read off with the threshold.
