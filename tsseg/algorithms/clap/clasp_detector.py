@@ -14,7 +14,6 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
-from .segmentation import BinaryClaSPSegmentation
 
 
 class ClaspDetector(BaseSegmenter):
@@ -206,6 +205,9 @@ class ClaspDetector(BaseSegmenter):
         """
         Fits the ClaSP model to the provided time series data.
         """
+        # Deferred: numba is optional (checked at construction).
+        from .segmentation import BinaryClaSPSegmentation
+
         effective_n_segments = self.n_segments
         if self.n_change_points is not None:
             effective_n_segments = int(self.n_change_points) + 1

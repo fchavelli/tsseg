@@ -6,9 +6,6 @@ with the tsseg library's API.
 import numpy as np
 
 from ..base import BaseSegmenter
-
-# from ..clap.clasp_detector import ClaspDetector
-from ..clap.segmentation import BinaryClaSPSegmentation
 from ..param_schema import (
     Closed,
     DataDependent,
@@ -17,8 +14,6 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
-from .clap import CLaP
-from .utils import create_state_labels
 
 
 class ClapDetector(BaseSegmenter):
@@ -242,6 +237,11 @@ class ClapDetector(BaseSegmenter):
         self : ClapDetector
             The fitted instance of the detector.
         """
+        # Deferred: numba and aeon are optional (checked at construction).
+        from .clap import CLaP
+        from .segmentation import BinaryClaSPSegmentation
+        from .utils import create_state_labels
+
         self.ts_len_ = X.shape[0]
 
         self._clap = CLaP(

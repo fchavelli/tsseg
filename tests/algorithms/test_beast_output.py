@@ -20,6 +20,15 @@ def _fake_rbeast(output):
     return SimpleNamespace(beast=run, beast123=run, args=SimpleNamespace)
 
 
+def _use_fake_rbeast(monkeypatch, output):
+    """Stand in for Rbeast, which need not be installed."""
+    monkeypatch.setattr(beast_module, "_import_rbeast", lambda: _fake_rbeast(output))
+    # Skip the dependency check at construction, which looks Rbeast up.
+    monkeypatch.setattr(
+        BeastDetector, "_tags", {**BeastDetector._tags, "python_dependencies": None}
+    )
+
+
 def _trend(cp, cp_pr, ncp_median):
     return SimpleNamespace(
         cp=np.array(cp, dtype=float),
@@ -31,14 +40,14 @@ def _trend(cp, cp_pr, ncp_median):
 
 def test_ncp_median_caps_the_ranked_change_points(monkeypatch):
     output = SimpleNamespace(trend=_trend([300, 700, NAN], [0.9, 0.8, NAN], [1.0]))
-    monkeypatch.setattr(beast_module, "_import_rbeast", lambda: _fake_rbeast(output))
+    _use_fake_rbeast(monkeypatch, output)
     assert BeastDetector().fit_predict(np.zeros(1000)).tolist() == [300]
 
 
 def test_nan_ncp_median_does_not_crash_univariate(monkeypatch):
     """Rbeast can return NaN for ``ncp_median`` (seen in CI on 6,000 points)."""
     output = SimpleNamespace(trend=_trend([300, 700, NAN], [0.9, 0.8, NAN], [NAN]))
-    monkeypatch.setattr(beast_module, "_import_rbeast", lambda: _fake_rbeast(output))
+    _use_fake_rbeast(monkeypatch, output)
     with pytest.warns(RuntimeWarning, match="ncp_median"):
         cps = BeastDetector().fit_predict(np.zeros(1000))
     assert cps.tolist() == [300, 700]
@@ -52,7 +61,7 @@ def test_nan_ncp_median_does_not_crash_multivariate(monkeypatch):
             [1.0, NAN],
         )
     )
-    monkeypatch.setattr(beast_module, "_import_rbeast", lambda: _fake_rbeast(output))
+    _use_fake_rbeast(monkeypatch, output)
     with pytest.warns(RuntimeWarning, match="ncp_median"):
         cps = BeastDetector().fit_predict(np.zeros((1000, 2)))
     # Channel 0 is capped at one CP by its ncp_median, channel 1 is not.
@@ -63,7 +72,7 @@ def test_all_nan_output_gives_no_change_point(monkeypatch):
     """A failed Rbeast run returns NaN everywhere: no CP, and a warning."""
     output = SimpleNamespace(trend=_trend([NAN, NAN], [NAN, NAN], [NAN]))
     output.trend.cpOccPr = np.full(1000, NAN)
-    monkeypatch.setattr(beast_module, "_import_rbeast", lambda: _fake_rbeast(output))
+    _use_fake_rbeast(monkeypatch, output)
     with pytest.warns(RuntimeWarning, match="ncp_median"):
         cps = BeastDetector().fit_predict(np.zeros(1000))
     assert cps.size == 0

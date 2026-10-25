@@ -304,10 +304,6 @@ class TSCP2Detector(BaseSegmenter):
         random_state: int | None = None,
         axis: int = 0,
     ) -> None:
-        if tf is None or not hasattr(TemporalEncoder, "call"):
-            raise ImportError(
-                "TSCP2Detector requires the optional 'tscp2' extra (tensorflow>=2.13 and tcn)."
-            )
         if n_cps is not None and similarity_threshold is not None:
             similarity_threshold = None
         if loss not in _LOSS_REGISTRY:

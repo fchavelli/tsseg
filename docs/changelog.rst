@@ -11,6 +11,24 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Every detector can be imported without its optional dependencies, so
+  ``from tsseg.algorithms import *`` and ``hasattr(tsseg.algorithms, name)``
+  work after a bare ``pip install tsseg``. Seven detectors (``ClapDetector``,
+  ``ClaspDetector``, ``EAggloDetector``, ``E2USDDetector``,
+  ``Time2StateDetector``, ``TireDetector``, ``ProphetDetector``) raised
+  ``ModuleNotFoundError: No module named 'numba'`` (or ``'torch'``,
+  ``'prophet'``) on import, which made the star import fail. The
+  dependencies listed in a detector's ``python_dependencies`` tag are now
+  checked once, when it is constructed, as in aeon; a missing one raises
+  ``ModuleNotFoundError`` with the extra to install, the same way for all
+  fourteen detectors with optional dependencies, e.g. ``ClapDetector
+  requires numba, aeon: pip install "tsseg[accelerators,aeon]"``. Before,
+  some failed only at ``fit`` (``AutoPlaitDetector``, ``SNLDSDetector``,
+  ``BeastDetector``, ``ChangeForestDetector``) and some without naming the
+  extra. Accessing ``tsseg.algorithms.TireDetector`` (or E2USD, Time2State)
+  no longer imports torch, and ``import tsseg.algorithms`` no longer imports
+  stumpy: they are imported when a detector that needs them is constructed
+  or fitted. Outputs do not change.
 * The wheel and the source distribution now include the license of the
   PaTSS code, ``tsseg/algorithms/patss/LICENCE``, which the package-data
   patterns (``**/LICENSE``) left out. MATLAB data files (``*.mat``) are no
