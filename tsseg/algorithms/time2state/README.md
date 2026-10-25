@@ -19,7 +19,17 @@ encoder and clustering logic is in `time2state.py`.
 
 - Origin: taken from https://github.com/Lab-ANT/Time2State
 - Licence: MIT (Copyright (c) 2022 Chengyu Wang)
-- Licence file: `LICENSE` in this directory
+- Parts from other projects, in `time2state.py`:
+  - the causal CNN encoder (`Chomp1d`, `SqueezeChannels`,
+    `CausalConvolutionBlock`, `CausalCNN`, `CausalCNNEncoder`) and `Dataset`:
+    taken from the code of Franceschi et al. (2019),
+    https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries,
+    on which Time2State builds; Apache License 2.0 (Copyright 2019
+    Jean-Yves Franceschi, Aymeric Dieuleveut, Martin Jaggi);
+  - `Chomp1d` and `CausalConvolutionBlock` are there partly taken from
+    https://github.com/locuslab/TCN; MIT (Copyright (c) 2018 CMU Locus Lab).
+- Licence file: `LICENSE` in this directory, with the three licences, the
+  `NOTICE` of Franceschi et al. and the changes made to their code
 
 ## Citation
 

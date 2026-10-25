@@ -11,6 +11,19 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Licences: ``Time2StateDetector`` and ``E2USDDetector`` ship code from
+  projects that their licence files did not name. The causal CNN encoder and
+  the ``Dataset`` class of ``time2state.py`` come from the code of Franceschi,
+  Dieuleveut and Jaggi (2019), under the Apache License 2.0, and partly from
+  locuslab/TCN, under the MIT License; ``e2usd.py`` holds the same
+  ``Dataset`` class and the ``moving_avg`` and ``series_decomp`` blocks of
+  Autoformer, under the MIT License. The ``LICENSE`` file of
+  ``tsseg/algorithms/time2state`` now holds these licences, the ``NOTICE`` of
+  Franceschi et al. and the changes made to their code, and a new ``LICENSE``
+  file in ``tsseg/algorithms/e2usd`` does the same for the two parts of
+  E2USD (the rest of E2USD still has no published licence). The code is
+  unchanged.
+
 * Docs: the Hidalgo page, README and docstring say what the detector does not
   separate. It tells states apart by their intrinsic dimension only, from
   distance ratios that location and scale leave unchanged, without the time
