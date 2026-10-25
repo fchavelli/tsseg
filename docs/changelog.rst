@@ -11,6 +11,14 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``clone(random_state=k)`` seeds the clone. The seed was ignored: ``clone``
+  only called a ``set_random_state`` method that no detector defines, so the
+  clone kept the ``random_state`` of the original. As in aeon, the
+  ``random_state`` parameter of the clone is now set to an integer drawn from
+  ``check_random_state(k)``, the same for the same ``k``; ``k`` may also be a
+  ``numpy.random.RandomState``. ``clone()`` without a seed, and detectors
+  without a ``random_state`` parameter, are unchanged.
+
 * Licences: ``Time2StateDetector`` and ``E2USDDetector`` ship code from
   projects that their licence files did not name. The causal CNN encoder and
   the ``Dataset`` class of ``time2state.py`` come from the code of Franceschi,

@@ -69,6 +69,7 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
+from sklearn.utils import check_random_state
 
 from ._dependencies import check_python_dependencies
 
@@ -223,11 +224,38 @@ class BaseAeonEstimator(BaseEstimator, ABC):
         self.__init__(**params)
         return self
 
-    def clone(self, random_state: int | None = None) -> BaseAeonEstimator:
-        clone_obj = type(self)(**self.get_params(deep=False))
-        if random_state is not None and hasattr(clone_obj, "set_random_state"):
-            clone_obj.set_random_state(random_state)
-        return clone_obj
+    def clone(
+        self, random_state: int | np.random.RandomState | None = None
+    ) -> BaseAeonEstimator:
+        """Return an unfitted estimator with the same parameters.
+
+        Parameters
+        ----------
+        random_state : int, RandomState instance or None, default=None
+            Seed of the clone. If not None and the estimator has a
+            ``random_state`` parameter, the clone gets an integer drawn from
+            ``check_random_state(random_state)`` instead, as in aeon; the same
+            seed gives the same integer. If None, the clone keeps the
+            ``random_state`` of the estimator.
+
+        Returns
+        -------
+        BaseAeonEstimator
+            New instance of ``type(self)`` built from
+            ``self.get_params(deep=False)``; the estimator itself is unchanged.
+
+        Notes
+        -----
+        Only the estimator's own ``random_state`` parameter is set. aeon also
+        sets the ``random_state`` of estimators passed as parameters
+        (``<name>__random_state``), which no tsseg detector takes. A seed
+        parameter with another name, such as ``seed``, is not set, as in aeon.
+        """
+        params = self.get_params(deep=False)
+        if random_state is not None and "random_state" in params:
+            rng = check_random_state(random_state)
+            params["random_state"] = rng.randint(np.iinfo(np.int32).max)
+        return type(self)(**params)
 
     # ------------------------------------------------------------------
     # Fitted status utilities
