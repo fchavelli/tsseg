@@ -1,6 +1,4 @@
-"""
-This module provides an aeon-compatible wrapper for the Time2State algorithm.
-"""
+"""Time2State state detector: a wrapper around the reference implementation."""
 
 import numpy as np
 import torch
@@ -18,12 +16,12 @@ from .time2state import DPGMM, CausalConv_LSE_Adaper, Time2State, params_LSE
 
 
 class Time2StateDetector(BaseSegmenter):
-    """
-    A wrapper for the Time2State algorithm for time series segmentation,
-    compatible with the aeon library.
+    """Time2State: unsupervised state detection from learned window embeddings.
 
-    Time2State uses a Causal CNN based encoder to learn representations of
-    time series windows, which are then clustered to identify states.
+    A causal CNN encoder, trained without labels on the series itself with the
+    LSE loss, maps sliding windows to embeddings; a Dirichlet process Gaussian
+    mixture (DPGMM) clusters the embeddings; each time point then takes the
+    state that most windows covering it received [1]_.
 
     Parameters
     ----------
@@ -34,31 +32,80 @@ class Time2StateDetector(BaseSegmenter):
         ``axis == 1`` indicates the time series are in rows, i.e. the shape of the data
         is ``(n_channels, n_timepoints)``.
     window_size : int, default=256
-        The size of the sliding window.
+        Length of the sliding windows, in time points. Must be even: an odd
+        value is accepted by the constructor and by ``fit``, but ``predict``
+        raises ``ValueError``.
     step : int, default=50
-        The step size of the sliding window.
+        Distance between the starts of consecutive windows, at most
+        ``window_size``.
     n_states : int, default=20
-        The maximum number of states for the DPGMM clustering.
+        Upper bound on the number of states: the number of components of the
+        DPGMM, capped at the number of windows. The DPGMM can leave
+        components empty, so fewer states may be returned.
     alpha : float, default=1e3
-        The concentration parameter for the DPGMM clustering.
+        Weight concentration prior of the Dirichlet process
+        (``weight_concentration_prior`` of
+        ``sklearn.mixture.BayesianGaussianMixture``); larger values favour
+        more states.
     batch_size : int, default=1
-        Batch size for training the neural network.
+        Batch size of the training data loader. The training set is a single
+        sample, the whole series, so this value has no effect.
     nb_steps : int, default=20
-        Number of optimization steps for training.
+        Number of optimisation steps of the encoder.
     lr : float, default=0.003
-        Learning rate for the optimizer.
+        Learning rate of the Adam optimiser.
     depth : int, default=10
-        Depth of the Causal CNN.
+        Number of causal convolution blocks before the last one; the dilation
+        doubles from one block to the next.
     out_channels : int, default=4
-        Number of output channels of the encoder.
+        Dimension of the window embeddings.
     reduced_size : int, default=80
-        Size of the output of the Causal CNN before the final linear layer.
+        Number of channels output by the causal CNN, max-pooled over time
+        before the final linear layer.
     kernel_size : int, default=3
-        Kernel size for the convolutions in the Causal CNN.
+        Kernel size of the convolutions of the causal CNN.
     use_gpu : bool, optional
-        Whether to use GPU if available. If None, it will be auto-detected.
+        Whether to run the encoder on CUDA device 0. ``None`` uses it when
+        available; ``True`` without CUDA falls back to the CPU. The attribute
+        stores the resolved boolean.
     random_state : int, optional
-        Random state for reproducibility.
+        Seed of PyTorch and of NumPy's global generator, set at the start of
+        ``fit``. The DPGMM of ``predict`` draws from NumPy's global generator
+        without its own seed: ``fit_predict`` with a seed is reproducible on
+        one machine, but two ``predict`` calls after one ``fit`` can differ.
+
+    Notes
+    -----
+    ``fit`` and ``predict`` z-normalise the series with one mean and one
+    variance computed over all channels together. ``fit`` then trains the
+    encoder for ``nb_steps`` steps. At each step, the LSE loss draws 10 random positions and, at each
+    position, 4 windows shifted by one point; it pulls the embeddings of the
+    windows of a position together and pushes the mean embeddings of
+    different positions apart [1]_.
+
+    ``predict`` embeds the ``(n_timepoints - window_size) // step + 1``
+    windows of the series, fits the DPGMM (full covariances, k-means
+    initialisation) on these embeddings and numbers the window labels in
+    order of first appearance. Each window votes for its label on the points
+    it covers, and each point takes the label with the most votes (the
+    smallest label on a tie). The last points of the series, fewer than
+    ``step``, lie in no window and get label 0, as in the reference
+    implementation.
+
+    ``fit`` raises ``ValueError`` on a series of fewer than
+    ``2 * window_size`` points. A series of at most ``2 * window_size``
+    points is not encoded: if it is the one given to ``fit``, or the one
+    given to ``predict``, ``predict`` labels every point 0.
+
+    The wrapped code is that of the reference implementation
+    (https://github.com/Lab-ANT/Time2State, MIT licence).
+
+    References
+    ----------
+    .. [1] C. Wang, K. Wu, T. Zhou and Z. Cai, "Time2State: An Unsupervised
+       Framework for Inferring the Latent States in Time Series Data",
+       Proceedings of the ACM on Management of Data 1(1), 2023 (SIGMOD),
+       doi: 10.1145/3588697.
     """
 
     _tags = {
@@ -191,17 +238,25 @@ class Time2StateDetector(BaseSegmenter):
         super().__init__(axis=axis)
 
     def _fit(self, X, y=None, axis=None):
-        """
-        Fit the Time2State model.
+        """Train the encoder on ``X``.
 
-        This involves training the Causal CNN encoder on the input time series X.
+        Only the encoder is trained here; the DPGMM is fitted in ``predict``,
+        on the embeddings of the series to segment.
 
         Parameters
         ----------
         X : np.ndarray of shape (n_timepoints, n_channels) or (n_channels, n_timepoints)
-            The training time series. Shape depends on self.axis.
+            The training time series. Shape depends on ``self.axis``.
         y : None
             Not used, for API compatibility.
+        axis : None
+            Not used.
+
+        Returns
+        -------
+        self : Time2StateDetector
+            The fitted detector. If ``n_timepoints <= 2 * window_size``, no
+            encoder is trained and ``predict`` labels every point 0.
         """
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
@@ -247,21 +302,25 @@ class Time2StateDetector(BaseSegmenter):
         return self
 
     def _predict(self, X, axis=None):
-        """
-        Predict the state sequence for the input time series X.
+        """Label each time point of ``X`` with a state.
 
-        This uses the already-fitted encoder and clustering model.
+        Embeds the sliding windows of ``X`` with the trained encoder, fits the
+        DPGMM on these embeddings, then gives each time point the state that
+        most of the windows covering it received.
 
         Parameters
         ----------
         X : np.ndarray of shape (n_timepoints, n_channels) or (n_channels, n_timepoints)
-            The time series to segment. Shape depends on self.axis.
+            The time series to segment. Shape depends on ``self.axis``.
+        axis : None
+            Not used.
 
         Returns
         -------
-        np.ndarray
-            If returns_dense is True (default): array of change point locations.
-            If returns_dense is False: array of segment labels for each time point.
+        np.ndarray of shape (n_timepoints,)
+            Integer state labels, numbered from 0 in order of first
+            appearance among the windows. All zeros if ``X`` or the fitted
+            series has at most ``2 * window_size`` points.
         """
         self._check_is_fitted()
         X = self._validate_data(X)
