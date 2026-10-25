@@ -11,6 +11,14 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Docs: the Hidalgo page, README and docstring say what the detector does not
+  separate. It tells states apart by their intrinsic dimension only, from
+  distance ratios that location and scale leave unchanged, without the time
+  order: states that differ in mean or variance but have the same dimension
+  are not separated. Spatially separated regions of the same dimension are
+  distinct in the model, but the Gibbs chain is slow to split them; the paper
+  runs :math:`10^5` iterations from 10 random starts, the detector 1000 from
+  one by default. The detector is unchanged.
 * The documentation of ``Time2StateDetector`` now describes what the
   detector computes and where it fails: ``batch_size`` has no effect,
   ``window_size`` must be even, ``kernel_size`` must be at least 2,

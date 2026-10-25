@@ -81,6 +81,19 @@ class HidalgoDetector(BaseSegmenter):
     point whose most probable manifold has a posterior probability below 0.8 is
     labelled ``-1``: the labels take values in ``{-1, 0, ..., K_states - 1}``.
 
+    Manifolds are told apart by their intrinsic dimension only. The likelihood
+    depends on the data through the ratio of the distances from each time point
+    to its second and first nearest neighbours, which location and scale leave
+    unchanged, and the neighbours are searched among all the time points of the
+    series, whatever their order in time. States that differ in mean or
+    variance but have the same dimension, such as Gaussian segments of a
+    2-channel series, are not separated: the paper notes that clusters of one
+    manifold "cannot be identified as different manifolds" (Discussion). Two
+    spatially separated regions of the same dimension are distinct manifolds of
+    the model (Methods), but the Gibbs chain is slow to reach that labelling:
+    the paper runs :math:`10^5` iterations from 10 random starts, against
+    ``n_iter=1000`` and ``n_replicas=1`` here by default.
+
     Hidalgo labels the time points of the series given to ``fit``:
     ``predict(X)`` returns those labels when ``X`` has the same values, and
     otherwise labels ``X`` with a new fit, with a warning, leaving the fitted

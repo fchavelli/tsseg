@@ -67,8 +67,25 @@ points.
 
 $K$ is the **number of distinct manifolds** (i.e. number of states), not a
 dimension.  Each manifold $k$ has its own estimated intrinsic dimension
-$d_k$.  Two spatially separated regions with the same dimension are treated
-as distinct manifolds.
+$d_k$.  Two spatially separated regions with the same dimension are
+distinct manifolds of the model (paper, Methods), but the Gibbs chain is slow
+to reach that labelling: the paper runs $10^5$ iterations from 10 random
+starts, the detector 1000 from one by default.  Three 2-D Gaussian clouds
+at least 10 units apart (noise standard deviation about 0.2) get an ARI of 0.005 after
+100 iterations and 0.09 after 1000 (`K_states=3`, `seed=0`).
+
+### States of the same dimension are not separated
+
+The likelihood depends on the data only through the ratios $\mu_i$, which
+location and scale leave unchanged, and the neighbours are searched among all
+the time points, whatever their order in time.  States that differ in mean or
+variance but have the same dimension are not told apart: the paper notes that
+clusters of one manifold "cannot be identified as different manifolds"
+(Discussion).  On the easy series of the quality test (2 channels, three
+Gaussian segments, TwoNN dimension 2.0 to 2.2 in each) the ARI is 0.01; a
+5-channel series made of a line ($d = 1$) then a Gaussian cloud ($d = 5$),
+300 points each, gets 0.79 after 100 iterations and 0.99 after 1000
+(`K_states=2`, `seed=0`).
 
 ---
 
