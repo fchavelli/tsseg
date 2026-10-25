@@ -1034,7 +1034,8 @@ class Time2State:
     The label assignment lets each window vote, with weight 1, for its
     cluster on the ``win_size`` points it covers; each point takes the
     cluster with the most votes, the smallest on a tie. Points covered by no
-    window, at most ``step - 1`` at the end of the series, get label 0.
+    window, at most ``step - 1`` at the end of the series, take the label of
+    the last window; the reference implementation gives them label 0.
     """
 
     def __init__(self, win_size, step, encoder, clustering_component, verbose=False):
@@ -1147,7 +1148,11 @@ class Time2State:
             vote_matrix[i : i + self.__win_size, l] += weight_vector
             i += self.__step
         self.__state_seq = np.array([np.argmax(row) for row in vote_matrix])
-        pass
+        # Change from the reference code, where the points after the last
+        # window (fewer than ``step``) get no vote, hence label 0: they take
+        # the label of the last window, which alone covers the point before.
+        covered = (len(self.__embedding_label) - 1) * self.__step + self.__win_size
+        self.__state_seq[covered:] = self.__embedding_label[-1]
 
     def load_result(self, path):
         """Do nothing (not implemented)."""

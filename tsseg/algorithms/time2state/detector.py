@@ -97,8 +97,8 @@ class Time2StateDetector(BaseSegmenter):
     order of first appearance. Each window votes for its label on the points
     it covers, and each point takes the label with the most votes (the
     smallest label on a tie). The last points of the series, fewer than
-    ``step``, lie in no window and get label 0, as in the reference
-    implementation.
+    ``step``, lie in no window: they take the label of the last window (the
+    reference implementation gives them label 0).
 
     ``fit`` raises ``ValueError`` on a series of fewer than
     ``2 * window_size`` points. A series of at most ``2 * window_size``

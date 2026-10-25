@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``Time2StateDetector`` and ``E2USDDetector`` change their output at the
+  end of the series. Each window votes for its state on the points it
+  covers, and the last ``(n_timepoints - window_size) % step`` points, which
+  no window covers, got state 0 whatever the state around them, as in the
+  code both detectors wrap: 16 of 630 points with ``window_size=64``
+  and ``step=50``. These points now take the state of the last window. The
+  other points keep their state.
 * Licences: ``Time2StateDetector`` and ``E2USDDetector`` ship code from
   projects that their licence files did not name. The causal CNN encoder and
   the ``Dataset`` class of ``time2state.py`` come from the code of Franceschi,
@@ -35,9 +42,8 @@ Unreleased
 * The documentation of ``Time2StateDetector`` now describes what the
   detector computes and where it fails: ``batch_size`` has no effect,
   ``window_size`` must be even, ``kernel_size`` must be at least 2,
-  ``random_state`` does not seed the clustering of ``predict``, the last
-  points that no window covers get state 0, and a constant series makes
-  ``predict`` raise. Every public member of
+  ``random_state`` does not seed the clustering of ``predict``, and a
+  constant series makes ``predict`` raise. Every public member of
   ``tsseg.algorithms.time2state.time2state`` has a docstring; wrong ones are
   corrected (the ``final`` flag of ``CausalConvolutionBlock`` adds the last
   activation, ``reduced_size`` of ``CausalCNNEncoder`` is a number of
