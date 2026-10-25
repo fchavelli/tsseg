@@ -19,6 +19,14 @@ Adapted from the Stanford Convex Optimization Group's GGS repository.
 - Licence: BSD 2-Clause (Copyright (c) 2018, Stanford University Convex Optimization Group)
 - Licence file: `LICENSE` in this directory
 
+Difference from the reference code: in the split search
+(`add_new_change_point`), the running mean of the left part starts from the
+first sample, `data[0]`. The reference code (`ggs.py`) starts it from
+`data[0] / n`, `n` being the number of channels, which is right only for a
+univariate series: every multivariate split was scored with a wrong left
+covariance, and the change points depended on a constant offset of the series.
+Univariate results are unchanged.
+
 ## Citation
 
 ```bibtex

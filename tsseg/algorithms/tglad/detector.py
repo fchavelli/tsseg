@@ -28,19 +28,6 @@ class _WindowSummary:
     score: float
 
 
-def _optional_dependencies() -> list[str]:
-    missing: list[str] = []
-    try:
-        import torch  # noqa: F401
-    except ImportError:  # pragma: no cover - torch is optional
-        missing.append("torch")
-    try:
-        import networkx  # noqa: F401
-    except ImportError:  # pragma: no cover - optional extra
-        missing.append("networkx")
-    return missing
-
-
 class TGLADDetector(BaseSegmenter):
     """Graph-difference based change point detector using uGLAD.
 
@@ -192,7 +179,6 @@ class TGLADDetector(BaseSegmenter):
         if self.glad_iterations <= 0:
             raise ValueError("glad_iterations must be a positive integer")
 
-        ensure_vendor_imports()
         super().__init__(axis=axis)
 
     # ------------------------------------------------------------------
@@ -200,14 +186,6 @@ class TGLADDetector(BaseSegmenter):
     # ------------------------------------------------------------------
 
     def _fit(self, X: np.ndarray, y=None):
-        missing = _optional_dependencies()
-        if missing:
-            extras = ", ".join(missing)
-            raise ModuleNotFoundError(
-                "TGLADDetector requires optional dependencies. "
-                f"Install them via `pip install tsseg[tglad]` (missing: {extras})."
-            )
-
         X2d = self._ensure_2d(X)
         windows, _ = self._build_windows(X2d)
         summaries = self._compute_precision_batch(windows)
@@ -324,6 +302,7 @@ class TGLADDetector(BaseSegmenter):
         return summaries
 
     def _run_single_batch(self, batch: list[np.ndarray]) -> list[_WindowSummary]:
+        ensure_vendor_imports()  # torch is optional: checked at construction
         from .vendor.uGLAD.uglad import uGLAD_multitask
 
         model = uGLAD_multitask()
