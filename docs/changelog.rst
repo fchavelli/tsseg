@@ -50,6 +50,17 @@ Unreleased
   channels, the encoder outputs two-dimensional tensors). The README of the
   detector attributed the method to the wrong authors and venue; it now
   cites Wang, Wu, Zhou and Cai, *Proc. ACM Manag. Data* 1(1), 2023.
+* The documentation of ``E2USDDetector`` now describes what the detector
+  computes and where it fails: ``batch_size`` and ``depth`` have no effect,
+  ``window_size`` must be even, ``kernel_size`` can be at most
+  ``min(window_size, 64)``, the convolutions of the encoder keep their random
+  initial weights, ``random_state`` does not seed the clustering of
+  ``predict``, a constant series makes ``predict`` raise, and ``y`` is
+  ignored (the docstring of ``fit`` said it set the number of states). Every
+  public member of ``tsseg.algorithms.e2usd.e2usd`` has a docstring. The
+  README of the detector credited "Chen, Zhichen and others"; it and the
+  documentation page now cite Lai, Li, Zhang, Zhao, Qian and Jensen, WWW
+  2024, pp. 3010-3021.
 * The documentation of ``BeastDetector`` now says that a fixed
   ``mcmc_seed`` reproduces the output on one machine only: Rbeast picks its
   numerical routines by CPU instruction set, and their rounding differences
