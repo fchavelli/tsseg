@@ -9,7 +9,7 @@ boundaries at the valleys of this curve.
 - Type: change point detection
 - Semi-supervised (`n_cps`) or unsupervised
 - Univariate and multivariate
-- Requires the `stumpy` library
+- Requires the `stumpy` library (`pip install "tsseg[fluss]"`)
 
 ## Implementation
 

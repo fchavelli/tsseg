@@ -31,7 +31,6 @@ dependencies = [
     "scipy",
     "pooch",
     "statsmodels",
-    "future",
 ]
 
 [project.optional-dependencies]
@@ -70,18 +69,20 @@ beast = [
 changeforest = [
     "changeforest>=1.2",
 ]
+fluss = [
+    "stumpy",
+]
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "ruff==0.16.7",
-    "black>=24.8",
     "mypy>=1.10",
     "build>=1.2",
     "twine>=5.1",
     "pre-commit>=3.7",
 ]
 all = [
-    "tsseg[torch,prophet,accelerators,docs,aeon,tglad,tscp2,snlds,beast,changeforest]",
+    "tsseg[torch,prophet,accelerators,docs,aeon,tglad,tscp2,snlds,beast,changeforest,fluss]",
 ]
 tglad = [
     "torch>=2.0",

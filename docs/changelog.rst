@@ -11,6 +11,12 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New extra ``tsseg[fluss]``, which installs stumpy for ``FLUSSDetector``;
+  ``tsseg[all]`` now includes it. stumpy was declared nowhere, so
+  ``pip install "tsseg[all]"`` left ``FLUSSDetector`` unusable.
+* tsseg no longer depends on ``future``, which nothing imports, and the
+  ``dev`` extra no longer installs ``black``: the code is formatted with
+  ``ruff format``.
 * ``ChangeFinderDetector(n_cps=k)`` returns ``k`` change points. When fewer
   than ``k`` peaks of the score passed the threshold, it returned only those
   (``[306]`` for ``n_cps=2`` on a series with two changes): the step meant to

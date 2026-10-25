@@ -13,7 +13,6 @@ dependencies:
   - scipy
   - statsmodels
   - pooch
-  - future
   - pytorch
   # - pytorch-cuda=11.8
   - pip:
