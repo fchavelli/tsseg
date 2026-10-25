@@ -3,7 +3,6 @@ This module provides an aeon-compatible wrapper for the E2USD algorithm.
 """
 
 import numpy as np
-import torch
 
 from ..base import BaseSegmenter
 from ..param_schema import (
@@ -14,7 +13,14 @@ from ..param_schema import (
     Interval,
     ParamDef,
 )
-from .e2usd import DPGMM, E2USD, E2USD_Adaper, params
+
+
+def _cuda_available() -> bool:
+    try:
+        import torch
+    except ImportError:  # reported by the dependency check at construction
+        return False
+    return torch.cuda.is_available()
 
 
 class E2USDDetector(BaseSegmenter):
@@ -179,9 +185,9 @@ class E2USDDetector(BaseSegmenter):
         self.random_state = random_state
 
         if use_gpu is None:
-            self.use_gpu = torch.cuda.is_available()
+            self.use_gpu = _cuda_available()
         else:
-            self.use_gpu = use_gpu and torch.cuda.is_available()
+            self.use_gpu = use_gpu and _cuda_available()
 
         super().__init__(axis=axis)
 
@@ -198,6 +204,10 @@ class E2USDDetector(BaseSegmenter):
         y : np.ndarray, optional
             The target segmentation. If provided, n_states is inferred from y.
         """
+        # Deferred: torch is optional (checked at construction).
+        import torch
+
+        from .e2usd import DPGMM, E2USD_Adaper, params
 
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
@@ -254,6 +264,8 @@ class E2USDDetector(BaseSegmenter):
         np.ndarray
             An array of segment labels for each time point.
         """
+        from .e2usd import E2USD
+
         self._check_is_fitted()
         X = self._validate_data(X)
         n_timepoints, _ = X.shape
