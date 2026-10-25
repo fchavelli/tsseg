@@ -103,9 +103,9 @@ lint:
 	ruff format --check .
 
 # Same command as the test job of .github/workflows/ci.yml, which installs
-# pip install -e .[dev,aeon,prophet,tglad,beast,changeforest]: tests whose optional dependency
-# is missing are skipped, and pyproject.toml deselects the reproduction tests
-# (make test PYTEST_ARGS="-m reproduction" runs them).
+# pip install -e .[dev,aeon,prophet,tglad,beast,changeforest,fluss]: tests whose
+# optional dependency is missing are skipped, and pyproject.toml deselects the
+# reproduction tests (make test PYTEST_ARGS="-m reproduction" runs them).
 test:
 	$(PYTHON) -m pytest --tb=short -q $(PYTEST_ARGS)
 
