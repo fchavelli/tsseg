@@ -35,7 +35,7 @@ change points there, ``threshold=0.1`` the two true ones.
 | **Scope:** univariate (multivariate via ensembling)
 | **Complexity:** :math:`O(d\,n^{2})`: one matrix profile per channel
   (``stumpy.stump``)
-| **Requires:** ``stumpy``
+| **Requires:** stumpy (``pip install tsseg[fluss]``)
 
 Parameters
 ----------

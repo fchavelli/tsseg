@@ -88,7 +88,7 @@ class FLUSSDetector(BaseSegmenter):
 
     Examples
     --------
-    FLUSS needs ``stumpy`` (``pip install stumpy``).
+    FLUSS needs ``stumpy`` (``pip install "tsseg[fluss]"``).
 
     >>> from tsseg import load_mocap
     >>> from tsseg.algorithms import FLUSSDetector
@@ -168,9 +168,7 @@ class FLUSSDetector(BaseSegmenter):
         normalize=True,
     ):
         if not _HAS_STUMPY:
-            raise ImportError(
-                "stumpy is not installed. Please install it to use FLUSSDetector."
-            )
+            raise ImportError('FLUSSDetector needs stumpy: pip install "tsseg[fluss]".')
         self.window_size = window_size
         self.n_segments = n_segments
         self.exclusion_factor = exclusion_factor

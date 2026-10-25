@@ -98,10 +98,10 @@ extra, for instance `pip install "tsseg[torch]"`, or all of them at once with
 | `tsseg[prophet]` | Prophet | `ProphetDetector` |
 | `tsseg[beast]` | Rbeast | `BeastDetector` |
 | `tsseg[changeforest]` | changeforest | `ChangeForestDetector` |
+| `tsseg[fluss]` | stumpy | `FLUSSDetector` |
 | `tsseg[docs]` | Sphinx toolchain | building the documentation |
 | `tsseg[all]` | everything above | |
 
-`FLUSSDetector` needs `stumpy` (`pip install stumpy`).
 The `tsseg[patss]` extra installs nothing: the deprecated `PatssDetector` needs
 `npbad`, which is not on PyPI and must be installed by hand.
 
