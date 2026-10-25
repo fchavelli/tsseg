@@ -1,4 +1,16 @@
-# Taken from: https://github.com/Lab-ANT/Time2State/
+"""Time2State encoder, loss and clustering, from the reference implementation.
+
+Taken from https://github.com/Lab-ANT/Time2State (MIT licence, see
+``LICENSE`` in this directory). The causal CNN encoder (:class:`Chomp1d` to
+:class:`CausalCNNEncoder`) comes from the code of Franceschi et al. (2019),
+https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries,
+on which Time2State builds. Public entry point:
+:class:`tsseg.algorithms.Time2StateDetector`, which uses
+:class:`CausalConv_LSE_Adaper`, :class:`DPGMM` and :class:`Time2State`.
+
+Tensors and arrays follow the PyTorch layout ``(batch, channels, length)``,
+except where a docstring says otherwise.
+"""
 
 import abc
 import math
@@ -7,6 +19,10 @@ import numpy as np
 import torch
 from sklearn import mixture
 
+#: Default hyperparameters of :class:`CausalConv_LSE`, keyed by its argument
+#: names. ``Time2StateDetector`` overrides all of them but ``channels`` (30),
+#: ``win_type`` (``"rect"``), ``M`` (10) and ``N`` (4). ``"cuda"`` is
+#: evaluated once, at import.
 params_LSE = {
     "batch_size": 1,
     "channels": 30,
@@ -89,15 +105,44 @@ def _reorder_label(label):
 
 
 class BasicClusteringClass:
+    """Interface of the clustering component of :class:`Time2State`.
+
+    Parameters
+    ----------
+    params : object
+        Ignored.
+    """
+
     def __init__(self, params):
         pass
 
     @abc.abstractmethod
     def fit(self, X):
-        pass
+        """Cluster the rows of ``X``.
+
+        Parameters
+        ----------
+        X : np.ndarray of shape (n_windows, n_features)
+            Window embeddings.
+
+        Returns
+        -------
+        np.ndarray of shape (n_windows,)
+            Integer cluster label of each row.
+        """
 
 
 class DPGMM(BasicClusteringClass):
+    """Dirichlet process Gaussian mixture on the window embeddings.
+
+    Parameters
+    ----------
+    n_states : int or None
+        Maximum number of mixture components; ``None`` means 20.
+    alpha : float, default=1e3
+        Weight concentration prior of the Dirichlet process.
+    """
+
     def __init__(self, n_states, alpha=1e3):
         self.alpha = alpha
         if n_states is not None:
@@ -106,6 +151,25 @@ class DPGMM(BasicClusteringClass):
             self.n_states = 20
 
     def fit(self, X):
+        """Fit a new mixture to ``X`` and return the component of each row.
+
+        Uses ``sklearn.mixture.BayesianGaussianMixture`` with
+        ``min(n_states, n_windows)`` components, full covariances, k-means
+        initialisation, a Dirichlet process prior of concentration ``alpha``,
+        at most 1000 iterations and no ``random_state`` (NumPy's global
+        generator).
+
+        Parameters
+        ----------
+        X : np.ndarray of shape (n_windows, n_features)
+            Window embeddings.
+
+        Returns
+        -------
+        np.ndarray of shape (n_windows,)
+            Index of the most probable component of each row. Indices need
+            not be contiguous.
+        """
         dpgmm = mixture.BayesianGaussianMixture(
             init_params="kmeans",
             n_components=min(self.n_states, X.shape[0]),
@@ -118,6 +182,14 @@ class DPGMM(BasicClusteringClass):
 
 
 class BasicEncoderClass:
+    """Interface of the encoder component of :class:`Time2State`.
+
+    Parameters
+    ----------
+    params : dict
+        Hyperparameters, passed to ``_set_parmas``.
+    """
+
     def __init__(self, params):
         self._set_parmas(params)
 
@@ -127,14 +199,48 @@ class BasicEncoderClass:
 
     @abc.abstractmethod
     def fit(self, X):
-        pass
+        """Train the encoder on a series.
+
+        Parameters
+        ----------
+        X : np.ndarray of shape (n_timepoints, n_channels)
+            The training series.
+        """
 
     @abc.abstractmethod
     def encode(self, X, win_size, step):
-        pass
+        """Embed the sliding windows of a series.
+
+        Parameters
+        ----------
+        X : np.ndarray of shape (n_timepoints, n_channels)
+            The series.
+        win_size : int
+            Window length.
+        step : int
+            Distance between the starts of consecutive windows.
+
+        Returns
+        -------
+        np.ndarray of shape (n_windows, n_features)
+            One embedding per window.
+        """
 
 
 def hanning_tensor(X):
+    """Multiply a tensor by a Hann window along its last axis.
+
+    Parameters
+    ----------
+    X : torch.Tensor of shape (batch, channels, length)
+        Windows to taper.
+
+    Returns
+    -------
+    torch.Tensor of shape (batch, channels, length)
+        ``X`` times ``(1 - cos(2 pi t / length)) / 2``, on the device of
+        ``X``.
+    """
     length = X.size(2)
     weight = (1 - np.cos(2 * math.pi * np.arange(length) / length)) / 2
     weight = torch.tensor(weight)
@@ -144,22 +250,27 @@ def hanning_tensor(X):
 
 
 class LSELoss(torch.nn.modules.loss._Loss):
-    """
-    LSE loss for representations of time series.
+    """LSE loss (latent state encoding) of Time2State.
+
+    At each call, the loss draws ``M`` random positions in the series and,
+    at each position, ``N`` windows of ``win_size`` points shifted by one
+    point. Windows of the same position are assumed to share a state: the
+    loss pulls their embeddings together (``-log sigmoid`` of their dot
+    products) and pushes the mean embeddings of different positions apart
+    (``-log sigmoid`` of minus their dot products), each term averaged over
+    its pairs.
 
     Parameters
     ----------
-    win_size : even integer.
-        Size of the sliding window.
-
-    M : integer.
-        Number of inter-state samples.
-
-    N : integer.
-        Number of intra-state samples.
-
-    win_type : {'rect', 'hanning'}.
-        window function.
+    win_size : int
+        Length of the sampled windows.
+    M : int
+        Number of random positions (inter-state samples), at least 2.
+    N : int
+        Number of windows per position (intra-state samples), at least 2.
+    win_type : {"rect", "hanning"}
+        ``"hanning"`` tapers the sampled windows with :func:`hanning_tensor`
+        before encoding them.
     """
 
     def __init__(self, win_size, M, N, win_type):
@@ -173,6 +284,26 @@ class LSELoss(torch.nn.modules.loss._Loss):
         # self.lambda1 = 1
 
     def forward(self, batch, encoder, save_memory=False):
+        """Compute the loss on the first series of a batch.
+
+        Positions are drawn with NumPy's global generator.
+
+        Parameters
+        ----------
+        batch : torch.Tensor of shape (batch, channels, length)
+            Training series; only ``batch[0]`` is used. ``length`` must be at
+            least ``2 * win_size``.
+        encoder : torch.nn.Module
+            Maps a tensor of shape (n_windows, channels, win_size) to
+            embeddings of shape (n_windows, n_features).
+        save_memory : bool, default=False
+            Ignored.
+
+        Returns
+        -------
+        torch.Tensor
+            Scalar loss.
+        """
         M = self.M
         N = self.N
         length_pos_neg = self.win_size
@@ -238,6 +369,18 @@ class LSELoss(torch.nn.modules.loss._Loss):
 
 
 def hanning_numpy(X):
+    """NumPy version of :func:`hanning_tensor`.
+
+    Parameters
+    ----------
+    X : np.ndarray of shape (n_windows, channels, length)
+        Windows to taper.
+
+    Returns
+    -------
+    np.ndarray of shape (n_windows, channels, length)
+        ``X`` times ``(1 - cos(2 pi t / length)) / 2`` along the last axis.
+    """
     length = X.shape[2]
     weight = (1 - np.cos(2 * math.pi * np.arange(length) / length)) / 2
     # weight = np.cos(2*math.pi*np.arange(length)/length)+0.5
@@ -264,6 +407,10 @@ class Chomp1d(torch.nn.Module):
         self.chomp_size = chomp_size
 
     def forward(self, x):
+        """Drop the last ``chomp_size`` elements of ``x`` along time.
+
+        ``chomp_size`` must be positive: ``x[..., :-0]`` is empty.
+        """
         return x[:, :, : -self.chomp_size]
 
 
@@ -276,6 +423,7 @@ class SqueezeChannels(torch.nn.Module):
         super(SqueezeChannels, self).__init__()
 
     def forward(self, x):
+        """Squeeze ``x`` of shape (`B`, `C`, 1) into shape (`B`, `C`)."""
         return x.squeeze(2)
 
 
@@ -286,7 +434,8 @@ class CausalConvolutionBlock(torch.nn.Module):
 
     Takes as input a three-dimensional tensor (`B`, `C`, `L`) where `B` is the
     batch size, `C` is the number of input channels, and `L` is the length of
-    the input. Outputs a three-dimensional tensor (`B`, `C`, `L`).
+    the input. Outputs a three-dimensional tensor (`B`, `C_out`, `L`), where
+    `C_out` is ``out_channels``.
 
     Parameters
     ----------
@@ -295,11 +444,14 @@ class CausalConvolutionBlock(torch.nn.Module):
     out_channels : int
         Number of output channels.
     kernel_size : int
-        Kernel size of the applied non-residual convolutions.
+        Kernel size of the applied non-residual convolutions. With
+        ``kernel_size=1``, the causal truncation removes every time step and
+        the block fails.
     dilation : int
         Dilation parameter of non-residual convolutions.
     final : bool, default=False
-        If ``True``, disables the last activation function.
+        If ``True``, adds a leaky ReLU after the sum of the two branches. The
+        source docstring said the opposite ("disables the last activation").
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, dilation, final=False):
@@ -349,6 +501,7 @@ class CausalConvolutionBlock(torch.nn.Module):
         self.relu = torch.nn.LeakyReLU() if final else None
 
     def forward(self, x):
+        """Apply the block to ``x`` of shape (`B`, `C`, `L`)."""
         out_causal = self.causal(x)
         res = x if self.upordownsample is None else self.upordownsample(x)
         if self.relu is None:
@@ -370,11 +523,12 @@ class CausalCNN(torch.nn.Module):
     in_channels : int
         Number of input channels.
     channels : int
-        Number of channels processed in the network and of output channels.
+        Number of channels output by each of the first ``depth`` blocks.
     depth : int
-        Depth of the network.
+        Number of blocks before the last one, of dilations 1, 2, ...,
+        ``2 ** (depth - 1)``; the last block has dilation ``2 ** depth``.
     out_channels : int
-        Number of output channels.
+        Number of output channels (`C_out`), those of the last block.
     kernel_size : int
         Kernel size of the applied non-residual convolutions.
     """
@@ -402,6 +556,7 @@ class CausalCNN(torch.nn.Module):
         self.network = torch.nn.Sequential(*layers)
 
     def forward(self, x):
+        """Apply the blocks to ``x`` of shape (`B`, `C`, `L`)."""
         return self.network(x)
 
 
@@ -410,11 +565,11 @@ class CausalCNNEncoder(torch.nn.Module):
     Encoder of a time series using a causal CNN: the computed representation is
     the output of a fully connected layer applied to the output of an adaptive
     max pooling layer applied on top of the causal CNN, which reduces the
-    length of the time series to a fixed size.
+    length of the time series to one (a maximum over time per channel).
 
     Takes as input a three-dimensional tensor (`B`, `C`, `L`) where `B` is the
     batch size, `C` is the number of input channels, and `L` is the length of
-    the input. Outputs a three-dimensional tensor (`B`, `C`).
+    the input. Outputs a two-dimensional tensor (`B`, ``out_channels``).
 
     Parameters
     ----------
@@ -423,12 +578,13 @@ class CausalCNNEncoder(torch.nn.Module):
     channels : int
         Number of channels manipulated in the causal CNN.
     depth : int
-        Depth of the causal CNN.
+        Depth of the causal CNN (see :class:`CausalCNN`).
     reduced_size : int
-        Fixed length to which the output time series is reduced by the
-        adaptive pooling layer.
+        Number of channels output by the causal CNN, hence the input size of
+        the fully connected layer. The source docstring described it as the
+        length kept by the pooling layer, which always keeps one step.
     out_channels : int
-        Number of output channels.
+        Dimension of the representation.
     kernel_size : int
         Kernel size of the applied non-residual convolutions.
     """
@@ -444,6 +600,7 @@ class CausalCNNEncoder(torch.nn.Module):
         self.network = torch.nn.Sequential(causal_cnn, reduce_size, squeeze, linear)
 
     def forward(self, x):
+        """Embed each series of ``x`` of shape (`B`, `C`, `L`)."""
         return self.network(x)
 
 
@@ -468,17 +625,57 @@ class Dataset(torch.utils.data.Dataset):
 
 
 class BasicEncoder:
+    """Base class of :class:`CausalConv_LSE`; its methods do nothing."""
+
     def encode(self, X):
-        pass
+        """Do nothing; overridden by :meth:`CausalConv_LSE.encode`."""
 
     def save(self, X):
-        pass
+        """Do nothing (saving is not implemented)."""
 
     def load(self, X):
-        pass
+        """Do nothing (loading is not implemented)."""
 
 
 class CausalConv_LSE(BasicEncoder):
+    """Causal CNN encoder trained with the LSE loss.
+
+    The network is a :class:`CausalCNNEncoder` in double precision, on CUDA
+    device ``gpu`` if ``cuda`` is true, optimised by Adam.
+
+    Parameters
+    ----------
+    win_size : int
+        Length of the windows sampled by :class:`LSELoss`.
+    batch_size : int
+        Batch size of the training data loader.
+    nb_steps : int
+        Number of optimisation steps.
+    lr : float
+        Learning rate of Adam.
+    channels : int
+        Number of channels of the hidden causal convolution blocks.
+    depth : int
+        Number of hidden blocks (see :class:`CausalCNN`).
+    reduced_size : int
+        Number of channels output by the causal CNN.
+    out_channels : int
+        Dimension of the embeddings.
+    kernel_size : int
+        Kernel size of the convolutions, at least 2.
+    in_channels : int
+        Number of channels of the series.
+    cuda : bool
+        Whether to run on a CUDA device.
+    gpu : int
+        Index of the CUDA device.
+    M, N : int
+        Numbers of positions and of windows per position of
+        :class:`LSELoss`.
+    win_type : {"rect", "hanning"}
+        Taper of the windows (see :class:`LSELoss` and :meth:`encode_window`).
+    """
+
     def __init__(
         self,
         win_size,
@@ -542,6 +739,26 @@ class CausalConv_LSE(BasicEncoder):
         return network
 
     def fit(self, X, y=None, save_memory=False, verbose=False):
+        """Train the network for ``nb_steps`` steps of the LSE loss.
+
+        Parameters
+        ----------
+        X : np.ndarray of shape (n_series, channels, length)
+            Training series, iterated over in shuffled batches until
+            ``nb_steps`` steps are done; the loss uses the first series of
+            each batch. ``Time2State`` passes a single series.
+        y : None
+            Not used.
+        save_memory : bool, default=False
+            Passed to the loss, which ignores it.
+        verbose : bool, default=False
+            Print the epoch number at the start of each epoch.
+
+        Returns
+        -------
+        torch.nn.Module
+            The trained network.
+        """
         # _, dim = X.shape
         # X = np.transpose(np.array(X, dtype=float)).reshape(1, dim, -1)
 
@@ -582,12 +799,17 @@ class CausalConv_LSE(BasicEncoder):
 
         Parameters
         ----------
-        X : numpy.ndarray
+        X : numpy.ndarray of shape (n_windows, channels, length)
             Testing set.
         batch_size : int, default=500
             Size of batches used for splitting the test data to avoid out of
             memory errors when using CUDA. Ignored if the testing set contains
             time series of unequal lengths.
+
+        Returns
+        -------
+        numpy.ndarray of shape (n_windows, out_channels)
+            One representation per input series.
         """
         # Check if the given time series have unequal lengths
         varying = bool(np.isnan(np.sum(X)))
@@ -636,6 +858,14 @@ class CausalConv_LSE(BasicEncoder):
             save RAM.
         step : int, default=10
             Step length of the sliding window.
+
+        Returns
+        -------
+        numpy.ndarray of shape (n_windows, out_channels)
+            Representations of the windows of the first series of ``X``,
+            which start at ``0, step, ..., (n_windows - 1) * step``, with
+            ``n_windows = (length - win_size) // step + 1``. With
+            ``win_type="hanning"``, the windows are tapered first.
         """
         # _, dim = X.shape
         # X = np.transpose(np.array(X, dtype=float)).reshape(1, dim, -1)
@@ -679,6 +909,11 @@ class CausalConv_LSE(BasicEncoder):
         cuda,
         gpu,
     ):
+        """Re-initialise the encoder (broken, unused by tsseg).
+
+        Calls ``__init__`` without its ``M``, ``N`` and ``win_type``
+        arguments, so it raises ``TypeError``. Kept as in the source.
+        """
         self.__init__(
             compared_length,
             batch_size,
@@ -697,11 +932,25 @@ class CausalConv_LSE(BasicEncoder):
 
 
 class CausalConv_LSE_Adaper(BasicEncoderClass):
+    """Adapter from time-major arrays to :class:`CausalConv_LSE`.
+
+    Both methods take a series of shape (n_timepoints, n_channels), convert
+    it to float, reshape it to (1, n_channels, n_timepoints) and z-normalise
+    it with the mean and the variance of all its values (one pair for all
+    channels; a constant series gives NaN).
+
+    Parameters
+    ----------
+    params : dict
+        Keyword arguments of :class:`CausalConv_LSE` (see ``params_LSE``).
+    """
+
     def _set_parmas(self, params):
         self.hyperparameters = params
         self.encoder = CausalConv_LSE(**self.hyperparameters)
 
     def fit(self, X):
+        """Train the encoder on ``X`` of shape (n_timepoints, n_channels)."""
         _, dim = X.shape
         X = np.transpose(np.array(X[:, :], dtype=float)).reshape(1, dim, -1)
         X = _all_normalize(X)
@@ -709,6 +958,22 @@ class CausalConv_LSE_Adaper(BasicEncoderClass):
         # self.loss_list = self.encoder.loss_list
 
     def encode(self, X, win_size, step):
+        """Embed the sliding windows of ``X``.
+
+        Parameters
+        ----------
+        X : np.ndarray of shape (n_timepoints, n_channels)
+            The series.
+        win_size : int
+            Window length.
+        step : int
+            Distance between the starts of consecutive windows.
+
+        Returns
+        -------
+        np.ndarray of shape (n_windows, out_channels)
+            See :meth:`CausalConv_LSE.encode_window`.
+        """
         _, dim = X.shape
         X = np.transpose(np.array(X[:, :], dtype=float)).reshape(1, dim, -1)
         X = _all_normalize(X)
@@ -717,24 +982,40 @@ class CausalConv_LSE_Adaper(BasicEncoderClass):
 
 
 class Time2State:
+    """Time2State pipeline: encode windows, cluster them, label time points.
+
+    ``Time2StateDetector`` builds one at each ``predict`` and calls its
+    private steps directly, with the encoder trained in ``fit``.
+
+    Parameters
+    ----------
+    win_size : int
+        Window length, even. The label assignment gives each window a vote on
+        ``win_size`` points.
+    step : int
+        Distance between the starts of consecutive windows, used by the label
+        assignment.
+    encoder : BasicEncoderClass
+        Encoder, e.g. :class:`CausalConv_LSE_Adaper`.
+    clustering_component : BasicClusteringClass
+        Clustering of the embeddings, e.g. :class:`DPGMM`.
+    verbose : bool, default=False
+        Ignored.
+
+    Raises
+    ------
+    ValueError
+        If ``win_size`` is odd.
+
+    Notes
+    -----
+    The label assignment lets each window vote, with weight 1, for its
+    cluster on the ``win_size`` points it covers; each point takes the
+    cluster with the most votes, the smallest on a tie. Points covered by no
+    window, at most ``step - 1`` at the end of the series, get label 0.
+    """
+
     def __init__(self, win_size, step, encoder, clustering_component, verbose=False):
-        """
-        Initialize Time2State.
-
-        Parameters
-        ----------
-        win_size : even integer.
-            The size of sliding window.
-
-        step : integer.
-            The step size of sliding window.
-
-        encoder_class : object.
-            The instance of encoder.
-
-        clustering_class: object.
-            The instance of clustering component.
-        """
 
         # The window size must be an even number.
         if win_size % 2 != 0:
@@ -747,23 +1028,24 @@ class Time2State:
         self.__clustering_component = clustering_component
 
     def fit(self, X, win_size, step):
-        """
-        Fit Time2State.
+        """Train the encoder on ``X``, then label ``X``.
 
         Parameters
         ----------
-        X : {ndarray} of shape (n_samples, n_features)
-
-        win_size : even integer.
-            The size of sliding window.
-
-        step : integer.
-            The step size of sliding window.
+        X : np.ndarray of shape (n_timepoints, n_channels)
+            The series.
+        win_size : int
+            Window length used to encode ``X``. The label assignment uses the
+            constructor's ``win_size``: pass the same value.
+        step : int
+            Step used to encode ``X``. The label assignment uses the
+            constructor's ``step``: pass the same value.
 
         Returns
         -------
-        self : object
-            Fitted Time2State.
+        self : Time2State
+            With :attr:`embeddings`, :attr:`embedding_label` and
+            :attr:`state_seq` set.
         """
 
         self.__length = X.shape[0]
@@ -774,23 +1056,24 @@ class Time2State:
         return self
 
     def predict(self, X, win_size, step):
-        """
-        Find state sequence for X.
+        """Label ``X`` with the current encoder, refitting the clustering.
 
         Parameters
         ----------
-        X : {ndarray} of shape (n_samples, n_features)
-
-        win_size : even integer.
-            The size of sliding window.
-
-        step : integer.
-            The step size of sliding window.
+        X : np.ndarray of shape (n_timepoints, n_channels)
+            The series.
+        win_size : int
+            Window length used to encode ``X``. The label assignment uses the
+            constructor's ``win_size``: pass the same value.
+        step : int
+            Step used to encode ``X``; it also replaces the step of the label
+            assignment.
 
         Returns
         -------
-        self : object
-            Fitted Time2State.
+        self : Time2State
+            With :attr:`embeddings`, :attr:`embedding_label` and
+            :attr:`state_seq` set.
         """
         self.__length = X.shape[0]
         self.__step = step
@@ -800,17 +1083,25 @@ class Time2State:
         return self
 
     def set_step(self, step):
+        """Set the step of the label assignment."""
         self.__step = step
 
     def set_clustering_component(self, clustering_obj):
+        """Replace the clustering component; return ``self``."""
         self.__clustering_component = clustering_obj
         return self
 
     def fit_encoder(self, X):
+        """Train the encoder on ``X``; return ``self``."""
         self.__encoder.fit(X)
         return self
 
     def predict_without_encode(self, X, win_size, step):
+        """Recluster the stored embeddings and relabel; return ``self``.
+
+        ``X``, ``win_size`` and ``step`` are ignored: the embeddings and the
+        series length are those of the last ``fit`` or ``predict``.
+        """
         self.__cluster()
         self.__assign_label()
         return self
@@ -837,27 +1128,35 @@ class Time2State:
         pass
 
     def load_result(self, path):
-        pass
+        """Do nothing (not implemented)."""
 
     def plot(self, path):
-        pass
+        """Do nothing (not implemented)."""
 
     @property
     def embeddings(self):
+        """np.ndarray of shape (n_windows, n_features): window embeddings."""
         return self.__embeddings
 
     @property
     def state_seq(self):
+        """np.ndarray of shape (n_timepoints,): state label of each point."""
         return self.__state_seq
 
     @property
     def embedding_label(self):
+        """np.ndarray of shape (n_windows,): cluster of each window.
+
+        Numbered from 0 in order of first appearance.
+        """
         return self.__embedding_label
 
     @property
     def velocity(self):
+        """Never set: reading it raises ``AttributeError``."""
         return self.__velocity
 
     @property
     def change_points(self):
+        """Never set: reading it raises ``AttributeError``."""
         return self.__change_points

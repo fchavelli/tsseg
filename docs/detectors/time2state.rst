@@ -36,7 +36,7 @@ Parameters
    * - ``window_size``
      - int
      - ``256``
-     - Sliding window size.
+     - Sliding window size; must be even.
    * - ``step``
      - int
      - ``50``
@@ -44,7 +44,7 @@ Parameters
    * - ``n_states``
      - int
      - ``20``
-     - Maximum number of states for DPGMM.
+     - Upper bound on the number of states (DPGMM components).
    * - ``alpha``
      - float
      - ``1e3``
@@ -52,7 +52,7 @@ Parameters
    * - ``batch_size``
      - int
      - ``1``
-     - Training batch size.
+     - No effect: the training set is one sample, the whole series.
    * - ``nb_steps``
      - int
      - ``20``
@@ -80,7 +80,7 @@ Parameters
    * - ``use_gpu``
      - bool / None
      - ``None``
-     - Force GPU (``None`` = auto-detect).
+     - Run on CUDA device 0 (``None``: when available).
    * - ``random_state``
      - int / None
      - ``None``
