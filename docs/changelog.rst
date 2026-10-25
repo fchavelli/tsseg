@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* The documentation of ``BeastDetector`` now says that a fixed
+  ``mcmc_seed`` reproduces the output on one machine only: Rbeast picks its
+  numerical routines by CPU instruction set, and their rounding differences
+  change the MCMC samples. It also says that, on some machines, Rbeast
+  returned NaN for every output on a 6,000-point series, so that the detector
+  returned no change point. The test of that series, which failed on such
+  machines, now expects this failure on CPUs that support AVX-512.
 * ``GreedyGaussianDetector`` no longer depends on the level of a
   multivariate series. Its split search started the running mean of the
   left part from the first sample divided by the number of channels, a line
