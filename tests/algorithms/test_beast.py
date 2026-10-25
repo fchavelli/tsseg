@@ -1,5 +1,7 @@
 """Behavioural tests of BeastDetector (need Rbeast >= 0.1.25)."""
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -30,10 +32,38 @@ def test_multivariate_native():
     assert BeastDetector().fit_predict(X).tolist() == [500]
 
 
+def _cpu_has_avx512():
+    """Whether ``/proc/cpuinfo`` lists AVX-512 (``False`` where it is absent)."""
+    try:
+        with open("/proc/cpuinfo", encoding="utf-8") as f:
+            return "avx512f" in f.read()
+    except OSError:
+        return False
+
+
 def test_long_univariate_series_returns():
-    """Rbeast 0.1.15 never returned beyond about 4,600 points."""
-    cps = BeastDetector().fit_predict(_step(n=6000, at=3000))
-    assert 3000 in cps
+    """Rbeast 0.1.15 never returned beyond about 4,600 points.
+
+    Rbeast picks its numerical routines by CPU instruction set (SSE, AVX2,
+    AVX-512), so a fixed seed gives the same output on one machine only
+    (zhaokg/Rbeast#53). On some CI machines, Rbeast 0.1.25 returned NaN for
+    every output on this series; the test marks that case as an expected
+    failure on AVX-512 CPUs, where Rbeast is reported to compute wrong
+    outputs (zhaokg/Rbeast#56), and fails anywhere else.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        cps = BeastDetector().fit_predict(_step(n=6000, at=3000))
+    nan_output = cps.size == 0 and any(
+        "returned nan for ncp_median" in str(w.message) for w in caught
+    )
+    avx512 = _cpu_has_avx512()
+    if nan_output and avx512:
+        pytest.xfail(
+            "Rbeast returned NaN for every output on this AVX-512 CPU "
+            "(zhaokg/Rbeast#53, #56)"
+        )
+    assert 3000 in cps, f"{cps=}, {nan_output=}, {avx512=}"
 
 
 def test_default_seed_is_reproducible():
