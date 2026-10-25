@@ -10,7 +10,13 @@ partial correlations, as in `main.py` of the authors' repository; a score above
 
 - Type: change point detection
 - Unsupervised (threshold-based)
-- Univariate and multivariate
+- Multivariate; univariate series are accepted, with the precision of the
+  single channel as the summary of a window (not in the authors' code; uGLAD
+  min-max scales each window, so this summary does not follow the variance of
+  the signal)
+- 2000 uGLAD training epochs per batch by default, as in the authors' code
+  (with 100, every partial correlation can stay at zero and no change point is
+  found)
 - Requires PyTorch and networkx
 
 ## Implementation
