@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* The documentation of ``BeastDetector`` now says that a fixed
+  ``mcmc_seed`` reproduces the output on one machine only: Rbeast picks its
+  numerical routines by CPU instruction set, and their rounding differences
+  change the MCMC samples. It also says that, on some machines, Rbeast
+  returned NaN for every output on a 6,000-point series, so that the detector
+  returned no change point. The test of that series, which failed on such
+  machines, now expects this failure on CPUs that support AVX-512.
 * The wheel and the source distribution now include the license of the
   PaTSS code, ``tsseg/algorithms/patss/LICENCE``, which the package-data
   patterns (``**/LICENSE``) left out. MATLAB data files (``*.mat``) are no

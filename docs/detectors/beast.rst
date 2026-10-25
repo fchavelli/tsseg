@@ -94,7 +94,8 @@ Parameters
    * - ``mcmc_seed``
      - int
      - ``1``
-     - Seed of the MCMC sampler (``0``: random seed, not reproducible).
+     - Seed of the MCMC sampler (``0``: random seed, not reproducible). A
+       fixed seed reproduces the output on one machine only (see below).
    * - ``cp_prob_threshold``
      - float
      - ``0.1``
@@ -137,6 +138,17 @@ Usage
 
 **Implementation:** wraps the `Rbeast <https://github.com/zhaokg/Rbeast>`_
 package, version 0.1.25 or later (``pip install tsseg[beast]``).
+
+**Reproducibility:** Rbeast picks its numerical routines by CPU instruction
+set (SSE, AVX2, AVX-512), and the MCMC sampler amplifies their rounding
+differences, so a fixed ``mcmc_seed`` gives the same output on one machine,
+not necessarily on another (`Rbeast issue #53
+<https://github.com/zhaokg/Rbeast/issues/53>`_). On some machines, Rbeast
+0.1.25 returned NaN for every output on a 6,000-point series in which it
+finds the change point elsewhere: the detector then returns no change point
+and raises a ``RuntimeWarning``. `Rbeast issue #56
+<https://github.com/zhaokg/Rbeast/issues/56>`_ reports wrong outputs on Intel
+Xeon CPUs.
 
 **Reference:** Zhao et al. (2019), *Detecting change-point, trend, and
 seasonality in satellite time series data*, Remote Sensing of Environment.
