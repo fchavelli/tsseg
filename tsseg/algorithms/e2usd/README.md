@@ -19,6 +19,16 @@ detector. The core logic is in `e2usd.py`.
 
 - Origin: taken from https://github.com/AI4CTS/E2Usd
 - Licence: none found in the original repository
+- Parts from other projects, in `e2usd.py`:
+  - `Dataset`: taken, as in E2Usd, from the code of Franceschi et al. (2019),
+    https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries;
+    Apache License 2.0 (Copyright 2019 Jean-Yves Franceschi, Aymeric
+    Dieuleveut, Martin Jaggi);
+  - `moving_avg` and `series_decomp`: the decomposition blocks of Autoformer,
+    https://github.com/thuml/Autoformer; MIT (Copyright (c) 2021 THUML @
+    Tsinghua University).
+- Licence file: `LICENSE` in this directory, for these parts only, with the
+  `NOTICE` of Franceschi et al. and the changes made to the copied code
 
 ## Citation
 

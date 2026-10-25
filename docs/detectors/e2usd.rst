@@ -104,7 +104,14 @@ Usage
    states = detector.fit_predict(X)
 
 **Implementation:** Adapted from `AI4CTS/E2Usd <https://github.com/AI4CTS/E2Usd>`_.
-No licence found in original repository.
+No licence found in original repository. Two parts come from projects with a
+published licence: the ``Dataset`` class from the code of Franceschi et al.
+(2019), `White-Link/UnsupervisedScalableRepresentationLearningTimeSeries
+<https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries>`_,
+Apache License 2.0, and the ``moving_avg`` and ``series_decomp`` blocks from
+`thuml/Autoformer <https://github.com/thuml/Autoformer>`_, MIT licence. The
+``LICENSE`` file of ``tsseg/algorithms/e2usd`` holds these two licences and
+covers these parts only.
 
 **Reference:** Lai, Zhao, Li, Qian, Zhang & Jensen (2024), *E2Usd:
 Efficient-yet-effective Unsupervised State Detection for Multivariate Time

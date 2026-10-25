@@ -100,7 +100,14 @@ Usage
    detector = Time2StateDetector(window_size=128, n_states=10)
    states = detector.fit_predict(X)
 
-**Implementation:** Adapted from original Time2State code.
+**Implementation:** Adapted from `Lab-ANT/Time2State
+<https://github.com/Lab-ANT/Time2State>`_, MIT licence. Its causal CNN encoder
+and ``Dataset`` class come from the code of Franceschi et al. (2019),
+`White-Link/UnsupervisedScalableRepresentationLearningTimeSeries
+<https://github.com/White-Link/UnsupervisedScalableRepresentationLearningTimeSeries>`_,
+Apache License 2.0, and partly from `locuslab/TCN
+<https://github.com/locuslab/TCN>`_, MIT licence. The ``LICENSE`` file of
+``tsseg/algorithms/time2state`` holds the three licences.
 
 **Reference:** Wang, Wu, Zhou & Cai (2023), *Time2State: An Unsupervised
 Framework for Inferring the Latent States in Time Series Data*, SIGMOD.

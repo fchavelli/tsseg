@@ -106,7 +106,10 @@ class Time2StateDetector(BaseSegmenter):
     given to ``predict``, ``predict`` labels every point 0.
 
     The wrapped code is that of the reference implementation
-    (https://github.com/Lab-ANT/Time2State, MIT licence).
+    (https://github.com/Lab-ANT/Time2State, MIT licence), whose causal CNN
+    encoder comes from the code of Franceschi et al. (2019) (Apache License
+    2.0, partly from locuslab/TCN, MIT licence); the ``LICENSE`` file of
+    ``tsseg/algorithms/time2state`` holds the three licences.
 
     References
     ----------
