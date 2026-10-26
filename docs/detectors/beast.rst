@@ -145,10 +145,13 @@ differences, so a fixed ``mcmc_seed`` gives the same output on one machine,
 not necessarily on another (`Rbeast issue #53
 <https://github.com/zhaokg/Rbeast/issues/53>`_). On some machines, Rbeast
 0.1.25 returned NaN for every output on a 6,000-point series in which it
-finds the change point elsewhere: the detector then returns no change point
-and raises a ``RuntimeWarning``. `Rbeast issue #56
+finds the change point elsewhere. `Rbeast issue #56
 <https://github.com/zhaokg/Rbeast/issues/56>`_ reports wrong outputs on Intel
-Xeon CPUs.
+Xeon CPUs. When the median number of change points (``ncp_median``) is NaN in
+every component and every channel, the detector raises a ``RuntimeWarning``
+and reruns Rbeast once with its SSE routines (``cputype="sse"``, which took
+1.5 to 2 times as long on an AVX2 CPU); if the rerun returns NaN too, the
+detector returns no change point. Other runs are unchanged.
 
 **Reference:** Zhao et al. (2019), *Detecting change-point, trend, and
 seasonality in satellite time series data*, Remote Sensing of Environment.

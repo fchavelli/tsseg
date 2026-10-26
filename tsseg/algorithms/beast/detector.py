@@ -29,7 +29,8 @@ def _median_ncp(ncp_median, index: int, where: str) -> int | None:
     a series that is almost all NaN, every output is NaN. It also did in CI
     on a 6,000-point univariate series (not reproduced locally), where
     ``int(round(nan))`` raised ``ValueError``. The change points are then not
-    capped by this count.
+    capped by this count. A run in which every ``ncp_median`` is NaN is first
+    rerun with Rbeast's SSE routines (see ``_all_nan_output``).
     """
     if ncp_median is None:
         return None
@@ -47,6 +48,36 @@ def _median_ncp(ncp_median, index: int, where: str) -> int | None:
         )
         return None
     return int(round(float(value)))
+
+
+def _all_nan_output(o) -> bool:
+    """Whether every ``ncp_median`` of a Rbeast output is NaN: a failed run.
+
+    ``ncp_median`` is the median number of change points of each component
+    (``trend``, ``season``) and, for ``beast123``, of each channel. Rbeast
+    returns NaN for all of them, and for every other output, on an all-NaN
+    series (which tsseg refuses) and, in CI, on a 6,000-point series in which
+    it finds the change point on other machines (Rbeast issues #53, #56).
+    An output without ``ncp_median`` is not counted as failed.
+    """
+    values = []
+    for name in ("trend", "season"):
+        ncp = getattr(getattr(o, name, None), "ncp_median", None)
+        if ncp is not None:
+            values.append(np.asarray(ncp, dtype=float).ravel())
+    values = [v for v in values if v.size]
+    return bool(values) and not any(np.isfinite(v).any() for v in values)
+
+
+def _warn_sse_rerun() -> None:
+    warnings.warn(
+        "Rbeast returned NaN for every ncp_median, as when a run fails; "
+        "rerunning it once with its SSE routines (cputype='sse'). On some CPUs, "
+        "its default routines returned NaN for every output on series that "
+        "other machines segment (Rbeast issues #53, #56).",
+        RuntimeWarning,
+        stacklevel=3,
+    )
 
 
 def _import_rbeast():
@@ -155,9 +186,13 @@ class BeastDetector(BaseSegmenter):
     ``RuntimeWarning`` is raised and their number is not capped.
 
     On some machines, Rbeast 0.1.25 returned NaN for every output on a
-    6,000-point series in which it finds the change point elsewhere; the
-    detector then returns no change point, with that warning. Rbeast issue
-    #56 reports wrong outputs on Intel Xeon CPUs.
+    6,000-point series in which it finds the change point elsewhere; Rbeast
+    issue #56 reports wrong outputs on Intel Xeon CPUs. When ``ncp_median`` is
+    NaN in every component and every channel, the detector raises a
+    ``RuntimeWarning`` and reruns Rbeast once with its SSE routines
+    (``cputype="sse"``, which took 1.5 to 2 times as long as the default
+    routines on an AVX2 CPU). If the rerun returns NaN too, the detector
+    returns no change point. Other runs are left as they are.
     """
 
     _tags = {
@@ -361,8 +396,12 @@ class BeastDetector(BaseSegmenter):
     def _run_beast_univariate(self, signal: np.ndarray) -> np.ndarray:
         """Run BEAST on a univariate signal and extract change points."""
         rb = _import_rbeast()
+        kwargs = self._get_mcmc_kwargs()
 
-        o = rb.beast(signal, **self._get_mcmc_kwargs())
+        o = rb.beast(signal, **kwargs)
+        if _all_nan_output(o):
+            _warn_sse_rerun()
+            o = rb.beast(signal, **kwargs, cputype="sse")
 
         return self._postprocess(o, len(signal))
 
@@ -390,6 +429,10 @@ class BeastDetector(BaseSegmenter):
         extra.quiet = True
 
         o = rb.beast123(data, metadata=md, mcmc=mcmc, extra=extra)
+        if _all_nan_output(o):
+            _warn_sse_rerun()
+            extra.cputype = "sse"
+            o = rb.beast123(data, metadata=md, mcmc=mcmc, extra=extra)
 
         # beast123 returns a single object with per-channel arrays
         # e.g. o.trend.cp has shape (max_cps, n_channels)
