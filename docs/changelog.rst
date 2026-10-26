@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``PeltDetector().fit(X).get_fitted_params()`` no longer raises. Read
+  before ``predict``, ``change_points_`` raised a ``RuntimeError``, which
+  ``get_fitted_params`` does not skip, and ``hasattr(detector,
+  "change_points_")`` raised it too. The error is now also an
+  ``AttributeError``: until ``predict``, ``get_fitted_params`` leaves
+  ``change_points_`` out and ``hasattr`` returns ``False``. Code that catches
+  the ``RuntimeError`` is unaffected.
 * ``Time2StateDetector`` and ``E2USDDetector`` refuse in ``fit``, with a
   ``ValueError``, the parameters their encoder cannot run: an odd
   ``window_size`` (accepted by ``fit``, it made ``predict`` fail after the
