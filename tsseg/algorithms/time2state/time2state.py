@@ -66,9 +66,12 @@ def _normalize(X, mode="channel"):
 def _all_normalize(data_tensor):
     mean = np.mean(data_tensor)
     var = np.var(data_tensor)
+    # Changed from the reference implementation, which divides by a zero
+    # standard deviation: a series of zero variance is only centred.
+    std = math.sqrt(var) if var > 0 else 1.0
     i = 0
     for channel in data_tensor[0]:
-        data_tensor[0][i] = (channel - mean) / math.sqrt(var)
+        data_tensor[0][i] = (channel - mean) / std
         i += 1
     return data_tensor
 

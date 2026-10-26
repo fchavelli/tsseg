@@ -83,8 +83,9 @@ class Time2StateDetector(BaseSegmenter):
     Notes
     -----
     ``fit`` and ``predict`` z-normalise the series with one mean and one
-    variance computed over all channels together (a constant series becomes
-    NaN, and ``predict`` raises ``ValueError``). ``fit`` then trains the
+    variance computed over all channels together; a series of zero variance
+    is only centred (the reference implementation returns NaN), so a constant
+    series is labelled as one state. ``fit`` then trains the
     encoder for ``nb_steps`` steps. At each step, the LSE loss draws 10 random positions and, at each
     position, 4 windows shifted by one point; it pulls the embeddings of the
     windows of a position together and pushes the mean embeddings of

@@ -83,3 +83,25 @@ def test_schema_accepts_parameters_the_encoder_can_run(params):
     detector = Time2StateDetector(**{**SMALL, "step": 16, **params})
 
     assert validate_params(detector, {"n_samples": 300, "n_channels": 1}) == []
+
+
+@pytest.mark.parametrize(
+    "value", [0.0, 0.1], ids=["zero-variance", "rounding-variance"]
+)
+def test_a_constant_series_is_one_state(value):
+    # np.full(300, 0.0) has a variance of exactly 0: the z-normalisation
+    # divided by zero and the DPGMM refused the NaN. np.full(300, 0.1) has a
+    # variance of a few ulps and was already labelled as one state.
+    X = np.full(300, value)
+
+    labels = Time2StateDetector(**{**SMALL, "step": 16}).fit_predict(X)
+
+    np.testing.assert_array_equal(labels, np.zeros(300, dtype=int))
+
+
+def test_predict_labels_a_constant_series_as_one_state():
+    detector = Time2StateDetector(**{**SMALL, "step": 16}).fit(_two_regime_series(300))
+
+    labels = detector.predict(np.zeros(300))
+
+    np.testing.assert_array_equal(labels, np.zeros(300, dtype=int))

@@ -17,6 +17,13 @@ Unreleased
   training), ``kernel_size=1`` for Time2State and a ``kernel_size`` above
   ``min(window_size, 64)`` for E2USD (both failed in ``fit`` with a
   ``RuntimeError`` from PyTorch).
+* ``Time2StateDetector`` and ``E2USDDetector`` label a constant series as
+  one state. When the variance of the series was exactly zero, as for
+  ``np.zeros(n)``, the z-normalisation divided by zero and ``predict``
+  raised ``ValueError: Input X contains NaN``; a constant series whose
+  variance is a rounding error, as for ``np.full(n, 0.1)``, already got one
+  state. A series of zero variance is now only centred. The other series
+  are normalised as before.
 * ``clone(random_state=k)`` seeds the clone. The seed was ignored: ``clone``
   only called a ``set_random_state`` method that no detector defines, so the
   clone kept the ``random_state`` of the original. As in aeon, the

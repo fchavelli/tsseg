@@ -154,8 +154,8 @@ def all_normalize(data_tensor):
     ----------
     data_tensor : np.ndarray of shape (1, n_channels, n_timepoints)
         The series, normalised in place. The mean and the variance are those
-        of all its values; a constant series has zero variance and becomes
-        NaN.
+        of all its values; a series of zero variance is only centred (the
+        reference implementation divides by zero and returns NaN).
 
     Returns
     -------
@@ -164,9 +164,12 @@ def all_normalize(data_tensor):
     """
     mean = np.mean(data_tensor)
     var = np.var(data_tensor)
+    # Changed from the reference implementation, which divides by a zero
+    # standard deviation: a series of zero variance is only centred.
+    std = math.sqrt(var) if var > 0 else 1.0
     i = 0
     for channel in data_tensor[0]:
-        data_tensor[0][i] = (channel - mean) / math.sqrt(var)
+        data_tensor[0][i] = (channel - mean) / std
         i += 1
     return data_tensor
 
