@@ -8,7 +8,9 @@
 # - the Z-update of the ADMM, the log-likelihoods of the assignment step and
 #   its dynamic programme are vectorised over the clusters;
 # - the confusion matrices, F1 scores and k-means clustering that the original
-#   computed at each iteration without using them are removed.
+#   computed at each iteration without using them are removed;
+# - ``fit_transform`` raises ``ValueError`` when a state cannot get the two
+#   windows its covariance needs at initialisation.
 # ``log_likelihood`` and ``n_free_parameters`` are additions.
 """Core solver of TICC (Toeplitz inverse covariance-based clustering)."""
 
@@ -675,10 +677,10 @@ class TICC:
         Raises
         ------
         ValueError
-            If ``maxIters`` is not positive.
-        KeyError
-            If the initial Gaussian mixture gives a state fewer than two
-            windows.
+            If ``maxIters`` is not positive, if the series has fewer than two
+            windows per state, or if the initial Gaussian mixture gives a
+            state fewer than two windows: the update step needs two windows
+            to estimate the covariance of a state.
         """
         if self.maxIters <= 0:
             raise ValueError(f"maxIters must be > 0, got {self.maxIters}")
@@ -694,6 +696,15 @@ class TICC:
             time_series_rows_size, self.num_blocks, self.window_size, rng
         )  # indices of the training samples
         num_train_points = len(training_indices)
+        if num_train_points < 2 * self.number_of_clusters:
+            raise ValueError(
+                "TICC needs at least two windows in each of the "
+                f"{self.number_of_clusters} states to estimate their covariances, "
+                f"but the series has only {num_train_points} windows "
+                f"(n_timepoints - window_size + 1 = {time_series_rows_size} - "
+                f"{self.window_size} + 1). Use fewer states, a smaller "
+                "window_size or a longer series."
+            )
 
         # Stack the training data
         complete_D_train = self.stack_training_data(
@@ -709,6 +720,16 @@ class TICC:
         )
         gmm.fit(complete_D_train)
         clustered_points = gmm.predict(complete_D_train)
+        counts = np.bincount(clustered_points, minlength=self.number_of_clusters)
+        if counts.min() < 2:
+            state = int(np.argmin(counts))
+            raise ValueError(
+                "TICC needs at least two windows in each state to estimate its "
+                f"covariance, but the initial Gaussian mixture gives state {state} "
+                f"only {counts[state]} of the {num_train_points} windows (windows "
+                f"per state: {counts.tolist()}). Use fewer states or another "
+                "window_size."
+            )
 
         train_cluster_inverse = {}
         log_det_values = {}  # log dets of the thetas

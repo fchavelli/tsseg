@@ -106,10 +106,12 @@ class TiccDetector(BaseSegmenter):
     the detector is transductive, and a series of another length gets labels
     of the length of the training series.
 
-    With ``n_states`` given, ``fit`` raises ``KeyError`` when the initial
-    Gaussian mixture gives a state fewer than two windows (for instance on a
-    series of ``window_size + 1`` points with ``n_states=2``); with
-    ``n_states=None``, such a number of states gets an infinite BIC.
+    Every state needs two windows to estimate its covariance. With
+    ``n_states`` given, ``fit`` raises ``ValueError`` when the series has
+    fewer than ``2 * n_states`` windows (``n_timepoints - window_size + 1``),
+    or when the initial Gaussian mixture gives a state fewer than two windows
+    (for instance to a single window of outliers); with ``n_states=None``,
+    such a number of states gets an infinite BIC.
 
     Number of states. The paper selects the number of clusters :math:`K` by
     BIC [1]_ (Sec. 3, "Selecting the Number of Clusters", and Sec. 7, where

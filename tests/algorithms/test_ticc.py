@@ -102,3 +102,48 @@ def test_n_free_parameters_counts_toeplitz_blocks():
 
     # A0: 3 free entries (symmetric); A1: 2 non-zero entries; A2: none
     assert n_free_parameters(theta, w, d) == 5
+
+
+def _short_series(n_timepoints):
+    return np.random.default_rng(0).normal(size=(n_timepoints, 2))
+
+
+def _series_with_outlying_end():
+    """Noise whose last ``window_size`` rows are outliers, for ``window_size=10``."""
+    X = np.random.default_rng(0).normal(size=(600, 2))
+    X[-10:] = 1e3
+    return X
+
+
+@pytest.mark.parametrize(
+    "X, n_states, match",
+    [
+        # n_timepoints - window_size + 1 windows, fewer than 2 * n_states
+        (_short_series(11), 2, "has only 2 windows"),
+        (_short_series(12), 2, "has only 3 windows"),
+        (_short_series(11), 3, "has only 2 windows"),
+        # enough windows, but the initial mixture gives the outlying ones a state
+        (_series_with_outlying_end(), 2, r"gives state 1 only 1 of the 591 windows"),
+    ],
+)
+def test_guided_fit_refuses_a_state_with_fewer_than_two_windows(X, n_states, match):
+    detector = TiccDetector(window_size=10, n_states=n_states, maxIters=5)
+
+    with pytest.raises(ValueError, match=match) as excinfo:
+        detector.fit(X)
+
+    message = str(excinfo.value)
+    assert "at least two windows" in message
+    assert "fewer states" in message
+    assert "window_size" in message
+
+
+def test_bic_skips_the_numbers_of_states_with_too_few_windows():
+    detector = TiccDetector(window_size=10, maxIters=5, max_states=3)
+
+    labels = detector.fit_predict(_short_series(11))
+
+    assert detector.n_states_ == 1
+    assert np.isfinite(detector.bic_[1])
+    assert detector.bic_[2] == detector.bic_[3] == np.inf
+    assert labels.tolist() == [0] * 11
