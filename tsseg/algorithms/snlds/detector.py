@@ -70,10 +70,10 @@ class SNLDSDetector(BaseSegmenter):
     xent_init : float, default=1000.0
         Initial weight of the cross-entropy regulariser.
     random_state : int or None, default=42
-        Seed of the training windows, and of TensorFlow (global seed, set at the
-        start of ``fit`` and ``predict``). TensorFlow's sampling is not fully
-        reproducible: a few labels (about 0.1 % on MoCap) can differ between two
-        calls.
+        Seed of the training windows, of the initial weights, and of
+        TensorFlow (global seed, set at the start of ``fit`` and ``predict``).
+        Training is still not reproducible from run to run, and two calls to
+        ``predict`` on one fitted model can differ on a few labels (see Notes).
     verbose : int, default=0
         Log the objective ten times during training when ``>= 1``.
     axis : int, default=0
@@ -94,6 +94,16 @@ class SNLDSDetector(BaseSegmenter):
     minibatches of 32 short sequences (50 to 100 steps) from many trajectories;
     here the windows come from the single series to segment. Prediction uses
     the whole series.
+
+    Two fits with the same ``random_state`` start from the same weights and draw
+    the same windows, but TensorFlow does not compute the training identically
+    in every run, even after ``tf.config.experimental.enable_op_determinism()``,
+    and over 2,000 steps the differences can lead to another model. On a series
+    of three segments with clear mean shifts (1,000 points), three runs with the
+    default parameters gave adjusted Rand indices of 0.54, 0.97 and 0.54, and
+    seeds 0 to 4 gave 0.50 to 0.97, two of them above 0.8: the other runs merged
+    two regimes. Prediction samples the continuous states once, so two calls to
+    ``predict`` on one fitted model can still differ on a few labels.
 
     The vendored model code comes from Google Research (Apache License 2.0),
     see ``tsseg/algorithms/snlds/vendor``.

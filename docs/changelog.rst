@@ -456,6 +456,16 @@ Unreleased
   the opposite sign after it, which can be wider than ``tolerance``: one shift
   can then give two change points and leave a smaller shift out of the
   ``n_changepoints`` returned. The detector is unchanged.
+* ``SNLDSDetector`` seeds its initial weights with ``random_state``. Keras 3
+  draws the seed of an initializer created without one from Python's
+  ``random`` module, which the detector did not seed: two fits with the same
+  ``random_state`` started from different weights, and ``fit`` consumed the
+  caller's ``random`` stream. On a series of three segments with clear mean
+  shifts, two runs with the default parameters gave adjusted Rand indices of
+  0.52 and 0.92. Training still differs from run to run, even with
+  ``tf.config.experimental.enable_op_determinism()``: the documentation now
+  says so, with what it does to the result on that series, where it said
+  that only a few labels could differ between two calls.
 
 0.3.0 (2026-10-14)
 ------------------

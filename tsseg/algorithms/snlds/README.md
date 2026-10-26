@@ -16,6 +16,9 @@ highest posterior probability.
 - Univariate and multivariate
 - Requires TensorFlow, TensorFlow Probability and `tf-keras` (`pip install tsseg[snlds]`)
 - Slow: about 0.1 s per gradient step on one CPU thread with the defaults
+- Not reproducible from run to run: `random_state` fixes the initial weights
+  and the training windows, but TensorFlow does not compute the training
+  identically from run to run (see the class docstring)
 
 ## Implementation
 

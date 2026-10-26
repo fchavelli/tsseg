@@ -145,7 +145,7 @@ def test_random_state_fixes_the_initial_weights():
     assert len(a) == len(b)
     for u, v in zip(a, b, strict=True):
         # one Adam step of 1e-4 from the same weights: equal up to the
-        # rounding of multithreaded TensorFlow ops
+        # run-to-run rounding of TensorFlow
         np.testing.assert_allclose(u, v, rtol=0, atol=1e-6)
 
 
