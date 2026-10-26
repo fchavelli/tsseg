@@ -24,6 +24,13 @@ Unreleased
   precision of its single channel (a fallback that is not in the authors'
   code), does not follow the variance of the signal, as the docstring said:
   uGLAD min-max scales each window first.
+* ``clone(random_state=k)`` seeds the clone. The seed was ignored: ``clone``
+  only called a ``set_random_state`` method that no detector defines, so the
+  clone kept the ``random_state`` of the original. As in aeon, the
+  ``random_state`` parameter of the clone is now set to an integer drawn from
+  ``check_random_state(k)``, the same for the same ``k``; ``k`` may also be a
+  ``numpy.random.RandomState``. ``clone()`` without a seed, and detectors
+  without a ``random_state`` parameter, are unchanged.
 * ``Time2StateDetector`` and ``E2USDDetector`` change their output at the
   end of the series. Each window votes for its state on the points it
   covers, and the last ``(n_timepoints - window_size) % step`` points, which
@@ -63,6 +70,17 @@ Unreleased
   channels, the encoder outputs two-dimensional tensors). The README of the
   detector attributed the method to the wrong authors and venue; it now
   cites Wang, Wu, Zhou and Cai, *Proc. ACM Manag. Data* 1(1), 2023.
+* The documentation of ``E2USDDetector`` now describes what the detector
+  computes and where it fails: ``batch_size`` and ``depth`` have no effect,
+  ``window_size`` must be even, ``kernel_size`` can be at most
+  ``min(window_size, 64)``, the convolutions of the encoder keep their random
+  initial weights, ``random_state`` does not seed the clustering of
+  ``predict``, a constant series makes ``predict`` raise, and ``y`` is
+  ignored (the docstring of ``fit`` said it set the number of states). Every
+  public member of ``tsseg.algorithms.e2usd.e2usd`` has a docstring. The
+  README of the detector credited "Chen, Zhichen and others"; it and the
+  documentation page now cite Lai, Li, Zhang, Zhao, Qian and Jensen, WWW
+  2024, pp. 3010-3021.
 * The documentation of ``BeastDetector`` now says that a fixed
   ``mcmc_seed`` reproduces the output on one machine only: Rbeast picks its
   numerical routines by CPU instruction set, and their rounding differences
@@ -80,6 +98,15 @@ Unreleased
   log-likelihood of the paper, the one ``log_likelihood`` computes.
   Multivariate outputs change; univariate outputs, where the two starts
   agree, do not.
+* ``GreedyGaussianDetector(lamb=0)`` is refused by ``fit`` on a multivariate
+  series. Without regularisation, the covariance of a segment with no more
+  points than channels is singular, and the split search scores segments of
+  two points: ``predict`` raised ``LinAlgError: Matrix is not positive
+  definite`` on every multivariate series tried (120 of 120 with two to four
+  channels and the default ``k_max``). The paper assumes
+  :math:`\lambda > 0`. On a univariate series, ``lamb=0`` still runs; if
+  repeated values make a segment's variance zero, the ``LinAlgError`` now
+  says to use ``lamb > 0``.
 * Every detector can be imported without its optional dependencies, so
   ``from tsseg.algorithms import *`` and ``hasattr(tsseg.algorithms, name)``
   work after a bare ``pip install tsseg``. Seven detectors (``ClapDetector``,
