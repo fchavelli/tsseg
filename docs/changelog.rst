@@ -62,6 +62,19 @@ Unreleased
   ``clone(random_state=k)`` also seeds their ``random_state``, in aeon's
   order. A constructor that converts a parameter is still accepted, unlike
   scikit-learn's ``clone``.
+* ``import tsseg`` no longer puts a fake ``numpy.core.umath_tests`` module,
+  with only an ``inner1d`` function, in ``sys.modules``. It was left from a
+  dependency that tsseg no longer has, and any other package of the program
+  that imported ``numpy.core.umath_tests`` got the fake module.
+* ``import tsseg`` no longer imports the detectors: ``tsseg.algorithms`` is
+  imported on first access, so ``import tsseg`` takes about a fifth of the
+  time it took, and ``tsseg.algorithms.PeltDetector`` still works after it.
+  ``tsseg.np``, ``tsseg.sys``, ``tsseg.types`` and ``tsseg.umath_tests``,
+  left by the imports of the package, are gone.
+* ``tsseg.TGLADDetector`` is deprecated (``FutureWarning``) and no longer in
+  ``tsseg.__all__``, so ``from tsseg import *`` gives ``load_mocap`` only.
+  It is the same class as ``tsseg.algorithms.TGLADDetector``, where all the
+  detectors are; import it from there.
 * ``Time2StateDetector`` and ``E2USDDetector`` change their output at the
   end of the series. Each window votes for its state on the points it
   covers, and the last ``(n_timepoints - window_size) % step`` points, which
