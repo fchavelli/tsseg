@@ -67,6 +67,15 @@ Unreleased
   log-likelihood of the paper, the one ``log_likelihood`` computes.
   Multivariate outputs change; univariate outputs, where the two starts
   agree, do not.
+* ``GreedyGaussianDetector(lamb=0)`` is refused by ``fit`` on a multivariate
+  series. Without regularisation, the covariance of a segment with no more
+  points than channels is singular, and the split search scores segments of
+  two points: ``predict`` raised ``LinAlgError: Matrix is not positive
+  definite`` on every multivariate series tried (120 of 120 with two to four
+  channels and the default ``k_max``). The paper assumes
+  :math:`\lambda > 0`. On a univariate series, ``lamb=0`` still runs; if
+  repeated values make a segment's variance zero, the ``LinAlgError`` now
+  says to use ``lamb > 0``.
 * Every detector can be imported without its optional dependencies, so
   ``from tsseg.algorithms import *`` and ``hasattr(tsseg.algorithms, name)``
   work after a bare ``pip install tsseg``. Seven detectors (``ClapDetector``,

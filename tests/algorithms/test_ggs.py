@@ -85,3 +85,36 @@ def test_change_points_do_not_depend_on_a_constant_offset(univariate):
             X + offset
         )
         np.testing.assert_array_equal(shifted, expected)
+
+
+@pytest.mark.parametrize("data", ["three_channels", "two_channels"])
+def test_zero_lamb_is_refused_on_a_multivariate_series(data):
+    """``lamb=0`` leaves the covariance of a two-point segment singular.
+
+    The split search scores a left part of two points first, whose empirical
+    covariance has rank one at most: with more than one channel and no
+    regularisation, the objective is unbounded and ``np.linalg.cholesky``
+    used to raise ``LinAlgError: Matrix is not positive definite`` while
+    predicting. ``fit`` now refuses it with a message that names ``lamb``.
+    """
+    X = _shifted_mean_segment() if data == "three_channels" else _three_segments()
+    with pytest.raises(ValueError, match="lamb"):
+        GreedyGaussianDetector(lamb=0.0).fit(X)
+
+
+def test_zero_lamb_on_a_univariate_series_with_equal_values_names_lamb():
+    """A segment of equal values has a zero variance, singular without ``lamb``."""
+    rng = np.random.default_rng(0)
+    X = np.concatenate([rng.integers(0, 3, 100), rng.integers(5, 8, 100)])
+    detector = GreedyGaussianDetector(k_max=3, lamb=0.0, max_shuffles=5).fit(X)
+    with pytest.raises(np.linalg.LinAlgError, match="lamb"):
+        detector.predict(X)
+
+
+def test_zero_lamb_still_runs_on_a_continuous_univariate_series():
+    """Without repeated values, a univariate series keeps the unregularised fit."""
+    X = _three_segments()[:, 0]
+    change_points = GreedyGaussianDetector(
+        k_max=2, lamb=0.0, random_state=0
+    ).fit_predict(X)
+    np.testing.assert_array_equal(change_points, [150, 250])

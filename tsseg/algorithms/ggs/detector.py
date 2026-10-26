@@ -38,6 +38,7 @@ from sklearn.utils.validation import check_random_state
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
+    DataDependent,
     HasType,
     Interval,
     ParamDef,
@@ -71,12 +72,17 @@ class _GGS:
     ----------
     k_max: int, default=10
         Maximum number of change points to find. The number of segments is thus k+1.
-    lamb: : float, default=1.0
+    lamb: float, default=1.0
         Regularization parameter lambda (>= 0), which controls the amount of
         (inverse) covariance regularization, see Eq (1) in [1]_. Regularization
-        is introduced to reduce issues for high-dimensional problems. Setting
-        ``lamb`` to zero will ignore regularization, whereas large values of
-        lambda will favour simpler models.
+        is introduced to reduce issues for high-dimensional problems. Large
+        values of lambda will favour simpler models. ``lamb=0`` drops the
+        regularization (maximum likelihood, which the paper leaves out): the
+        covariance of a segment with no more points than channels, or of
+        equal values, is then singular, and ``np.linalg.cholesky`` raises
+        ``LinAlgError`` on it unless rounding hides the zero pivot. The split
+        search scores segments of two points, so this happens on almost any
+        multivariate series.
     max_shuffles: int, default=250
         Maximum number of shuffles
     verbose: bool, default=False
@@ -402,9 +408,14 @@ class GreedyGaussianDetector(BaseSegmenter):
     lamb : float, default=1.0
         Regularization parameter lambda (>= 0), which controls the amount of
         (inverse) covariance regularization, see Eq (1) in [1]_. Regularization
-        is introduced to reduce issues for high-dimensional problems. Setting
-        ``lamb`` to zero will ignore regularization, whereas large values of
-        lambda will favour simpler models.
+        is introduced to reduce issues for high-dimensional problems. Large
+        values of lambda will favour simpler models. ``lamb=0`` drops the
+        regularization (maximum likelihood, which the paper leaves out): the
+        covariance of a segment with no more points than channels is then
+        singular, and the split search scores segments of two points. ``fit``
+        thus refuses ``lamb=0`` on a multivariate series, and ``predict`` can
+        raise ``np.linalg.LinAlgError`` on a univariate series with repeated
+        values.
     max_shuffles : int, default=250
         Maximum number of shuffles.
     verbose : bool, default=False
@@ -471,7 +482,7 @@ class GreedyGaussianDetector(BaseSegmenter):
         ),
         "lamb": ParamDef(
             constraint=Interval(float, 0, None, Closed.LEFT),
-            description="Regularisation parameter lambda (>= 0).",
+            description="Regularisation parameter lambda (>= 0, > 0 if multivariate).",
         ),
         "max_shuffles": ParamDef(
             constraint=Interval(int, 1, None, Closed.LEFT),
@@ -486,6 +497,14 @@ class GreedyGaussianDetector(BaseSegmenter):
             description="Random seed.",
             nullable=True,
         ),
+        "_cross_constraints": [
+            DataDependent(
+                "lamb > 0 or n_channels == 1",
+                "lamb must be > 0 for a multivariate series: without "
+                "regularisation, the covariance of a segment with no more "
+                "points than channels is singular",
+            ),
+        ],
     }
 
     def __init__(
@@ -539,7 +558,15 @@ class GreedyGaussianDetector(BaseSegmenter):
             Sorted 1-D integer array of change point indices, each the first
             point of a new segment (``0`` and the series length are left out).
         """
-        change_points_ = self.ggs.find_change_points(X)
+        try:
+            change_points_ = self.ggs.find_change_points(X)
+        except np.linalg.LinAlgError as err:
+            if self.lamb > 0:
+                raise
+            raise np.linalg.LinAlgError(
+                "With lamb=0, a segment of repeated values has a singular "
+                "covariance and an unbounded likelihood; use lamb > 0."
+            ) from err
         # ``change_points_`` is bounded by 0 and ``n + 1`` (search sentinels).
         return np.asarray(change_points_[1:-1], dtype=np.int64)
 
