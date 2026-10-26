@@ -11,6 +11,19 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``TGLADDetector`` now trains uGLAD for 2000 epochs per batch by default,
+  as the authors' code does, instead of 100. After 100 epochs, the soft
+  threshold that GLAD learns could set every partial correlation to zero, and
+  the detector then found no change point, as on a two-channel series with
+  two clear mean shifts and on the first three MoCap trials with the default
+  ``window_size``; after 2000 epochs it finds 21, 37 and 34 change points on
+  these trials, for 6, 9 and 8 true ones. Training takes about 20 times
+  longer; pass ``epochs=100`` for the previous behaviour. The documentation
+  now also says that the windows around one transition can each give a
+  change point, and that on a univariate series the summary of a window, the
+  precision of its single channel (a fallback that is not in the authors'
+  code), does not follow the variance of the signal, as the docstring said:
+  uGLAD min-max scales each window first.
 * ``clone(random_state=k)`` seeds the clone. The seed was ignored: ``clone``
   only called a ``set_random_state`` method that no detector defines, so the
   clone kept the ``random_state`` of the original. As in aeon, the

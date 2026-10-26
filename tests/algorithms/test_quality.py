@@ -75,8 +75,14 @@ KNOWN_FAILURES: dict[str, str] = {
         "the shift at 700 scores at the level of the noise"
     ),
     "TGLADDetector": (
-        "unsupervised: [250] with the suite's window_size=100, stride=50, "
-        "epochs=100; no change point with the defaults"
+        "unsupervised, with the suite's window_size=100, stride=50, "
+        "epochs=100: F1 0.40 to 0.80 over eight torch seeds, change points at "
+        "350-400 and 750-800, where batches of windows meet; [128, 256, 384] "
+        "with the defaults, every window that has a score. On a univariate "
+        "series the summary of a window is the precision of its min-max "
+        "scaled channel: after 100 epochs it follows the training of each "
+        "batch, after 2000 it varies from window to window by far more than "
+        "threshold"
     ),
     "TSCP2Detector": (
         "[303, 308] after the suite's 2 epochs; [333, 348] after the default 100"
