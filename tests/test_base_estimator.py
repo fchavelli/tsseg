@@ -15,6 +15,7 @@ import pytest
 from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import StandardScaler
 
+from tsseg.algorithms import RandomDetector
 from tsseg.algorithms.base import BaseSegmenter, BaseSeriesEstimator, _infer_inner_type
 from tsseg.algorithms.param_schema import Closed, DataDependent, Interval, ParamDef
 
@@ -67,6 +68,25 @@ class _EmptyFitSegmenter(_Segmenter):
 
 class _UnivariateSegmenter(_Segmenter):
     _tags = {"capability:multivariate": False}
+
+
+class _UnseededSegmenter(BaseSegmenter):
+    """Segmenter without a ``random_state`` parameter."""
+
+    _tags = {
+        "returns_dense": True,
+        "detector_type": "change_point_detection",
+    }
+
+    def __init__(self, *, window: int = 2, axis: int = 0):
+        self.window = window
+        super().__init__(axis=axis)
+
+    def _fit(self, X, y=None):
+        return self
+
+    def _predict(self, X):
+        return np.array([X.shape[0] // 2])
 
 
 class _MultivariateOnlySegmenter(_Segmenter):
@@ -297,17 +317,44 @@ def test_clone_without_random_state_keeps_it():
     assert _Segmenter(random_state=3).clone().random_state == 3
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="T69: clone(random_state=...) only calls a set_random_state method "
-    "that no detector defines, so the seed is silently ignored (aeon sets every "
-    "random_state parameter of the clone)",
-)
 def test_clone_with_random_state_seeds_the_clone():
     first = _Segmenter().clone(random_state=7)
     second = _Segmenter().clone(random_state=7)
     assert first.random_state is not None
     assert first.random_state == second.random_state
+
+
+def test_clone_with_random_state_draws_the_seed_as_aeon():
+    # aeon (through scikit-learn's ``_set_random_states``) sets the
+    # ``random_state`` parameter of the clone to an integer drawn from
+    # ``check_random_state(random_state)``.
+    expected = np.random.RandomState(7).randint(np.iinfo(np.int32).max)
+    assert _Segmenter(random_state=3).clone(random_state=7).random_state == expected
+    rng = np.random.RandomState(7)
+    assert _Segmenter().clone(random_state=rng).random_state == expected
+    assert _Segmenter().clone(random_state=8).random_state != expected
+
+
+def test_clone_with_random_state_keeps_the_original_and_other_parameters():
+    est = _Segmenter(window=5, config={"lags": [1]}, random_state=3)
+    cloned = est.clone(random_state=7)
+    assert est.random_state == 3
+    assert cloned.window == 5
+    assert cloned.config == {"lags": [1]}
+
+
+def test_clone_with_random_state_of_an_estimator_without_one():
+    est = _UnseededSegmenter(window=4)
+    cloned = est.clone(random_state=7)
+    assert cloned.get_params(deep=False) == est.get_params(deep=False)
+    assert not hasattr(cloned, "random_state")
+
+
+def test_seeded_clones_of_a_random_detector_agree():
+    X = np.random.default_rng(0).normal(size=(200, 2))
+    first = RandomDetector(n_change_points=3).clone(random_state=7)
+    second = RandomDetector(n_change_points=3).clone(random_state=7)
+    np.testing.assert_array_equal(first.fit_predict(X), second.fit_predict(X))
 
 
 @pytest.mark.xfail(
