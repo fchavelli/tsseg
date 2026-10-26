@@ -1,6 +1,4 @@
-"""
-This module provides an aeon-compatible wrapper for the TICC algorithm.
-"""
+"""TICC detector, a wrapper of :mod:`tsseg.algorithms.ticc.ticc`."""
 
 import warnings
 
@@ -17,32 +15,54 @@ from .ticc import TICC, n_free_parameters
 
 
 class TiccDetector(BaseSegmenter):
-    """
-    An aeon-compatible wrapper for the TICC (Toeplitz Inverse Covariance-based
-    Clustering) algorithm for time series segmentation.
+    """TICC: Toeplitz inverse covariance-based clustering of time series windows.
+
+    Each state is a Gaussian model of the windows of ``window_size``
+    consecutive time points, whose precision (inverse covariance) matrix is
+    sparse and block Toeplitz: the dependency between two channels at a given
+    lag is the same everywhere in the window. TICC alternates between
+    estimating the precision matrix of each state (Toeplitz graphical lasso,
+    solved by ADMM) and assigning the windows to the states by dynamic
+    programming, with a penalty ``beta`` for each change of state between
+    consecutive windows [1]_.
 
     Parameters
     ----------
     window_size : int, default=10
-        The size of the sliding window.
+        Number :math:`w` of consecutive time points stacked into each window;
+        the window of time point ``t`` holds the points ``t`` to
+        ``t + w - 1``. Must be smaller than the length of the series.
     n_states : int or None, default=None
         The number of states (clusters) to find; ``1`` labels every time
         point with the same state. ``None`` selects it by the Bayesian
         information criterion among ``1, ..., max_states`` (see Notes).
+    lambda_parameter : float, default=11e-2
+        Weight :math:`\\lambda` of the :math:`\\ell_1` penalty on every entry
+        of the precision matrix of each state, diagonal included. It is not
+        divided by the number of windows of the state: the paper absorbs this
+        factor into :math:`\\lambda` [1]_.
+    beta : float, default=400
+        Switching penalty: cost of each change of state between two
+        consecutive windows. The assignment step weighs it against
+        :math:`(X_t - \\mu)^\\top \\Theta (X_t - \\mu) - \\log\\det\\Theta`,
+        twice the negative log-likelihood of a window up to a constant, so
+        ``beta`` is twice the :math:`\\beta` of the paper. With ``0``, each
+        window takes its most likely state.
+    maxIters : int, default=100
+        Maximum number of iterations (update step, then assignment step); the
+        iterations stop earlier when the assignment no longer changes.
+    threshold : float, default=2e-5
+        No effect: the solver stores it but never reads it (the tolerances of
+        the ADMM are fixed at ``1e-6``).
+    num_proc : int, default=1
+        Number of processes that solve the update steps of the states in
+        parallel (``multiprocessing.Pool``); the output does not depend on it.
     max_states : int, default=8
         Largest number of states tried when ``n_states`` is ``None``.
-    lambda_parameter : float, default=11e-2
-        Sparsity parameter.
-    beta : float, default=400
-        Switching penalty, controls the temporal consistency.
-    maxIters : int, default=100
-        Maximum number of iterations for the TICC solver.
-    threshold : float, default=2e-5
-        Convergence threshold.
-    num_proc : int, default=1
-        Number of processes to use for parallel computation.
     axis : int, default=0
-        The axis of the input series to segment.
+        Axis of the time points in a 2D input: ``0`` for an array of shape
+        ``(n_timepoints, n_channels)``, ``1`` for
+        ``(n_channels, n_timepoints)``.
 
     Attributes
     ----------
@@ -51,12 +71,49 @@ class TiccDetector(BaseSegmenter):
     bic_ : dict
         BIC of each candidate number of states (only when ``n_states=None``);
         ``inf`` for a number of states the solver failed to fit.
+    ticc_ : TICC
+        The fitted solver; with ``n_states=None``, the one of the selected
+        number of states.
 
     Notes
     -----
-    The paper selects the number of clusters :math:`K` by BIC [1]_ (Sec. 3,
-    "Selecting the Number of Clusters", and Sec. 7, where BIC picks
-    :math:`K = 5`). With ``n_states=None``, TICC is fitted for each
+    Windows. As the reference code, ``fit`` stacks the windows that start at
+    ``t = 0, ..., n - w``: the label of time point ``t`` is that of the
+    points ``t`` to ``t + w - 1`` (the paper labels the window that ends at
+    ``t``). The last ``w - 1`` of these windows would run past point
+    ``n - w`` and are padded with zeros: the last ``w - 1`` observations of
+    the series enter no window. The padded windows take part in the initial
+    Gaussian mixture and in the mean and covariance of their state, but their
+    cost is 0 for every state in the assignment step, so they keep the state
+    of the last full window (with ``beta=0``, they all take state 0). The
+    detector gives the last ``w - 1`` time points the label of the last
+    window: for ``beta > 0``, the last ``2(w - 1)`` labels repeat the label of
+    time point ``n - 2w + 1``.
+
+    Solver. A Gaussian mixture with full covariances, fitted on the stacked
+    windows, gives the initial states. The update step solves, for each state
+    with at least two windows, the Toeplitz graphical lasso (Problem (4) of
+    [1]_) on the unbiased empirical covariance of its windows, by ADMM
+    (:math:`\\rho = 1`, at most 1000 iterations, tolerances ``1e-6``). The
+    assignment step solves Problem (3) of [1]_, with :math:`\\beta` =
+    ``beta / 2``, by dynamic programming over the windows. From the second
+    iteration on, a state left without windows after the assignment step
+    receives 20 consecutive windows of another state. The solver draws from
+    its own generator, seeded with 102: the output is the same at every run,
+    and the detector has no ``random_state``.
+
+    ``predict`` returns the labels computed by ``fit``, whatever its input:
+    the detector is transductive, and a series of another length gets labels
+    of the length of the training series.
+
+    With ``n_states`` given, ``fit`` raises ``KeyError`` when the initial
+    Gaussian mixture gives a state fewer than two windows (for instance on a
+    series of ``window_size + 1`` points with ``n_states=2``); with
+    ``n_states=None``, such a number of states gets an infinite BIC.
+
+    Number of states. The paper selects the number of clusters :math:`K` by
+    BIC [1]_ (Sec. 3, "Selecting the Number of Clusters", and Sec. 7, where
+    BIC picks :math:`K = 5`). With ``n_states=None``, TICC is fitted for each
     :math:`K` in ``1, ..., max_states`` and the fit with the lowest
 
     .. math::
@@ -78,6 +135,11 @@ class TiccDetector(BaseSegmenter):
     On univariate series, the log-likelihood of the fitted model often does
     not increase with the number of states, and BIC then selects a single
     state.
+
+    The solver, :mod:`tsseg.algorithms.ticc.ticc`, is the code of the
+    reference implementation (https://github.com/davidhallac/TICC, BSD
+    2-Clause licence); the changes listed at the top of that module leave its
+    output unchanged.
 
     References
     ----------
@@ -189,15 +251,14 @@ class TiccDetector(BaseSegmenter):
         )
 
     def _fit(self, X, y=None):
-        """
-        Fit the TICC model to the data.
+        """Fit TICC and store the labels of ``X``.
 
         Parameters
         ----------
         X : np.ndarray
-            The time series, of shape (n_timepoints, n_channels).
+            The time series, of shape ``(n_timepoints, n_channels)``.
         y : None
-            Not used.
+            Ignored.
 
         Returns
         -------
@@ -244,18 +305,18 @@ class TiccDetector(BaseSegmenter):
         return self
 
     def _predict(self, X):
-        """
-        Return the segmentation labels found during fit.
+        """Return the state labels computed by ``fit``.
 
         Parameters
         ----------
         X : np.ndarray
-            The time series to segment of shape (n_channels, n_timepoints).
+            Ignored: the labels are those of the series given to ``fit``.
 
         Returns
         -------
         np.ndarray
-            The predicted state labels as a 1D array of shape (n_timepoints,).
+            State labels of the series given to ``fit``, of shape
+            ``(n_timepoints,)``.
         """
         self._check_is_fitted()
         # TICC's fit_transform already computes the segmentation for the training data.
