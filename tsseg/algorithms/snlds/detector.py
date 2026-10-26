@@ -13,6 +13,7 @@ detector.
 from __future__ import annotations
 
 import logging
+import random
 from typing import Any
 
 import numpy as np
@@ -221,6 +222,24 @@ class SNLDSDetector(BaseSegmenter):
     # ------------------------------------------------------------------
 
     def _build_model(self, obs_dim: int, num_steps: int):
+        """Construct the SNLDS model, with initial weights set by ``random_state``.
+
+        Keras 3 draws the seed of an initializer created without one from
+        Python's ``random`` module, which ``tf.random.set_seed`` does not
+        seed: two fits with the same ``random_state`` started from different
+        weights. The module is seeded while the layers are created, then given
+        its state back, so the caller's ``random`` stream is left as it was.
+        """
+        if self.random_state is None:
+            return self._construct_model(obs_dim, num_steps)
+        state = random.getstate()
+        random.seed(self.random_state)
+        try:
+            return self._construct_model(obs_dim, num_steps)
+        finally:
+            random.setstate(state)
+
+    def _construct_model(self, obs_dim: int, num_steps: int):
         """Construct the SNLDS model and training utilities."""
         import tensorflow as tf
 

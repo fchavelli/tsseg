@@ -118,3 +118,47 @@ def test_window_training_and_seeded_predict():
     assert a.shape == (600,)
     # seeded, but TensorFlow's sampling in a while loop is not bit-reproducible
     assert np.mean(a == b) > 0.99
+
+
+def _fit_weights(seed_of_python_random):
+    """Weights after one training step, with Python's ``random`` seeded first."""
+    import random
+
+    rng = np.random.default_rng(2)
+    X = np.concatenate([rng.normal(0, 1, (100, 1)), rng.normal(3, 1, (100, 1))])
+    random.seed(seed_of_python_random)
+    det = SNLDSDetector(
+        n_states=2, n_train_steps=1, train_window=64, batch_size=2, random_state=0
+    ).fit(X)
+    return [v.numpy() for v in det._model.trainable_variables]
+
+
+def test_random_state_fixes_the_initial_weights():
+    """Same ``random_state``, same model, whatever the state of ``random``.
+
+    Keras 3 draws the seed of an initializer built without one from Python's
+    ``random`` module: unless the detector seeds it, two fits with the same
+    ``random_state`` start from different weights.
+    """
+    _tf_stack()
+    a, b = _fit_weights(1), _fit_weights(2)
+    assert len(a) == len(b)
+    for u, v in zip(a, b, strict=True):
+        # one Adam step of 1e-4 from the same weights: equal up to the
+        # rounding of multithreaded TensorFlow ops
+        np.testing.assert_allclose(u, v, rtol=0, atol=1e-6)
+
+
+def test_fit_leaves_the_python_random_stream_alone():
+    """Seeding the initial weights does not reseed the caller's ``random``."""
+    _tf_stack()
+    import random
+
+    random.seed(3)
+    expected = random.random()
+    random.seed(3)
+    X = np.random.default_rng(2).normal(0, 1, (100, 1))
+    SNLDSDetector(
+        n_states=2, n_train_steps=1, train_window=64, batch_size=2, random_state=0
+    ).fit(X)
+    assert random.random() == expected
