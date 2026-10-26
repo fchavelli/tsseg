@@ -39,7 +39,7 @@ class TGLADDetector(BaseSegmenter):
     The change point score is calculated based on the second derivative of the
     sum of partial correlations derived from the precision matrices, faithfully
     mirroring the original implementation. Change points are emitted whenever
-    the score exceeds ``threshold``.
+    the score reaches ``threshold``.
 
     Parameters
     ----------
@@ -55,8 +55,11 @@ class TGLADDetector(BaseSegmenter):
     min_spacing : int, optional
         Minimum distance (in samples) required between two emitted change
         points. Defaults to the stride when ``None``.
-    epochs : int, default=100
-        Number of uGLAD training epochs per batch.
+    epochs : int, default=2000
+        Number of uGLAD training epochs per batch, as in ``main.py`` of the
+        authors' repository. Fewer epochs run faster but can leave every
+        partial correlation at zero, and then no change point is found (see
+        Notes).
     learning_rate : float, default=0.001
         Optimiser learning rate.
     glad_iterations : int, default=5
@@ -67,6 +70,36 @@ class TGLADDetector(BaseSegmenter):
         Forward progress flag passed through to the uGLAD routines.
     axis : int, default=0
         Time axis of ``X``. ``0`` assumes ``(n_timepoints, n_features)``.
+
+    Notes
+    -----
+    Each batch of windows trains a new uGLAD model, and uGLAD scales each
+    channel of each window to ``[0, 1]`` (min-max) before it estimates the
+    precision matrix.
+
+    - Training length: GLAD shrinks the off-diagonal entries of the
+      precision matrix by a soft threshold that it learns. After too few
+      epochs, this threshold can set every partial correlation of a window
+      to zero; when it does so in every window, all summaries are 0 and no
+      change point is found. With 100 epochs this happened on a two-channel
+      series with two clear mean shifts, and on 96 to 100 % of the windows
+      of the first three MoCap trials (four channels, default
+      ``window_size``). 2000 epochs take about 20 times longer.
+    - Several change points per transition: every window whose score
+      reaches ``threshold`` gives a change point at its start, at least
+      ``min_spacing`` apart, so the windows around one transition can give
+      one each. The authors' code instead marks the ``window_size`` points
+      on each side of each such window as a transition, so that the marked
+      intervals merge.
+    - Univariate series: there is no partial correlation, and the summary
+      of a window falls back to the precision of its single channel (this
+      fallback is not in the authors' code). The min-max scaling removes the
+      scale of the window, so this precision does not follow the variance of
+      the signal, only the shape of the distribution of the window's
+      values. After 100 epochs it is far from converged and jumps from one
+      batch to the next; after 2000 it varies from one window to the next,
+      within a stationary segment too, by far more than the default
+      ``threshold``, so that most windows give a change point.
     """
 
     _tags = {
@@ -150,7 +183,7 @@ class TGLADDetector(BaseSegmenter):
         batch_size: int = 8,
         threshold: float = 0.5,
         min_spacing: int | None = None,
-        epochs: int = 100,
+        epochs: int = 2000,
         learning_rate: float = 0.001,
         glad_iterations: int = 5,
         eval_offset: float = 0.1,
@@ -240,13 +273,16 @@ class TGLADDetector(BaseSegmenter):
         """Compute sum of upper triangle of partial correlation matrix.
 
         For univariate data (D=1) the partial-correlation matrix has no
-        off-diagonal entries, so we fall back to the scalar precision value
-        which still tracks changes in the signal's variance across windows.
+        off-diagonal entries, so we fall back to the scalar precision value.
+        uGLAD min-max scales each window, so this value does not track the
+        variance of the signal, only the shape of the distribution of the
+        window's values (see the Notes of the class).
         """
         d = precision.shape[0]
 
         if d == 1:
-            # Univariate: use scalar precision directly as the summary
+            # Univariate fallback, not in the authors' code: the precision of
+            # the min-max scaled window, blind to a change of scale alone.
             return float(precision[0, 0])
 
         # Formula: rho_ij = -p_ij / sqrt(p_ii * p_jj)

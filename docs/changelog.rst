@@ -24,6 +24,19 @@ Unreleased
   variance is a rounding error, as for ``np.full(n, 0.1)``, already got one
   state. A series of zero variance is now only centred. The other series
   are normalised as before.
+* ``TGLADDetector`` now trains uGLAD for 2000 epochs per batch by default,
+  as the authors' code does, instead of 100. After 100 epochs, the soft
+  threshold that GLAD learns could set every partial correlation to zero, and
+  the detector then found no change point, as on a two-channel series with
+  two clear mean shifts and on the first three MoCap trials with the default
+  ``window_size``; after 2000 epochs it finds 21, 37 and 34 change points on
+  these trials, for 6, 9 and 8 true ones. Training takes about 20 times
+  longer; pass ``epochs=100`` for the previous behaviour. The documentation
+  now also says that the windows around one transition can each give a
+  change point, and that on a univariate series the summary of a window, the
+  precision of its single channel (a fallback that is not in the authors'
+  code), does not follow the variance of the signal, as the docstring said:
+  uGLAD min-max scales each window first.
 * ``clone(random_state=k)`` seeds the clone. The seed was ignored: ``clone``
   only called a ``set_random_state`` method that no detector defines, so the
   clone kept the ``random_state`` of the original. As in aeon, the
@@ -31,6 +44,15 @@ Unreleased
   ``check_random_state(k)``, the same for the same ``k``; ``k`` may also be a
   ``numpy.random.RandomState``. ``clone()`` without a seed, and detectors
   without a ``random_state`` parameter, are unchanged.
+* ``clone()`` copies the parameters, as scikit-learn's ``clone`` (used by
+  aeon) does. The clone received the parameter objects themselves, so a
+  mutable parameter (a list such as ``ICIDDetector(psi_list=...)``, a dict, an
+  array, a ``RandomState``) was shared: changing it in place, or drawing from
+  the generator, also changed the original. Estimators passed as parameters,
+  also inside a dict, list or tuple, are now cloned unfitted, and
+  ``clone(random_state=k)`` also seeds their ``random_state``, in aeon's
+  order. A constructor that converts a parameter is still accepted, unlike
+  scikit-learn's ``clone``.
 * ``Time2StateDetector`` and ``E2USDDetector`` change their output at the
   end of the series. Each window votes for its state on the points it
   covers, and the last ``(n_timepoints - window_size) % step`` points, which

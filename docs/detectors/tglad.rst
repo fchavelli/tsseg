@@ -17,9 +17,33 @@ channel).  In place of the allocation algorithm of the paper, tsseg returns the
 start of each window whose score reaches ``threshold``, keeping change points
 at least ``min_spacing`` apart.
 
+Each batch of windows trains a new uGLAD model, and uGLAD scales each channel
+of each window to :math:`[0, 1]` (min-max) first.  What to expect:
+
+- **Training length.**  GLAD shrinks the off-diagonal entries of the precision
+  matrix by a soft threshold that it learns.  After too few epochs, this
+  threshold can set every partial correlation of a window to zero; when it
+  does so in every window, all scores are 0 and no change point is found.
+  With 100 epochs, this happened on a two-channel series with two clear mean
+  shifts, and on 96 to 100 % of the windows of the first three MoCap trials
+  (four channels, default ``window_size``).  ``epochs`` is therefore 2000 by
+  default, as in the authors' code; training takes about 20 times longer
+  than with 100.
+- **Several change points per transition.**  The windows around a transition
+  can each reach ``threshold`` and give a change point at their start.  The
+  authors' code instead marks the ``window_size`` points on each side of each
+  such window as a transition, so that the marked intervals merge.
+- **Univariate series.**  Without partial correlations, the summary of a
+  window is the precision of its single channel, a fallback that is not in
+  the authors' code.  Because of the min-max scaling, it does not follow the
+  variance of the signal, only the shape of the distribution of the window's
+  values; after 2000 epochs it varies from one window to the next, within a
+  stationary segment too, by far more than the default ``threshold``, so
+  that most windows give a change point.
+
 | **Type:** change point detection
 | **Supervision:** fully unsupervised
-| **Scope:** univariate and multivariate
+| **Scope:** multivariate; univariate accepted (fallback summary, see above)
 | **Complexity:** :math:`O(d^{3}\,n)` per training epoch
 | **Requires:** PyTorch, networkx
 
@@ -63,8 +87,8 @@ Parameters
      - Min distance between emitted CPs (default: ``stride``).
    * - ``epochs``
      - int
-     - ``100``
-     - uGLAD training epochs per batch.
+     - ``2000``
+     - uGLAD training epochs per batch (2000 in the authors' code).
    * - ``learning_rate``
      - float
      - ``0.001``
