@@ -53,3 +53,33 @@ def test_points_after_the_last_window_take_its_label(n_timepoints, step):
     assert labels[covered - 1] == 1
     # The points that no window covers extend the vote of the last window.
     np.testing.assert_array_equal(labels[covered:], 1)
+
+
+@pytest.mark.parametrize(
+    ("params", "message"),
+    [
+        ({"window_size": 33}, "window_size must be even"),
+        ({"kernel_size": 1}, "kernel_size"),
+    ],
+    ids=["odd-window", "kernel-1"],
+)
+def test_fit_refuses_parameters_the_encoder_cannot_run(params, message):
+    # An odd window used to pass fit and fail in predict, after the training;
+    # kernel_size=1 used to fail in fit with a RuntimeError from torch.
+    detector = Time2StateDetector(**{**SMALL, "step": 16, **params})
+
+    with pytest.raises(ValueError, match=message):
+        detector.fit(_two_regime_series(300))
+
+
+@pytest.mark.parametrize(
+    "params",
+    [{"window_size": 4, "step": 2}, {"kernel_size": 2}, {"kernel_size": 64}],
+    ids=["window-4", "kernel-2", "kernel-larger-than-window"],
+)
+def test_schema_accepts_parameters_the_encoder_can_run(params):
+    from tsseg.algorithms.param_schema import validate_params
+
+    detector = Time2StateDetector(**{**SMALL, "step": 16, **params})
+
+    assert validate_params(detector, {"n_samples": 300, "n_channels": 1}) == []

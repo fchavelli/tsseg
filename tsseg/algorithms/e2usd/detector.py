@@ -38,9 +38,8 @@ class E2USDDetector(BaseSegmenter):
         ``axis == 1`` indicates the time series are in rows, i.e. the shape of the data
         is ``(n_channels, n_timepoints)``.
     window_size : int, default=256
-        Length of the sliding windows, in time points. Must be even: an odd
-        value is accepted by the constructor and by ``fit``, but ``predict``
-        raises ``ValueError``.
+        Length of the sliding windows, in time points. Must be even: ``fit``
+        raises ``ValueError`` on an odd value.
     step : int, default=50
         Distance between the starts of consecutive windows, at most
         ``window_size``.
@@ -72,8 +71,8 @@ class E2USDDetector(BaseSegmenter):
     kernel_size : int, default=3
         Kernel size of the two convolutions of the encoder. At most
         ``min(window_size, 64)``, the length of a window after the low-pass
-        filter of the encoder: a larger value makes ``fit`` raise
-        ``RuntimeError``.
+        filter of the encoder: ``fit`` raises ``ValueError`` on a larger
+        value.
     use_gpu : bool, optional
         Whether to run the encoder on CUDA device 0. ``None`` uses it when
         available; ``True`` without CUDA falls back to the CPU. The attribute
@@ -202,7 +201,7 @@ class E2USDDetector(BaseSegmenter):
         ),
         "kernel_size": ParamDef(
             constraint=Interval(int, 1, None, Closed.LEFT),
-            description="CNN kernel size.",
+            description="CNN kernel size (at most min(window_size, 64)).",
             group="architecture",
         ),
         "random_state": ParamDef(
@@ -220,6 +219,16 @@ class E2USDDetector(BaseSegmenter):
             DependsOn(
                 "step <= window_size",
                 "step must be <= window_size",
+            ),
+            DependsOn(
+                "window_size % 2 == 0",
+                "window_size must be even",
+            ),
+            # The low-pass filter of the encoder resamples a window of 64 points
+            # or more to 64 points; the convolutions do not pad.
+            DependsOn(
+                "kernel_size <= window_size and kernel_size <= 64",
+                "kernel_size must be <= min(window_size, 64)",
             ),
             DataDependent(
                 "window_size * 2 <= n_samples",

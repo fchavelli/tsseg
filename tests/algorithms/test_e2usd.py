@@ -64,3 +64,40 @@ def test_points_after_the_last_window_take_its_label(n_timepoints, step):
     assert labels[covered - 1] == 1
     # The points that no window covers extend the vote of the last window.
     np.testing.assert_array_equal(labels[covered:], 1)
+
+
+@pytest.mark.parametrize(
+    ("params", "message"),
+    [
+        ({"window_size": 33}, "window_size must be even"),
+        ({"kernel_size": 33}, "kernel_size"),
+        ({"window_size": 128, "step": 32, "kernel_size": 65}, "kernel_size"),
+    ],
+    ids=["odd-window", "kernel-above-window", "kernel-above-64"],
+)
+def test_fit_refuses_parameters_the_encoder_cannot_run(params, message):
+    # An odd window used to pass fit and fail in predict, after the training;
+    # a kernel longer than the filtered window used to fail in fit with a
+    # RuntimeError from torch.
+    detector = E2USDDetector(**{**SMALL, **params})
+
+    with pytest.raises(ValueError, match=message):
+        detector.fit(_two_regime_series())
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"window_size": 4, "step": 2, "kernel_size": 4},
+        {"kernel_size": 1},
+        {"kernel_size": 32},
+        {"window_size": 128, "step": 32, "kernel_size": 64},
+    ],
+    ids=["window-4", "kernel-1", "kernel-equal-to-window", "kernel-64"],
+)
+def test_schema_accepts_parameters_the_encoder_can_run(params):
+    from tsseg.algorithms.param_schema import validate_params
+
+    detector = E2USDDetector(**{**SMALL, **params})
+
+    assert validate_params(detector, {"n_samples": 300, "n_channels": 1}) == []

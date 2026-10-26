@@ -11,6 +11,12 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``Time2StateDetector`` and ``E2USDDetector`` refuse in ``fit``, with a
+  ``ValueError``, the parameters their encoder cannot run: an odd
+  ``window_size`` (accepted by ``fit``, it made ``predict`` fail after the
+  training), ``kernel_size=1`` for Time2State and a ``kernel_size`` above
+  ``min(window_size, 64)`` for E2USD (both failed in ``fit`` with a
+  ``RuntimeError`` from PyTorch).
 * ``clone(random_state=k)`` seeds the clone. The seed was ignored: ``clone``
   only called a ``set_random_state`` method that no detector defines, so the
   clone kept the ``random_state`` of the original. As in aeon, the
