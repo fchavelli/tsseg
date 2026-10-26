@@ -98,3 +98,26 @@ def test_default_seed_is_reproducible():
     a = BeastDetector().fit_predict(x)
     b = BeastDetector().fit_predict(x)
     np.testing.assert_array_equal(a, b)
+
+
+@pytest.mark.parametrize(
+    ("n_timepoints", "n_channels", "strategy"),
+    [
+        (2, 1, "native"),
+        (2, 2, "l2"),
+        (2, 2, "ensembling"),
+        (2, 2, "native"),
+        (1, 1, "native"),
+    ],
+)
+def test_series_too_short_for_rbeast_returns_no_change_point(
+    n_timepoints, n_channels, strategy, capfd
+):
+    """Rbeast refuses fewer than three values and raised ``SystemError``."""
+    X = np.arange(float(n_timepoints * n_channels)).reshape(n_timepoints, -1)
+    if n_channels == 1:
+        X = X.ravel()
+    cps = BeastDetector(multivariate_strategy=strategy).fit_predict(X)
+    assert cps.dtype == np.int64
+    assert cps.tolist() == []
+    assert "ERROR" not in capfd.readouterr().out
