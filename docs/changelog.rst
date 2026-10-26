@@ -135,6 +135,15 @@ Unreleased
   README of the detector credited "Chen, Zhichen and others"; it and the
   documentation page now cite Lai, Li, Zhang, Zhao, Qian and Jensen, WWW
   2024, pp. 3010-3021.
+* Docs: the E2USD page, README and docstring say that ``window_size`` sets
+  the time resolution. Each window gets one state, and the encoder can embed
+  a window that straddles a change point next to either of the two segments,
+  so the window should be well below the length of the shortest segment (the
+  authors' experiments use 128 to 512 points). On a 1000-point series of
+  segments of 300 to 400 points, only 5 of the 15 windows of the default 256
+  points lie inside a single segment, and the adjusted Rand index is 0.28 to
+  0.52 with the true number of states; 0.83 to 0.95 with
+  ``window_size=32, step=32``. The detector is unchanged.
 * The documentation of ``BeastDetector`` now says that a fixed
   ``mcmc_seed`` reproduces the output on one machine only: Rbeast picks its
   numerical routines by CPU instruction set, and their rounding differences
