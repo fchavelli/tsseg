@@ -67,7 +67,9 @@ class TGLADDetector(BaseSegmenter):
     eval_offset : float, default=0.1
         Eigenvalue regularisation applied to batch covariance matrices.
     verbose : bool, default=False
-        Forward progress flag passed through to the uGLAD routines.
+        If true, uGLAD prints its progress on stdout for each batch: input
+        checks, the loss every tenth of the epochs and the runtime. If false,
+        nothing is printed.
     axis : int, default=0
         Time axis of ``X``. ``0`` assumes ``(n_timepoints, n_features)``.
 

@@ -57,3 +57,33 @@ def test_epochs_reach_the_solver(uglad_calls):
     # Seven windows in batches of two: four calls.
     assert len(uglad_calls) == 4
     assert all(call["epochs"] == 100 for call in uglad_calls)
+
+
+def test_fit_prints_nothing_by_default(capsys):
+    """``verbose=False`` (the default) keeps uGLAD quiet on stdout.
+
+    The vendored ``uGLAD_multitask.fit`` used to print three lines per
+    batch whatever ``verbose`` said ("Running uGLAD in multi-task mode",
+    "Processing the input table...", "Total runtime...").
+    """
+    TGLADDetector(window_size=100, stride=50, epochs=20).fit(_series())
+    assert capsys.readouterr().out == ""
+
+
+def test_verbose_prints_the_progress(capsys):
+    TGLADDetector(window_size=100, stride=50, epochs=20, verbose=True).fit(_series())
+    out = capsys.readouterr().out
+    assert "Running uGLAD in multi-task mode" in out
+    assert "epoch:0/20" in out
+    assert "Total runtime" in out
+
+
+@pytest.mark.parametrize("verbose", [False, True])
+def test_fewer_than_ten_epochs(verbose, capsys):
+    """The schema accepts ``epochs >= 1``; uGLAD printed every
+    ``int(epochs / 10)`` epochs, a modulo by zero below ten epochs."""
+    detector = TGLADDetector(window_size=100, stride=50, epochs=5, verbose=verbose)
+    detector.fit(_series())
+    assert detector.change_scores_.shape == (7,)
+    out = capsys.readouterr().out
+    assert ("epoch:0/5" in out) is verbose

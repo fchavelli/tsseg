@@ -184,9 +184,10 @@ class uGLAD_multitask(object):
             compare_theta (list[dict]): Dictionary of comparison metrics
                 between the predicted and true precision matrices
         """
-        print(f'Running uGLAD in multi-task mode')
+        # tsseg: the progress lines of this method honour ``verbose``
+        if verbose: print(f'Running uGLAD in multi-task mode')
         start = time()
-        print(f'Processing the input table for basic compatibility check')
+        if verbose: print(f'Processing the input table for basic compatibility check')
         processed_Xb = []
         for X in Xb:
             X = prepare_data.process_table(
@@ -220,7 +221,7 @@ class uGLAD_multitask(object):
         self.covariance_ = np.array(self.covariance_)
         self.precision_ = pred_theta.detach().numpy()
         self.model_glad = model_glad
-        print(f'Total runtime: {time()-start} secs\n')
+        if verbose: print(f'Total runtime: {time()-start} secs\n')
         return compare_theta
 
 #################### Functions to prepare model ######################
@@ -736,14 +737,15 @@ def run_uGLAD_multitask(
         H=3
         )
     # Optimizing for the glasso loss
-    PRINT_EVERY = int(EPOCHS/10)
+    # tsseg: at least 1, as ``int(EPOCHS/10)`` is a modulo by zero below 10 epochs
+    PRINT_EVERY = max(1, int(EPOCHS/10))
     # print max 10 times per training
     for e in range(EPOCHS):      
         # reset the grads to zero
         optimizer_glad.zero_grad()
         # calculate the loss and precision matrix
         predTheta, loss = forward_uGLAD(
-            Sb, 
+            Sb,
             model_glad,
             L=L,
             INIT_DIAG=INIT_DIAG
