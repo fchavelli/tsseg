@@ -86,10 +86,17 @@ Unreleased
   ``t + window_size - 1``, the last ``window_size - 1`` observations enter no
   window, ``threshold`` has no effect, ``beta`` is twice the :math:`\beta` of
   the paper, ``predict`` returns the labels of the series given to ``fit``
-  whatever its input, and with ``n_states`` given, ``fit`` raises
-  ``KeyError`` when the initial Gaussian mixture gives a state fewer than two
-  windows. Every public member of ``tsseg.algorithms.ticc.ticc`` has a NumPy
-  docstring. The detector is unchanged.
+  whatever its input. Every public member of ``tsseg.algorithms.ticc.ticc``
+  has a NumPy docstring. The detector is unchanged.
+* ``TiccDetector`` with ``n_states`` given raises a ``ValueError`` that names
+  the cause when a state cannot get the two windows it needs to estimate its
+  covariance: when the series has fewer than ``2 * n_states`` windows
+  (``n_timepoints - window_size + 1``), or when the initial Gaussian mixture
+  gives a state fewer than two windows, as it can to a few outlying windows.
+  ``fit`` raised a bare ``KeyError`` such as ``KeyError: (2, 1)``, or the
+  ``ValueError`` of scikit-learn's Gaussian mixture when the series had fewer
+  windows than states. With ``n_states=None``, such a number of states still
+  gets an infinite BIC; labels are unchanged.
 * The documentation of ``Time2StateDetector`` now describes what the
   detector computes and where it fails: ``batch_size`` has no effect,
   ``window_size`` must be even, ``kernel_size`` must be at least 2,
