@@ -107,10 +107,11 @@ KNOWN_FAILURES: dict[str, str] = {
     ),
     "Time2StateDetector": (
         "ARI 0.22 (3 states) guided; 0.37 (4 states) unsupervised: each window "
-        "gets one state, and 5 of the 15 windows of the default 256 points lie "
-        "inside a single segment (0.90 to 0.95 guided with window_size=32, "
-        "step=32; 0.91 to 0.92 with the default when the segments are ten "
-        "times longer)"
+        "gets one state, 5 of the 15 windows of the default 256 points lie "
+        "inside a single segment, and windows that straddle a change point are "
+        "not embedded next to the segment that covers most of them (0.96 if "
+        "they were; 0.90 to 0.95 guided with window_size=32, step=32; 0.91 to "
+        "0.92 with the default when the segments are ten times longer)"
     ),
 }
 

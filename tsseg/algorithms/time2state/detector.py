@@ -105,16 +105,23 @@ class Time2StateDetector(BaseSegmenter):
     reference implementation gives them label 0).
 
     Each window gets one label, so ``window_size`` sets the time resolution:
-    only the windows that lie inside a segment see it alone, and a window
-    that straddles a change point is clustered with one of the two segments
-    or forms a state of its own. The window should be well below the length
-    of the shortest segment; the authors' experiments use windows of 128 to
-    512 points. On a series of 1000 points made of three Gaussian segments
-    of 300, 400 and 300 points, 5 of the 15 windows of the default 256
-    points lie inside a single segment, and the adjusted Rand index is 0.22
-    with ``n_states=3`` and ``random_state=0``. It is 0.90 to 0.95 over five
-    seeds with ``window_size=32, step=32``, and 0.91 to 0.92 with the
-    default window when the three segments are ten times longer.
+    only the windows that lie inside a segment see it alone, and the encoder
+    does not always embed a window that straddles a change point next to the
+    segment that covers more of it. The window should be well below the
+    length of the shortest segment; the authors' experiments use windows of
+    128 to 512 points. On a series of 1000 points made of three Gaussian
+    segments of 300, 400 and 300 points, 5 of the 15 windows of the default
+    256 points lie inside a single segment, and the adjusted Rand index is
+    0.22 with ``n_states=3`` and ``random_state=0`` (0.22 to 0.40 over five
+    seeds). Labelling each window with the segment that covers most of it
+    would give 0.96 after the vote: what fails is the embedding of the
+    windows that straddle a change point. With ``random_state=0``, the
+    windows that straddle the first change point share the state of the
+    third segment, whose mean lies between those of the first two, and those
+    that straddle the second get the state of the second segment, even where
+    the third covers 80% of them. The index is 0.90 to 0.95 over five seeds
+    with ``window_size=32, step=32``, and 0.91 to 0.92 with the default
+    window when the three segments are ten times longer.
 
     ``fit`` raises ``ValueError`` on a series of fewer than
     ``2 * window_size`` points. A series of at most ``2 * window_size``

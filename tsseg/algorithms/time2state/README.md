@@ -15,7 +15,9 @@ labels.
   resolution and should be well below the length of the shortest segment;
   the authors' experiments use 128 to 512 points. On a 1000-point series of
   three segments of 300 to 400 points, only 5 of the 15 default windows lie
-  inside a single segment (ARI 0.22 guided; 0.90 to 0.95 with
+  inside a single segment, and the windows that straddle a change point are
+  not embedded next to the segment that covers most of them (ARI 0.22 to
+  0.40 guided; 0.96 if they were; 0.90 to 0.95 with
   `window_size=32, step=32`)
 
 ## Implementation
