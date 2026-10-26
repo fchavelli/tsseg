@@ -15,6 +15,16 @@ embeddings into states without requiring the number of states *a priori*.
 The framework drastically reduces computational cost compared to operating on
 raw time series by compressing the representation before clustering.
 
+Each window gets one state, so ``window_size`` sets the time resolution: a
+window that straddles a change point is clustered with one of the two
+segments or forms a state of its own. Keep the window well below the length
+of the shortest segment; the authors' experiments use windows of 128 to 512
+points. On a 1000-point series of three Gaussian segments of 300, 400 and 300
+points, only 5 of the 15 windows of the default 256 points lie inside a
+single segment, and the adjusted Rand index is 0.22 with ``n_states=3``; it
+is 0.90 to 0.95 with ``window_size=32, step=32``, and 0.91 to 0.92 with the
+default window when the segments are ten times longer.
+
 | **Type:** state detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate

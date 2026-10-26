@@ -105,7 +105,13 @@ KNOWN_FAILURES: dict[str, str] = {
         "ARI 0.19 (2 states) after the suite's 3 training steps; 0.97 after "
         "the default n_train_steps (110 s)"
     ),
-    "Time2StateDetector": "ARI 0.22 (3 states) guided; 0.33 (4 states) unsupervised",
+    "Time2StateDetector": (
+        "ARI 0.22 (3 states) guided; 0.37 (4 states) unsupervised: each window "
+        "gets one state, and 5 of the 15 windows of the default 256 points lie "
+        "inside a single segment (0.90 to 0.95 guided with window_size=32, "
+        "step=32; 0.91 to 0.92 with the default when the segments are ten "
+        "times longer)"
+    ),
 }
 
 #: Detectors whose output varies from run to run without the

@@ -11,6 +11,12 @@ labels.
 - Unsupervised or semi-supervised (`n_states` is an upper bound for the DPGMM)
 - Univariate and multivariate
 - Requires PyTorch
+- Each window gets one state, so `window_size` (256 by default) sets the time
+  resolution and should be well below the length of the shortest segment;
+  the authors' experiments use 128 to 512 points. On a 1000-point series of
+  three segments of 300 to 400 points, only 5 of the 15 default windows lie
+  inside a single segment (ARI 0.22 guided; 0.90 to 0.95 with
+  `window_size=32, step=32`)
 
 ## Implementation
 
