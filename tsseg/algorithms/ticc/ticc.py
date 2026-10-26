@@ -25,6 +25,10 @@ from sklearn import mixture
 def getTrainTestSplit(m, num_blocks, num_stacked, rng=None):
     """Compute the training indices for the TICC model.
 
+    The training fraction is fixed at 1: with ``num_blocks = num_stacked + 1``,
+    as TICC calls it, the indices are all of ``0, ..., m - num_stacked``, and
+    the random draw only advances ``rng``.
+
     Parameters
     ----------
     m : int
@@ -63,6 +67,22 @@ def getTrainTestSplit(m, num_blocks, num_stacked, rng=None):
 
 
 def upperToFull(a, eps=0):
+    """Symmetric matrix from the vector of its upper triangle.
+
+    Parameters
+    ----------
+    a : np.ndarray
+        Entries on and above the diagonal of a symmetric ``n x n`` matrix,
+        row by row (the order of ``np.triu_indices(n)``), of length
+        ``n * (n + 1) / 2``. Modified in place by the thresholding.
+    eps : float, default=0
+        Entries of absolute value below ``eps`` are set to 0.
+
+    Returns
+    -------
+    np.ndarray
+        The symmetric matrix, of shape ``(n, n)``.
+    """
     ind = (a < eps) & (a > -eps)
     a[ind] = 0
     n = int((-1 + np.sqrt(1 + 8 * a.shape[0])) / 2)
@@ -74,12 +94,28 @@ def upperToFull(a, eps=0):
 
 
 def updateClusters(LLE_node_vals, switch_penalty=1):
-    """
-    Takes in LLE_node_vals matrix and computes the path that minimizes
-    the total cost over the path
-    Note the LLE's are negative of the true LLE's actually!!!!!
+    """Assignment step: the sequence of states of least total cost.
 
-    Note: switch penalty > 0
+    Dynamic programming (Problem (3) of Hallac et al., 2017): a backward pass
+    computes, for each window and state, the least cost of the windows that
+    follow; a forward pass then picks the states. Ties go to the smallest
+    state index.
+
+    Parameters
+    ----------
+    LLE_node_vals : np.ndarray
+        Cost of each window under each state, of shape
+        ``(n_windows, n_states)``. TICC passes twice the negative
+        log-likelihood up to a constant (see ``TICC.smoothen_clusters``),
+        not the log-likelihood.
+    switch_penalty : float, default=1
+        Cost added each time two consecutive windows are in different
+        states.
+
+    Returns
+    -------
+    np.ndarray
+        State of each window, of shape ``(n_windows,)``, as floats.
     """
     (T, num_clusters) = LLE_node_vals.shape
     future_cost_vals = np.zeros(LLE_node_vals.shape)
@@ -116,10 +152,30 @@ def updateClusters(LLE_node_vals, switch_penalty=1):
 
 
 def computeBIC(K, T, clustered_points, inverse_covariances, empirical_covariances):
-    """
-    empirical covariance and inverse_covariance should be dicts
-    K is num clusters
-    T is num samples
+    """BIC of the reference implementation, not used by ``TiccDetector``.
+
+    Parameters
+    ----------
+    K : int
+        Number of states; unused.
+    T : int
+        Number of time points.
+    clustered_points : array-like
+        State of each window.
+    inverse_covariances : dict
+        Precision matrix :math:`\\Theta` of each state.
+    empirical_covariances : dict
+        Empirical covariance :math:`S` of the windows of each state.
+
+    Returns
+    -------
+    float
+        :math:`k \\log T - 2 L`, where :math:`L` sums
+        :math:`\\log\\det\\Theta - \\mathrm{tr}(S\\Theta)` over the states of
+        ``inverse_covariances``, without weighting them by their numbers of
+        windows, and :math:`k` adds the number of entries of :math:`\\Theta`
+        above ``2e-5`` in absolute value once for each run of consecutive
+        windows in the same state.
     """
     mod_lle = 0
 
@@ -195,6 +251,51 @@ class _SerialPool:
 
 
 class ADMMSolver:
+    """ADMM for the Toeplitz graphical lasso, the update step of TICC.
+
+    Solves
+
+    .. math::
+
+        \\min_{\\Theta} \\; -\\log\\det\\Theta + \\mathrm{tr}(S\\Theta)
+        + \\|\\lambda \\circ \\Theta\\|_1
+
+    over the symmetric block Toeplitz matrices :math:`\\Theta` (Problem (4)
+    of Hallac et al., 2017, with the factor :math:`1/|P_i|` absorbed into
+    :math:`\\lambda`). The variable ``x`` takes the log-determinant step, its
+    copy ``z`` the block Toeplitz constraint and the :math:`\\ell_1` penalty,
+    and ``u`` is the scaled dual variable. All three hold the entries on and
+    above the diagonal, row by row.
+
+    Parameters
+    ----------
+    lamb : np.ndarray
+        Penalty weights :math:`\\lambda`, of shape ``(p, p)`` with
+        ``p = num_stacked * size_blocks``.
+    num_stacked : int
+        Number of blocks :math:`w` (the window size).
+    size_blocks : int
+        Size :math:`d` of each block (the number of channels).
+    rho : float
+        Penalty parameter :math:`\\rho` of the augmented Lagrangian.
+    S : np.ndarray
+        Empirical covariance, of shape ``(p, p)``.
+    rho_update_func : callable or None, default=None
+        Called after each iteration from the second on, as
+        ``rho_update_func(rho, res_pri, e_pri, res_dual, e_dual)``, to give a
+        new :math:`\\rho`. As in the reference code, only ``u`` is rescaled
+        by ``rho / new_rho``: ``rho`` itself keeps its value. TICC passes
+        ``None``.
+
+    Attributes
+    ----------
+    x, z, u : np.ndarray
+        The ADMM variables, of length ``p * (p + 1) / 2``.
+    status : str
+        ``"Optimal"`` when the stopping criterion was met,
+        ``"Incomplete: max iterations reached"`` otherwise.
+    """
+
     def __init__(self, lamb, num_stacked, size_blocks, rho, S, rho_update_func=None):
         self.lamb = lamb
         self.numBlocks = num_stacked
@@ -213,6 +314,21 @@ class ADMMSolver:
         self._build_z_groups()
 
     def ij2symmetric(self, i, j, size):
+        """Position of entry ``(i, j)``, ``i <= j``, in the upper triangle.
+
+        Parameters
+        ----------
+        i, j : int
+            Row and column of the entry, with ``i <= j``.
+        size : int
+            Size of the square matrix.
+
+        Returns
+        -------
+        float
+            Index of the entry in the vector of the entries on and above the
+            diagonal, row by row.
+        """
         return (size * (size + 1)) / 2 - (size - i) * (size - i + 1) / 2 + j - i
 
     def _build_z_groups(self):
@@ -259,6 +375,18 @@ class ADMMSolver:
         self._z_elems = np.asarray(elems_list, dtype=float)
 
     def upper2Full(self, a):
+        """Symmetric matrix from the vector of its upper triangle.
+
+        Parameters
+        ----------
+        a : np.ndarray
+            Entries on and above the diagonal, row by row.
+
+        Returns
+        -------
+        np.ndarray
+            The symmetric matrix.
+        """
         n = int((-1 + np.sqrt(1 + 8 * a.shape[0])) / 2)
         A = np.zeros([n, n])
         A[self._triu if n == self._triu_size else np.triu_indices(n)] = a
@@ -267,6 +395,28 @@ class ADMMSolver:
         return A
 
     def Prox_logdet(self, S, A, eta):
+        """Log-determinant step of the ADMM, in closed form.
+
+        Minimises
+        :math:`-\\log\\det X + \\mathrm{tr}(SX) + \\frac{\\eta}{2}\\|X - A\\|_F^2`
+        from the eigendecomposition :math:`Q D Q^\\top` of
+        :math:`\\eta A - S`:
+        :math:`X = Q \\, \\frac{D + \\sqrt{D^2 + 4\\eta}}{2\\eta} \\, Q^\\top`.
+
+        Parameters
+        ----------
+        S : np.ndarray
+            Empirical covariance, of shape ``(p, p)``.
+        A : np.ndarray
+            Symmetric matrix of shape ``(p, p)``, here ``z - u``.
+        eta : float
+            Weight of the quadratic term, here :math:`\\rho`.
+
+        Returns
+        -------
+        np.ndarray
+            Entries of :math:`X` on and above the diagonal, row by row.
+        """
         d, q = np.linalg.eigh(eta * A - S)
         X_var = (
             ((1 / (2 * float(eta))) * q)
@@ -277,13 +427,25 @@ class ADMMSolver:
         return X_var[self._triu if n == self._triu_size else np.triu_indices(n)]
 
     def ADMM_x(self):
+        """Update ``x``: log-determinant step at ``z - u``."""
         a = self.z - self.u
         A = self.upper2Full(a)
         eta = self.rho
         self.x = self.Prox_logdet(self.S, A, eta)
 
     def ADMM_z(self, index_penalty=1):
-        """Soft-threshold the mean of each group of tied entries of ``x + u``."""
+        """Soft-threshold the mean of each group of tied entries of ``x + u``.
+
+        Each free entry of the block Toeplitz matrix gets the mean of its
+        occurrences in ``x + u``, soft-thresholded at the mean of their
+        weights in ``lamb`` divided by ``rho``; ``z`` repeats it at every
+        occurrence.
+
+        Parameters
+        ----------
+        index_penalty : int, default=1
+            Unused.
+        """
         a = self.x + self.u
         n_groups = self._z_lam_sums.size
         # np.bincount adds the weights in their order, from 0.0, as the
@@ -312,19 +474,35 @@ class ADMMSolver:
         self.z = z_update
 
     def ADMM_u(self):
+        """Update the scaled dual variable: ``u + x - z``."""
         u_update = self.u + self.x - self.z
         self.u = u_update
 
-    # Returns True if convergence criteria have been satisfied
-    # eps_abs = eps_rel = 0.01
-    # r = x - z
-    # s = rho * (z - z_old)
-    # e_pri = sqrt(length) * e_abs + e_rel * max(||x||, ||z||)
-    # e_dual = sqrt(length) * e_abs + e_rel * ||rho * u||
-    # Should stop if (||r|| <= e_pri) and (||s|| <= e_dual)
-    # Returns (boolean shouldStop, primal residual value, primal threshold,
-    #          dual residual value, dual threshold)
     def CheckConvergence(self, z_old, e_abs, e_rel, verbose):
+        """Stopping criterion of the ADMM, from the primal and dual residuals.
+
+        The primal residual is :math:`\\|x - z\\|`, the dual residual
+        :math:`\\|\\rho (z - z_{old})\\|`; their thresholds are
+        :math:`\\sqrt{L} e_{abs} + e_{rel} \\max(\\|x\\|, \\|z\\|) + 10^{-4}`
+        and :math:`\\sqrt{L} e_{abs} + e_{rel} \\|\\rho u\\| + 10^{-4}`, with
+        :math:`L` the length of the variables.
+
+        Parameters
+        ----------
+        z_old : np.ndarray
+            ``z`` before the current iteration.
+        e_abs, e_rel : float
+            Absolute and relative tolerances.
+        verbose : bool
+            Whether to print the residuals and thresholds.
+
+        Returns
+        -------
+        tuple
+            ``(stop, res_pri, e_pri, res_dual, e_dual)``: whether both
+            residuals are at most their thresholds, then the primal residual
+            and threshold, and the dual residual and threshold.
+        """
         norm = np.linalg.norm
         r = self.x - self.z
         s = self.rho * (self.z - z_old)
@@ -349,8 +527,27 @@ class ADMMSolver:
         stop = (res_pri <= e_pri) and (res_dual <= e_dual)
         return (stop, res_pri, e_pri, res_dual, e_dual)
 
-    # solve
     def __call__(self, maxIters, eps_abs, eps_rel, verbose):
+        """Run the ADMM.
+
+        Parameters
+        ----------
+        maxIters : int
+            Maximum number of iterations.
+        eps_abs, eps_rel : float
+            Tolerances of ``CheckConvergence``, which runs from the second
+            iteration on.
+        verbose : bool
+            Whether to print the iteration numbers and the residuals.
+
+        Returns
+        -------
+        np.ndarray
+            ``x``, the entries of the estimated precision matrix on and above
+            the diagonal, row by row. It is positive definite, but only
+            approximately block Toeplitz and sparse: in general, none of its
+            entries is exactly zero.
+        """
         self.status = "Incomplete: max iterations reached"
         for i in range(maxIters):
             z_old = np.copy(self.z)
@@ -378,6 +575,52 @@ class ADMMSolver:
 
 
 class TICC:
+    """TICC solver: alternate update and assignment steps on stacked windows.
+
+    Parameters
+    ----------
+    window_size : int, default=10
+        Number :math:`w` of consecutive time points stacked into each window.
+    number_of_clusters : int, default=5
+        Number of states.
+    lambda_parameter : float, default=11e-2
+        Weight of the :math:`\\ell_1` penalty on every entry of the precision
+        matrix of each state, diagonal included.
+    beta : float, default=400
+        Switching penalty of the assignment step, stored as
+        ``switch_penalty``.
+    maxIters : int, default=1000
+        Maximum number of iterations; ``fit_transform`` raises ``ValueError``
+        if it is not positive.
+    threshold : float, default=2e-5
+        Stored, never read.
+    write_out_file : bool, default=False
+        Unused, kept for compatibility.
+    prefix_string : str, default=""
+        Unused, kept for compatibility.
+    num_proc : int, default=1
+        Number of processes of the pool that solves the update steps; ``1``
+        solves them in the calling process.
+    compute_BIC : bool, default=False
+        Whether ``fit_transform`` also returns the value of ``computeBIC``.
+    cluster_reassignment : int, default=20
+        Number of consecutive windows moved to a state left without windows.
+    biased : bool, default=False
+        Whether the empirical covariances divide by the number of windows of
+        the state (``True``) or by that number minus one (``False``).
+
+    Attributes
+    ----------
+    clustered_points_ : np.ndarray
+        State of each window after the last iteration, set by
+        ``fit_transform``.
+    train_cluster_inverse_ : dict
+        Precision matrix of each state, set by ``fit_transform``.
+    trained_model : dict
+        Means, covariances and stacked windows read by ``predict_clusters``
+        and ``log_likelihood``.
+    """
+
     def __init__(
         self,
         window_size=10,
@@ -393,19 +636,6 @@ class TICC:
         cluster_reassignment=20,
         biased=False,
     ):
-        """
-        Parameters:
-            - window_size: size of the sliding window
-            - number_of_clusters: number of clusters
-            - lambda_parameter: sparsity parameter
-            - switch_penalty: temporal consistency parameter
-            - maxIters: number of iterations
-            - threshold: convergence threshold
-            - write_out_file: (bool) unused, kept for compatibility
-            - prefix_string: unused, kept for compatibility
-            - cluster_reassignment: number of points to reassign to a 0 cluster
-            - biased: Using the biased or the unbiased covariance
-        """
         self.window_size = window_size
         self.number_of_clusters = number_of_clusters
         self.lambda_parameter = lambda_parameter
@@ -421,10 +651,34 @@ class TICC:
         self.biased = biased
 
     def fit_transform(self, series):
-        """
-        Main method for TICC solver.
-        Parameters:
-            - series: array of shape (n_timepoints, n_channels)
+        """Fit the model and return the state of each window.
+
+        Parameters
+        ----------
+        series : np.ndarray
+            The time series, of shape ``(n_timepoints, n_channels)``.
+
+        Returns
+        -------
+        clustered_points : np.ndarray
+            State of each of the ``n_timepoints - window_size + 1`` windows,
+            as floats. Window ``t`` holds the points ``t`` to
+            ``t + window_size - 1``; the last ``window_size - 1`` windows are
+            padded with zeros and keep the state of the last full window when
+            ``beta > 0``.
+        train_cluster_inverse : dict
+            Precision matrix of each state, of shape
+            ``(window_size * n_channels,) * 2``.
+        bic : float
+            Only when ``compute_BIC`` is true: the value of ``computeBIC``.
+
+        Raises
+        ------
+        ValueError
+            If ``maxIters`` is not positive.
+        KeyError
+            If the initial Gaussian mixture gives a state fewer than two
+            windows.
         """
         if self.maxIters <= 0:
             raise ValueError(f"maxIters must be > 0, got {self.maxIters}")
@@ -636,6 +890,37 @@ class TICC:
         complete_D_train,
         n,
     ):
+        """Cost of each window under each state, for the assignment step.
+
+        Parameters
+        ----------
+        cluster_mean_info : dict
+            Unused.
+        computed_covariance : dict
+            Covariance :math:`\\Sigma = \\Theta^{-1}` of each state, keyed by
+            ``(number_of_clusters, state)``.
+        cluster_mean_stacked_info : dict
+            Mean window :math:`\\mu` of each state, with the same keys.
+        complete_D_train : np.ndarray
+            Stacked windows, of shape ``(n_windows, window_size * n)``.
+        n : int
+            Number of channels.
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape ``(n_windows, number_of_clusters)`` holding
+            :math:`(X_t - \\mu)^\\top \\Sigma^{-1} (X_t - \\mu) + \\log\\det\\Sigma`,
+            twice the negative Gaussian log-likelihood of window
+            :math:`X_t` up to a constant; 0 for the last ``window_size - 1``
+            windows, which are padded with zeros.
+
+        Raises
+        ------
+        KeyError
+            If a state has no covariance yet, i.e. if it had fewer than two
+            windows at the first iteration.
+        """
         clustered_points_len = len(complete_D_train)
         # For each point compute the LLE; the last window_size - 1 points keep 0
         valid = max(clustered_points_len - (self.window_size - 1), 0)
@@ -669,6 +954,29 @@ class TICC:
         optRes,
         train_cluster_inverse,
     ):
+        """Store the precision and covariance matrices computed by the ADMM.
+
+        For each state whose update step ran, the vector returned by the ADMM
+        becomes the precision matrix ``train_cluster_inverse[state]``, its
+        inverse the covariance ``computed_covariance[number_of_clusters,
+        state]`` and the log-determinant of that covariance
+        ``log_det_values[number_of_clusters, state]``. States skipped by
+        ``train_clusters`` keep their previous values.
+
+        Parameters
+        ----------
+        computed_covariance : dict
+            Covariance of each state; updated in place.
+        len_train_clusters : dict
+            Unused.
+        log_det_values : dict
+            Log-determinant of the covariance of each state; updated in place.
+        optRes : list
+            Output of ``train_clusters``: for each state, the result of its
+            solver (an object with a ``get`` method), or ``None``.
+        train_cluster_inverse : dict
+            Precision matrix of each state; updated in place.
+        """
         for cluster in range(self.number_of_clusters):
             if optRes[cluster] is None:
                 continue
@@ -696,6 +1004,43 @@ class TICC:
         pool,
         train_clusters_arr,
     ):
+        """Start the update step of every state with at least two windows.
+
+        For each such state, store its mean window, the mean of its last
+        block and the empirical covariance of its windows, then submit to
+        ``pool`` an ``ADMMSolver`` with :math:`\\lambda` =
+        ``lambda_parameter`` for every entry and :math:`\\rho = 1`, run for at
+        most 1000 iterations with tolerances ``1e-6``.
+
+        Parameters
+        ----------
+        cluster_mean_info : dict
+            Mean of the last block of the windows of each state, of shape
+            ``(1, n)``, keyed by ``(number_of_clusters, state)``; updated in
+            place.
+        cluster_mean_stacked_info : dict
+            Mean window of each state, with the same keys; updated in place.
+        complete_D_train : np.ndarray
+            Stacked windows, of shape ``(n_windows, window_size * n)``.
+        empirical_covariances : dict
+            Empirical covariance of the windows of each state; updated in
+            place.
+        len_train_clusters : dict
+            Number of windows of each state.
+        n : int
+            Number of channels.
+        pool : multiprocessing.pool.Pool or _SerialPool
+            Runs the solvers.
+        train_clusters_arr : dict
+            Indices of the windows of each state.
+
+        Returns
+        -------
+        list
+            For each state, the result of its solver (an object with a
+            ``get`` method), or ``None`` when the state has fewer than two
+            windows.
+        """
         optRes = [None for i in range(self.number_of_clusters)]
         for cluster in range(self.number_of_clusters):
             cluster_length = len_train_clusters[cluster]
@@ -734,6 +1079,27 @@ class TICC:
         return optRes
 
     def stack_training_data(self, Data, n, num_train_points, training_indices):
+        """Stack the windows of the series.
+
+        Parameters
+        ----------
+        Data : np.ndarray
+            The time series, of shape ``(n_timepoints, n_channels)``.
+        n : int
+            Number of channels.
+        num_train_points : int
+            Number of windows, the length of ``training_indices``.
+        training_indices : list[int]
+            Time points of the windows, from ``getTrainTestSplit``.
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape ``(num_train_points, window_size * n)``: row ``i``
+            concatenates the points ``training_indices[i + k]`` for
+            ``k = 0, ..., window_size - 1``, with zeros where ``i + k``
+            reaches ``num_train_points``.
+        """
         complete_D_train = np.zeros([num_train_points, self.window_size * n])
         for i in range(num_train_points):
             for k in range(self.window_size):
@@ -743,16 +1109,25 @@ class TICC:
         return complete_D_train
 
     def predict_clusters(self, test_data=None):
-        """
-        Given the current trained model, predict clusters.  If the cluster segmentation has not been optimized yet,
-        than this will be part of the interative process.
+        """Assignment step: state of each window under the current model.
 
-        Args:
-            numpy array of data for which to predict clusters.  Columns are dimensions of the data, each row is
-            a different timestamp
+        Parameters
+        ----------
+        test_data : np.ndarray or None, default=None
+            Stacked windows, of shape ``(n_windows, window_size * n_channels)``
+            as returned by ``stack_training_data``, not the raw series;
+            ``None`` uses the training windows. The last ``window_size - 1``
+            rows are treated as padding (cost 0 for every state).
 
-        Returns:
-            vector of predicted cluster for the points
+        Returns
+        -------
+        np.ndarray
+            State of each window, as floats (see ``updateClusters``).
+
+        Raises
+        ------
+        TypeError
+            If ``test_data`` is given and is not a NumPy array.
         """
         if test_data is not None:
             if not isinstance(test_data, np.ndarray):

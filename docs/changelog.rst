@@ -39,6 +39,15 @@ Unreleased
   distinct in the model, but the Gibbs chain is slow to split them; the paper
   runs :math:`10^5` iterations from 10 random starts, the detector 1000 from
   one by default. The detector is unchanged.
+* The documentation of ``TiccDetector`` now describes what the detector
+  computes: the window of time point ``t`` holds the points ``t`` to
+  ``t + window_size - 1``, the last ``window_size - 1`` observations enter no
+  window, ``threshold`` has no effect, ``beta`` is twice the :math:`\beta` of
+  the paper, ``predict`` returns the labels of the series given to ``fit``
+  whatever its input, and with ``n_states`` given, ``fit`` raises
+  ``KeyError`` when the initial Gaussian mixture gives a state fewer than two
+  windows. Every public member of ``tsseg.algorithms.ticc.ticc`` has a NumPy
+  docstring. The detector is unchanged.
 * The documentation of ``Time2StateDetector`` now describes what the
   detector computes and where it fails: ``batch_size`` has no effect,
   ``window_size`` must be even, ``kernel_size`` must be at least 2,
