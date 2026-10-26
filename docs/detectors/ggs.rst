@@ -66,7 +66,9 @@ Usage
    detector = GreedyGaussianDetector(k_max=8, lamb=1.0)
    change_points = detector.fit_predict(X)
 
-**Implementation:** Adapted from aeon.  BSD 3-Clause.
+**Implementation:** Adapted from aeon, whose code is itself adapted from the
+authors' code (`cvxgrp/GGS <https://github.com/cvxgrp/GGS>`_).  BSD 3-Clause
+(aeon) and BSD 2-Clause (cvxgrp/GGS).
 
 **Reference:** Hallac, Nystrup & Boyd (2019), *Greedy Gaussian Segmentation of
 Multivariate Time Series*, Advances in Data Analysis and Classification.

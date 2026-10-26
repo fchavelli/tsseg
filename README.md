@@ -370,12 +370,12 @@ Several algorithms bundle adapted or vendored code under their own licenses.
 
 | Component | License | Source |
 |---|---|---|
-| `aeon` (base, EAgglo, Hidalgo, HMM, IGTS) | BSD-3 | [aeon-toolkit/aeon](https://github.com/aeon-toolkit/aeon) |
+| `aeon` (base, EAgglo, GGS, Hidalgo, HMM, IGTS) | BSD-3 | [aeon-toolkit/aeon](https://github.com/aeon-toolkit/aeon) |
 | `ruptures/` (vendored v1.1.8) | BSD-2 | [deepcharles/ruptures](https://github.com/deepcharles/ruptures) |
 | `bocd/` | MIT | [hildensia/bayesian_changepoint_detection](https://github.com/hildensia/bayesian_changepoint_detection) |
 | `beast/` (wraps Rbeast, not bundled) | GPL-2.0-or-later | [zhaokg/Rbeast](https://github.com/zhaokg/Rbeast) |
 | `clap/` (ClaSP / CLaP) | BSD-3 | [ermshaua/claspy](https://github.com/ermshaua/claspy) |
-| `ggs/` | BSD-2 | [cvxgrp/GGS](https://github.com/cvxgrp/GGS) |
+| `ggs/` (adapted from aeon, itself from the authors' code) | BSD-3 and BSD-2 | [aeon-toolkit/aeon](https://github.com/aeon-toolkit/aeon); [cvxgrp/GGS](https://github.com/cvxgrp/GGS) |
 | `icid/` | GPLv3 | [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID) |
 | `patss/` | MIT | [KU Leuven DTAI](https://gitlab.kuleuven.be/u0143709/patss) |
 | `rulsif/` (port of the authors' MATLAB code) | MIT | [anewgithubname/change_detection](https://github.com/anewgithubname/change_detection) |
@@ -391,10 +391,10 @@ Several algorithms bundle adapted or vendored code under their own licenses.
 
 Each directory above that bundles code under a published license contains a
 copy of it (`LICENSE`, or `LICENCE` in `patss/`). The aeon license is copied in
-`eagglo/`, `hidalgo/`, `hmm/` and `igts/`, and in the opening comment of
-`tsseg/algorithms/base.py`, whose base classes are adapted from aeon. The
-sources marked *not specified* publish no
-license. The `LICENSE` files of `time2state/` and `e2usd/` also hold the
+`eagglo/`, `ggs/`, `hidalgo/`, `hmm/` and `igts/` (in `ggs/`, followed by the
+license of cvxgrp/GGS, from which aeon adapted its code), and in the opening
+comment of `tsseg/algorithms/base.py`, whose base classes are adapted from
+aeon. The sources marked *not specified* publish no license. The `LICENSE` files of `time2state/` and `e2usd/` also hold the
 licenses of the parts that these detectors take from other projects (the
 causal CNN encoder and `Dataset` class of Franceschi et al., 2019, partly
 from locuslab/TCN; the decomposition blocks of Autoformer), with the changes

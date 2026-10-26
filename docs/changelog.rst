@@ -81,6 +81,13 @@ Unreleased
   file in ``tsseg/algorithms/e2usd`` does the same for the two parts of
   E2USD (the rest of E2USD still has no published licence). The code is
   unchanged.
+* Licences: ``GreedyGaussianDetector`` is adapted from aeon
+  (``aeon.segmentation._ggs``), whose code is adapted from cvxgrp/GGS, but
+  ``tsseg/algorithms/ggs/LICENSE`` held only the BSD 2-Clause licence of
+  cvxgrp/GGS, and the README of the directory and of tsseg named only
+  cvxgrp/GGS. The ``LICENSE`` file now holds aeon's BSD 3-Clause licence too,
+  and the READMEs, the detector page and the module docstring name both
+  sources. The code is unchanged.
 
 * Docs: the Hidalgo page, README and docstring say what the detector does not
   separate. It tells states apart by their intrinsic dimension only, from
