@@ -76,7 +76,7 @@ Parameters
    * - ``kernel_size``
      - int
      - ``3``
-     - Convolution kernel size.
+     - Convolution kernel size; at least 2.
    * - ``use_gpu``
      - bool / None
      - ``None``

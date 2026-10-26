@@ -38,9 +38,8 @@ class Time2StateDetector(BaseSegmenter):
         ``axis == 1`` indicates the time series are in rows, i.e. the shape of the data
         is ``(n_channels, n_timepoints)``.
     window_size : int, default=256
-        Length of the sliding windows, in time points. Must be even: an odd
-        value is accepted by the constructor and by ``fit``, but ``predict``
-        raises ``ValueError``.
+        Length of the sliding windows, in time points. Must be even: ``fit``
+        raises ``ValueError`` on an odd value.
     step : int, default=50
         Distance between the starts of consecutive windows, at most
         ``window_size``.
@@ -70,7 +69,7 @@ class Time2StateDetector(BaseSegmenter):
         before the final linear layer.
     kernel_size : int, default=3
         Kernel size of the convolutions of the causal CNN. Must be at least
-        2: with 1, ``fit`` raises ``RuntimeError``.
+        2: ``fit`` raises ``ValueError`` on 1.
     use_gpu : bool, optional
         Whether to run the encoder on CUDA device 0. ``None`` uses it when
         available; ``True`` without CUDA falls back to the CPU. The attribute
@@ -84,8 +83,9 @@ class Time2StateDetector(BaseSegmenter):
     Notes
     -----
     ``fit`` and ``predict`` z-normalise the series with one mean and one
-    variance computed over all channels together (a constant series becomes
-    NaN, and ``predict`` raises ``ValueError``). ``fit`` then trains the
+    variance computed over all channels together; a series of zero variance
+    is only centred (the reference implementation returns NaN), so a constant
+    series is labelled as one state. ``fit`` then trains the
     encoder for ``nb_steps`` steps. At each step, the LSE loss draws 10 random positions and, at each
     position, 4 windows shifted by one point; it pulls the embeddings of the
     windows of a position together and pushes the mean embeddings of
@@ -184,8 +184,9 @@ class Time2StateDetector(BaseSegmenter):
             group="architecture",
         ),
         "kernel_size": ParamDef(
-            constraint=Interval(int, 1, None, Closed.LEFT),
-            description="CNN kernel size.",
+            # 1 would make each causal block chomp its whole output (padding 0).
+            constraint=Interval(int, 2, None, Closed.LEFT),
+            description="CNN kernel size (at least 2).",
             group="architecture",
         ),
         "random_state": ParamDef(
@@ -203,6 +204,10 @@ class Time2StateDetector(BaseSegmenter):
             DependsOn(
                 "step <= window_size",
                 "step must be <= window_size",
+            ),
+            DependsOn(
+                "window_size % 2 == 0",
+                "window_size must be even",
             ),
             DataDependent(
                 "window_size * 2 <= n_samples",

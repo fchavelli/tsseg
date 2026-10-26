@@ -53,3 +53,55 @@ def test_points_after_the_last_window_take_its_label(n_timepoints, step):
     assert labels[covered - 1] == 1
     # The points that no window covers extend the vote of the last window.
     np.testing.assert_array_equal(labels[covered:], 1)
+
+
+@pytest.mark.parametrize(
+    ("params", "message"),
+    [
+        ({"window_size": 33}, "window_size must be even"),
+        ({"kernel_size": 1}, "kernel_size"),
+    ],
+    ids=["odd-window", "kernel-1"],
+)
+def test_fit_refuses_parameters_the_encoder_cannot_run(params, message):
+    # An odd window used to pass fit and fail in predict, after the training;
+    # kernel_size=1 used to fail in fit with a RuntimeError from torch.
+    detector = Time2StateDetector(**{**SMALL, "step": 16, **params})
+
+    with pytest.raises(ValueError, match=message):
+        detector.fit(_two_regime_series(300))
+
+
+@pytest.mark.parametrize(
+    "params",
+    [{"window_size": 4, "step": 2}, {"kernel_size": 2}, {"kernel_size": 64}],
+    ids=["window-4", "kernel-2", "kernel-larger-than-window"],
+)
+def test_schema_accepts_parameters_the_encoder_can_run(params):
+    from tsseg.algorithms.param_schema import validate_params
+
+    detector = Time2StateDetector(**{**SMALL, "step": 16, **params})
+
+    assert validate_params(detector, {"n_samples": 300, "n_channels": 1}) == []
+
+
+@pytest.mark.parametrize(
+    "value", [0.0, 0.1], ids=["zero-variance", "rounding-variance"]
+)
+def test_a_constant_series_is_one_state(value):
+    # np.full(300, 0.0) has a variance of exactly 0: the z-normalisation
+    # divided by zero and the DPGMM refused the NaN. np.full(300, 0.1) has a
+    # variance of a few ulps and was already labelled as one state.
+    X = np.full(300, value)
+
+    labels = Time2StateDetector(**{**SMALL, "step": 16}).fit_predict(X)
+
+    np.testing.assert_array_equal(labels, np.zeros(300, dtype=int))
+
+
+def test_predict_labels_a_constant_series_as_one_state():
+    detector = Time2StateDetector(**{**SMALL, "step": 16}).fit(_two_regime_series(300))
+
+    labels = detector.predict(np.zeros(300))
+
+    np.testing.assert_array_equal(labels, np.zeros(300, dtype=int))

@@ -11,6 +11,19 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``Time2StateDetector`` and ``E2USDDetector`` refuse in ``fit``, with a
+  ``ValueError``, the parameters their encoder cannot run: an odd
+  ``window_size`` (accepted by ``fit``, it made ``predict`` fail after the
+  training), ``kernel_size=1`` for Time2State and a ``kernel_size`` above
+  ``min(window_size, 64)`` for E2USD (both failed in ``fit`` with a
+  ``RuntimeError`` from PyTorch).
+* ``Time2StateDetector`` and ``E2USDDetector`` label a constant series as
+  one state. When the variance of the series was exactly zero, as for
+  ``np.zeros(n)``, the z-normalisation divided by zero and ``predict``
+  raised ``ValueError: Input X contains NaN``; a constant series whose
+  variance is a rounding error, as for ``np.full(n, 0.1)``, already got one
+  state. A series of zero variance is now only centred. The other series
+  are normalised as before.
 * ``TGLADDetector`` now trains uGLAD for 2000 epochs per batch by default,
   as the authors' code does, instead of 100. After 100 epochs, the soft
   threshold that GLAD learns could set every partial correlation to zero, and
