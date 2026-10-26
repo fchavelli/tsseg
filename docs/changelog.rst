@@ -37,6 +37,15 @@ Unreleased
   precision of its single channel (a fallback that is not in the authors'
   code), does not follow the variance of the signal, as the docstring said:
   uGLAD min-max scales each window first.
+* ``TGLADDetector`` prints nothing with ``verbose=False``, its default. The
+  vendored uGLAD solver printed three lines on stdout for each batch of
+  windows ("Running uGLAD in multi-task mode", "Processing the input table
+  for basic compatibility check", "Total runtime: ...") whatever
+  ``verbose`` said; with ``verbose=True`` they are still printed, with the
+  loss every tenth of the epochs. ``epochs`` below 10, which the parameter
+  schema accepts, raised ``ZeroDivisionError`` at ``fit``: the solver
+  printed the loss every ``int(epochs / 10)`` epochs, which is 0 below 10
+  epochs; it now prints it every epoch there.
 * ``clone(random_state=k)`` seeds the clone. The seed was ignored: ``clone``
   only called a ``set_random_state`` method that no detector defines, so the
   clone kept the ``random_state`` of the original. As in aeon, the

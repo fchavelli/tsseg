@@ -3,6 +3,11 @@
 Copied from the ``uGLAD/`` folder of https://github.com/Harshs27/tGLAD
 (imports made relative); the standalone uGLAD project, whose code has since
 diverged, is https://github.com/Harshs27/uGLAD.
+
+Changes to ``uglad.py`` (marked ``# tsseg:``): ``uGLAD_multitask.fit`` prints
+its three progress lines only when ``verbose`` is true, and
+``run_uGLAD_multitask`` prints the loss every ``max(1, int(EPOCHS/10))``
+epochs instead of every ``int(EPOCHS/10)``, a modulo by zero below 10 epochs.
 """
 
 from .uglad import (
