@@ -54,9 +54,14 @@ AEON_COPIES = sorted(
 
 
 def _license_text(path: Path) -> list[str]:
-    """Lines of a license copy, from its title on (the preamble is dropped)."""
+    """Lines of a license copy, from its title on (the preamble is dropped).
+
+    A ``---`` line ends the copy: a ``LICENSE`` that also carries the license
+    of the project aeon adapted its code from puts it after that line.
+    """
     text = path.read_text(encoding="utf-8")
-    return text[text.index("BSD 3-Clause License") :].strip().splitlines()
+    text = text[text.index("BSD 3-Clause License") :].split("\n---\n", 1)[0]
+    return text.strip().splitlines()
 
 
 def _opening_comment(path: Path) -> list[str]:
@@ -79,7 +84,28 @@ def _contains_block(lines: list[str], block: list[str]) -> bool:
 
 def test_aeon_copies_are_found():
     """The detectors adapted from aeon ship a copy of its license."""
-    assert {path.parent.name for path in AEON_COPIES} >= {"eagglo", "hidalgo", "igts"}
+    assert {path.parent.name for path in AEON_COPIES} >= {
+        "eagglo",
+        "ggs",
+        "hidalgo",
+        "igts",
+    }
+
+
+def test_ggs_keeps_the_notice_of_the_original_code():
+    """GGS comes from aeon, which adapted it from cvxgrp/GGS (BSD 2-Clause).
+
+    The ``LICENSE`` of ``ggs/`` keeps both licenses: aeon's first, then the
+    BSD 2-Clause License of the original code, after a ``---`` line.
+    """
+    text = (ALGORITHMS / "ggs" / "LICENSE").read_text(encoding="utf-8")
+    aeon, original = text.split("\n---\n", 1)
+    assert AEON_HOLDER in aeon
+    assert "BSD 2-Clause License" in original
+    assert "Copyright (c) 2018, Stanford University Convex Optimization Group" in (
+        original
+    )
+    assert "Redistributions of source code must retain" in original
 
 
 @pytest.mark.parametrize("copy", AEON_COPIES, ids=lambda path: path.parent.name)

@@ -8,22 +8,25 @@ distribution. It uses a dynamic programming search algorithm with
 a heuristic that allows finding approximate solution in linear time with
 respect to the data length and always yields locally optimal choice.
 
-This module is structured with the ``_GGS`` that implements the actual
-segmentation algorithm and a ``GreedyGaussianSegmentation`` that
-interfaces the algorithm with the sklearn/aeon api. The benefit
+This module is structured with the ``_GGS`` class that implements the actual
+segmentation algorithm and a ``GreedyGaussianDetector`` that
+interfaces the algorithm with the segmenter API of tsseg. The benefit
 behind that design is looser coupling between the logic and the
 interface introduced to allow for easier changes of either part
 since segmentation still has an experimental nature. When making
-algorithm changes you probably want to look into ``_GGS`` when
-evolving the aeon/sklearn interface look into ``GreedyGaussianSegmentation``.
+algorithm changes you probably want to look into ``_GGS``; when
+evolving the interface look into ``GreedyGaussianDetector``.
 This design also allows adapting ``_GGS`` to other interfaces.
 
 Notes
 -----
 Based on the work from Hallac et al. (2019).
 
-- source code adapted based on: https://github.com/cvxgrp/GGS
+- adapted from aeon (``aeon.segmentation._ggs``):
+  https://github.com/aeon-toolkit/aeon, Copyright (c) The aeon developers, BSD-3
+- whose source code is adapted from: https://github.com/cvxgrp/GGS
   Copyright (c) 2018, Stanford University Convex Optimization Group, BSD-2
+- both licenses: ``LICENSE`` in this directory
 - paper available at: https://stanford.edu/~boyd/papers/pdf/ggs.pdf
 """
 
@@ -107,7 +110,8 @@ class _GGS:
     -----
     Based on the work from Hallac et al. (2019).
 
-    - source code adapted based on: https://github.com/cvxgrp/GGS
+    - adapted from aeon (``aeon.segmentation._ggs``), itself adapted from:
+      https://github.com/cvxgrp/GGS
     - paper available at: https://stanford.edu/~boyd/papers/pdf/ggs.pdf
 
     References
@@ -437,7 +441,9 @@ class GreedyGaussianDetector(BaseSegmenter):
     -----
     Based on the work from [1]_.
 
-    - source code adapted based on: https://github.com/cvxgrp/GGS
+    - adapted from aeon (``aeon.segmentation._ggs``), itself adapted from:
+      https://github.com/cvxgrp/GGS (licenses: ``LICENSE`` in
+      ``tsseg/algorithms/ggs/``)
     - paper available at: https://stanford.edu/~boyd/papers/pdf/ggs.pdf
 
     Unlike the reference code, the split search starts the running mean of
