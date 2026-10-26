@@ -33,11 +33,14 @@ detector. The core logic is in `e2usd.py`.
 ## Citation
 
 ```bibtex
-@inproceedings{chen2024e2usd,
-  title     = {{E2Usd}: Efficient-yet-Effective Unsupervised State Detection
+@inproceedings{lai2024e2usd,
+  title     = {{E2Usd}: Efficient-yet-effective Unsupervised State Detection
                for Multivariate Time Series},
-  author    = {Chen, Zhichen and others},
-  booktitle = {Proceedings of the ACM Web Conference (WWW)},
-  year      = {2024}
+  author    = {Lai, Zhichen and Li, Huan and Zhang, Dalin and Zhao, Yan and
+               Qian, Weizhu and Jensen, Christian S.},
+  booktitle = {Proceedings of the ACM Web Conference 2024},
+  pages     = {3010--3021},
+  year      = {2024},
+  doi       = {10.1145/3589334.3645593}
 }
 ```
