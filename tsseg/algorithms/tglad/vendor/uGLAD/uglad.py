@@ -650,7 +650,8 @@ def mean_imputation(Xb):
     return Xb
 
 def get_final_precision_from_batch(predTheta, type='min'):
-    """The predTheta contains a batch of K precision 
+    # tsseg: raw docstring, as ``\T`` is an invalid escape sequence
+    r"""The predTheta contains a batch of K precision
     matrices. This function calculates the final 
     precision matrix by following the consensus 
     strategy
