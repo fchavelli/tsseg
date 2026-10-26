@@ -31,6 +31,15 @@ Unreleased
   ``check_random_state(k)``, the same for the same ``k``; ``k`` may also be a
   ``numpy.random.RandomState``. ``clone()`` without a seed, and detectors
   without a ``random_state`` parameter, are unchanged.
+* ``clone()`` copies the parameters, as scikit-learn's ``clone`` (used by
+  aeon) does. The clone received the parameter objects themselves, so a
+  mutable parameter (a list such as ``ICIDDetector(psi_list=...)``, a dict, an
+  array, a ``RandomState``) was shared: changing it in place, or drawing from
+  the generator, also changed the original. Estimators passed as parameters,
+  also inside a dict, list or tuple, are now cloned unfitted, and
+  ``clone(random_state=k)`` also seeds their ``random_state``, in aeon's
+  order. A constructor that converts a parameter is still accepted, unlike
+  scikit-learn's ``clone``.
 * ``Time2StateDetector`` and ``E2USDDetector`` change their output at the
   end of the series. Each window votes for its state on the points it
   covers, and the last ``(n_timepoints - window_size) % step`` points, which

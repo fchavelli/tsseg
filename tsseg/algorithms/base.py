@@ -68,6 +68,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
+from sklearn.base import clone as sklearn_clone
 from sklearn.exceptions import NotFittedError
 from sklearn.utils import check_random_state
 
@@ -93,6 +94,26 @@ def _infer_inner_type(name: str) -> str:
     if name in {"Series", "DataFrame"}:
         return f"pd.{name}"
     return name
+
+
+def _clone_parameter(value: Any) -> Any:
+    """Copy a constructor parameter for :meth:`BaseAeonEstimator.clone`.
+
+    Same copy as scikit-learn's ``clone(value, safe=False)``: containers are
+    copied element by element, estimators are cloned and any other object is
+    deep-copied. A tsseg estimator is cloned by its own ``clone``, which,
+    unlike scikit-learn's, accepts a constructor that converts a parameter.
+    """
+    value_type = type(value)
+    if value_type is dict:
+        return {key: _clone_parameter(item) for key, item in value.items()}
+    if value_type in (list, tuple, set, frozenset):
+        return value_type([_clone_parameter(item) for item in value])
+    if isinstance(value, BaseAeonEstimator):
+        return value.clone()
+    if hasattr(value, "get_params") and not isinstance(value, type):
+        return sklearn_clone(value, safe=False)
+    return deepcopy(value)
 
 
 # ---------------------------------------------------------------------------
@@ -241,21 +262,41 @@ class BaseAeonEstimator(BaseEstimator, ABC):
         Returns
         -------
         BaseAeonEstimator
-            New instance of ``type(self)`` built from
+            New instance of ``type(self)`` built from copies of
             ``self.get_params(deep=False)``; the estimator itself is unchanged.
 
         Notes
         -----
-        Only the estimator's own ``random_state`` parameter is set. aeon also
-        sets the ``random_state`` of estimators passed as parameters
-        (``<name>__random_state``), which no tsseg detector takes. A seed
-        parameter with another name, such as ``seed``, is not set, as in aeon.
+        The parameters are copied as scikit-learn's ``clone`` (used by aeon)
+        copies them: an estimator, also inside a dict, list, tuple or set, is
+        cloned unfitted; any other object is deep-copied, so the clone shares
+        no mutable parameter (dict, list, array, ``RandomState``...) with the
+        estimator. Unlike scikit-learn's ``clone``, a constructor that
+        converts a parameter (a list into a tuple, say) is accepted.
+
+        With ``random_state``, as in aeon, an integer is drawn for each
+        ``random_state`` and ``<name>__random_state`` key of
+        ``get_params(deep=True)``, in sorted order: the estimator's own
+        ``random_state`` is passed to the constructor, those of the estimators
+        it takes as parameters are set with ``set_params``. A seed parameter
+        with another name, such as ``seed``, is not set, as in aeon.
         """
-        params = self.get_params(deep=False)
-        if random_state is not None and "random_state" in params:
+        params = {
+            name: _clone_parameter(value)
+            for name, value in self.get_params(deep=False).items()
+        }
+        nested_seeds = {}
+        if random_state is not None:
             rng = check_random_state(random_state)
-            params["random_state"] = rng.randint(np.iinfo(np.int32).max)
-        return type(self)(**params)
+            for key in sorted(self.get_params(deep=True)):
+                if key == "random_state" or key.endswith("__random_state"):
+                    nested_seeds[key] = rng.randint(np.iinfo(np.int32).max)
+            if "random_state" in nested_seeds:
+                params["random_state"] = nested_seeds.pop("random_state")
+        estimator = type(self)(**params)
+        if nested_seeds:
+            estimator.set_params(**nested_seeds)
+        return estimator
 
     # ------------------------------------------------------------------
     # Fitted status utilities

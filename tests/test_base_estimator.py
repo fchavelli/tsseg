@@ -12,6 +12,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+from sklearn.base import clone as sklearn_clone
 from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import StandardScaler
 
@@ -357,17 +358,89 @@ def test_seeded_clones_of_a_random_detector_agree():
     np.testing.assert_array_equal(first.fit_predict(X), second.fit_predict(X))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="T70: clone() passes the parameter objects themselves to the new "
-    "instance, so a mutable parameter is shared with the original (sklearn's "
-    "clone, used by aeon, deep-copies them)",
-)
 def test_clone_does_not_share_mutable_parameters():
+    # scikit-learn's ``clone``, used by aeon, deep-copies the parameters.
     est = _Segmenter(config={"lags": [1]})
     cloned = est.clone()
+    assert cloned.config == {"lags": [1]}
     cloned.config["lags"].append(2)
     assert est.config == {"lags": [1]}
+    est.config["lags"].append(3)
+    assert cloned.config == {"lags": [1, 2]}
+
+
+def test_clone_copies_an_array_parameter():
+    values = np.array([1.0, 2.0])
+    cloned = _Segmenter(config=values).clone()
+    assert cloned.config is not values
+    np.testing.assert_array_equal(cloned.config, values)
+
+
+def test_clone_copies_a_random_state_instance_with_its_state():
+    rng = np.random.RandomState(0)
+    rng.rand()
+    cloned = _Segmenter(random_state=rng).clone()
+    assert cloned.random_state is not rng
+    expected = np.random.RandomState(0)
+    expected.rand()
+    # Drawing from the clone's generator does not advance the original one.
+    assert cloned.random_state.rand() == expected.rand()
+    assert rng.rand() == np.random.RandomState(0).rand(2)[1]
+
+
+class _ConvertingSegmenter(_UnseededSegmenter):
+    """Segmenter whose constructor turns a list parameter into a tuple."""
+
+    def __init__(self, *, lags=(1, 2), axis: int = 0):
+        self.lags = tuple(int(lag) for lag in lags)
+        super().__init__(axis=axis)
+
+
+def test_clone_of_an_estimator_whose_constructor_converts_a_parameter():
+    # scikit-learn's ``clone`` raises here: its sanity check wants the
+    # constructor to store each parameter object unchanged.
+    est = _ConvertingSegmenter(lags=[1, 3])
+    with pytest.raises(RuntimeError, match="modifies parameter"):
+        sklearn_clone(est)
+    cloned = est.clone()
+    assert cloned.lags == (1, 3)
+    assert cloned.get_params(deep=False) == est.get_params(deep=False)
+
+
+def test_clone_clones_an_estimator_parameter(X):
+    inner = _Segmenter(window=4, random_state=3).fit(X)
+    scaler = StandardScaler().fit(np.asarray(X))
+    est = _Segmenter(config={"inner": inner, "scaler": [scaler]})
+    cloned = est.clone()
+    # As scikit-learn's ``clone``: estimators inside the parameters, in
+    # dicts, lists or tuples, are cloned (unfitted), not deep-copied.
+    assert type(cloned.config["inner"]) is _Segmenter
+    assert cloned.config["inner"] is not inner
+    assert cloned.config["inner"].get_params() == inner.get_params()
+    assert not cloned.config["inner"].is_fitted
+    assert type(cloned.config["scaler"][0]) is StandardScaler
+    assert cloned.config["scaler"][0] is not scaler
+    assert not hasattr(cloned.config["scaler"][0], "mean_")
+    assert inner.is_fitted and hasattr(scaler, "mean_")
+
+
+def test_clone_with_random_state_seeds_nested_estimators_as_aeon():
+    # aeon draws one integer per ``random_state`` and ``<name>__random_state``
+    # key of ``get_params(deep=True)``, in sorted order.
+    est = _Segmenter(config=_Segmenter(random_state=1), random_state=2)
+    cloned = est.clone(random_state=7)
+    rng = np.random.RandomState(7)
+    nested_seed = rng.randint(np.iinfo(np.int32).max)  # "config__random_state"
+    own_seed = rng.randint(np.iinfo(np.int32).max)  # "random_state"
+    assert cloned.config.random_state == nested_seed
+    assert cloned.random_state == own_seed
+    assert est.random_state == 2 and est.config.random_state == 1
+
+
+def test_clone_without_random_state_keeps_nested_seeds():
+    cloned = _Segmenter(config=_Segmenter(random_state=1), random_state=2).clone()
+    assert cloned.config.random_state == 1
+    assert cloned.random_state == 2
 
 
 # ---------------------------------------------------------------------------

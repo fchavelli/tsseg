@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import pickle
 
+import joblib
 import numpy as np
 import pytest
 from sklearn.exceptions import NotFittedError
@@ -48,6 +49,33 @@ def _fit_instance(instance, ovr, data):
     else:
         instance.fit(X)
     return instance
+
+
+def _same_value(a, b) -> bool:
+    """Compare two parameter values by content.
+
+    ``clone`` copies the parameters as scikit-learn's ``clone`` does: dicts,
+    lists and tuples item by item, anything else by ``deepcopy``. Items are
+    compared the same way, and a copied array or a copied object without
+    ``__eq__`` through ``joblib.hash`` of its content, as scikit-learn's
+    estimator checks do.
+    """
+    if type(a) is not type(b):
+        return False
+    if type(a) is dict:
+        return a.keys() == b.keys() and all(_same_value(a[k], b[k]) for k in a)
+    if type(a) in (list, tuple):
+        return len(a) == len(b) and all(map(_same_value, a, b))
+    return joblib.hash(a) == joblib.hash(b)
+
+
+def _assert_same_params(cloned, instance):
+    """Assert that ``cloned`` has the parameters of ``instance``, by content."""
+    expected = instance.get_params(deep=False)
+    params = cloned.get_params(deep=False)
+    assert params.keys() == expected.keys()
+    for name, value in expected.items():
+        assert _same_value(params[name], value), name
 
 
 # ==================================================================
@@ -85,7 +113,16 @@ class TestBaseSegmenterContract:
             pytest.skip("Algorithm does not implement clone()")
         cloned = instance.clone()
         assert type(cloned) is type(instance)
-        assert cloned.get_params(deep=False) == instance.get_params(deep=False)
+        _assert_same_params(cloned, instance)
+
+    def test_clone_copies_mutable_parameters(self, algorithm):
+        """A clone must not share a mutable parameter with the original."""
+        _name, _cls, _ovr, instance = algorithm
+        cloned = instance.clone()
+        params = cloned.get_params(deep=False)
+        for name, value in instance.get_params(deep=False).items():
+            if isinstance(value, (dict, list, set, np.ndarray)):
+                assert params[name] is not value, name
 
     def test_clone_independence(self, algorithm, synthetic_data):
         """Modifying a clone must not affect the original."""
