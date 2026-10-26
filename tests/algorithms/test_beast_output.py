@@ -11,22 +11,34 @@ from tsseg.algorithms.beast import detector as beast_module
 NAN = float("nan")
 
 
-def _fake_rbeast(output):
-    """Stand-in for the Rbeast module whose ``beast``/``beast123`` return ``output``."""
+def _use_fake_rbeast(monkeypatch, output, sse_output=None):
+    """Stand in for Rbeast, which need not be installed.
 
-    def run(*args, **kwargs):
+    ``beast`` and ``beast123`` return ``output``, or ``sse_output`` (if given)
+    when called with ``cputype="sse"`` (``extra.cputype`` for ``beast123``).
+    Returns the list of the ``cputype`` of each call (``None`` if not passed).
+    """
+    calls = []
+
+    def answer(cputype):
+        calls.append(cputype)
+        if cputype == "sse" and sse_output is not None:
+            return sse_output
         return output
 
-    return SimpleNamespace(beast=run, beast123=run, args=SimpleNamespace)
+    def beast(*args, **kwargs):
+        return answer(kwargs.get("cputype"))
 
+    def beast123(*args, extra=None, **kwargs):
+        return answer(getattr(extra, "cputype", None))
 
-def _use_fake_rbeast(monkeypatch, output):
-    """Stand in for Rbeast, which need not be installed."""
-    monkeypatch.setattr(beast_module, "_import_rbeast", lambda: _fake_rbeast(output))
+    fake = SimpleNamespace(beast=beast, beast123=beast123, args=SimpleNamespace)
+    monkeypatch.setattr(beast_module, "_import_rbeast", lambda: fake)
     # Skip the dependency check at construction, which looks Rbeast up.
     monkeypatch.setattr(
         BeastDetector, "_tags", {**BeastDetector._tags, "python_dependencies": None}
     )
+    return calls
 
 
 def _trend(cp, cp_pr, ncp_median):
@@ -40,17 +52,21 @@ def _trend(cp, cp_pr, ncp_median):
 
 def test_ncp_median_caps_the_ranked_change_points(monkeypatch):
     output = SimpleNamespace(trend=_trend([300, 700, NAN], [0.9, 0.8, NAN], [1.0]))
-    _use_fake_rbeast(monkeypatch, output)
+    calls = _use_fake_rbeast(monkeypatch, output)
     assert BeastDetector().fit_predict(np.zeros(1000)).tolist() == [300]
+    assert calls == [None]  # one run, with Rbeast's default routines
 
 
 def test_nan_ncp_median_does_not_crash_univariate(monkeypatch):
     """Rbeast can return NaN for ``ncp_median`` (seen in CI on 6,000 points)."""
     output = SimpleNamespace(trend=_trend([300, 700, NAN], [0.9, 0.8, NAN], [NAN]))
-    _use_fake_rbeast(monkeypatch, output)
+    calls = _use_fake_rbeast(monkeypatch, output)
     with pytest.warns(RuntimeWarning, match="ncp_median"):
         cps = BeastDetector().fit_predict(np.zeros(1000))
     assert cps.tolist() == [300, 700]
+    # NaN in the only ncp_median counts as a failed run: one SSE rerun, which
+    # returns the same output here.
+    assert calls == [None, "sse"]
 
 
 def test_nan_ncp_median_does_not_crash_multivariate(monkeypatch):
@@ -61,19 +77,55 @@ def test_nan_ncp_median_does_not_crash_multivariate(monkeypatch):
             [1.0, NAN],
         )
     )
-    _use_fake_rbeast(monkeypatch, output)
+    calls = _use_fake_rbeast(monkeypatch, output)
     with pytest.warns(RuntimeWarning, match="ncp_median"):
         cps = BeastDetector().fit_predict(np.zeros((1000, 2)))
     # Channel 0 is capped at one CP by its ncp_median, channel 1 is not.
     assert cps.tolist() == [300, 700]
+    # A finite ncp_median in one channel is not a failed run: no rerun.
+    assert calls == [None]
+
+
+def _all_nan_output(n_channels=1):
+    """A failed Rbeast run: NaN everywhere (seen in CI on some CPUs)."""
+    if n_channels == 1:
+        trend = _trend([NAN, NAN], [NAN, NAN], [NAN])
+    else:
+        nan = [[NAN] * n_channels] * 2
+        trend = _trend(nan, nan, [NAN] * n_channels)
+    trend.cpOccPr = np.full(1000, NAN)
+    return SimpleNamespace(trend=trend)
+
+
+def test_all_nan_output_is_rerun_with_sse_univariate(monkeypatch):
+    """A run whose outputs are all NaN is rerun once with Rbeast's SSE routines."""
+    sse_output = SimpleNamespace(trend=_trend([300, NAN], [0.9, NAN], [1.0]))
+    calls = _use_fake_rbeast(monkeypatch, _all_nan_output(), sse_output)
+    with pytest.warns(RuntimeWarning, match="cputype='sse'"):
+        cps = BeastDetector().fit_predict(np.zeros(1000))
+    assert cps.tolist() == [300]
+    assert calls == [None, "sse"]
+
+
+def test_all_nan_output_is_rerun_with_sse_multivariate(monkeypatch):
+    sse_output = SimpleNamespace(
+        trend=_trend([[300, 700], [NAN, NAN]], [[0.9, 0.9], [NAN, NAN]], [1.0, 1.0])
+    )
+    calls = _use_fake_rbeast(monkeypatch, _all_nan_output(n_channels=2), sse_output)
+    with pytest.warns(RuntimeWarning, match="cputype='sse'"):
+        cps = BeastDetector().fit_predict(np.zeros((1000, 2)))
+    assert cps.tolist() == [300, 700]
+    assert calls == [None, "sse"]
 
 
 def test_all_nan_output_gives_no_change_point(monkeypatch):
-    """A failed Rbeast run returns NaN everywhere: no CP, and a warning."""
-    output = SimpleNamespace(trend=_trend([NAN, NAN], [NAN, NAN], [NAN]))
-    output.trend.cpOccPr = np.full(1000, NAN)
-    _use_fake_rbeast(monkeypatch, output)
-    with pytest.warns(RuntimeWarning, match="ncp_median"):
+    """NaN everywhere, also in the SSE rerun: no CP, and both warnings."""
+    calls = _use_fake_rbeast(monkeypatch, _all_nan_output())
+    with pytest.warns(RuntimeWarning) as record:
         cps = BeastDetector().fit_predict(np.zeros(1000))
     assert cps.size == 0
     assert cps.dtype == np.int64
+    assert calls == [None, "sse"]  # a single rerun
+    messages = [str(w.message) for w in record]
+    assert any("cputype='sse'" in m for m in messages), messages
+    assert any("ncp_median" in m for m in messages), messages

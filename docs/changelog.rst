@@ -119,6 +119,14 @@ Unreleased
   returned NaN for every output on a 6,000-point series, so that the detector
   returned no change point. The test of that series, which failed on such
   machines, now expects this failure on CPUs that support AVX-512.
+* ``BeastDetector`` reruns Rbeast once with its SSE routines
+  (``cputype="sse"``) when the median number of change points
+  (``ncp_median``) of a run is NaN in every component and every channel, and
+  raises a ``RuntimeWarning``. On some machines, Rbeast returned NaN for every
+  output on a 6,000-point series, and the detector returned no change point.
+  Other runs are unchanged; a failed run costs a second, slower one (1.5 to
+  2 times as long on an AVX2 CPU). If the rerun returns NaN too, the
+  detector still returns no change point.
 * ``GreedyGaussianDetector`` no longer depends on the level of a
   multivariate series. Its split search started the running mean of the
   left part from the first sample divided by the number of channels, a line
