@@ -13,10 +13,18 @@ covariance matrix that captures temporal and cross-variable partial correlations
 
 The algorithm alternates between:
 
-1. **Assignment step** — dynamic programming assigns each time step to the
-   cluster maximising a log-likelihood + switching penalty :math:`\beta`.
+1. **Assignment step** — dynamic programming assigns each window to a
+   cluster, minimising the negative log-likelihood of the windows plus a
+   switching penalty :math:`\beta` for each change of cluster.
 2. **Update step** — ADMM updates the Toeplitz inverse covariance of each
    cluster subject to a sparsity penalty :math:`\lambda`.
+
+The label of time point *t* is that of the window of points *t* to
+*t* + ``window_size`` − 1. The last ``window_size - 1`` observations enter no
+window, and the labels of the last ``2 * (window_size - 1)`` points repeat an
+earlier one; ``predict`` returns the labels computed by ``fit``, whatever its
+input (see the Notes of
+:class:`~tsseg.algorithms.ticc.detector.TiccDetector`).
 
 Without ``n_states``, the number of states is selected by the Bayesian
 information criterion (BIC), as the paper recommends: TICC is fitted for each
@@ -26,7 +34,7 @@ kept (see :class:`~tsseg.algorithms.ticc.detector.TiccDetector`).
 | **Type:** state detection
 | **Supervision:** unsupervised (``n_states=None``, BIC) or semi-supervised
   (``n_states`` given)
-| **Scope:** multivariate (transductive)
+| **Scope:** univariate and multivariate (transductive)
 | **Complexity:** :math:`O(S\,(n\,(d\,w)^{2} + (d\,w)^{3}))` per iteration,
   where *S* is ``n_states`` and *w* is ``window_size``: each stacked window
   (dimension :math:`d\,w`) is scored under the precision matrix of each state.
@@ -46,7 +54,7 @@ Parameters
    * - ``window_size``
      - int
      - ``10``
-     - Sliding window size.
+     - Number of consecutive time points stacked into each window.
    * - ``n_states``
      - int / None
      - ``None``
@@ -58,23 +66,25 @@ Parameters
    * - ``lambda_parameter``
      - float
      - ``0.11``
-     - Sparsity parameter for the inverse covariance.
+     - Weight of the :math:`\ell_1` penalty on the inverse covariances.
    * - ``beta``
      - float
      - ``400``
-     - Switching penalty (temporal consistency).
+     - Switching penalty (temporal consistency); twice the :math:`\beta` of
+       the paper.
    * - ``maxIters``
      - int
      - ``100``
-     - Maximum EM iterations.
+     - Maximum number of iterations (update and assignment steps).
    * - ``threshold``
      - float
      - ``2e-5``
-     - Convergence threshold.
+     - No effect: the solver never reads it.
    * - ``num_proc``
      - int
      - ``1``
-     - Number of parallel processes.
+     - Number of processes for the update steps; the output does not
+       depend on it.
    * - ``axis``
      - int
      - ``0``
