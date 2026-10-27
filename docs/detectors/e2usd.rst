@@ -18,6 +18,17 @@ in multivariate time series:
 A False Negative Cancellation Contrastive Learning method (FNCCLearning) is
 used to counteract false negatives and produce cluster-friendly embedding spaces.
 
+Each window gets one state, so ``window_size`` sets the time resolution: a
+window that straddles a change point can be embedded next to either of the two
+segments, not always the one that covers more of it. Keep the window well
+below the length of the shortest segment; the authors' experiments use windows
+of 128 to 512 points. On a 1000-point series of three Gaussian segments of
+300, 400 and 300 points, only 5 of the 15 windows of the default 256 points
+lie inside a single segment, and the adjusted Rand index is 0.45 with
+``n_states=3`` (0.28 to 0.52 over five seeds); it is 0.83 to 0.95 with
+``window_size=32, step=32``, and 0.90 to 0.91 with the default window when the
+segments are ten times longer.
+
 | **Type:** state detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate

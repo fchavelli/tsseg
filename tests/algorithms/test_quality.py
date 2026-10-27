@@ -93,7 +93,14 @@ KNOWN_FAILURES: dict[str, str] = {
         "z-normalised windows miss mean shifts in noise (0.86, 3 states, with "
         "distance='euclidean_distance'); a single state unsupervised"
     ),
-    "E2USDDetector": "ARI 0.35 (3 states) guided; 0.37 (6 states) unsupervised",
+    "E2USDDetector": (
+        "ARI 0.45 (3 states) guided; 0.42 (6 states) unsupervised: each window "
+        "gets one state, 5 of the 15 windows of the default 256 points lie "
+        "inside a single segment, and windows that straddle a change point are "
+        "not embedded next to the segment that covers most of them (0.96 if "
+        "they were; 0.83 to 0.95 guided with window_size=32, step=32; 0.90 to "
+        "0.91 with the default when the segments are ten times longer)"
+    ),
     "HidalgoDetector": (
         "multivariate series: ARI 0.01 (3 states) with the suite's n_iter=100; "
         "0.03 (4 states) with the default 1000: the segments are Gaussian "
