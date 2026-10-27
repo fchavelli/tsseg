@@ -14,8 +14,13 @@ signal a regime change.
 
 The contrastive loss (configurable: NCE, debiased CL, focal CL, hard-negative
 CL) encourages the encoder to capture the distributional structure of each
-segment.  A similarity curve is built from all adjacent-window pairs and
-thresholded (or top-*K* peaks selected) to produce change points.
+segment.  A similarity curve is built from all adjacent-window pairs. A
+change point lowers the similarity of every pair centred less than one window
+from it, so one change point is kept per dip: the pair centres are visited
+from the least similar, and a centre less than one window from a change point
+already kept is skipped. The candidates are all the centres when the number
+of change points is given (the first ``n_cps`` kept), and the centres below
+the similarity threshold otherwise.
 
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
@@ -49,11 +54,13 @@ Parameters
    * - ``n_cps``
      - int / None
      - ``None``
-     - Number of change points (``None`` = auto-threshold).
+     - Number of change points, at least one window apart when the series
+       leaves room for them (``None`` = use the similarity threshold).
    * - ``similarity_threshold``
      - float / None
      - ``None``
-     - Custom similarity threshold for detecting CPs.
+     - Similarity below which a pair centre is a candidate change point
+       (``None`` = set by ``fit``).
    * - ``stride``
      - int
      - ``5``
