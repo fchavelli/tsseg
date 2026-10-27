@@ -118,6 +118,19 @@ Unreleased
   distinct in the model, but the Gibbs chain is slow to split them; the paper
   runs :math:`10^5` iterations from 10 random starts, the detector 1000 from
   one by default. The detector is unchanged.
+* Docs: the Time2State page, README and docstring say that ``window_size``
+  sets the time resolution. Each window gets one state, and the encoder does
+  not always embed a window that straddles a change point next to the
+  segment that covers more of it, so the window should be well below the
+  length of the shortest segment (the authors' experiments use 128 to 512
+  points). On a 1000-point series of segments of 300 to 400 points, only 5
+  of the 15 windows of the default 256 points lie inside a single segment,
+  and the adjusted Rand index is 0.22 to 0.40 with the true number of
+  states; labelling each window with the segment that covers most of it
+  would give 0.96, and ``window_size=32, step=32`` gives 0.90 to 0.95. The
+  docstring also says that the encoder is never trained on the last
+  ``window_size - 3`` points, as in the reference implementation. The
+  detector is unchanged.
 * The documentation of ``TiccDetector`` now describes what the detector
   computes: the window of time point ``t`` holds the points ``t`` to
   ``t + window_size - 1``, the last ``window_size - 1`` observations enter no
