@@ -543,6 +543,15 @@ Unreleased
   ``tf.config.experimental.enable_op_determinism()``: the documentation now
   says so, with what it does to the result on that series, where it said
   that only a few labels could differ between two calls.
+* Docs: the BEAST page and the docstring of ``season`` say that, with a
+  seasonal model (``"harmonic"``, ``"dummy"`` or ``"svd"``), Rbeast 0.1.25 can
+  kill the Python process (abort on a double free, or segmentation fault)
+  instead of raising an error, as a direct call to Rbeast does. Whether a call
+  crashes depends on the length of the series, the period and the values:
+  for instance ``"dummy"`` with ``period=2`` on 3 to 5 points, or with
+  ``period=12`` on 200 points of white noise. The page shows how to run each
+  call in a child process so that a crash does not stop the caller. The
+  detector is unchanged.
 
 0.3.0 (2026-10-14)
 ------------------
