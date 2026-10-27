@@ -2,13 +2,16 @@
 
 Every library a detector declares in its ``python_dependencies`` tag must be
 installable through an extra, and through ``tsseg[all]``; every core
-dependency must be imported somewhere in the package.
+dependency must be imported somewhere in the package; every library the
+package imports must be installable with it.
 """
 
 from __future__ import annotations
 
 import ast
 import re
+import subprocess
+import sys
 import warnings
 from functools import cache
 from pathlib import Path
@@ -37,6 +40,8 @@ DISTRIBUTION_OF_MODULE = {"tcn": "keras-tcn"}
 MODULE_OF_DISTRIBUTION = {"scikit-learn": "sklearn"}
 # Libraries that are not on PyPI, hence in no extra.
 NOT_ON_PYPI = {"npbad"}  # PatssDetector
+# Import name -> the declared distribution that installs it as a dependency.
+INSTALLED_WITH = {"threadpoolctl": "scikit-learn"}
 
 _PROJECT = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))["project"]
 _EXTRAS = _PROJECT["optional-dependencies"]
@@ -63,20 +68,68 @@ def _resolve(extra: str) -> set[str]:
     return names
 
 
+def _absolute_imports(path: Path) -> set[str]:
+    """Top-level names of the absolute imports of one source file."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", SyntaxWarning)
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    modules = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0:
+            modules.add(node.module.split(".")[0])
+    return modules
+
+
 @cache
 def _imported_modules() -> frozenset[str]:
     """Top-level names of the absolute imports found under ``tsseg/``."""
     modules = set()
     for path in (ROOT / "tsseg").rglob("*.py"):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", SyntaxWarning)
-            tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                modules.update(alias.name.split(".")[0] for alias in node.names)
-            elif isinstance(node, ast.ImportFrom) and node.level == 0:
-                modules.add(node.module.split(".")[0])
+        modules |= _absolute_imports(path)
     return frozenset(modules)
+
+
+def _tracked_sources() -> list[Path]:
+    """The ``.py`` files under ``tsseg/`` that git tracks.
+
+    A local sub-package that git ignores is neither published nor shipped in
+    the wheel built from the repository, so it is left out.
+    """
+    try:
+        listing = subprocess.run(
+            ["git", "ls-files", "-z", "--", "tsseg/*.py"],
+            cwd=ROOT,
+            capture_output=True,
+            check=True,
+            text=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        pytest.skip("git cannot list the tracked files (not a git checkout)")
+    return [ROOT / name for name in listing.split("\0") if name]
+
+
+def test_every_imported_library_is_installable():
+    """Every library the package imports comes with a dependency or an extra.
+
+    A module that imports a library available from no extra cannot run for
+    anyone who installs tsseg.
+    """
+    installable = {_distribution(r) for r in _PROJECT["dependencies"]}
+    installable = installable.union(*(_resolve(extra) for extra in _EXTRAS))
+    distribution_of = {module: dist for dist, module in MODULE_OF_DISTRIBUTION.items()}
+    distribution_of |= DISTRIBUTION_OF_MODULE | INSTALLED_WITH
+    missing: dict[str, list[str]] = {}
+    for path in _tracked_sources():
+        for module in _absolute_imports(path):
+            if module == "tsseg" or module in sys.stdlib_module_names:
+                continue
+            if module in NOT_ON_PYPI:
+                continue
+            if _normalise(distribution_of.get(module, module)) not in installable:
+                missing.setdefault(module, []).append(path.relative_to(ROOT).as_posix())
+    assert not missing, f"imported, but installed by no dependency or extra: {missing}"
 
 
 @pytest.mark.parametrize("name", algorithms.__all__)

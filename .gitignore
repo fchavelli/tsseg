@@ -63,6 +63,7 @@ demo/
 # Development
 tsseg/algorithms/time2feat/
 tsseg/algorithms/tirex/
+tsseg/algorithms/tsfm/
 tsseg/algorithms/hidalgo/univariate/
 
 # Papers

@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* The ``tsseg.algorithms.tsfm`` sub-package is no longer shipped. It only
+  re-exported the detectors of an optional package that is not on PyPI, so
+  it could not be used after installing tsseg: importing it emitted an
+  ``ImportWarning`` and exported nothing. It was not documented, not tested
+  and not listed in ``tsseg.algorithms.__all__``. A new test checks that
+  every library the package imports is installed by a dependency or an
+  extra.
 * ``Time2StateDetector`` and ``E2USDDetector`` refuse in ``fit``, with a
   ``ValueError``, the parameters their encoder cannot run: an odd
   ``window_size`` (accepted by ``fit``, it made ``predict`` fail after the
