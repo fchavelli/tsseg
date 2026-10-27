@@ -43,6 +43,7 @@ Parameters
      - str
      - ``"none"``
      - Seasonal model type: ``"none"``, ``"harmonic"``, ``"dummy"``, ``"svd"``.
+       The last three can crash Rbeast 0.1.25 (see below).
    * - ``tcp_minmax``
      - tuple
      - ``(0, 10)``
@@ -152,6 +153,47 @@ every component and every channel, the detector raises a ``RuntimeWarning``
 and reruns Rbeast once with its SSE routines (``cputype="sse"``, which took
 1.5 to 2 times as long on an AVX2 CPU); if the rerun returns NaN too, the
 detector returns no change point. Other runs are unchanged.
+
+**Crashes with seasonal models:** with ``season`` set to ``"harmonic"``,
+``"dummy"`` or ``"svd"``, Rbeast 0.1.25 can kill the Python process (abort on
+a double free or a heap corruption, or segmentation fault) instead of raising
+an error. A direct call to Rbeast crashes the same way. In about 3,300 calls,
+each in a fresh process, whether a call crashed depended on the length of the
+series, the period and the values, so the parameters alone do not tell which
+calls are safe. On univariate series:
+
+- ``"dummy"`` with ``period=2`` crashed on every series of 3 to 5 points and
+  on none of 6 to 8 points. With ``period=12``, it crashed on 200 points of
+  white noise, but not on a sine of period 12 plus noise, a trend or a step
+  of the same length.
+- ``"harmonic"`` with ``period=12`` crashed on most white-noise series of 18
+  to 25 points, and on none of 16, 17, 26 or 27 points.
+- ``"svd"`` with ``period=4`` crashed on some series of 3 to 14 points.
+- A few calls returned a result, and the process died later.
+- ``season="none"`` (the default) never crashed.
+
+To keep the caller alive, run each call in a new child process. A crash then
+only kills the child, and ``concurrent.futures`` raises ``BrokenProcessPool``
+in the caller:
+
+.. code-block:: python
+
+   from concurrent.futures import ProcessPoolExecutor
+   from concurrent.futures.process import BrokenProcessPool
+
+   from tsseg.algorithms import BeastDetector
+
+
+   def detect(X):
+       return BeastDetector(season="dummy", period=12).fit_predict(X)
+
+
+   if __name__ == "__main__":
+       with ProcessPoolExecutor(max_workers=1) as pool:  # one pool per call
+           try:
+               change_points = pool.submit(detect, X).result()
+           except BrokenProcessPool:
+               change_points = None  # Rbeast killed the child process
 
 **Reference:** Zhao et al. (2019), *Detecting change-point, trend, and
 seasonality in satellite time series data*, Remote Sensing of Environment.
