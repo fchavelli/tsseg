@@ -84,9 +84,6 @@ KNOWN_FAILURES: dict[str, str] = {
         "batch, after 2000 it varies from window to window by far more than "
         "threshold"
     ),
-    "TSCP2Detector": (
-        "[303, 308] after the suite's 2 epochs; [333, 348] after the default 100"
-    ),
     # --- state detectors -----------------------------------------------
     "ClapDetector": (
         "ARI 0.26 (2 states) guided, ClaSP's change points [206, 637]: "

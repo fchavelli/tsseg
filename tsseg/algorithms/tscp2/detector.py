@@ -67,6 +67,56 @@ class _TrainingStats:
     neg_sim: float
 
 
+def _spaced_peaks(
+    centers: np.ndarray,
+    scores: np.ndarray,
+    min_distance: int,
+    n_peaks: int | None = None,
+) -> np.ndarray:
+    """Return the highest-scoring centres, at least ``min_distance`` apart.
+
+    A change point raises the change score of every window pair centred less
+    than one window from it, so neighbouring centres share its peak. The
+    centres are visited by decreasing score (the earliest first on a tie);
+    one closer than ``min_distance`` to a centre already kept is skipped.
+
+    Parameters
+    ----------
+    centers : np.ndarray
+        Candidate centres, increasing.
+    scores : np.ndarray
+        Change score of each candidate.
+    min_distance : int
+        Minimal distance between two kept centres.
+    n_peaks : int, optional
+        Number of centres to return: the visit stops once that many are kept
+        and, when fewer are, the highest-scoring skipped centres complete the
+        set. ``None`` keeps every centre that is not skipped.
+
+    Returns
+    -------
+    np.ndarray
+        The kept centres, increasing.
+    """
+    order = np.argsort(-scores, kind="stable")
+    blocked = np.zeros(centers.shape[0], dtype=bool)
+    kept: list[int] = []
+    for i in order:
+        if n_peaks is not None and len(kept) == n_peaks:
+            break
+        if blocked[i]:
+            continue
+        kept.append(i)
+        lo = np.searchsorted(centers, centers[i] - min_distance, side="right")
+        hi = np.searchsorted(centers, centers[i] + min_distance, side="left")
+        blocked[lo:hi] = True
+    if n_peaks is not None and len(kept) < n_peaks:
+        taken = set(kept)
+        rest = [i for i in order if i not in taken]
+        kept.extend(rest[: n_peaks - len(kept)])
+    return np.sort(centers[np.asarray(kept, dtype=int)])
+
+
 class TSCP2Detector(BaseSegmenter):
     """Time Series Change Point Detection with contrastive predictive coding.
 
@@ -88,16 +138,19 @@ class TSCP2Detector(BaseSegmenter):
         needs at least twice as many points, unless ``refit_on_predict`` is
         set (the window is then halved as often as the series requires).
     n_cps : int, optional
-        Number of change points: the centres of the ``n_cps`` window pairs with
-        the highest change score, with no minimum spacing. Takes precedence over
+        Number of change points: the centres of the window pairs with the
+        highest change score, at least one window apart (see Notes); when the
+        series is too short for ``n_cps`` such centres, the highest-scoring
+        closer ones complete the set. Takes precedence over
         ``similarity_threshold``. ``0`` returns no change point (the encoder is
         still trained by ``fit``).
     similarity_threshold : float, optional
-        Every pair centre whose similarity is below this value is a change
-        point. With neither ``n_cps`` nor ``similarity_threshold``, the
-        threshold is set by ``fit`` from the last training batch:
-        ``pos - (pos - neg) / 3``, with ``pos`` and ``neg`` the mean
-        similarities of positive and negative pairs.
+        The pair centres whose similarity is below this value are the
+        candidate change points; of those less than one window apart, only the
+        highest-scoring one is kept (see Notes). With neither ``n_cps`` nor
+        ``similarity_threshold``, the threshold is set by ``fit`` from the last
+        training batch: ``pos - (pos - neg) / 3``, with ``pos`` and ``neg`` the
+        mean similarities of positive and negative pairs.
     stride : int, default=5
         Step between consecutive window pairs, hence between candidate change
         points.
@@ -152,6 +205,18 @@ class TSCP2Detector(BaseSegmenter):
         reseeds the global Python, NumPy and TensorFlow generators.
     axis : int, default=0
         The time axis of ``X``: ``0`` if time points are rows.
+
+    Notes
+    -----
+    A change point at ``t`` lies inside both windows of every pair centred
+    less than one window from ``t``: the change score rises over that whole
+    neighbourhood, not at ``t`` alone. One change point is kept per peak: the
+    candidates are visited by decreasing change score, and one less than one
+    window from a change point already kept is skipped. The paper looks for
+    the peaks of the dissimilarity, and the reference code counts each run of
+    consecutive pairs below the threshold as one detection. The window is
+    ``window_size``, or the shorter window that ``fit`` trains on when the
+    series is short.
     """
 
     _tags = {
@@ -514,15 +579,15 @@ class TSCP2Detector(BaseSegmenter):
         z_fut = self._encoder(future_tensor, training=False)
         similarities = self._similarity_diag_fn(z_hist, z_fut).numpy()
         change_scores = 1.0 - similarities
+        # Pairs centred less than one window from a change point all see it:
+        # keep one centre per peak of the change score.
         if self.n_cps is not None:
-            n_cps = min(self.n_cps, centers.shape[0])
-            if n_cps == 0:
+            if self.n_cps == 0:
                 return np.array([], dtype=int)
-            idx = np.argpartition(change_scores, -n_cps)[-n_cps:]
-            bkps = centers[idx]
+            bkps = _spaced_peaks(centers, change_scores, window, n_peaks=self.n_cps)
         elif self.similarity_threshold is not None:
             mask = similarities < self.similarity_threshold
-            bkps = centers[mask]
+            bkps = _spaced_peaks(centers[mask], change_scores[mask], window)
         else:
             raise RuntimeError(
                 "No selection criterion available. Fit the detector before predict or set n_cps/similarity_threshold."
