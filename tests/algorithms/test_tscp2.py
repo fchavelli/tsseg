@@ -109,3 +109,50 @@ def test_refit_on_predict_halves_the_window_for_a_short_series():
         cps = detector.predict(_mean_shift(1)[:TWO_WINDOWS])
     assert cps.shape == (1,)
     assert detector.get_params()["window_size"] == FAST["window_size"]
+
+
+# Selection of the change points on a known change score. Each change point
+# raises the score of every pair centred less than ``window_size`` from it:
+# below, two bumps of that half-width, at 151 and at 231 (a lower one).
+CENTRES = FAST["window_size"] + 5 * np.arange((300 - TWO_WINDOWS) // 5 + 1)
+
+
+def _two_bumps() -> np.ndarray:
+    """Change score of each pair centre of a 300-point series (stride 5)."""
+    width = FAST["window_size"]
+    first = np.clip(1.0 - np.abs(CENTRES - 151) / width, 0.0, None)
+    second = 0.5 * np.clip(1.0 - np.abs(CENTRES - 231) / width, 0.0, None)
+    return first + second
+
+
+def _with_score(detector: TSCP2Detector, score: np.ndarray) -> TSCP2Detector:
+    """Make ``detector`` see ``score`` as the change score of its pairs."""
+    import tensorflow as tf
+
+    detector._similarity_diag_fn = lambda *_: tf.constant(1.0 - score)
+    return detector
+
+
+def test_guided_change_points_are_a_window_apart():
+    """The neighbours of the highest centre do not take the second place."""
+    detector = TSCP2Detector(random_state=0, n_cps=2, **FAST).fit(_mean_shift())
+    cps = _with_score(detector, _two_bumps()).predict(_mean_shift())
+    assert cps.tolist() == [151, 231]
+
+
+def test_unsupervised_change_points_are_a_window_apart():
+    """One change point per bump of centres below the threshold."""
+    detector = TSCP2Detector(random_state=0, similarity_threshold=0.9, **FAST).fit(
+        _mean_shift()
+    )
+    cps = _with_score(detector, _two_bumps()).predict(_mean_shift())
+    assert cps.tolist() == [151, 231]
+
+
+def test_guided_mode_returns_n_cps_change_points_when_too_few_are_spaced():
+    """Closer centres complete the set when the series has too little room."""
+    n_cps = 25  # 54 centres, 5 points apart: at most 14 are 16 points apart
+    detector = TSCP2Detector(random_state=0, n_cps=n_cps, **FAST).fit(_mean_shift())
+    cps = _with_score(detector, _two_bumps()).predict(_mean_shift())
+    assert cps.size == n_cps
+    assert {151, 231} <= set(cps.tolist())

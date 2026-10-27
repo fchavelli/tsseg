@@ -18,6 +18,20 @@ Unreleased
   and not listed in ``tsseg.algorithms.__all__``. A new test checks that
   every library the package imports is installed by a dependency or an
   extra.
+* ``TSCP2Detector`` returns one change point per peak of its change score.
+  A change point lowers the similarity of every window pair centred less than
+  one window from it, and the detector returned either the centres of the
+  ``n_cps`` most dissimilar pairs, with no minimum spacing, or every centre
+  below the similarity threshold: often several neighbouring centres for one
+  change point. On a series of 1,000 points with change points at 300 and
+  700, after the default 100 epochs, ``n_cps=2`` gave ``[333, 348]`` and
+  found only one of the two for 4 seeds out of 5; the automatic threshold
+  gave 18 to 44 change points. The centres are now taken by decreasing change
+  score, skipping any centre less than one window (``window_size``, or the
+  shorter window that ``fit`` trains on for a short series) from a change
+  point already kept. With ``n_cps``, closer centres still complete the set
+  when the series is too short for ``n_cps`` spaced ones. The outputs of both
+  modes change; the encoder and its training do not.
 * ``Time2StateDetector`` and ``E2USDDetector`` refuse in ``fit``, with a
   ``ValueError``, the parameters their encoder cannot run: an odd
   ``window_size`` (accepted by ``fit``, it made ``predict`` fail after the
