@@ -171,6 +171,12 @@ Unreleased
   Other runs are unchanged; a failed run costs a second, slower one (1.5 to
   2 times as long on an AVX2 CPU). If the rerun returns NaN too, the
   detector still returns no change point.
+* ``BeastDetector`` returns no change point for a univariate series of two
+  points, as it already did for a single point. Rbeast refuses an input of
+  fewer than three values, and ``predict`` raised ``SystemError: <built-in
+  function Rbeast> returned a result with an exception set``; the
+  ``"l2"`` and ``"ensembling"`` strategies failed in the same way on a
+  two-point multivariate series.
 * ``GreedyGaussianDetector`` no longer depends on the level of a
   multivariate series. Its split search started the running mean of the
   left part from the first sample divided by the number of channels, a line

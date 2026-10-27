@@ -20,6 +20,10 @@ __all__ = ["BeastDetector"]
 
 
 _MIN_RBEAST = (0, 1, 25)
+# Rbeast refuses an input array of fewer than three values ("The input data
+# should be numeric and must be long enough") and then returns a result with
+# an exception set, which Python raises as ``SystemError``.
+_MIN_RBEAST_VALUES = 3
 
 
 def _median_ncp(ncp_median, index: int, where: str) -> int | None:
@@ -193,6 +197,11 @@ class BeastDetector(BaseSegmenter):
     (``cputype="sse"``, which took 1.5 to 2 times as long as the default
     routines on an AVX2 CPU). If the rerun returns NaN too, the detector
     returns no change point. Other runs are left as they are.
+
+    Rbeast refuses an input of fewer than three values. A univariate series of
+    two points (or, with ``"l2"`` and ``"ensembling"``, a multivariate one) is
+    therefore not passed to Rbeast and gets no change point, like any series
+    of fewer than two points.
     """
 
     _tags = {
@@ -395,6 +404,8 @@ class BeastDetector(BaseSegmenter):
 
     def _run_beast_univariate(self, signal: np.ndarray) -> np.ndarray:
         """Run BEAST on a univariate signal and extract change points."""
+        if len(signal) < _MIN_RBEAST_VALUES:
+            return np.empty(0, dtype=np.int64)
         rb = _import_rbeast()
         kwargs = self._get_mcmc_kwargs()
 
