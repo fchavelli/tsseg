@@ -11,6 +11,21 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``AmocDetector``, ``BeastDetector``, ``BinSegDetector``,
+  ``EspressoDetector``, ``FLUSSDetector`` and ``HdpHsmmDetector`` no longer
+  redefine ``get_fitted_params``: they now use the method of the base class,
+  like every other detector. Their versions did not accept ``deep``
+  (``get_fitted_params(deep=False)`` raised a ``TypeError``), did not raise
+  ``NotFittedError`` before ``fit``, and returned something else than the
+  fitted attributes: hyperparameters (``BinSegDetector``,
+  ``EspressoDetector``, ``BeastDetector``), the change points of the last
+  ``predict`` under a ``change_points`` key (``AmocDetector``,
+  ``EspressoDetector``), ``{"profile": ...}`` or an ``AttributeError`` before
+  ``predict`` (``FLUSSDetector``), and an empty dict (``HdpHsmmDetector``,
+  which now lists ``log_likelihood_``). The hyperparameters stay available
+  through ``get_params`` and the change points as the output of ``predict``.
+  The generic detector tests now check ``get_fitted_params`` before and after
+  ``fit``.
 * ``PeltDetector().fit(X).get_fitted_params()`` no longer raises. Read
   before ``predict``, ``change_points_`` raised a ``RuntimeError``, which
   ``get_fitted_params`` does not skip, and ``hasattr(detector,

@@ -11,7 +11,7 @@ The checks mirror the principles behind ``sklearn.utils.estimator_checks``:
 * ``get_params`` / ``set_params`` round-trip
 * ``clone`` produces an equivalent estimator
 * ``fit`` returns ``self``
-* ``is_fitted`` lifecycle
+* ``is_fitted`` lifecycle, and ``get_fitted_params`` along it
 * ``NotFittedError`` raised before ``fit`` (when applicable)
 * ``reset`` clears fitted state
 * ``repr`` does not crash
@@ -162,15 +162,32 @@ class TestBaseSegmenterContract:
         assert result is instance
 
     def test_is_fitted_lifecycle(self, algorithm, synthetic_data):
-        """``is_fitted`` must be ``False`` before ``fit`` and ``True`` after."""
+        """``is_fitted`` must be ``False`` before ``fit`` and ``True`` after.
+
+        ``get_fitted_params`` follows the same lifecycle and keeps the base
+        contract: it accepts ``deep`` and lists only fitted attributes, whose
+        names end with ``_``.
+        """
         _name, cls, ovr, _instance = algorithm
         instance = make_instance(cls, ovr)
         # Before fit: is_fitted can be True if fit_is_empty, but for non-empty
         # it must be False.
         if not instance.get_tag("fit_is_empty"):
             assert not instance.is_fitted
+            with pytest.raises(NotFittedError):
+                instance.get_fitted_params()
         _fit_instance(instance, ovr, synthetic_data)
         assert instance.is_fitted
+        for deep in (True, False):
+            params = instance.get_fitted_params(deep=deep)
+            assert isinstance(params, dict)
+            not_fitted = [
+                key for key in params if key.startswith("_") or not key.endswith("_")
+            ]
+            assert not not_fitted, (
+                f"get_fitted_params(deep={deep}) returned keys that are not "
+                f"fitted attributes: {not_fitted}"
+            )
 
     def test_not_fitted_error(self, algorithm, synthetic_data):
         """``predict`` before ``fit`` must raise when ``fit_is_empty=False``."""

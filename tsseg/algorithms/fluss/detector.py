@@ -261,15 +261,6 @@ class FLUSSDetector(BaseSegmenter):
         self._predict(X)
         return self.scores
 
-    def get_fitted_params(self):
-        """Get fitted parameters.
-
-        Returns
-        -------
-        fitted_params : dict
-        """
-        return {"profile": self.profile}
-
     def _tolerance_samples(self, signal_len: int) -> int:
         if isinstance(self.tolerance, float) and self.tolerance < 1.0:
             return int(self.tolerance * signal_len)

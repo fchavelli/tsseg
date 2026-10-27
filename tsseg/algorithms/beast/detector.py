@@ -611,17 +611,3 @@ class BeastDetector(BaseSegmenter):
         if hasattr(o, "trend") and hasattr(o.trend, "cpOccPr"):
             return np.asarray(o.trend.cpOccPr).ravel()
         return None
-
-    # ------------------------------------------------------------------
-    # Public API extensions
-    # ------------------------------------------------------------------
-
-    def get_fitted_params(self):
-        return {
-            "season": self.season,
-            "tcp_minmax": self.tcp_minmax,
-            "scp_minmax": self.scp_minmax,
-            "mcmc_samples": self.mcmc_samples,
-            "cp_prob_threshold": self.cp_prob_threshold,
-            "component": self.component,
-        }
