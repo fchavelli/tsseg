@@ -11,6 +11,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``PeltDetector().fit(X).get_fitted_params()`` no longer raises. Read
+  before ``predict``, ``change_points_`` raised a ``RuntimeError``, which
+  ``get_fitted_params`` does not skip, and ``hasattr(detector,
+  "change_points_")`` raised it too. The error is now also an
+  ``AttributeError``: until ``predict``, ``get_fitted_params`` leaves
+  ``change_points_`` out and ``hasattr`` returns ``False``. Code that catches
+  the ``RuntimeError`` is unaffected.
 * The ``tsseg.algorithms.tsfm`` sub-package is no longer shipped. It only
   re-exported the detectors of an optional package that is not on PyPI, so
   it could not be used after installing tsseg: importing it emitted an

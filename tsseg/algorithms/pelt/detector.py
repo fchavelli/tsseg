@@ -19,6 +19,15 @@ from ..ruptures.utils import bic_penalty
 __all__ = ["PeltDetector"]
 
 
+class _NotPredictedError(RuntimeError, AttributeError):
+    """``change_points_`` read before ``predict``.
+
+    A :class:`RuntimeError`, as it always was, and an :class:`AttributeError`,
+    so that ``hasattr`` and :meth:`~PeltDetector.get_fitted_params` treat the
+    attribute as not set yet (as scikit-learn's ``NotFittedError`` does).
+    """
+
+
 class PeltDetector(BaseSegmenter):
     """Wrapper around the vendored ruptures :class:`Pelt` estimator.
 
@@ -197,7 +206,13 @@ class PeltDetector(BaseSegmenter):
 
     @property
     def change_points_(self) -> np.ndarray:
-        """Change points returned by the last call to ``predict`` (a copy)."""
+        """Change points returned by the last call to ``predict`` (a copy).
+
+        Not set before ``predict``: reading it then raises an error that is
+        both a :class:`RuntimeError` and an :class:`AttributeError`.
+        """
         if self._change_points is None:
-            raise RuntimeError("Predict must be called before accessing change_points_")
+            raise _NotPredictedError(
+                "Predict must be called before accessing change_points_"
+            )
         return self._change_points.copy()
