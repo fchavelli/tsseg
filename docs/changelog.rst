@@ -11,6 +11,18 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``BeastDetector`` with ``multivariate_strategy="native"``, the default for
+  multivariate series, now passes its prior to ``beast123``: ``tcp_minmax``,
+  ``torder_minmax`` and ``tseg_minlength`` and, when ``season`` is not
+  ``"none"``, ``scp_minmax``, ``sorder_minmax`` and ``sseg_minlength``. They
+  were ignored, and Rbeast used its own defaults: ``tcp_minmax=(0, 0)``
+  still gave a change point on a two-channel step series, where ``"l2"``,
+  ``"ensembling"`` and univariate series gave none. With ``season="none"``
+  (the default) and the default trend prior, the output is unchanged
+  (Rbeast's defaults are the same). With a seasonal component, the seasonal
+  defaults of the detector now apply instead of Rbeast's (at most 5 seasonal
+  change points, harmonic orders from 1 to ``period / 2 - 1``), which can
+  change the output.
 * The ``tsseg.algorithms.tsfm`` sub-package is no longer shipped. It only
   re-exported the detectors of an optional package that is not on PyPI, so
   it could not be used after installing tsseg: importing it emitted an

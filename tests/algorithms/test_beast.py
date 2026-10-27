@@ -33,6 +33,15 @@ def test_multivariate_native():
     assert BeastDetector().fit_predict(X).tolist() == [500]
 
 
+@pytest.mark.parametrize("strategy", ["native", "l2", "ensembling"])
+def test_tcp_minmax_applies_to_every_multivariate_strategy(strategy):
+    """``"native"`` (``beast123``) used to ignore the trend prior."""
+    x = _step()
+    X = np.c_[x, x + np.random.default_rng(1).normal(0, 0.3, len(x))]
+    detector = BeastDetector(tcp_minmax=(0, 0), multivariate_strategy=strategy)
+    assert detector.fit_predict(X).tolist() == []
+
+
 @pytest.mark.parametrize("n_channels", [1, 2])
 def test_sse_rerun_finds_the_change_point(monkeypatch, n_channels):
     """Rbeast accepts the SSE rerun of a failed run (the failure is forced here)."""
