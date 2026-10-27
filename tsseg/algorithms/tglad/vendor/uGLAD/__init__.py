@@ -7,7 +7,10 @@ diverged, is https://github.com/Harshs27/uGLAD.
 Changes to ``uglad.py`` (marked ``# tsseg:``): ``uGLAD_multitask.fit`` prints
 its three progress lines only when ``verbose`` is true, and
 ``run_uGLAD_multitask`` prints the loss every ``max(1, int(EPOCHS/10))``
-epochs instead of every ``int(EPOCHS/10)``, a modulo by zero below 10 epochs.
+epochs instead of every ``int(EPOCHS/10)``, a modulo by zero below 10 epochs;
+the docstring of ``get_final_precision_from_batch`` is a raw string, as its
+``\\Theta`` is an invalid escape sequence (a ``SyntaxWarning`` at import from
+Python 3.12).
 """
 
 from .uglad import (

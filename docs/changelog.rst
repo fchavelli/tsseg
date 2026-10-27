@@ -18,6 +18,13 @@ Unreleased
   ``AttributeError``: until ``predict``, ``get_fitted_params`` leaves
   ``change_points_`` out and ``hasattr`` returns ``False``. Code that catches
   the ``RuntimeError`` is unaffected.
+* The ``tsseg.algorithms.tsfm`` sub-package is no longer shipped. It only
+  re-exported the detectors of an optional package that is not on PyPI, so
+  it could not be used after installing tsseg: importing it emitted an
+  ``ImportWarning`` and exported nothing. It was not documented, not tested
+  and not listed in ``tsseg.algorithms.__all__``. A new test checks that
+  every library the package imports is installed by a dependency or an
+  extra.
 * ``Time2StateDetector`` and ``E2USDDetector`` refuse in ``fit``, with a
   ``ValueError``, the parameters their encoder cannot run: an odd
   ``window_size`` (accepted by ``fit``, it made ``predict`` fail after the
@@ -53,6 +60,14 @@ Unreleased
   schema accepts, raised ``ZeroDivisionError`` at ``fit``: the solver
   printed the loss every ``int(epochs / 10)`` epochs, which is 0 below 10
   epochs; it now prints it every epoch there.
+* Importing ``TGLADDetector`` no longer issues ``SyntaxWarning: invalid
+  escape sequence '\T'`` on Python 3.12 (a ``DeprecationWarning`` before
+  3.12, an error in a future version). The warning came from a docstring of
+  the vendored uGLAD solver and was shown whenever Python compiled that
+  module at import, as on the first import from an editable install (pip
+  precompiles the modules of a regular install and hides the warning); that
+  docstring is now a raw string. A new test compiles every module of the
+  package and fails on any compile-time warning.
 * ``clone(random_state=k)`` seeds the clone. The seed was ignored: ``clone``
   only called a ``set_random_state`` method that no detector defines, so the
   clone kept the ``random_state`` of the original. As in aeon, the
@@ -69,6 +84,19 @@ Unreleased
   ``clone(random_state=k)`` also seeds their ``random_state``, in aeon's
   order. A constructor that converts a parameter is still accepted, unlike
   scikit-learn's ``clone``.
+* ``import tsseg`` no longer puts a fake ``numpy.core.umath_tests`` module,
+  with only an ``inner1d`` function, in ``sys.modules``. It was left from a
+  dependency that tsseg no longer has, and any other package of the program
+  that imported ``numpy.core.umath_tests`` got the fake module.
+* ``import tsseg`` no longer imports the detectors: ``tsseg.algorithms`` is
+  imported on first access, so ``import tsseg`` takes about a fifth of the
+  time it took, and ``tsseg.algorithms.PeltDetector`` still works after it.
+  ``tsseg.np``, ``tsseg.sys``, ``tsseg.types`` and ``tsseg.umath_tests``,
+  left by the imports of the package, are gone.
+* ``tsseg.TGLADDetector`` is deprecated (``FutureWarning``) and no longer in
+  ``tsseg.__all__``, so ``from tsseg import *`` gives ``load_mocap`` only.
+  It is the same class as ``tsseg.algorithms.TGLADDetector``, where all the
+  detectors are; import it from there.
 * ``Time2StateDetector`` and ``E2USDDetector`` change their output at the
   end of the series. Each window votes for its state on the points it
   covers, and the last ``(n_timepoints - window_size) % step`` points, which
@@ -104,6 +132,19 @@ Unreleased
   distinct in the model, but the Gibbs chain is slow to split them; the paper
   runs :math:`10^5` iterations from 10 random starts, the detector 1000 from
   one by default. The detector is unchanged.
+* Docs: the Time2State page, README and docstring say that ``window_size``
+  sets the time resolution. Each window gets one state, and the encoder does
+  not always embed a window that straddles a change point next to the
+  segment that covers more of it, so the window should be well below the
+  length of the shortest segment (the authors' experiments use 128 to 512
+  points). On a 1000-point series of segments of 300 to 400 points, only 5
+  of the 15 windows of the default 256 points lie inside a single segment,
+  and the adjusted Rand index is 0.22 to 0.40 with the true number of
+  states; labelling each window with the segment that covers most of it
+  would give 0.96, and ``window_size=32, step=32`` gives 0.90 to 0.95. The
+  docstring also says that the encoder is never trained on the last
+  ``window_size - 3`` points, as in the reference implementation. The
+  detector is unchanged.
 * The documentation of ``TiccDetector`` now describes what the detector
   computes: the window of time point ``t`` holds the points ``t`` to
   ``t + window_size - 1``, the last ``window_size - 1`` observations enter no
@@ -142,6 +183,15 @@ Unreleased
   README of the detector credited "Chen, Zhichen and others"; it and the
   documentation page now cite Lai, Li, Zhang, Zhao, Qian and Jensen, WWW
   2024, pp. 3010-3021.
+* Docs: the E2USD page, README and docstring say that ``window_size`` sets
+  the time resolution. Each window gets one state, and the encoder can embed
+  a window that straddles a change point next to either of the two segments,
+  so the window should be well below the length of the shortest segment (the
+  authors' experiments use 128 to 512 points). On a 1000-point series of
+  segments of 300 to 400 points, only 5 of the 15 windows of the default 256
+  points lie inside a single segment, and the adjusted Rand index is 0.28 to
+  0.52 with the true number of states; 0.83 to 0.95 with
+  ``window_size=32, step=32``. The detector is unchanged.
 * The documentation of ``BeastDetector`` now says that a fixed
   ``mcmc_seed`` reproduces the output on one machine only: Rbeast picks its
   numerical routines by CPU instruction set, and their rounding differences
@@ -157,6 +207,12 @@ Unreleased
   Other runs are unchanged; a failed run costs a second, slower one (1.5 to
   2 times as long on an AVX2 CPU). If the rerun returns NaN too, the
   detector still returns no change point.
+* ``BeastDetector`` returns no change point for a univariate series of two
+  points, as it already did for a single point. Rbeast refuses an input of
+  fewer than three values, and ``predict`` raised ``SystemError: <built-in
+  function Rbeast> returned a result with an exception set``; the
+  ``"l2"`` and ``"ensembling"`` strategies failed in the same way on a
+  two-point multivariate series.
 * ``GreedyGaussianDetector`` no longer depends on the level of a
   multivariate series. Its split search started the running mean of the
   left part from the first sample divided by the number of channels, a line
@@ -463,6 +519,16 @@ Unreleased
   the opposite sign after it, which can be wider than ``tolerance``: one shift
   can then give two change points and leave a smaller shift out of the
   ``n_changepoints`` returned. The detector is unchanged.
+* ``SNLDSDetector`` seeds its initial weights with ``random_state``. Keras 3
+  draws the seed of an initializer created without one from Python's
+  ``random`` module, which the detector did not seed: two fits with the same
+  ``random_state`` started from different weights, and ``fit`` consumed the
+  caller's ``random`` stream. On a series of three segments with clear mean
+  shifts, two runs with the default parameters gave adjusted Rand indices of
+  0.52 and 0.92. Training still differs from run to run, even with
+  ``tf.config.experimental.enable_op_determinism()``: the documentation now
+  says so, with what it does to the result on that series, where it said
+  that only a few labels could differ between two calls.
 
 0.3.0 (2026-10-14)
 ------------------

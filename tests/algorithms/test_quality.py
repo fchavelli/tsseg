@@ -93,7 +93,14 @@ KNOWN_FAILURES: dict[str, str] = {
         "z-normalised windows miss mean shifts in noise (0.86, 3 states, with "
         "distance='euclidean_distance'); a single state unsupervised"
     ),
-    "E2USDDetector": "ARI 0.35 (3 states) guided; 0.37 (6 states) unsupervised",
+    "E2USDDetector": (
+        "ARI 0.45 (3 states) guided; 0.42 (6 states) unsupervised: each window "
+        "gets one state, 5 of the 15 windows of the default 256 points lie "
+        "inside a single segment, and windows that straddle a change point are "
+        "not embedded next to the segment that covers most of them (0.96 if "
+        "they were; 0.83 to 0.95 guided with window_size=32, step=32; 0.90 to "
+        "0.91 with the default when the segments are ten times longer)"
+    ),
     "HidalgoDetector": (
         "multivariate series: ARI 0.01 (3 states) with the suite's n_iter=100; "
         "0.03 (4 states) with the default 1000: the segments are Gaussian "
@@ -102,10 +109,20 @@ KNOWN_FAILURES: dict[str, str] = {
     ),
     "HMMDetector": "a single state (deprecated detector)",
     "SNLDSDetector": (
-        "ARI 0.19 (2 states) after the suite's 3 training steps; 0.97 after "
-        "the default n_train_steps (110 s)"
+        "ARI 0.04 (3 states) after the suite's 3 training steps. After the "
+        "default 2000 (110 s): 0.50 to 0.97 over seeds 0 to 4, two of them "
+        "above 0.8, and 0.54, 0.97, 0.54 over three runs with the default "
+        "random_state: training differs from run to run, and the runs below "
+        "the bar merge two regimes"
     ),
-    "Time2StateDetector": "ARI 0.22 (3 states) guided; 0.33 (4 states) unsupervised",
+    "Time2StateDetector": (
+        "ARI 0.22 (3 states) guided; 0.37 (4 states) unsupervised: each window "
+        "gets one state, 5 of the 15 windows of the default 256 points lie "
+        "inside a single segment, and windows that straddle a change point are "
+        "not embedded next to the segment that covers most of them (0.96 if "
+        "they were; 0.90 to 0.95 guided with window_size=32, step=32; 0.91 to "
+        "0.92 with the default when the segments are ten times longer)"
+    ),
 }
 
 #: Detectors whose output varies from run to run without the

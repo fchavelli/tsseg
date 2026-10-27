@@ -39,7 +39,8 @@ class Time2StateDetector(BaseSegmenter):
         is ``(n_channels, n_timepoints)``.
     window_size : int, default=256
         Length of the sliding windows, in time points. Must be even: ``fit``
-        raises ``ValueError`` on an odd value.
+        raises ``ValueError`` on an odd value. Each window gets one state:
+        keep it well below the length of the shortest segment (see Notes).
     step : int, default=50
         Distance between the starts of consecutive windows, at most
         ``window_size``.
@@ -89,7 +90,10 @@ class Time2StateDetector(BaseSegmenter):
     encoder for ``nb_steps`` steps. At each step, the LSE loss draws 10 random positions and, at each
     position, 4 windows shifted by one point; it pulls the embeddings of the
     windows of a position together and pushes the mean embeddings of
-    different positions apart [1]_.
+    different positions apart [1]_. As in the reference implementation, the
+    positions are drawn among the first ``n_timepoints - 2 * window_size + 1``
+    points, so the last ``window_size - 3`` points of the series lie in no
+    training window.
 
     ``predict`` embeds the ``(n_timepoints - window_size) // step + 1``
     windows of the series, fits the DPGMM (full covariances, k-means
@@ -99,6 +103,25 @@ class Time2StateDetector(BaseSegmenter):
     smallest label on a tie). The last points of the series, fewer than
     ``step``, lie in no window: they take the label of the last window (the
     reference implementation gives them label 0).
+
+    Each window gets one label, so ``window_size`` sets the time resolution:
+    only the windows that lie inside a segment see it alone, and the encoder
+    does not always embed a window that straddles a change point next to the
+    segment that covers more of it. The window should be well below the
+    length of the shortest segment; the authors' experiments use windows of
+    128 to 512 points. On a series of 1000 points made of three Gaussian
+    segments of 300, 400 and 300 points, 5 of the 15 windows of the default
+    256 points lie inside a single segment, and the adjusted Rand index is
+    0.22 with ``n_states=3`` and ``random_state=0`` (0.22 to 0.40 over five
+    seeds). Labelling each window with the segment that covers most of it
+    would give 0.96 after the vote: what fails is the embedding of the
+    windows that straddle a change point. With ``random_state=0``, the
+    windows that straddle the first change point share the state of the
+    third segment, whose mean lies between those of the first two, and those
+    that straddle the second get the state of the second segment, even where
+    the third covers 80% of them. The index is 0.90 to 0.95 over five seeds
+    with ``window_size=32, step=32``, and 0.91 to 0.92 with the default
+    window when the three segments are ten times longer.
 
     ``fit`` raises ``ValueError`` on a series of fewer than
     ``2 * window_size`` points. A series of at most ``2 * window_size``
