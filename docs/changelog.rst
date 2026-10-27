@@ -11,6 +11,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``HausdorffDistance.compute`` accepts ``n_timepoints``, and
+  ``HausdorffDistance(convert_labels_to_segments=True)`` converts label
+  sequences to change points, like the other change-point metrics. Passing
+  ``n_timepoints`` raised a ``TypeError``, and ``convert_labels_to_segments``
+  was stored but ignored: the distance was then computed between the label
+  values themselves (1 instead of 400 for true change points 300 and 700 and
+  a predicted one at 300). With either argument, only the change points
+  inside the series are compared, without the boundaries ``0`` and
+  ``n_timepoints``, as in ``ruptures.metrics.hausdorff``. Without them, the
+  two lists are compared as they are given, as before.
 * The ``tsseg.algorithms.tsfm`` sub-package is no longer shipped. It only
   re-exported the detectors of an optional package that is not on PyPI, so
   it could not be used after installing tsseg: importing it emitted an

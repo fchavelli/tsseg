@@ -17,6 +17,10 @@ n_timepoints=n)``, and the change points may then include or omit ``0`` and
 ``n``. Without it, the length is read from the change points (``y_true`` must
 end with it) and a ``UserWarning`` is emitted; with dense labels and
 ``convert_labels_to_segments=True``, it is the length of the labels.
+``HausdorffDistance`` takes the same ``n_timepoints`` and
+``convert_labels_to_segments`` arguments: it then compares only the change
+points inside the series, without ``0`` and ``n``. Without either, it
+compares the two lists as they are given, boundaries included.
 
 .. autosummary::
    :toctree: _autogen

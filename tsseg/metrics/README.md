@@ -26,7 +26,17 @@ Standard margin-based F1 for change-point detection. A predicted change point is
 
 ### Hausdorff Distance
 
-Worst-case deviation between the set of true and predicted change points.
+Worst-case deviation between the set of true and predicted change points: the
+largest distance from a change point of one set to the nearest one of the
+other set. It does not need the series length, but takes `n_timepoints` and
+`convert_labels_to_segments=True` like the metrics above: only the change
+points inside the series are then compared, the boundaries `0` and `T` being
+set aside (as in `ruptures.metrics.hausdorff`), so
+`compute([300, 700], [300], n_timepoints=1000)` and
+`compute([0, 300, 700, 1000], [0, 300, 1000], n_timepoints=1000)` both give
+400. Without either, the two lists are compared as given, boundaries
+included (300 for the second call). If either set has no change point to
+compare, the distance is infinite.
 
 ### Gaussian F1 Score
 
