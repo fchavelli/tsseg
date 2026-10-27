@@ -12,59 +12,14 @@ Covers:
 
 from __future__ import annotations
 
-import importlib.util as _ilu
+import importlib
 import inspect
-import os
-import sys
 
 import numpy as np
 import pytest
 
-# ---------------------------------------------------------------------------
-# Helper: import a module by file path without triggering the heavy
-# tsseg.algorithms.__init__ (which eagerly imports all 30+ detectors,
-# some requiring optional deps like prophet / tensorflow).
-# ---------------------------------------------------------------------------
-
-_ALGO_ROOT = os.path.join(os.path.dirname(__file__), os.pardir, "tsseg", "algorithms")
-_ALGO_ROOT = os.path.normpath(_ALGO_ROOT)
-
-
-def _import_module_from_file(dotted_name: str, filepath: str):
-    """Import *filepath* as *dotted_name* if not already loaded."""
-    if dotted_name in sys.modules:
-        return sys.modules[dotted_name]
-    spec = _ilu.spec_from_file_location(dotted_name, filepath)
-    mod = _ilu.module_from_spec(spec)
-    sys.modules[dotted_name] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
-def _ensure_algo_package():
-    """Register tsseg.algorithms package shell without executing __init__.py."""
-    _pkg_name = "tsseg.algorithms"
-    if _pkg_name not in sys.modules:
-        _pkg_spec = _ilu.spec_from_file_location(
-            _pkg_name,
-            os.path.join(_ALGO_ROOT, "__init__.py"),
-            submodule_search_locations=[_ALGO_ROOT],
-        )
-        _pkg_mod = _ilu.module_from_spec(_pkg_spec)
-        sys.modules[_pkg_name] = _pkg_mod
-
-
-_ensure_algo_package()
-
-# Now import the modules we actually need.
-_import_module_from_file(
-    "tsseg.algorithms.base",
-    os.path.join(_ALGO_ROOT, "base.py"),
-)
-_ps_mod = _import_module_from_file(
-    "tsseg.algorithms.param_schema",
-    os.path.join(_ALGO_ROOT, "param_schema.py"),
-)
+from tsseg.algorithms import param_schema as _ps_mod
+from tsseg.algorithms.base import BaseSegmenter
 
 Closed = _ps_mod.Closed
 ConditionalRequired = _ps_mod.ConditionalRequired
@@ -92,25 +47,16 @@ def _can_import(module_name: str) -> bool:
 
 
 def _load_detector(subpkg: str, filename: str, classname: str):
-    """Import a single detector class without triggering algorithms.__init__."""
-    dotted = f"tsseg.algorithms.{subpkg}"
-    pkg_dir = os.path.join(_ALGO_ROOT, subpkg)
-    # register sub-package
-    if dotted not in sys.modules:
-        pkg_spec = _ilu.spec_from_file_location(
-            dotted,
-            os.path.join(pkg_dir, "__init__.py"),
-            submodule_search_locations=[pkg_dir],
-        )
-        pkg_mod = _ilu.module_from_spec(pkg_spec)
-        sys.modules[dotted] = pkg_mod
-        try:
-            pkg_spec.loader.exec_module(pkg_mod)
-        except Exception:
-            pass
-    mod_dotted = f"{dotted}.{filename}"
-    mod = _import_module_from_file(mod_dotted, os.path.join(pkg_dir, f"{filename}.py"))
-    return getattr(mod, classname)
+    """Return *classname* from ``tsseg.algorithms.<subpkg>.<filename>``.
+
+    Every detector module imports without its optional dependencies, so the
+    regular import system is enough. Loading modules by file path used to
+    register a bare ``tsseg.algorithms`` package in ``sys.modules`` (its
+    ``__init__.py`` never ran): test files collected after this one then
+    found no ``__all__`` and no detector in it.
+    """
+    module = importlib.import_module(f"tsseg.algorithms.{subpkg}.{filename}")
+    return getattr(module, classname)
 
 
 # Eagerly load the three core detectors that have no heavy deps.
@@ -374,7 +320,6 @@ class TestSchemaResolution:
     """Verify that schema keys are a subset of __init__ parameter names."""
 
     def test_empty_schema(self):
-        BaseSegmenter = sys.modules["tsseg.algorithms.base"].BaseSegmenter
         schema = get_parameter_schema(BaseSegmenter)
         assert schema == {} or all(k == CROSS_CONSTRAINTS_KEY for k in schema)
 
@@ -873,3 +818,25 @@ class TestFitValidation:
         X = np.random.randn(100, 1)
         with pytest.raises(ValueError, match="parameter validation failed"):
             det.predict(X, axis=0)
+
+
+# ======================================================================
+# Side effects of this module on the import system
+# ======================================================================
+
+
+class TestModuleImports:
+    """This module must leave the real packages in ``sys.modules``."""
+
+    def test_algorithms_package_is_the_real_one(self):
+        """Test files collected after this one read ``tsseg.algorithms``.
+
+        A bare package registered in ``sys.modules`` without running its
+        ``__init__.py`` has no ``__all__`` and no detector, so every test
+        file importing ``tsseg.algorithms`` after this one failed to collect.
+        """
+        import tsseg.algorithms as algorithms
+
+        assert "BinSegDetector" in algorithms.__all__
+        assert algorithms.BinSegDetector is BinSegDetector
+        assert algorithms.PeltDetector is PeltDetector
