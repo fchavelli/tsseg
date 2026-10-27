@@ -24,10 +24,12 @@ partial correlations, as in `main.py` of the authors' repository; a score above
 Wraps the uGLAD multitask solver, which is vendored under `vendor/uGLAD/` (a
 copy of the `uGLAD/` folder of the tGLAD repository, imports made relative). The
 `vendor/__init__.py` module registers the vendored package into `sys.modules` so
-that existing absolute imports work without modification. Two changes to
+that existing absolute imports work without modification. Three changes to
 `uglad.py`, marked `# tsseg:` and listed in `vendor/uGLAD/__init__.py`: the
-multitask solver prints its progress only when `verbose` is true, and fewer than
-10 epochs no longer raise `ZeroDivisionError`.
+multitask solver prints its progress only when `verbose` is true, fewer than 10
+epochs no longer raise `ZeroDivisionError`, and the docstring of
+`get_final_precision_from_batch` is a raw string (its `\Theta` is an invalid
+escape sequence, a `SyntaxWarning` at import from Python 3.12).
 
 - Origin: wrapper around tGLAD / uGLAD
 - Source: https://github.com/Harshs27/tGLAD

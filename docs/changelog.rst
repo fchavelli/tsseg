@@ -46,6 +46,14 @@ Unreleased
   schema accepts, raised ``ZeroDivisionError`` at ``fit``: the solver
   printed the loss every ``int(epochs / 10)`` epochs, which is 0 below 10
   epochs; it now prints it every epoch there.
+* Importing ``TGLADDetector`` no longer issues ``SyntaxWarning: invalid
+  escape sequence '\T'`` on Python 3.12 (a ``DeprecationWarning`` before
+  3.12, an error in a future version). The warning came from a docstring of
+  the vendored uGLAD solver and was shown whenever Python compiled that
+  module at import, as on the first import from an editable install (pip
+  precompiles the modules of a regular install and hides the warning); that
+  docstring is now a raw string. A new test compiles every module of the
+  package and fails on any compile-time warning.
 * ``clone(random_state=k)`` seeds the clone. The seed was ignored: ``clone``
   only called a ``set_random_state`` method that no detector defines, so the
   clone kept the ``random_state`` of the original. As in aeon, the
