@@ -263,7 +263,7 @@ Every metric returns a dictionary with at least a `"score"` key:
 | `BidirectionalCovering` | covering in both directions, true to predicted and predicted to true |
 | `HausdorffDistance` | the largest distance from a change point to the nearest one of the other set |
 
-> **Tip:** these metrics need the length of the series: pass
+> **Tip:** pass these metrics the length of the series:
 > `compute(y_true, y_pred, n_timepoints=len(X))`.
 
 **State detection**, on one label per time point:

@@ -5,6 +5,11 @@ and ``GaussianF1Score`` read the series length from the change points
 themselves, so ``y_true`` must end with it. The raw output of a detector does
 not: its last true change point was then taken for the length and ignored,
 without any error.
+
+``HausdorffDistance`` does not need the length: with ``n_timepoints`` (or
+label sequences), it compares the change points inside the series, without
+the boundaries ``0`` and ``n``; without either, it compares the two lists as
+they are given.
 """
 
 from __future__ import annotations
@@ -14,7 +19,13 @@ import warnings
 import numpy as np
 import pytest
 
-from tsseg.metrics import BidirectionalCovering, Covering, F1Score, GaussianF1Score
+from tsseg.metrics import (
+    BidirectionalCovering,
+    Covering,
+    F1Score,
+    GaussianF1Score,
+    HausdorffDistance,
+)
 
 # Series of length 1000 with true change points 300 and 700; one predicted
 # change point at 300. Expected scores computed by hand.
@@ -137,3 +148,64 @@ def test_f1_missed_and_spurious_change_points():
         "score"
     ] == pytest.approx(1.0)
     assert F1Score(margin=0.01).compute([500], [511], n_timepoints=N)["score"] == 0.0
+
+
+# HausdorffDistance: 700 is 400 points away from the only prediction, 300.
+HAUSDORFF = {"score": 400, "hausdorff_distance": 400}
+
+
+def _labels(change_points: list[int]) -> np.ndarray:
+    labels = np.zeros(N, dtype=int)
+    for state, cp in enumerate(change_points, start=1):
+        labels[cp:] = state
+    return labels
+
+
+def test_hausdorff_with_n_timepoints():
+    metric = HausdorffDistance()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        bare = metric.compute(TRUE_CPS, PRED_CPS, n_timepoints=N)
+        with_bounds = metric.compute(
+            [0, *TRUE_CPS, N], [0, *PRED_CPS, N], n_timepoints=N
+        )
+        as_arrays = metric(np.array(TRUE_CPS), np.array(PRED_CPS), n_timepoints=N)
+    assert bare == with_bounds == as_arrays == HAUSDORFF
+
+
+def test_hausdorff_labels():
+    metric = HausdorffDistance(convert_labels_to_segments=True)
+    y_true, y_pred = _labels(TRUE_CPS), _labels(PRED_CPS)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        from_labels = metric.compute(y_true, y_pred)
+        with_n = metric.compute(y_true, y_pred, n_timepoints=N)
+    assert from_labels == with_n == HAUSDORFF
+    with pytest.raises(ValueError, match="n_timepoints"):
+        metric.compute(y_true, y_pred, n_timepoints=N + 1)
+
+
+def test_hausdorff_without_n_timepoints_compares_the_lists_as_given():
+    metric = HausdorffDistance()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert metric.compute(TRUE_CPS, PRED_CPS) == HAUSDORFF
+        # The boundaries count as change points: 700 is 300 points from 1000.
+        assert metric.compute([0, *TRUE_CPS, N], [0, *PRED_CPS, N])["score"] == 300
+        assert metric.compute([*TRUE_CPS, N], PRED_CPS)["score"] == 700
+
+
+@pytest.mark.parametrize(
+    ("y_true", "y_pred"), [([], []), ([0, N], [500]), (TRUE_CPS, [N])]
+)
+def test_hausdorff_no_change_point_inside_the_series(y_true, y_pred):
+    result = HausdorffDistance().compute(y_true, y_pred, n_timepoints=N)
+    assert result == {"score": np.inf, "hausdorff_distance": np.inf}
+
+
+def test_hausdorff_change_point_outside_series_rejected():
+    metric = HausdorffDistance()
+    with pytest.raises(ValueError, match="n_timepoints"):
+        metric.compute([300, 1200], PRED_CPS, n_timepoints=N)
+    with pytest.raises(ValueError, match="n_timepoints"):
+        metric.compute(TRUE_CPS, [-1], n_timepoints=N)
