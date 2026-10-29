@@ -82,22 +82,69 @@ def test_max_cps_ranks_the_seasonal_candidates_by_their_own_probability(
     assert _predict(monkeypatch, output, component="trend", max_cps=1) == [200]
 
 
-def test_tolerance_merges_close_candidates(monkeypatch):
-    """The same change seen by two channels, one point apart, counts once."""
-    output = SimpleNamespace(
-        trend=_component([[(400, 0.9), (150, 0.5)], [(401, 0.8), (153, 0.7)]])
+@pytest.mark.parametrize(
+    ("params", "separation"),
+    [
+        ({}, 3),  # Rbeast's default without a seasonal component
+        ({"tseg_minlength": 10}, 10),
+        ({"season": "harmonic", "period": 24.0}, 12),  # half the period
+        ({"torder_minmax": (0, 5)}, 6),  # at least the largest trend order + 1
+    ],
+)
+def test_close_candidates_of_different_channels_count_once(
+    monkeypatch, params, separation
+):
+    """Rbeast keeps the change points of one channel ``separation`` apart.
+
+    Two channels that change one point apart give one change point, the more
+    probable one, not two.
+    """
+
+    def predict(gap):
+        output = SimpleNamespace(trend=_component([[(400, 0.8)], [(400 + gap, 0.9)]]))
+        return _predict(monkeypatch, output, **params)
+
+    assert predict(1) == [401]
+    assert predict(separation - 1) == [400 + separation - 1]
+    assert predict(separation) == [400, 400 + separation]
+
+
+def test_close_candidates_of_one_channel_are_kept(monkeypatch):
+    """With ``"both"``, the trend and the season of one channel can change
+    one step apart."""
+    one_channel = SimpleNamespace(
+        trend=_component([[(400, 0.9)], []]),
+        season=_component([[(401, 0.8)], []]),
     )
-    # tolerance=0 (the default) merges nothing: the union of the channels
-    assert _predict(monkeypatch, output) == [150, 153, 400, 401]
+    assert _predict(monkeypatch, one_channel, component="both") == [400, 401]
+    two_channels = SimpleNamespace(
+        trend=_component([[(400, 0.9)], []]),
+        season=_component([[], [(401, 0.8)]]),
+    )
+    assert _predict(monkeypatch, two_channels, component="both") == [400]
+
+
+def test_tolerance_merges_close_candidates(monkeypatch):
+    """``tolerance`` merges candidates of any channel, on top of the above."""
+    output = SimpleNamespace(
+        trend=_component([[(400, 0.9), (150, 0.5)], [(405, 0.8), (155, 0.7)]])
+    )
+    # 5 points apart: two change points each by default (separation 3)
+    assert _predict(monkeypatch, output) == [150, 155, 400, 405]
+    assert _predict(monkeypatch, output, tolerance=4) == [150, 155, 400, 405]
     # a candidate within tolerance of a more probable one is dropped
-    assert _predict(monkeypatch, output, tolerance=1) == [150, 153, 400]
-    assert _predict(monkeypatch, output, tolerance=3) == [153, 400]
+    assert _predict(monkeypatch, output, tolerance=5) == [155, 400]
     # merging comes before max_cps, which then keeps two distinct changes
-    assert _predict(monkeypatch, output, max_cps=2) == [400, 401]
-    assert _predict(monkeypatch, output, tolerance=3, max_cps=2) == [153, 400]
+    assert _predict(monkeypatch, output, max_cps=2) == [400, 405]
+    assert _predict(monkeypatch, output, tolerance=5, max_cps=2) == [155, 400]
     # a float below 1 is a fraction of the series length, as with "ensembling"
-    assert _predict(monkeypatch, output, tolerance=0.002) == [150, 153, 400]
-    assert _predict(monkeypatch, output, tolerance=0.002, n=2000) == [153, 400]
+    assert _predict(monkeypatch, output, tolerance=0.005) == [155, 400]
+    assert _predict(monkeypatch, output, tolerance=0.005, n=800) == [
+        150,
+        155,
+        400,
+        405,
+    ]
 
 
 def test_tolerance_does_not_chain_merges(monkeypatch):
@@ -118,3 +165,15 @@ def test_native_max_cps_on_a_real_series():
     capped = BeastDetector(max_cps=1).fit_predict(X)
     assert len(capped) == 1
     assert abs(int(capped[0]) - 400) <= 3, capped
+
+
+def test_native_two_channels_changing_one_point_apart():
+    """Each channel finds its own change: the two used to be returned."""
+    pytest.importorskip("Rbeast")
+    rng = np.random.default_rng(0)
+    X = rng.normal(0, 0.3, (1000, 2))
+    X[500:, 0] += 3.0
+    X[501:, 1] += 3.0
+    cps = BeastDetector().fit_predict(X)
+    assert len(cps) == 1, cps
+    assert abs(int(cps[0]) - 500) <= 1, cps

@@ -190,7 +190,9 @@ class BeastDetector(BaseSegmenter):
         series count as one (a float below 1 is a fraction of the series
         length). With ``"native"``, candidates are taken by decreasing
         probability (``cpPr``), and a candidate within ``tolerance`` of one
-        already taken is dropped; ``0`` drops none. With ``"ensembling"``,
+        already taken is dropped, on top of the merge of close candidates of
+        different channels described in the Notes; ``0`` adds none. With
+        ``"ensembling"``,
         the change points of all channels are grouped when within
         ``tolerance`` of the previous one, and each group gives its median
         (``max_cps`` keeps the largest groups); ``0`` groups identical time
@@ -209,10 +211,15 @@ class BeastDetector(BaseSegmenter):
 
     With ``"native"``, the candidates of every channel (and, with ``"both"``,
     of both components) are pooled, and a time step found more than once
-    keeps its largest ``cpPr``. The same change can be found on two channels
-    a few time steps apart and is then returned twice, unless ``tolerance``
-    merges them. ``max_cps`` keeps the most probable candidates, after this
-    merge.
+    keeps its largest ``cpPr``. Rbeast keeps the trend change points of one
+    channel a minimum distance apart: ``tseg_minlength`` or, if None, 3 time
+    steps (half the period with a seasonal component), at least the largest
+    trend order plus one and at most ``n / 2 - 1``. Two candidates of
+    different channels closer than this distance are taken as the same
+    change, found by both channels: only the more probable one is returned.
+    The same change found a few more time steps apart is returned twice,
+    unless ``tolerance`` merges them. ``max_cps`` keeps the most probable
+    candidates, after these merges.
 
     On some machines, Rbeast 0.1.25 returned NaN for every output on a
     6,000-point series in which it finds the change point elsewhere; Rbeast
@@ -490,24 +497,52 @@ class BeastDetector(BaseSegmenter):
         # e.g. o.trend.cp has shape (max_cps, n_channels). A time step found
         # on several channels (or components) keeps its largest probability.
         probs: dict[int, float] = {}
+        channels: dict[int, set[int]] = {}
         for ch in range(n_channels):
             for cp, prob in self._extract_cps_channel(o, ch):
                 if 0 < cp < n_samples:
                     probs[cp] = max(prob, probs.get(cp, prob))
+                    channels.setdefault(cp, set()).add(ch)
 
-        # By decreasing probability, ties by position.
-        ranked = sorted(probs, key=lambda cp: (-probs[cp], cp))
+        # Rbeast keeps the change points of one channel at least `separation`
+        # apart: closer candidates of different channels are taken as the
+        # same change, as are candidates within `tolerance` of each other.
+        separation = self._native_separation(n_samples)
         tolerance = self._tolerance_steps(n_samples)
-        if tolerance > 0:
-            kept: list[int] = []
-            for cp in ranked:
-                if all(abs(cp - other) > tolerance for other in kept):
-                    kept.append(cp)
-            ranked = kept
-        if self.max_cps is not None:
-            ranked = ranked[: self.max_cps]
 
-        return np.array(sorted(ranked), dtype=np.int64)
+        def same_change(cp: int, other: int) -> bool:
+            gap = abs(cp - other)
+            return gap <= tolerance or (
+                gap < separation and channels[cp].isdisjoint(channels[other])
+            )
+
+        kept: list[int] = []
+        # By decreasing probability, ties by position.
+        for cp in sorted(probs, key=lambda cp: (-probs[cp], cp)):
+            if not any(same_change(cp, other) for other in kept):
+                kept.append(cp)
+        if self.max_cps is not None:
+            kept = kept[: self.max_cps]
+
+        return np.array(sorted(kept), dtype=np.int64)
+
+    def _native_separation(self, n_samples: int) -> int:
+        """Rbeast's minimum distance between two trend CPs of one channel.
+
+        As Rbeast 0.1.25 sets it (``rbeast_beastv2_io_in_args.c``):
+        ``tseg_minlength`` or, if None, 3 time steps (half the period, in time
+        steps, with a seasonal component), at least the largest trend order
+        plus one and at most ``n_samples // 2 - 1``.
+        """
+        separation = self.tseg_minlength
+        if separation is None:
+            separation = 3
+            period = self.period / self.deltat
+            # NaN: Rbeast estimates the period; below 2: it fits no season.
+            if self.season != "none" and period >= 2:
+                separation = int(period) // 2
+        separation = max(separation, max(self.torder_minmax) + 1)
+        return min(separation, n_samples // 2 - 1)
 
     def _tolerance_steps(self, n_samples: int) -> int:
         """``tolerance`` in time steps (a float below 1 is a fraction of n)."""

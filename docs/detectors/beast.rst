@@ -120,7 +120,9 @@ Parameters
      - Distance (time steps; a float below 1 is a fraction of the length)
        within which close change points count as one, with ``"native"``
        (the most probable is kept) and ``"ensembling"`` (median of the
-       group); ``0``: identical time steps only.
+       group). ``0``: no merge beyond identical time steps and, with
+       ``"native"``, candidates of different channels closer than Rbeast's
+       minimum distance between two change points of one channel.
    * - ``axis``
      - int
      - ``0``
