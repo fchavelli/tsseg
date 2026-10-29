@@ -396,19 +396,57 @@ class Covering(BaseMetric):
 
 
 class HausdorffDistance(BaseMetric):
-    """Computes the Hausdorff distance between two sets of change points."""
+    """Computes the Hausdorff distance between two sets of change points.
 
-    def compute(self, y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    The distance is the largest distance from a change point of one set to
+    the nearest change point of the other set. With ``n_timepoints`` or
+    ``convert_labels_to_segments``, only the change points inside the series
+    are compared: the boundaries ``0`` and ``n_timepoints`` are set aside, as
+    in ``ruptures.metrics.hausdorff``.
+    """
+
+    def __init__(self, convert_labels_to_segments: bool = False, **kwargs):
+        super().__init__(**kwargs)
+        self.convert_labels_to_segments = convert_labels_to_segments
+
+    def compute(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        *,
+        n_timepoints: int | None = None,
+    ) -> dict[str, float]:
         """
         Computes the Hausdorff distance.
 
         Args:
-            y_true: Array of true change points.
-            y_pred: Array of predicted change points.
+            y_true: Array of true change points (label sequence if
+                    ``convert_labels_to_segments`` is set).
+            y_pred: Array of predicted change points (label sequence if
+                    ``convert_labels_to_segments`` is set).
+            n_timepoints: Length of the series. When given, the change points
+                    may include or omit the boundaries ``0`` and
+                    ``n_timepoints``, which are not compared. When omitted
+                    (and ``convert_labels_to_segments`` is not set), the two
+                    arrays are compared as they are given, boundaries
+                    included.
 
         Returns:
-            A dictionary with the Hausdorff distance.
+            A dictionary with the Hausdorff distance (``score`` and
+            ``hausdorff_distance``), ``inf`` when either set has no change
+            point to compare.
         """
+        if n_timepoints is not None or self.convert_labels_to_segments:
+            y_true, y_pred = _prepare_change_points(
+                y_true,
+                y_pred,
+                n_timepoints=n_timepoints,
+                convert_labels_to_segments=self.convert_labels_to_segments,
+                metric_name=type(self).__name__,
+            )
+            # Both lists now start with 0 and end with the series length.
+            y_true = _strip_boundaries(y_true, y_true[-1])
+            y_pred = _strip_boundaries(y_pred, y_pred[-1])
         y_true = np.asarray(y_true)
         y_pred = np.asarray(y_pred)
         if y_true.size == 0 or y_pred.size == 0:
