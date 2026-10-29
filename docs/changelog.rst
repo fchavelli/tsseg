@@ -565,6 +565,19 @@ Unreleased
   ``tf.config.experimental.enable_op_determinism()``: the documentation now
   says so, with what it does to the result on that series, where it said
   that only a few labels could differ between two calls.
+* ``BeastDetector`` with ``max_cps`` and ``component="season"`` or
+  ``"both"`` keeps the most probable change points of the returned
+  components. On a univariate series (and with the ``"l2"`` and
+  ``"ensembling"`` strategies), it ranked every candidate, seasonal ones
+  included, by the occurrence probability of the trend: on a periodic series
+  whose amplitude changes three times, the last change being the largest,
+  ``max_cps=1`` kept another candidate than this change for 6 of 8 seeds
+  with ``"season"`` and for all 8 with ``"both"``. Each candidate is now
+  ranked by the occurrence probability of ``component`` at its time step
+  (the larger of the trend and seasonal ones with ``"both"``), and the
+  largest change is kept, within 2 points, for the 8 seeds. Outputs with
+  ``component="trend"`` (the default), without ``max_cps``, or with the
+  ``"native"`` strategy are unchanged.
 * Docs: the BEAST page and the docstring of ``season`` say that, with a
   seasonal model (``"harmonic"``, ``"dummy"`` or ``"svd"``), Rbeast 0.1.25 can
   kill the Python process (abort on a double free, or segmentation fault)

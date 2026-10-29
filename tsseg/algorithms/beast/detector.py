@@ -176,7 +176,11 @@ class BeastDetector(BaseSegmenter):
     max_cps : int or None, default=None
         Maximum number of change points to return (by decreasing probability).
         ``None`` returns all candidates above ``cp_prob_threshold``; ``0``
-        returns none.
+        returns none. On a univariate series, with ``"l2"``, and on each
+        channel with ``"ensembling"``, the candidates kept are those with the
+        largest occurrence probability (Rbeast's ``cpOccPr``) of ``component``
+        at their time step; with ``"both"``, the larger of the trend and
+        seasonal probabilities.
     component : str, default="trend"
         Which component's change points to return: ``"trend"`` or
         ``"season"`` or ``"both"``.
@@ -633,9 +637,21 @@ class BeastDetector(BaseSegmenter):
         return cps
 
     def _extract_cp_probs(self, o) -> np.ndarray | None:
-        """Return the trend cpOccPr array if available."""
-        if hasattr(o, "trend") and hasattr(o.trend, "cpOccPr"):
-            return np.asarray(o.trend.cpOccPr).ravel()
+        """Return the ``cpOccPr`` curve of the returned component, if any.
+
+        ``cpOccPr[i]`` is Rbeast's probability that the component changes at
+        time step ``i``. With ``component="both"``, the larger of the trend
+        and seasonal curves at each step (NaN ignored), so that a seasonal
+        candidate is not ranked by the trend's curve alone.
+        """
+        names = ("trend", "season") if self.component == "both" else (self.component,)
+        curves = [
+            np.asarray(getattr(o, name).cpOccPr).ravel()
+            for name in names
+            if getattr(getattr(o, name, None), "cpOccPr", None) is not None
+        ]
+        if curves:
+            return np.fmax.reduce(curves)
         return None
 
     # ------------------------------------------------------------------
