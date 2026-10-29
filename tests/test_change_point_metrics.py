@@ -17,7 +17,7 @@ legacy_series_length = pytest.mark.filterwarnings(
 )
 
 
-@pytest.mark.parametrize("metric", [F1Score(), Covering()])
+@pytest.mark.parametrize("metric", [F1Score(), Covering(), HausdorffDistance()])
 @pytest.mark.parametrize("n_timepoints", [0, -5])
 def test_n_timepoints_must_be_positive(metric, n_timepoints):
     with pytest.raises(ValueError, match="n_timepoints must be >= 1"):

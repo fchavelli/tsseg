@@ -126,8 +126,18 @@ class BeastDetector(BaseSegmenter):
     Parameters
     ----------
     season : str, default="none"
-        Seasonal model type. ``"none"`` for trend-only data, ``"harmonic"``
-        for data with periodic components.
+        Seasonal model type: ``"none"`` for trend-only data; ``"harmonic"``,
+        ``"dummy"`` or ``"svd"`` for data with periodic components (see
+        ``period``). With a seasonal model, Rbeast 0.1.25 can kill the Python
+        process (abort on a double free, or segmentation fault) instead of
+        raising an error, depending on the length of the series, the period
+        and the values: for instance ``"dummy"`` with ``period=2`` on 3 to 5
+        points, or with ``period=12`` on 200 points of white noise. A direct
+        call to Rbeast crashes the same way. The crash can also come after the
+        call has returned. No crash was seen with ``"none"``. To keep the caller alive, run each
+        call in a new child process, for instance with
+        ``concurrent.futures.ProcessPoolExecutor``, which raises
+        ``BrokenProcessPool`` when the child dies.
     tcp_minmax : tuple of int, default=(0, 10)
         Minimum and maximum number of trend change points.
     torder_minmax : tuple of int, default=(0, 1)
