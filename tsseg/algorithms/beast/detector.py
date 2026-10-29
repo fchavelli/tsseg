@@ -439,6 +439,22 @@ class BeastDetector(BaseSegmenter):
         md.detrend = False
         md.deltat = self.deltat
 
+        # beast123 reads the prior from an object: fill the fields that
+        # Rbeast.beast fills from the same arguments (seasonal ones only with
+        # a seasonal component), so that "native" honours them too.
+        prior = rb.args()
+        prior.trendMinKnotNum = self.tcp_minmax[0]
+        prior.trendMaxKnotNum = self.tcp_minmax[1]
+        prior.trendMinOrder = self.torder_minmax[0]
+        prior.trendMaxOrder = self.torder_minmax[1]
+        prior.trendMinSepDist = self.tseg_minlength
+        if self.season != "none":
+            prior.seasonMinKnotNum = self.scp_minmax[0]
+            prior.seasonMaxKnotNum = self.scp_minmax[1]
+            prior.seasonMinOrder = self.sorder_minmax[0]
+            prior.seasonMaxOrder = self.sorder_minmax[1]
+            prior.seasonMinSepDist = self.sseg_minlength
+
         mcmc = rb.args()
         mcmc.samples = self.mcmc_samples
         mcmc.burnin = self.mcmc_burnin
@@ -449,11 +465,11 @@ class BeastDetector(BaseSegmenter):
         extra = rb.args()
         extra.quiet = True
 
-        o = rb.beast123(data, metadata=md, mcmc=mcmc, extra=extra)
+        o = rb.beast123(data, metadata=md, prior=prior, mcmc=mcmc, extra=extra)
         if _all_nan_output(o):
             _warn_sse_rerun()
             extra.cputype = "sse"
-            o = rb.beast123(data, metadata=md, mcmc=mcmc, extra=extra)
+            o = rb.beast123(data, metadata=md, prior=prior, mcmc=mcmc, extra=extra)
 
         # beast123 returns a single object with per-channel arrays
         # e.g. o.trend.cp has shape (max_cps, n_channels)
