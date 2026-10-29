@@ -140,13 +140,11 @@ class AmocDetector(BaseSegmenter):
             raise ValueError("min_size must be at least 1")
         self.min_size = int(min_size)
         self._engine: _AmocEngine | None = None
-        self._fitted_change_points: np.ndarray | None = None
         super().__init__(axis=axis)
 
     def _fit(self, X, y=None):
         signal = _ensure_time_major(X, axis=self.axis)
         self._engine = _AmocEngine(min_size=self.min_size).fit(signal)
-        self._fitted_change_points = None
         return self
 
     def _predict(self, X, axis=None):
@@ -161,10 +159,4 @@ class AmocDetector(BaseSegmenter):
         change_points = self._engine.predict()
         valid = (change_points > 0) & (change_points < signal.shape[0])
         change_points = change_points[valid]
-        self._fitted_change_points = change_points.copy()
         return change_points
-
-    def get_fitted_params(self):
-        if self._fitted_change_points is None:
-            return {"change_points": None}
-        return {"change_points": self._fitted_change_points.copy()}

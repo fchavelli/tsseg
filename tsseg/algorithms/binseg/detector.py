@@ -240,7 +240,6 @@ class BinSegDetector(BaseSegmenter):
         self.cost_params = cost_params or {}
         self.backend = backend
         self._estimator: Binseg | None = None
-        self._fitted_change_points: np.ndarray | None = None
         super().__init__(axis=axis)
 
     def _make_estimator(self, signal: np.ndarray) -> Binseg:
@@ -258,7 +257,6 @@ class BinSegDetector(BaseSegmenter):
     def _fit(self, X, y=None):
         signal = _ensure_time_major(X, axis=self.axis)
         self._estimator = self._make_estimator(signal)
-        self._fitted_change_points = None
 
         return self
 
@@ -286,15 +284,7 @@ class BinSegDetector(BaseSegmenter):
         n_samples = self._estimator.n_samples or signal.shape[0]
         change_points = np.array([b for b in bkps if 0 < b < n_samples], dtype=int)
         change_points = np.unique(change_points)
-        self._fitted_change_points = change_points.copy()
         return change_points
-
-    def get_fitted_params(self):
-        return {
-            "n_cps": self.n_cps,
-            "penalty": self.penalty,
-            "epsilon": self.epsilon,
-        }
 
     @classmethod
     def _get_test_params(cls, parameter_set="default"):
