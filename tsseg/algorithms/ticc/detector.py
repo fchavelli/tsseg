@@ -102,9 +102,10 @@ class TiccDetector(BaseSegmenter):
     its own generator, seeded with 102: the output is the same at every run,
     and the detector has no ``random_state``.
 
-    ``predict`` returns the labels computed by ``fit``, whatever its input:
-    the detector is transductive, and a series of another length gets labels
-    of the length of the training series.
+    TICC labels the time points of the series given to ``fit``:
+    ``predict(X)`` returns those labels when ``X`` has the same values, and
+    otherwise labels ``X`` with a new fit, with a warning, leaving the fitted
+    attributes unchanged.
 
     Every state needs two windows to estimate its covariance. With
     ``n_states`` given, ``fit`` raises ``ValueError`` when the series has
@@ -266,6 +267,8 @@ class TiccDetector(BaseSegmenter):
         -------
         self
         """
+        # a copy: an array modified in place after fit is a new series
+        self._X = X.copy()
         n_timepoints, n_channels = X.shape
         if self.n_states is not None:
             self.ticc_, clustered_points = self._fit_ticc(X, self.n_states)
@@ -307,21 +310,29 @@ class TiccDetector(BaseSegmenter):
         return self
 
     def _predict(self, X):
-        """Return the state labels computed by ``fit``.
+        """Return the state label of each time point of ``X``.
 
         Parameters
         ----------
         X : np.ndarray
-            Ignored: the labels are those of the series given to ``fit``.
+            The time series, of shape ``(n_timepoints, n_channels)``. If its
+            values differ from those given to ``fit``, it is labelled with a
+            new fit, with a warning, and the fitted attributes are left
+            unchanged.
 
         Returns
         -------
         np.ndarray
-            State labels of the series given to ``fit``, of shape
-            ``(n_timepoints,)``.
+            State labels of ``X``, of shape ``(n_timepoints,)``.
         """
         self._check_is_fitted()
-        # TICC's fit_transform already computes the segmentation for the training data.
-        # For simplicity, this wrapper is a "fit-and-predict" type.
-        # A true predict would require re-using the learned inverse covariance matrices.
-        return self._state_labels
+        if np.array_equal(X, self._X):
+            return self._state_labels
+        warnings.warn(
+            "Input data X differs from that given to fit(): labelling X with a "
+            "new fit, without updating the fitted attributes. To store them, "
+            "use fit(X) or fit_predict(X).",
+            UserWarning,
+            stacklevel=3,
+        )
+        return self.clone().fit(X)._state_labels

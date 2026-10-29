@@ -10,7 +10,8 @@ via an EM-like procedure with a temporal consistency penalty.
 - Unsupervised (`n_states=None`: number of states chosen by BIC, as the paper
   recommends) or semi-supervised (`n_states` given)
 - Multivariate (models temporal cross-covariance structure)
-- Transductive: `predict` returns the labels computed during `fit`
+- `predict` returns the labels computed during `fit` on the series given to
+  `fit`, and labels another series with a new fit, with a warning
 
 ## Implementation
 

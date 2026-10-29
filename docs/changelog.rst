@@ -184,10 +184,10 @@ Unreleased
 * The documentation of ``TiccDetector`` now describes what the detector
   computes: the window of time point ``t`` holds the points ``t`` to
   ``t + window_size - 1``, the last ``window_size - 1`` observations enter no
-  window, ``threshold`` has no effect, ``beta`` is twice the :math:`\beta` of
-  the paper, ``predict`` returns the labels of the series given to ``fit``
-  whatever its input. Every public member of ``tsseg.algorithms.ticc.ticc``
-  has a NumPy docstring. The detector is unchanged.
+  window, ``threshold`` has no effect and ``beta`` is twice the
+  :math:`\beta` of the paper. Every public member of
+  ``tsseg.algorithms.ticc.ticc`` has a NumPy docstring. The detector is
+  unchanged.
 * ``TiccDetector`` with ``n_states`` given raises a ``ValueError`` that names
   the cause when a state cannot get the two windows it needs to estimate its
   covariance: when the series has fewer than ``2 * n_states`` windows
@@ -587,6 +587,13 @@ Unreleased
   ``period=12`` on 200 points of white noise. The page shows how to run each
   call in a child process so that a crash does not stop the caller. The
   detector is unchanged.
+* ``TiccDetector.predict(X)`` labels ``X`` when it is not the series given to
+  ``fit``. It returned the labels of the fitted series whatever ``X``: the
+  labels of another series on a series of the same length, and as many labels
+  as the fitted series has time points on a series of another length. A new
+  series is labelled with a new fit, with a warning, and the fitted attributes
+  are left unchanged, as in ``EAggloDetector`` and ``HidalgoDetector``;
+  ``fit_predict`` and ``predict`` on the fitted series are unchanged.
 
 0.3.0 (2026-10-14)
 ------------------
