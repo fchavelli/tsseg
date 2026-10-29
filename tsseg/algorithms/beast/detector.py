@@ -186,7 +186,15 @@ class BeastDetector(BaseSegmenter):
         channels via L2 norm; ``"ensembling"`` runs BEAST per channel and
         aggregates.
     tolerance : int or float, default=0
-        Tolerance for aggregating change points (ensembling strategy only).
+        Distance, in time steps, within which change points of a multivariate
+        series count as one (a float below 1 is a fraction of the series
+        length). With ``"native"``, candidates are taken by decreasing
+        probability (``cpPr``), and a candidate within ``tolerance`` of one
+        already taken is dropped; ``0`` drops none. With ``"ensembling"``,
+        the change points of all channels are grouped when within
+        ``tolerance`` of the previous one, and each group gives its median
+        (``max_cps`` keeps the largest groups); ``0`` groups identical time
+        steps only. Not used with ``"l2"`` nor on a univariate series.
     axis : int, default=0
         Time axis of the input array.
 
@@ -198,6 +206,13 @@ class BeastDetector(BaseSegmenter):
     (Rbeast's median number of change points) per component and, with
     ``"native"``, per channel. When Rbeast returns NaN for ``ncp_median``, a
     ``RuntimeWarning`` is raised and their number is not capped.
+
+    With ``"native"``, the candidates of every channel (and, with ``"both"``,
+    of both components) are pooled, and a time step found more than once
+    keeps its largest ``cpPr``. The same change can be found on two channels
+    a few time steps apart and is then returned twice, unless ``tolerance``
+    merges them. ``max_cps`` keeps the most probable candidates, after this
+    merge.
 
     On some machines, Rbeast 0.1.25 returned NaN for every output on a
     6,000-point series in which it finds the change point elsewhere; Rbeast
@@ -295,7 +310,7 @@ class BeastDetector(BaseSegmenter):
         ),
         "tolerance": ParamDef(
             constraint=Interval(float, 0, None, Closed.LEFT),
-            description="Tolerance for aggregating CPs in ensembling.",
+            description="Tolerance for merging close CPs (native, ensembling).",
         ),
     }
 
@@ -472,26 +487,37 @@ class BeastDetector(BaseSegmenter):
             o = rb.beast123(data, metadata=md, prior=prior, mcmc=mcmc, extra=extra)
 
         # beast123 returns a single object with per-channel arrays
-        # e.g. o.trend.cp has shape (max_cps, n_channels)
-        all_cps: list[int] = []
+        # e.g. o.trend.cp has shape (max_cps, n_channels). A time step found
+        # on several channels (or components) keeps its largest probability.
+        probs: dict[int, float] = {}
         for ch in range(n_channels):
-            cps_ch = self._extract_cps_channel(o, ch)
-            all_cps.extend(cps_ch)
+            for cp, prob in self._extract_cps_channel(o, ch):
+                if 0 < cp < n_samples:
+                    probs[cp] = max(prob, probs.get(cp, prob))
 
-        if not all_cps:
-            return np.empty(0, dtype=np.int64)
+        # By decreasing probability, ties by position.
+        ranked = sorted(probs, key=lambda cp: (-probs[cp], cp))
+        tolerance = self._tolerance_steps(n_samples)
+        if tolerance > 0:
+            kept: list[int] = []
+            for cp in ranked:
+                if all(abs(cp - other) > tolerance for other in kept):
+                    kept.append(cp)
+            ranked = kept
+        if self.max_cps is not None:
+            ranked = ranked[: self.max_cps]
 
-        cps = np.unique(np.array(all_cps, dtype=np.int64))
-        cps = cps[(cps > 0) & (cps < n_samples)]
+        return np.array(sorted(ranked), dtype=np.int64)
 
-        if self.max_cps is not None and len(cps) > self.max_cps:
-            cps = cps[: self.max_cps]
+    def _tolerance_steps(self, n_samples: int) -> int:
+        """``tolerance`` in time steps (a float below 1 is a fraction of n)."""
+        if isinstance(self.tolerance, float) and self.tolerance < 1.0:
+            return int(self.tolerance * n_samples)
+        return int(self.tolerance)
 
-        return cps.astype(np.int64)
-
-    def _extract_cps_channel(self, o, ch: int) -> list[int]:
-        """Extract CPs for a single channel from a beast123 output."""
-        cps: list[int] = []
+    def _extract_cps_channel(self, o, ch: int) -> list[tuple[int, float]]:
+        """Extract ``(cp, cpPr)`` pairs for one channel of a beast123 output."""
+        cps: list[tuple[int, float]] = []
 
         for comp_name in ("trend", "season"):
             if self.component not in (comp_name, "both"):
@@ -521,14 +547,14 @@ class BeastDetector(BaseSegmenter):
 
             n_expected = _median_ncp(ncp_med, ch, f"{comp_name}, channel {ch}")
 
-            comp_cps: list[int] = []
+            comp_cps: list[tuple[int, float]] = []
             for i, cp in enumerate(cp_col):
                 if np.isnan(cp):
                     break
                 prob = pr_col[i] if pr_col is not None and i < len(pr_col) else 1.0
                 if float(prob) < self.cp_prob_threshold:
                     continue
-                comp_cps.append(int(round(float(cp) / self.deltat)))
+                comp_cps.append((int(round(float(cp) / self.deltat)), float(prob)))
 
             if n_expected is not None and len(comp_cps) > n_expected:
                 comp_cps = comp_cps[:n_expected]

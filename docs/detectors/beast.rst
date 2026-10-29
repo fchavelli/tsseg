@@ -104,7 +104,8 @@ Parameters
    * - ``max_cps``
      - int / None
      - ``None``
-     - Optional upper bound on the number of change points.
+     - Optional upper bound on the number of change points (the most
+       probable ones are kept).
    * - ``component``
      - str
      - ``"trend"``
@@ -116,7 +117,10 @@ Parameters
    * - ``tolerance``
      - float
      - ``0``
-     - Tolerance for aggregating change points in ensembling mode.
+     - Distance (time steps; a float below 1 is a fraction of the length)
+       within which close change points count as one, with ``"native"``
+       (the most probable is kept) and ``"ensembling"`` (median of the
+       group); ``0``: identical time steps only.
    * - ``axis``
      - int
      - ``0``

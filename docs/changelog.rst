@@ -23,6 +23,22 @@ Unreleased
   defaults of the detector now apply instead of Rbeast's (at most 5 seasonal
   change points, harmonic orders from 1 to ``period / 2 - 1``), which can
   change the output.
+* ``BeastDetector`` with ``multivariate_strategy="native"`` and ``max_cps``
+  keeps the most probable change points. It kept the first ones by
+  position: on two channels with a weak mean shift at t=150 and a strong
+  one at t=400, ``max_cps=1`` returned ``[152]``. The candidates of all
+  channels are now ranked by their probability in Rbeast's ranked list
+  (``cpPr``; the largest one for a time step found on several channels),
+  and ``max_cps=1`` returns ``[400]``. ``tolerance``, which applied to
+  ``"ensembling"`` only, now applies to ``"native"`` too: a candidate within
+  ``tolerance`` time steps of a more probable one is dropped, so that a
+  change found on two channels a few points apart can count once. On 96
+  random step series of two or three channels, with ``max_cps`` set to the
+  true number of change points, the output changed for 68 series and the F1
+  score (margin of 15 points) went from 0.670 to 0.891, and to 0.964 with
+  ``tolerance=5``. Outputs without ``max_cps`` and with ``tolerance=0`` (the
+  defaults) are unchanged, as are those of univariate series and of the
+  ``"l2"`` and ``"ensembling"`` strategies.
 * ``HausdorffDistance.compute`` accepts ``n_timepoints``, and
   ``HausdorffDistance(convert_labels_to_segments=True)`` converts label
   sequences to change points, like the other change-point metrics. Passing
