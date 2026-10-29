@@ -26,6 +26,18 @@ Unreleased
   through ``get_params`` and the change points as the output of ``predict``.
   The generic detector tests now check ``get_fitted_params`` before and after
   ``fit``.
+* ``BeastDetector`` with ``multivariate_strategy="native"``, the default for
+  multivariate series, now passes its prior to ``beast123``: ``tcp_minmax``,
+  ``torder_minmax`` and ``tseg_minlength`` and, when ``season`` is not
+  ``"none"``, ``scp_minmax``, ``sorder_minmax`` and ``sseg_minlength``. They
+  were ignored, and Rbeast used its own defaults: ``tcp_minmax=(0, 0)``
+  still gave a change point on a two-channel step series, where ``"l2"``,
+  ``"ensembling"`` and univariate series gave none. With ``season="none"``
+  (the default) and the default trend prior, the output is unchanged
+  (Rbeast's defaults are the same). With a seasonal component, the seasonal
+  defaults of the detector now apply instead of Rbeast's (at most 5 seasonal
+  change points, harmonic orders from 1 to ``period / 2 - 1``), which can
+  change the output.
 * ``HausdorffDistance.compute`` accepts ``n_timepoints``, and
   ``HausdorffDistance(convert_labels_to_segments=True)`` converts label
   sequences to change points, like the other change-point metrics. Passing
@@ -568,6 +580,19 @@ Unreleased
   ``tf.config.experimental.enable_op_determinism()``: the documentation now
   says so, with what it does to the result on that series, where it said
   that only a few labels could differ between two calls.
+* ``BeastDetector`` with ``max_cps`` and ``component="season"`` or
+  ``"both"`` keeps the most probable change points of the returned
+  components. On a univariate series (and with the ``"l2"`` and
+  ``"ensembling"`` strategies), it ranked every candidate, seasonal ones
+  included, by the occurrence probability of the trend: on a periodic series
+  whose amplitude changes three times, the last change being the largest,
+  ``max_cps=1`` kept another candidate than this change for 6 of 8 seeds
+  with ``"season"`` and for all 8 with ``"both"``. Each candidate is now
+  ranked by the occurrence probability of ``component`` at its time step
+  (the larger of the trend and seasonal ones with ``"both"``), and the
+  largest change is kept, within 2 points, for the 8 seeds. Outputs with
+  ``component="trend"`` (the default), without ``max_cps``, or with the
+  ``"native"`` strategy are unchanged.
 * Docs: the BEAST page and the docstring of ``season`` say that, with a
   seasonal model (``"harmonic"``, ``"dummy"`` or ``"svd"``), Rbeast 0.1.25 can
   kill the Python process (abort on a double free, or segmentation fault)

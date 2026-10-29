@@ -11,12 +11,14 @@ from tsseg.algorithms.beast import detector as beast_module
 NAN = float("nan")
 
 
-def _use_fake_rbeast(monkeypatch, output, sse_output=None):
+def _use_fake_rbeast(monkeypatch, output, sse_output=None, received=None):
     """Stand in for Rbeast, which need not be installed.
 
     ``beast`` and ``beast123`` return ``output``, or ``sse_output`` (if given)
     when called with ``cputype="sse"`` (``extra.cputype`` for ``beast123``).
     Returns the list of the ``cputype`` of each call (``None`` if not passed).
+    If ``received`` is a list, the keyword arguments of each call are appended
+    to it.
     """
     calls = []
 
@@ -27,9 +29,13 @@ def _use_fake_rbeast(monkeypatch, output, sse_output=None):
         return output
 
     def beast(*args, **kwargs):
+        if received is not None:
+            received.append(kwargs)
         return answer(kwargs.get("cputype"))
 
     def beast123(*args, extra=None, **kwargs):
+        if received is not None:
+            received.append(kwargs)
         return answer(getattr(extra, "cputype", None))
 
     fake = SimpleNamespace(beast=beast, beast123=beast123, args=SimpleNamespace)
@@ -129,3 +135,47 @@ def test_all_nan_output_gives_no_change_point(monkeypatch):
     messages = [str(w.message) for w in record]
     assert any("cputype='sse'" in m for m in messages), messages
     assert any("ncp_median" in m for m in messages), messages
+
+
+_PRIOR_PARAMS = dict(
+    period=24.0,
+    tcp_minmax=(1, 3),
+    torder_minmax=(0, 2),
+    tseg_minlength=40,
+    scp_minmax=(0, 4),
+    sorder_minmax=(1, 3),
+    sseg_minlength=30,
+)
+
+
+@pytest.mark.parametrize("season", ["none", "harmonic"])
+def test_native_passes_the_prior_to_beast123(monkeypatch, season):
+    """``beast123`` takes the prior as an object: ``"native"`` passed none.
+
+    The fields are those ``Rbeast.beast`` fills from the same arguments, the
+    seasonal ones only when there is a seasonal component.
+    """
+    output = SimpleNamespace(
+        trend=_trend([[300, 300], [NAN, NAN]], [[0.9, 0.9], [NAN, NAN]], [1.0, 1.0])
+    )
+    received = []
+    _use_fake_rbeast(monkeypatch, output, received=received)
+    detector = BeastDetector(season=season, **_PRIOR_PARAMS)
+    assert detector.fit_predict(np.zeros((1000, 2))).tolist() == [300]
+    expected = {
+        "trendMinKnotNum": 1,
+        "trendMaxKnotNum": 3,
+        "trendMinOrder": 0,
+        "trendMaxOrder": 2,
+        "trendMinSepDist": 40,
+    }
+    if season != "none":
+        expected |= {
+            "seasonMinKnotNum": 0,
+            "seasonMaxKnotNum": 4,
+            "seasonMinOrder": 1,
+            "seasonMaxOrder": 3,
+            "seasonMinSepDist": 30,
+        }
+    assert len(received) == 1
+    assert vars(received[0]["prior"]) == expected

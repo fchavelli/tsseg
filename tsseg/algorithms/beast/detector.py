@@ -176,7 +176,11 @@ class BeastDetector(BaseSegmenter):
     max_cps : int or None, default=None
         Maximum number of change points to return (by decreasing probability).
         ``None`` returns all candidates above ``cp_prob_threshold``; ``0``
-        returns none.
+        returns none. On a univariate series, with ``"l2"``, and on each
+        channel with ``"ensembling"``, the candidates kept are those with the
+        largest occurrence probability (Rbeast's ``cpOccPr``) of ``component``
+        at their time step; with ``"both"``, the larger of the trend and
+        seasonal probabilities.
     component : str, default="trend"
         Which component's change points to return: ``"trend"`` or
         ``"season"`` or ``"both"``.
@@ -439,6 +443,22 @@ class BeastDetector(BaseSegmenter):
         md.detrend = False
         md.deltat = self.deltat
 
+        # beast123 reads the prior from an object: fill the fields that
+        # Rbeast.beast fills from the same arguments (seasonal ones only with
+        # a seasonal component), so that "native" honours them too.
+        prior = rb.args()
+        prior.trendMinKnotNum = self.tcp_minmax[0]
+        prior.trendMaxKnotNum = self.tcp_minmax[1]
+        prior.trendMinOrder = self.torder_minmax[0]
+        prior.trendMaxOrder = self.torder_minmax[1]
+        prior.trendMinSepDist = self.tseg_minlength
+        if self.season != "none":
+            prior.seasonMinKnotNum = self.scp_minmax[0]
+            prior.seasonMaxKnotNum = self.scp_minmax[1]
+            prior.seasonMinOrder = self.sorder_minmax[0]
+            prior.seasonMaxOrder = self.sorder_minmax[1]
+            prior.seasonMinSepDist = self.sseg_minlength
+
         mcmc = rb.args()
         mcmc.samples = self.mcmc_samples
         mcmc.burnin = self.mcmc_burnin
@@ -449,11 +469,11 @@ class BeastDetector(BaseSegmenter):
         extra = rb.args()
         extra.quiet = True
 
-        o = rb.beast123(data, metadata=md, mcmc=mcmc, extra=extra)
+        o = rb.beast123(data, metadata=md, prior=prior, mcmc=mcmc, extra=extra)
         if _all_nan_output(o):
             _warn_sse_rerun()
             extra.cputype = "sse"
-            o = rb.beast123(data, metadata=md, mcmc=mcmc, extra=extra)
+            o = rb.beast123(data, metadata=md, prior=prior, mcmc=mcmc, extra=extra)
 
         # beast123 returns a single object with per-channel arrays
         # e.g. o.trend.cp has shape (max_cps, n_channels)
@@ -617,7 +637,19 @@ class BeastDetector(BaseSegmenter):
         return cps
 
     def _extract_cp_probs(self, o) -> np.ndarray | None:
-        """Return the trend cpOccPr array if available."""
-        if hasattr(o, "trend") and hasattr(o.trend, "cpOccPr"):
-            return np.asarray(o.trend.cpOccPr).ravel()
+        """Return the ``cpOccPr`` curve of the returned component, if any.
+
+        ``cpOccPr[i]`` is Rbeast's probability that the component changes at
+        time step ``i``. With ``component="both"``, the larger of the trend
+        and seasonal curves at each step (NaN ignored), so that a seasonal
+        candidate is not ranked by the trend's curve alone.
+        """
+        names = ("trend", "season") if self.component == "both" else (self.component,)
+        curves = [
+            np.asarray(getattr(o, name).cpOccPr).ravel()
+            for name in names
+            if getattr(getattr(o, name, None), "cpOccPr", None) is not None
+        ]
+        if curves:
+            return np.fmax.reduce(curves)
         return None
