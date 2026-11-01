@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://doi.org/10.1007/978-3-032-37685-5_41"><img src="https://img.shields.io/badge/paper-ECML--PKDD%202026-8250df" alt="Paper: ECML-PKDD 2026"></a>
   <a href="https://pypi.org/project/tsseg/"><img src="https://img.shields.io/pypi/v/tsseg?logo=pypi&logoColor=white" alt="PyPI version"></a>
+  <a href="https://pepy.tech/projects/tsseg"><img src="https://static.pepy.tech/badge/tsseg" alt="PyPI downloads"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python&logoColor=white" alt="Python 3.10 | 3.11 | 3.12"></a>
   <a href="https://github.com/fchavelli/tsseg/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/fchavelli/tsseg/ci.yml?branch=main&label=CI&logo=github" alt="CI status"></a>
   <a href="https://fchavelli.github.io/tsseg/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue?logo=readthedocs&logoColor=white" alt="Documentation"></a>
