@@ -22,8 +22,8 @@ The algorithm alternates between:
 The label of time point *t* is that of the window of points *t* to
 *t* + ``window_size`` − 1. The last ``window_size - 1`` observations enter no
 window, and the labels of the last ``2 * (window_size - 1)`` points repeat an
-earlier one; ``predict`` returns the labels computed by ``fit``, whatever its
-input (see the Notes of
+earlier one. ``predict`` on a series other than the one given to ``fit``
+labels it with a new fit, with a warning (see the Notes of
 :class:`~tsseg.algorithms.ticc.detector.TiccDetector`).
 
 Without ``n_states``, the number of states is selected by the Bayesian
@@ -34,7 +34,7 @@ kept (see :class:`~tsseg.algorithms.ticc.detector.TiccDetector`).
 | **Type:** state detection
 | **Supervision:** unsupervised (``n_states=None``, BIC) or semi-supervised
   (``n_states`` given)
-| **Scope:** univariate and multivariate (transductive)
+| **Scope:** univariate and multivariate
 | **Complexity:** :math:`O(S\,(n\,(d\,w)^{2} + (d\,w)^{3}))` per iteration,
   where *S* is ``n_states`` and *w* is ``window_size``: each stacked window
   (dimension :math:`d\,w`) is scored under the precision matrix of each state.

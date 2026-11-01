@@ -1,6 +1,8 @@
-"""Tests of TiccDetector: solver output, number of states chosen by BIC."""
+"""Tests of TiccDetector: solver output, number of states chosen by BIC, predict."""
 
 from __future__ import annotations
+
+import warnings
 
 import numpy as np
 import pytest
@@ -147,3 +149,72 @@ def test_bic_skips_the_numbers_of_states_with_too_few_windows():
     assert np.isfinite(detector.bic_[1])
     assert detector.bic_[2] == detector.bic_[3] == np.inf
     assert labels.tolist() == [0] * 11
+
+
+GUIDED = dict(window_size=3, n_states=2, maxIters=20)
+REFIT_WARNING = "differs from that given to fit"
+
+
+def _swapped_series():
+    """_series() with its first two regimes swapped: one change point, at 200."""
+    x = _series()
+    return np.concatenate([x[200:400], x[:200], x[400:]])
+
+
+def test_predict_on_another_series_of_the_same_length():
+    # predict() used to return the labels of the series given to fit
+    x1, x2 = _series(), _swapped_series()
+    expected = TiccDetector(**GUIDED).fit_predict(x2)
+    assert _runs(expected) == ([199], [1, 0])
+    detector = TiccDetector(**GUIDED).fit(x1)
+    fitted_model = detector.ticc_
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        np.testing.assert_array_equal(detector.predict(x2), expected)
+    # the fitted attributes still describe x1
+    assert detector.ticc_ is fitted_model
+    assert _runs(detector.predict(x1)) == ([199, 399], [0, 1, 0])
+
+
+def test_predict_on_a_shorter_series_returns_one_label_per_time_point():
+    # predict() used to return the 600 labels of the series given to fit
+    x1 = _series()
+    expected = TiccDetector(**GUIDED).fit_predict(x1[:250])
+    assert len(expected) == 250
+    detector = TiccDetector(**GUIDED).fit(x1)
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        np.testing.assert_array_equal(detector.predict(x1[:250]), expected)
+
+
+def test_predict_on_another_series_selects_its_own_number_of_states():
+    detector = TiccDetector(window_size=3, maxIters=20, max_states=3)
+    detector.fit(_series())
+    bic = dict(detector.bic_)
+    assert detector.n_states_ == 2
+    # BIC selects one state on a single regime
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        labels = detector.predict(_series()[:200])
+    assert labels.tolist() == [0] * 200
+    assert detector.n_states_ == 2
+    assert detector.bic_ == bic
+
+
+def test_predict_after_the_fit_series_is_modified_in_place():
+    x = _series()
+    detector = TiccDetector(**GUIDED).fit(x)
+    x[:] = _swapped_series()
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        assert _runs(detector.predict(x)) == ([199], [1, 0])
+
+
+def test_predict_on_the_fit_series_reuses_the_fit():
+    x1 = _series()
+    detector = TiccDetector(**GUIDED).fit(x1)
+    labels = detector._state_labels
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        # equal values in a new array are the series given to fit
+        assert detector.predict(x1.copy()) is labels
+        assert _runs(TiccDetector(**GUIDED).fit_predict(x1)) == (
+            [199, 399],
+            [0, 1, 0],
+        )
