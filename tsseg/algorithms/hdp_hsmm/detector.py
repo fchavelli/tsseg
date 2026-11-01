@@ -616,6 +616,3 @@ class HdpHsmmDetector(BaseSegmenter):
         if self._states_seq is None:
             return np.zeros(len(X), dtype=int)
         return self._states_seq
-
-    def get_fitted_params(self):
-        return {}

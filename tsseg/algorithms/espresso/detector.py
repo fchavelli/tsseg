@@ -119,7 +119,6 @@ class EspressoDetector(BaseSegmenter):
         self.n_segments = n_segments
         self.peak_distance_fraction = float(peak_distance_fraction)
         self.random_state = random_state
-        self._fitted_change_points: np.ndarray | None = None
 
         super().__init__(axis=axis)
 
@@ -128,7 +127,6 @@ class EspressoDetector(BaseSegmenter):
     # ------------------------------------------------------------------
 
     def _fit(self, X, y=None):
-        self._fitted_change_points = None
         if self.n_segments is None:
             raise ValueError(
                 "For semi-supervised fitting, `n_segments` must be provided "
@@ -168,21 +166,4 @@ class EspressoDetector(BaseSegmenter):
             ]
             change_points = np.unique(change_points)
 
-        self._fitted_change_points = change_points.copy()
         return change_points
-
-    # ------------------------------------------------------------------
-    # Public API extensions
-    # ------------------------------------------------------------------
-
-    def get_fitted_params(self):
-        change_points = None
-        if self._fitted_change_points is not None:
-            change_points = self._fitted_change_points.copy()
-        return {
-            "change_points": change_points,
-            "n_segments": self.n_segments,
-            "window_size": self.window_size,
-            "chain_len": self.chain_len,
-            "peak_distance_fraction": self.peak_distance_fraction,
-        }
