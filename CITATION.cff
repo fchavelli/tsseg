@@ -7,8 +7,8 @@ abstract: >-
   scikit-learn-style API, with the metrics to evaluate them and an interactive
   demo to compare them.
 type: software
-version: 0.3.0
-date-released: "2026-10-14"
+version: 0.3.1
+date-released: "2026-11-02"
 license: AGPL-3.0-only
 repository-code: "https://github.com/fchavelli/tsseg"
 url: "https://fchavelli.github.io/tsseg/"

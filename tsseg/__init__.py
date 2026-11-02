@@ -7,7 +7,7 @@ imported on first access to ``tsseg.algorithms``.
 
 from .data.datasets import load_mocap
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 __all__ = ["load_mocap"]
 

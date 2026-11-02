@@ -11,6 +11,24 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+0.3.1 (2026-11-02)
+------------------
+
+Upgrading from 0.3.0: several fixes change the output of ``TSCP2Detector``,
+``Time2StateDetector`` and ``E2USDDetector`` (last points of the series),
+``ChangeFinderDetector``, ``ClaspDetector`` and ``ClapDetector`` given a
+number of change points, ``FLUSSDetector`` with ``n_segments``,
+``TireDetector`` with ``stride > 1``, ``BeastDetector``, and
+``GreedyGaussianDetector`` on multivariate series: results computed with 0.3.0
+can differ. New defaults: ``TGLADDetector`` trains for 2000 epochs, and
+``TiccDetector`` chooses its number of states when ``n_states`` is not given.
+``AutoPlaitDetector`` no longer needs a C binary (it uses numba,
+``tsseg[accelerators]``); ``HidalgoDetector`` takes keyword arguments only;
+``get_fitted_params`` of six detectors returns their fitted attributes;
+``tsseg.TGLADDetector`` is deprecated in favour of
+``tsseg.algorithms.TGLADDetector``. New: ``SeededBinSegDetector`` and the
+``tsseg[fluss]`` extra.
+
 * ``AmocDetector``, ``BeastDetector``, ``BinSegDetector``,
   ``EspressoDetector``, ``FLUSSDetector`` and ``HdpHsmmDetector`` no longer
   redefine ``get_fitted_params``: they now use the method of the base class,
