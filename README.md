@@ -48,10 +48,7 @@ compare them. It covers the two faces of the problem:
 | **Example** | `[580, 1125, 2050, 2465, 3995]` | `[0, 0, …, 2, 2, …, 1, 1, …, 0, 0, …]` |
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/fchavelli/tsseg/main/assets/demo.png" alt="A MoCap recording segmented in the tsseg demo: ground truth, change point detection and state detection" width="720">
-  <br>
-  <sub>A motion-capture recording bundled with tsseg, as shown in the interactive demo: ground truth (top),
-  the change points of a change point detector (middle) and the states of a state detector (bottom).</sub>
+  <img src="https://raw.githubusercontent.com/fchavelli/tsseg/main/assets/overview.svg" alt="Overview of tsseg: a multivariate series loaded from a labelled dataset (human activity, physiology, motion and surgery, industry and energy, animal behaviour, Earth observation) is segmented by a method from any family, behind one API, into change points and recurring states (A, B, then A again); metrics such as F1, Covering, ARI and the State Matching Score evaluate it against the truth" width="900">
 </p>
 
 ## Highlights
@@ -286,6 +283,13 @@ WARI, WNMI and SMS come from
 The [tsseg demo](https://huggingface.co/spaces/fchavelli/tsseg) on Hugging Face
 Spaces runs in the browser: load a series, run segmentation algorithms, then
 compare and evaluate their results, with nothing to install.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/fchavelli/tsseg/main/assets/demo.png" alt="A MoCap recording segmented in the tsseg demo: ground truth, change point detection and state detection" width="720">
+  <br>
+  <sub>A motion-capture recording bundled with tsseg, as shown in the interactive demo: ground truth (top),
+  the change points of a change point detector (middle) and the states of a state detector (bottom).</sub>
+</p>
 
 ## Contributing
 
