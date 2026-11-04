@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -102,6 +103,11 @@ class TGLADDetector(BaseSegmenter):
       batch to the next; after 2000 it varies from one window to the next,
       within a stationary segment too, by far more than the default
       ``threshold``, so that most windows give a change point.
+
+    TGLAD segments the series given to ``fit``: ``predict(X)`` returns those
+    change points when ``X`` has the same values, and otherwise segments ``X``
+    with a new fit (new uGLAD models, trained on ``X``), with a warning,
+    leaving the fitted attributes unchanged.
     """
 
     _tags = {
@@ -221,6 +227,8 @@ class TGLADDetector(BaseSegmenter):
     # ------------------------------------------------------------------
 
     def _fit(self, X: np.ndarray, y=None):
+        # a copy: an array modified in place after fit is a new series
+        self._X = X.copy()
         X2d = self._ensure_2d(X)
         windows, _ = self._build_windows(X2d)
         summaries = self._compute_precision_batch(windows)
@@ -232,8 +240,31 @@ class TGLADDetector(BaseSegmenter):
         return self
 
     def _predict(self, X: np.ndarray):
+        """Return the change points of ``X``.
+
+        Parameters
+        ----------
+        X : np.ndarray
+            The time series. If its values differ from those given to ``fit``,
+            it is segmented with a new fit, with a warning, and the fitted
+            attributes are left unchanged.
+
+        Returns
+        -------
+        np.ndarray
+            The change points of ``X``, sorted in ascending order.
+        """
         self._check_is_fitted()
-        return self._change_points.copy()
+        if np.array_equal(X, self._X):
+            return self._change_points.copy()
+        warnings.warn(
+            "Input data X differs from that given to fit(): segmenting X with "
+            "a new fit, without updating the fitted attributes. To store them, "
+            "use fit(X) or fit_predict(X).",
+            UserWarning,
+            stacklevel=3,
+        )
+        return self.clone().fit(X)._change_points.copy()
 
     # ------------------------------------------------------------------
     # Internal helpers

@@ -3,6 +3,8 @@ This module provides a wrapper for the CLaP algorithm to integrate it
 with the tsseg library's API.
 """
 
+import warnings
+
 import numpy as np
 
 from ..base import BaseSegmenter
@@ -87,6 +89,10 @@ class ClapDetector(BaseSegmenter):
     states can be lower than the number of segments.
 
     ``y`` is never used: :meth:`fit` ignores it.
+
+    CLaP labels the series given to ``fit``: ``predict(X)`` returns those
+    labels when ``X`` has the same values, and otherwise labels ``X`` with a
+    new fit, with a warning, leaving the fitted attributes unchanged.
 
     Attributes
     ----------
@@ -242,6 +248,8 @@ class ClapDetector(BaseSegmenter):
         from .segmentation import BinaryClaSPSegmentation
         from .utils import create_state_labels
 
+        # a copy: an array modified in place after fit is a new series
+        self._X = X.copy()
         self.ts_len_ = X.shape[0]
 
         self._clap = CLaP(
@@ -293,20 +301,28 @@ class ClapDetector(BaseSegmenter):
         return self
 
     def _predict(self, X):
-        """
-        Predicts the states for the given time series using the fitted model.
+        """Return the state label of each time point of ``X``.
 
         Parameters
         ----------
         X : np.ndarray
-            The input time series.
-        y : np.ndarray, optional
-            Not used, present here for compatibility with the method signature.
+            The time series. If its values differ from those given to ``fit``,
+            it is labelled with a new fit, with a warning, and the fitted
+            attributes are left unchanged.
 
         Returns
         -------
         np.ndarray
-            The predicted state labels.
+            State labels of ``X``, of shape ``(n_timepoints,)``.
         """
-        # The states are pre-computed and stored in `fit`.
-        return self.states_
+        self._check_is_fitted()
+        if np.array_equal(X, self._X):
+            return self.states_
+        warnings.warn(
+            "Input data X differs from that given to fit(): labelling X with a "
+            "new fit, without updating the fitted attributes. To store them, "
+            "use fit(X) or fit_predict(X).",
+            UserWarning,
+            stacklevel=3,
+        )
+        return self.clone().fit(X).states_
