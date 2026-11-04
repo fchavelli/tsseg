@@ -59,6 +59,10 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     "BeastDetector": AlgorithmOverride(dependencies=("Rbeast",)),
     "ChangeForestDetector": AlgorithmOverride(dependencies=("changeforest",)),
     "DynpDetector": AlgorithmOverride(semi_supervised=True),
+    # n_cps is required (no unsupervised rule in the SST papers)
+    "SSTDetector": AlgorithmOverride(
+        semi_supervised=True, init_kwargs={"random_state": 0}
+    ),
     # 100 Gibbs iterations instead of 1000: with the 3 states of the
     # synthetic series, a fit took 90 s (8 s with 100).
     "HidalgoDetector": AlgorithmOverride(

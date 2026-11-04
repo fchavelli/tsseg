@@ -11,6 +11,14 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New ``SSTDetector``: singular spectrum transformation (Idé and Inoue, SDM
+  2005; Idé and Tsuda, SDM 2007), with the fast randomised SVD of Weber and
+  Lenz (IEEE Access, 2025). The score compares the leading future direction
+  of a Hankel matrix with the dominant subspace of the past one, which
+  captures changes of dynamics (frequency, autocorrelation) as well as of
+  level; ``method="exact"`` uses a full SVD. Guided only (``n_cps``
+  highest peaks); multivariate series share one subspace. Written from the
+  papers.
 * ``ClaspDetector.predict(X)``, ``ClapDetector.predict(X)`` and
   ``TGLADDetector.predict(X)`` segment or label ``X`` when it is not the
   series given to ``fit``. They returned the output of the fitted series
