@@ -97,6 +97,7 @@ def sst_scores(
     oversampling: int = 10,
     n_iter: int = 3,
     random_state: int | np.random.Generator | None = None,
+    preprocess: bool = True,
 ) -> np.ndarray:
     """Change-point score of the singular spectrum transformation.
 
@@ -119,6 +120,10 @@ def sst_scores(
         Subspace iterations ``q`` of the randomised SVD.
     random_state : int, Generator or None, default=None
         Seed of the Gaussian test matrix of the randomised SVD.
+    preprocess : bool, default=True
+        Bring every channel to unit variance and mean 3 first (Ide & Tsuda
+        2007, Sec. 5.1); ``False`` scores the raw series, as Weber & Lenz
+        (2025) do in their error measurements.
 
     Returns
     -------
@@ -129,7 +134,7 @@ def sst_scores(
         lagged by ``lag``; ``0`` where the two matrices do not fit in the
         series (the first ``2N - 1`` points and the last ``lag - 1``).
     """
-    X = _preprocess(X)
+    X = _preprocess(X) if preprocess else np.asarray(X, dtype=float)
     T, d = X.shape
     N = int(window_size)
     scores = np.zeros(T)

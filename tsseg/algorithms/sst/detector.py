@@ -28,8 +28,10 @@ class SSTDetector(BaseSegmenter):
 
     is the squared distance between the leading future direction
     :math:`\mu(t)` and the span of the :math:`r` leading past ones
-    :math:`u_1(t), \dots, u_r(t)` [2]_. It rises when the dynamics change
-    (frequency, shape of an oscillation, autocorrelation, level). Change
+    :math:`u_1(t), \dots, u_r(t)` [2]_. It rises when the shape of the
+    signal changes (frequency or form of an oscillation) and, after the
+    preprocessing (see Notes), at level shifts; changes of the variance or
+    of the autocorrelation of noise are found late or not at all. Change
     points are the ``n_cps`` highest peaks of the score at least
     ``min_distance`` points apart.
 
@@ -49,8 +51,9 @@ class SSTDetector(BaseSegmenter):
         Lag :math:`\gamma` between the past and future matrices; ``None``
         means ``window_size // 2``, the default of [2]_ (Sec. 2).
     rank : int, default=5
-        Dimension :math:`r` of the past subspace (:math:`k = 5` in [3]_,
-        Sec. IV-E).
+        Dimension :math:`r < N` of the past subspace: :math:`k = 5` in [3]_
+        (Sec. IV-E, windows of 100 to 5,000 points); [2]_ recommends 3 or 4
+        (Sec. 2) and uses 3 with :math:`N = 50` (Sec. 5).
     oversampling : int, default=10
         Oversampling :math:`p` of the randomised SVD (:math:`k + p = 15` in
         [3]_, Sec. IV-E). Unused by ``method="exact"``.
@@ -88,34 +91,46 @@ class SSTDetector(BaseSegmenter):
     -----
     Reimplemented from the papers, without third-party code.
 
-    - Geometry, score and its time index follow Idé & Tsuda [2]_ (Sec. 2):
-      :math:`z(t)` is placed at the first point after the past matrix, which
-      is the change point reported for a peak at :math:`t`. The score of
-      Weber & Lenz [3]_ (Alg. 1) is the same with :math:`\delta = \gamma`.
-      After a change at :math:`c` the score peaks at about :math:`c` to
-      :math:`c + N` depending on the kind of change (a few points for a
-      level shift, more for a change of variance or frequency).
+    - Geometry, score and its time index follow Idé & Tsuda [2]_ (Sec. 2,
+      Eq. 2.3): :math:`z(t)` is placed at the first point after the past
+      matrix, which is the change point reported for a peak at :math:`t`.
+      Weber & Lenz [3]_ (Alg. 1) compute the same score with
+      :math:`\delta = \gamma` but place it at the last point of the future
+      matrix, about :math:`\gamma` points later. Idé & Inoue [1]_ (Sec. 3.1)
+      also normalise the score series to unit area; not done here (same
+      peaks). No paper says where a change lies relative to the peak.
+      Measured with the defaults: a level shift peaks within a few points
+      of the change, a frequency change up to about :math:`N` points after
+      it, a change of the variance of white noise several :math:`N` after
+      it.
     - Every channel is first brought to unit variance and mean 3 ([2]_,
-      Sec. 5.1; Idé & Inoue [1]_, Sec. 4.2: the SVD is not invariant to
-      translation, and without the offset the score of white noise is
-      erratic).
+      Sec. 5.1 and footnote 2: positive values make the leading singular
+      value non-degenerate; [1]_, Sec. 4.2: the SVD is not invariant to
+      translation). Without the offset the score of white noise is erratic
+      (tsseg's measurement).
     - Multivariate series (tsseg's choice, as the SST papers are univariate):
       the Hankel matrices of the channels are concatenated column-wise,
       :math:`H = [H^{(1)}, \dots, H^{(d)}] \in \mathbb{R}^{N \times dN}`,
-      so that all channels share one subspace, as in multivariate SSA
-      (Alanqary, Alomar & Shah [4]_, Def. 2.1).
+      so that all channels share one subspace, as multivariate SSA stacks
+      the Page matrices of the channels (Alanqary, Alomar & Shah [4]_,
+      Sec. 2, Eq. 4; Hankel variant in its footnote 1; multilevel Hankel
+      matrices are also suggested in [3]_, Sec. V-A).
     - Randomised SVD: one Gaussian test matrix with ``rank + oversampling``
       columns is drawn per ``predict`` and used for every time point; the
       leading future direction is taken from the same decomposition (rank
       ``rank``) as the past subspace of the matrix :math:`\gamma` points
-      earlier. QR orthonormalisation is used at every subspace iteration
-      ([3]_ uses LU in the intermediate ones, for speed only: same subspace
-      in exact arithmetic). [3]_ reports a mean absolute score error of
-      0.036 against the exact SST on its synthetic series (Table 4).
+      earlier, which is at least as accurate as the rank-1 decomposition of
+      [3]_. QR orthonormalisation is used at every subspace iteration ([3]_
+      uses LU in the intermediate ones, for speed only: same subspace in
+      exact arithmetic). [3]_ reports a mean absolute score error of 0.036
+      against the exact SST on its synthetic series (Table 4), without the
+      preprocessing above; with it, the error is much smaller (the constant
+      offset widens the gap between the leading singular values).
     - Selection: the papers give the score only. In guided mode, the
       ``n_cps`` highest peaks are kept (tsseg's choice); there is no
       unsupervised mode. At the ends of the series, where the matrices do
-      not fit, the score is 0 ([2]_ uses periodic boundaries instead).
+      not fit, the score is 0 ([2]_ uses periodic boundaries instead), and
+      the first or last valid point can be a peak.
 
     The cost is :math:`O(T \cdot q (k + p) d N \log N)` for a series of
     :math:`T` points and :math:`d` channels with ``"fft_rsvd"``, and
@@ -199,8 +214,8 @@ class SSTDetector(BaseSegmenter):
         ),
         "_cross_constraints": [
             DataDependent(
-                "rank <= window_size",
-                "rank cannot exceed window_size.",
+                "rank < window_size",
+                "rank must be smaller than window_size.",
             ),
             DataDependent(
                 "2 * window_size - 1 + (window_size // 2 if lag is None else lag)"
@@ -243,8 +258,10 @@ class SSTDetector(BaseSegmenter):
                 "SSTDetector needs n_cps: the SST papers give no rule to choose "
                 "change points from the score without their number."
             )
-        if self.rank > self.window_size:
-            raise ValueError("rank cannot exceed window_size.")
+        if self.rank >= self.window_size:
+            # r < w (Ide & Tsuda 2007, Sec. 2): with r = w the past subspace is
+            # the whole space and the score is 0 everywhere.
+            raise ValueError("rank must be smaller than window_size.")
         X = np.asarray(X, dtype=float)
         if X.ndim == 1:
             X = X[:, None]
@@ -265,7 +282,16 @@ class SSTDetector(BaseSegmenter):
         if self.n_cps == 0 or last < first:
             return np.empty(0, dtype=np.int64)
         distance = self.window_size if self.min_distance is None else self.min_distance
-        curve = scores[first : last + 1]
-        peaks, props = find_peaks(curve, distance=int(distance), height=-np.inf)
-        order = np.argsort(-props["peak_heights"], kind="stable")[: self.n_cps]
-        return np.sort(peaks[order] + first).astype(np.int64)
+        return _highest_peaks(scores[first : last + 1], self.n_cps, distance) + first
+
+
+def _highest_peaks(curve: np.ndarray, n_peaks: int, distance: int) -> np.ndarray:
+    """Indices of the ``n_peaks`` highest peaks at least ``distance`` apart.
+
+    The curve is padded with ``-inf`` on both sides, so that its first and
+    last points can be peaks.
+    """
+    padded = np.concatenate(([-np.inf], curve, [-np.inf]))
+    peaks, props = find_peaks(padded, distance=int(distance), height=-np.inf)
+    order = np.argsort(-props["peak_heights"], kind="stable")[:n_peaks]
+    return np.sort(peaks[order] - 1).astype(np.int64)

@@ -27,8 +27,9 @@ dynamics), with the fast randomised SVD of Weber & Lenz (2025).
 - `detector.py`: `SSTDetector`, peak selection
 - tsseg choices (no paper fixes them): `n_cps` highest peaks at least
   `min_distance` apart (default `window_size`); no unsupervised mode;
-  multivariate Hankel matrices concatenated column-wise as in multivariate
-  SSA (Alanqary, Alomar & Shah, NeurIPS 2021, Def. 2.1); score 0 where the
+  multivariate Hankel matrices concatenated column-wise, as multivariate
+  SSA stacks Page matrices (Alanqary, Alomar & Shah, NeurIPS 2021, Sec. 2,
+  Eq. 4, Hankel variant in footnote 1); score 0 where the
   matrices do not fit (Idé & Tsuda use periodic boundaries); one Gaussian test
   matrix per series; QR at every subspace iteration (Weber & Lenz use LU in
   the intermediate ones, for speed)

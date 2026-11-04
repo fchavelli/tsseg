@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from tsseg.algorithms import SSTDetector
+from tsseg.algorithms.sst.detector import _highest_peaks
 from tsseg.algorithms.sst.sst import sst_scores
 
 
@@ -139,7 +140,7 @@ def test_invalid_settings_rejected():
     with pytest.raises(ValueError):
         SSTDetector(n_cps=1, window_size=50).fit_predict(x)  # needs 124 points
     with pytest.raises(ValueError):
-        SSTDetector(n_cps=1, window_size=10, rank=11).fit_predict(x)
+        SSTDetector(n_cps=1, window_size=10, rank=10).fit_predict(x)
     with pytest.raises(ValueError):
         SSTDetector(n_cps=1, method="svd").fit_predict(x)
 
@@ -147,3 +148,13 @@ def test_invalid_settings_rejected():
 def test_constant_series_gives_no_error():
     cps = SSTDetector(n_cps=2, window_size=10, method="exact").fit_predict(np.ones(200))
     assert cps.dtype == np.int64 and np.all((cps > 0) & (cps < 200))
+
+
+def test_peaks_at_the_ends_of_the_valid_range_are_kept():
+    # a change close to an end leaves the score monotone up to that end
+    rising = np.linspace(0.0, 1.0, 50)
+    assert _highest_peaks(rising, 1, 10).tolist() == [49]
+    assert _highest_peaks(rising[::-1], 1, 10).tolist() == [0]
+    curve = np.r_[rising, rising[::-1][1:], 0.5 * rising]
+    assert _highest_peaks(curve, 2, 10).tolist() == [49, 148]
+    assert _highest_peaks(curve, 5, 10).tolist() == [49, 148]

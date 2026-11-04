@@ -15,17 +15,22 @@ a sine, exponential decline), each with a random position and magnitude
 here, so no data are downloaded. Their exact form is not published (the
 paper's generator lives in a separate experiment repository, not used here):
 plateaus and the decline get Gaussian noise of standard deviation 0.01, the
-sine frequencies are percentages of 0.1 cycle per point, and the decline
-rate a percentage of 0.1 per point. Window sizes 100, 200 and 300 (cost of
-the exact SVD), lag ``N // 2``, two draws per kind and size.
+two variances are the drawn percentages, the sine frequencies are
+percentages of 0.1 cycle per point, and the decline rate a percentage of 0.1
+per point. The series are scored raw, as in the paper (Algorithm 1 takes the
+series as is; Sections IV-A and IV-B describe no normalisation): the
+detector's preprocessing (unit variance, mean 3) is switched off. Window
+sizes 100, 200 and 300 (cost of the exact SVD; the paper uses 30 sizes from
+100 to 5,000), lag ``N // 2``, two draws per kind and size, every valid
+position (overlapping matrices; the paper's pairs are disjoint).
 
-Result (2026-11-04): mean absolute error 3.5e-06 over 24 series (4,824
-score pairs; about 7 minutes), far below the paper's 35.95e-3, which is used
-as the tolerance. The UCR figure is not reproduced (archive not downloaded).
-Probable causes of the gap: the approximation error depends on the spectral
-decay of the Hankel matrices (Section IV-B), and the signals here, smooth or
-with small noise, have a faster decay than the paper's; the paper's figure
-also averages window sizes up to 5,000.
+Result (2026-11-04): mean absolute error 2.18e-2 over 24 series (4,824
+score pairs; about 1 minute), the same order as the paper's 35.95e-3, which
+is the tolerance. With the detector's preprocessing the error falls to
+3.5e-6: the constant offset adds a dominant direction and widens the gap
+between the leading singular values, which drives the error bound (Section
+III-H). The UCR figure (1.392e-3) is not reproduced (archive not
+downloaded).
 """
 
 from __future__ import annotations
@@ -49,7 +54,7 @@ def _signal(kind: str, N: int, rng: np.random.Generator) -> np.ndarray:
     if kind == "mean":
         return np.where(t < c, a, b) + noise
     if kind == "variance":
-        return np.where(t < c, a, b) * rng.standard_normal(n)
+        return np.sqrt(np.where(t < c, a, b)) * rng.standard_normal(n)
     if kind == "frequency":
         return np.where(
             t < c, np.sin(2 * np.pi * 0.1 * a * t), np.sin(2 * np.pi * 0.1 * b * t)
@@ -64,8 +69,9 @@ def test_fft_rsvd_score_error_below_paper():
         for kind in ("mean", "variance", "frequency", "decline"):
             for _ in range(2):
                 x = _signal(kind, N, rng)[:, None]
-                exact = sst_scores(x, N, N // 2, 5, method="exact")
-                fast = sst_scores(x, N, N // 2, 5, "fft_rsvd", 10, 3, rng)
+                # raw series, as in the paper (no unit variance, no offset 3)
+                exact = sst_scores(x, N, N // 2, 5, method="exact", preprocess=False)
+                fast = sst_scores(x, N, N // 2, 5, "fft_rsvd", 10, 3, rng, False)
                 valid = slice(2 * N - 1, len(x) - N // 2 + 1)
                 errors.append(np.abs(fast[valid] - exact[valid]))
     mae = float(np.mean(np.concatenate(errors)))
