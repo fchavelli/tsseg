@@ -11,6 +11,18 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``ClaspDetector.predict(X)``, ``ClapDetector.predict(X)`` and
+  ``TGLADDetector.predict(X)`` segment or label ``X`` when it is not the
+  series given to ``fit``. They returned the output of the fitted series
+  whatever ``X``: its change points or labels on another series of the same
+  length, and on a shorter series change points beyond its end
+  (``ClaspDetector``, ``TGLADDetector``) or as many labels as the fitted
+  series has time points (``ClapDetector``). A new series is segmented or
+  labelled with a new fit, with a warning, and the fitted attributes are left
+  unchanged, as in ``EAggloDetector``, ``HidalgoDetector`` and
+  ``TiccDetector``; ``fit_predict`` and ``predict`` on the fitted series are
+  unchanged.
+
 0.3.1 (2026-11-02)
 ------------------
 

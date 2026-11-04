@@ -3,6 +3,8 @@ This module provides a wrapper for the ClaSP algorithm to integrate it
 with the tsseg library's API.
 """
 
+import warnings
+
 import numpy as np
 
 from ..base import BaseSegmenter
@@ -83,6 +85,10 @@ class ClaspDetector(BaseSegmenter):
 
     The ensemble draws its temporal constraints with a fixed seed (2357, as in
     claspy).
+
+    ClaSP segments the series given to ``fit``: ``predict(X)`` returns those
+    change points when ``X`` has the same values, and otherwise segments ``X``
+    with a new fit, with a warning, leaving the fitted attributes unchanged.
     """
 
     _tags = {
@@ -208,6 +214,8 @@ class ClaspDetector(BaseSegmenter):
         # Deferred: numba is optional (checked at construction).
         from .segmentation import BinaryClaSPSegmentation
 
+        # a copy: an array modified in place after fit is a new series
+        self._X = X.copy()
         effective_n_segments = self.n_segments
         if self.n_change_points is not None:
             effective_n_segments = int(self.n_change_points) + 1
@@ -240,10 +248,30 @@ class ClaspDetector(BaseSegmenter):
         return self
 
     def _predict(self, X, y=None):
-        """
-        Predicts the change points and returns them.
-        """
-        # The predict method of BinaryClaSPSegmentation returns the change points.
-        self._check_is_fitted()
+        """Return the change points of ``X``.
 
-        return self.change_points_
+        Parameters
+        ----------
+        X : np.ndarray
+            The time series. If its values differ from those given to ``fit``,
+            it is segmented with a new fit, with a warning, and the fitted
+            attributes are left unchanged.
+        y : None
+            Ignored.
+
+        Returns
+        -------
+        np.ndarray
+            The change points of ``X``, sorted in ascending order.
+        """
+        self._check_is_fitted()
+        if np.array_equal(X, self._X):
+            return self.change_points_
+        warnings.warn(
+            "Input data X differs from that given to fit(): segmenting X with "
+            "a new fit, without updating the fitted attributes. To store them, "
+            "use fit(X) or fit_predict(X).",
+            UserWarning,
+            stacklevel=3,
+        )
+        return self.clone().fit(X).change_points_

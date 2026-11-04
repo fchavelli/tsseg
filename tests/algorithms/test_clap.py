@@ -14,6 +14,7 @@ from __future__ import annotations
 import ast
 import inspect
 import textwrap
+import warnings
 
 import numpy as np
 import pytest
@@ -214,3 +215,111 @@ def test_clap_forwards_the_distance():
     detector = ClapDetector(distance="euclidean_distance").fit(_mean_shifts())
     assert len(detector.change_points_) == 2
     assert np.all(np.abs(np.asarray(detector.change_points_) - [300, 700]) <= 50)
+
+
+# predict() on a series other than the fitted one: both detectors returned the
+# output of fit whatever X.
+
+GUIDED = {"n_change_points": 2}
+REFIT_WARNING = "differs from that given to fit"
+
+
+def _reversed_mean_shifts():
+    """_mean_shifts() reversed: the same length, other change points."""
+    return _mean_shifts()[::-1].copy()
+
+
+def test_clasp_predict_on_another_series_of_the_same_length():
+    x1, x2 = _mean_shifts(), _reversed_mean_shifts()
+    expected = ClaspDetector(**GUIDED, n_jobs=1).fit_predict(x2)
+    detector = ClaspDetector(**GUIDED, n_jobs=1).fit(x1)
+    fitted, model = detector.change_points_.copy(), detector.model
+    assert not np.array_equal(expected, fitted)
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        np.testing.assert_array_equal(detector.predict(x2), expected)
+    # the fitted attributes still describe x1
+    assert detector.model is model
+    np.testing.assert_array_equal(detector.change_points_, fitted)
+
+
+def test_clasp_predict_on_a_shorter_series():
+    # predict() used to return [206, 637] on a series of 400 points
+    x1 = _mean_shifts()
+    expected = ClaspDetector(**GUIDED, n_jobs=1).fit_predict(x1[:400])
+    detector = ClaspDetector(**GUIDED, n_jobs=1).fit(x1)
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        cps = detector.predict(x1[:400])
+    np.testing.assert_array_equal(cps, expected)
+    assert np.all(cps < 400)
+
+
+def test_clasp_predict_on_another_series_learns_its_own_count():
+    detector = ClaspDetector(distance="euclidean_distance", n_jobs=1)
+    detector.fit(_mean_shifts())
+    assert len(detector.change_points_) == 2
+    # a single regime: no change point passes the significance test
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        assert detector.predict(_mean_shifts()[:300]).size == 0
+    assert len(detector.change_points_) == 2
+
+
+def test_clasp_predict_after_the_fit_series_is_modified_in_place():
+    x = _mean_shifts()
+    expected = ClaspDetector(**GUIDED, n_jobs=1).fit_predict(_reversed_mean_shifts())
+    detector = ClaspDetector(**GUIDED, n_jobs=1).fit(x)
+    x[:] = _reversed_mean_shifts()
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        np.testing.assert_array_equal(detector.predict(x), expected)
+
+
+def test_clasp_predict_on_the_fit_series_reuses_the_fit():
+    x = _mean_shifts()
+    detector = ClaspDetector(**GUIDED, n_jobs=1).fit(x)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        # equal values in a new array are the series given to fit
+        assert detector.predict(x.copy()) is detector.change_points_
+
+
+def test_clap_predict_on_another_series_of_the_same_length():
+    pytest.importorskip("aeon")
+    x1, x2 = _mean_shifts(), _reversed_mean_shifts()
+    expected = ClapDetector(**GUIDED).fit_predict(x2)
+    detector = ClapDetector(**GUIDED).fit(x1)
+    states, cps = detector.states_.copy(), np.copy(detector.change_points_)
+    assert not np.array_equal(expected, states)
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        np.testing.assert_array_equal(detector.predict(x2), expected)
+    # the fitted attributes still describe x1
+    np.testing.assert_array_equal(detector.states_, states)
+    np.testing.assert_array_equal(detector.change_points_, cps)
+
+
+def test_clap_predict_on_a_shorter_series_returns_one_label_per_time_point():
+    # predict() used to return the 1000 labels of the series given to fit
+    pytest.importorskip("aeon")
+    x1 = _mean_shifts()
+    expected = ClapDetector(**GUIDED).fit_predict(x1[:400])
+    assert len(expected) == 400
+    detector = ClapDetector(**GUIDED).fit(x1)
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        np.testing.assert_array_equal(detector.predict(x1[:400]), expected)
+
+
+def test_clap_predict_after_the_fit_series_is_modified_in_place():
+    pytest.importorskip("aeon")
+    x = _mean_shifts()
+    expected = ClapDetector(**GUIDED).fit_predict(_reversed_mean_shifts())
+    detector = ClapDetector(**GUIDED).fit(x)
+    x[:] = _reversed_mean_shifts()
+    with pytest.warns(UserWarning, match=REFIT_WARNING):
+        np.testing.assert_array_equal(detector.predict(x), expected)
+
+
+def test_clap_predict_on_the_fit_series_reuses_the_fit():
+    pytest.importorskip("aeon")
+    x = _mean_shifts()
+    detector = ClapDetector(**GUIDED).fit(x)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert detector.predict(x.copy()) is detector.states_
