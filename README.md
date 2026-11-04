@@ -197,7 +197,7 @@ goes further.
 Each name links to the documentation page of the detector.
 
 <details open>
-<summary><b>Change point detection (22)</b></summary>
+<summary><b>Change point detection (23)</b></summary>
 
 | Detector | Approach | Unsup. | Guided | Reference |
 | --- | --- | :---: | :---: | --- |
@@ -219,6 +219,7 @@ Each name links to the documentation page of the detector.
 | [PELT](https://fchavelli.github.io/tsseg/detectors/pelt.html)<br>`PeltDetector` | exact penalised search with pruning | ✓ | | Killick et al. (2012), JASA |
 | [Prophet](https://fchavelli.github.io/tsseg/detectors/prophet.html) 📦<br>`ProphetDetector` | trend change points of Prophet | ✓ | ✓ | Taylor & Letham (2018) |
 | [RuLSIF](https://fchavelli.github.io/tsseg/detectors/rulsif.html)<br>`RuLSIFDetector` | relative density-ratio estimation | ✓ | ✓ | Liu et al. (2013), Neural Netw. |
+| [SST](https://fchavelli.github.io/tsseg/detectors/sst.html)<br>`SSTDetector` | subspaces of past and future Hankel matrices | | ✓ | Idé & Tsuda (2007), SDM; Weber & Lenz (2025), IEEE Access |
 | [tGLAD](https://fchavelli.github.io/tsseg/detectors/tglad.html) 📦<br>`TGLADDetector` | changes of conditional independence graphs | ✓ | | Imani & Shrivastava (2023) |
 | [TIRE](https://fchavelli.github.io/tsseg/detectors/tire.html) 📦<br>`TireDetector` | autoencoder, time-invariant features | ✓ | ✓ | De Ryck et al. (2021), IEEE TSP |
 | [TS-CP2](https://fchavelli.github.io/tsseg/detectors/tscp2.html) 📦<br>`TSCP2Detector` | contrastive predictive coding | ✓ | ✓ | Deldari et al. (2021), WWW |

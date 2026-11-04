@@ -54,6 +54,7 @@ Change-point detection
    ruptures
    seeded_binseg
    rulsif
+   sst
    tglad
    tire
    tscp2
