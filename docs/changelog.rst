@@ -17,8 +17,9 @@ Unreleased
   of a Hankel matrix with the dominant subspace of the past one, which
   captures changes of dynamics (frequency, autocorrelation) as well as of
   level; ``method="exact"`` uses a full SVD. Guided only (``n_cps``
-  highest peaks); multivariate series share one subspace. Written from the
-  papers.
+  highest peaks); multivariate series share one subspace. Default window
+  (200), rank (3) and peak spacing calibrated in guided mode on the
+  change-point datasets of TSB-SEG. Written from the papers.
 * ``ClaspDetector.predict(X)``, ``ClapDetector.predict(X)`` and
   ``TGLADDetector.predict(X)`` segment or label ``X`` when it is not the
   series given to ``fit``. They returned the output of the fitted series

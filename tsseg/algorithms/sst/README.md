@@ -12,7 +12,7 @@ dynamics), with the fast randomised SVD of Weber & Lenz (2025).
 - Univariate and multivariate (Hankel matrices of the channels side by side,
   one shared subspace)
 - Cost: `O(q (k + p) d N log N)` per time point with the randomised SVD
-  (default), `O(d N^3)` with the full SVD; about 5 s for 20,000 points with
+  (default), `O(d N^3)` with the full SVD; about 15 s for 20,000 points with
   the defaults
 
 ## Implementation
@@ -26,7 +26,10 @@ dynamics), with the fast randomised SVD of Weber & Lenz (2025).
   vectors, score
 - `detector.py`: `SSTDetector`, peak selection
 - tsseg choices (no paper fixes them): `n_cps` highest peaks at least
-  `min_distance` apart (default `window_size`); no unsupervised mode;
+  `min_distance` apart; no unsupervised mode; defaults `window_size=200`,
+  `rank=3`, `min_distance=2 * window_size` calibrated in guided mode on the
+  eight change-point datasets of TSB-SEG (grid N in {25, 50, 100, 200}, r in
+  {1, 3, 5}, distance in {N, 2N});
   multivariate Hankel matrices concatenated column-wise, as multivariate
   SSA stacks Page matrices (Alanqary, Alomar & Shah, NeurIPS 2021, Sec. 2,
   Eq. 4, Hankel variant in footnote 1); score 0 where the

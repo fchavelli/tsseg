@@ -42,19 +42,25 @@ The papers give the score only. Change points are the ``n_cps`` highest peaks
 of the score at least ``min_distance`` points apart; there is no
 unsupervised mode, and ``n_cps`` is required. A peak at :math:`t` is reported
 as a change at :math:`t`, the first point after the past matrix; the score
-peaks within a few points of a level shift, up to about :math:`N` points after
+peaks within a few tens of points of a level shift, up to about :math:`N` points after
 a frequency change, and several :math:`N` after a change of the variance of
 white noise. The score is 0 where the two
 matrices do not fit (the first :math:`2N - 1` points and the last
 :math:`\gamma - 1`) and is kept in the ``scores_`` attribute after
 ``predict``.
 
+The defaults of ``window_size``, ``rank`` and ``min_distance`` are tsseg's
+calibration: in guided mode on the eight change-point datasets of TSB-SEG,
+the grid ``window_size`` in {25, 50, 100, 200}, ``rank`` in {1, 3, 5},
+``min_distance`` in {N, 2N} is best at (200, 3, 2N), with a mean
+bidirectional covering of 0.629 against 0.557 for (50, 5, N).
+
 | **Type:** change point detection
 | **Supervision:** semi-supervised (``n_cps``)
 | **Scope:** univariate and multivariate
 | **Complexity:** :math:`O(T \cdot q (k + p)\, d N \log N)` for :math:`T`
   points and :math:`d` channels (``"fft_rsvd"``), :math:`O(T d N^3)`
-  (``"exact"``); about 5 s for 20,000 points with the defaults
+  (``"exact"``); about 15 s for 20,000 points with the defaults
 | **Requires:** nothing beyond the core dependencies
 
 Parameters
@@ -70,10 +76,12 @@ Parameters
      - Description
    * - ``window_size``
      - int
-     - ``50``
+     - ``200``
      - Window :math:`N`: length of the lagged vectors and number of columns
-       of each Hankel matrix. A score needs :math:`2N - 1 + \gamma` points.
-       The papers fix no value; 50 is that of Idé & Tsuda's experiments.
+       of each Hankel matrix. A score needs :math:`2N - 1 + \gamma` points,
+       and no change point is reported in the first :math:`2N - 1`. The
+       papers fix no value (Idé & Tsuda use 50); 200 is tsseg's calibration.
+       Lower it for short series or segments.
    * - ``lag``
      - int / None
      - ``None``
@@ -81,9 +89,9 @@ Parameters
        means ``window_size // 2`` (Idé & Tsuda).
    * - ``rank``
      - int
-     - ``5``
-     - Dimension :math:`r < N` of the past subspace (Weber & Lenz, for
-       windows of 100 to 5,000 points; Idé & Tsuda recommend 3 or 4).
+     - ``3``
+     - Dimension :math:`r < N` of the past subspace (Idé & Tsuda recommend
+       3 or 4; Weber & Lenz use 5; 3 is also tsseg's calibration).
    * - ``oversampling``
      - int
      - ``10``
@@ -105,7 +113,7 @@ Parameters
      - int / None
      - ``None``
      - Minimum distance between change points; ``None`` means
-       ``window_size``.
+       ``2 * window_size`` (tsseg's calibration).
    * - ``random_state``
      - int / None
      - ``None``

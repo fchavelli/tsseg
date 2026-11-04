@@ -41,22 +41,24 @@ class SSTDetector(BaseSegmenter):
 
     Parameters
     ----------
-    window_size : int, default=50
+    window_size : int, default=200
         Window :math:`N`: length of the lagged vectors and number of columns
         of each Hankel matrix (Idé & Tsuda's :math:`n = w`, Sec. 2 of [2]_).
         A score needs ``2 * window_size - 1 + lag`` points, which is also the
-        minimum series length. The papers fix no value; 50 is the value of
-        the experiments of [2]_.
+        minimum series length, and no change point is reported in the first
+        ``2 * window_size - 1`` points. The papers fix no value ([2]_ uses 50,
+        [3]_ 100 to 5,000); 200 is tsseg's calibration (see Notes). Lower it
+        for short series or segments.
     lag : int or None, default=None
         Lag :math:`\gamma` between the past and future matrices; ``None``
         means ``window_size // 2``, the default of [2]_ (Sec. 2).
-    rank : int, default=5
-        Dimension :math:`r < N` of the past subspace: :math:`k = 5` in [3]_
-        (Sec. IV-E, windows of 100 to 5,000 points); [2]_ recommends 3 or 4
-        (Sec. 2) and uses 3 with :math:`N = 50` (Sec. 5).
+    rank : int, default=3
+        Dimension :math:`r < N` of the past subspace: [2]_ recommends 3 or 4
+        (Sec. 2) and uses 3 in its experiments (Sec. 5); [3]_ uses
+        :math:`k = 5` (Sec. IV-E). 3 is also tsseg's calibration.
     oversampling : int, default=10
-        Oversampling :math:`p` of the randomised SVD (:math:`k + p = 15` in
-        [3]_, Sec. IV-E). Unused by ``method="exact"``.
+        Oversampling :math:`p` of the randomised SVD (:math:`p = 10`,
+        :math:`k + p = 15` in [3]_, Sec. IV-E). Unused by ``method="exact"``.
     n_iter : int, default=3
         Subspace iterations :math:`q` of the randomised SVD (about
         :math:`\log N` in [3]_, Sec. IV-E). Unused by ``method="exact"``.
@@ -72,7 +74,7 @@ class SSTDetector(BaseSegmenter):
     min_distance : int or None, default=None
         Minimum number of points between two change points: of two peaks
         closer than that, the higher one is kept. ``None`` means
-        ``window_size``.
+        ``2 * window_size`` (tsseg's calibration).
     random_state : int or None, default=None
         Seed of the Gaussian test matrix of the randomised SVD. ``None``
         draws a new one at every ``predict`` (the score then varies by the
@@ -99,10 +101,10 @@ class SSTDetector(BaseSegmenter):
       matrix, about :math:`\gamma` points later. Idé & Inoue [1]_ (Sec. 3.1)
       also normalise the score series to unit area; not done here (same
       peaks). No paper says where a change lies relative to the peak.
-      Measured with the defaults: a level shift peaks within a few points
-      of the change, a frequency change up to about :math:`N` points after
-      it, a change of the variance of white noise several :math:`N` after
-      it.
+      Measured (tsseg): a level shift peaks within a few to a few tens of
+      points of the change, a frequency change up to about :math:`N` points
+      after it, a change of the variance of white noise several :math:`N`
+      after it.
     - Every channel is first brought to unit variance and mean 3 ([2]_,
       Sec. 5.1 and footnote 2: positive values make the leading singular
       value non-degenerate; [1]_, Sec. 4.2: the SVD is not invariant to
@@ -132,9 +134,16 @@ class SSTDetector(BaseSegmenter):
       not fit, the score is 0 ([2]_ uses periodic boundaries instead), and
       the first or last valid point can be a peak.
 
+    - Defaults (tsseg's calibration, 2026-11-04): guided mode on the eight
+      change-point datasets of TSB-SEG (mean over datasets of the mean
+      bidirectional covering), grid ``window_size`` in {25, 50, 100, 200},
+      ``rank`` in {1, 3, 5}, ``min_distance`` in {N, 2N}: (200, 3, 2N) is
+      best, 0.629 against 0.557 for (50, 5, N); the largest window of the
+      grid wins, so longer windows were not tried.
+
     The cost is :math:`O(T \cdot q (k + p) d N \log N)` for a series of
     :math:`T` points and :math:`d` channels with ``"fft_rsvd"``, and
-    :math:`O(T d N^3)` with ``"exact"``: about 5 s for 20,000 points with
+    :math:`O(T d N^3)` with ``"exact"``: about 15 s for 20,000 points with
     the defaults.
 
     References
@@ -228,9 +237,9 @@ class SSTDetector(BaseSegmenter):
     def __init__(
         self,
         *,
-        window_size: int = 50,
+        window_size: int = 200,
         lag: int | None = None,
-        rank: int = 5,
+        rank: int = 3,
         oversampling: int = 10,
         n_iter: int = 3,
         method: str = "fft_rsvd",
@@ -281,7 +290,9 @@ class SSTDetector(BaseSegmenter):
         first, last = 2 * int(self.window_size) - 1, X.shape[0] - lag
         if self.n_cps == 0 or last < first:
             return np.empty(0, dtype=np.int64)
-        distance = self.window_size if self.min_distance is None else self.min_distance
+        distance = (
+            2 * self.window_size if self.min_distance is None else self.min_distance
+        )
         return _highest_peaks(scores[first : last + 1], self.n_cps, distance) + first
 
 

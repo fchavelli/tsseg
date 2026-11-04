@@ -91,7 +91,8 @@ def test_finds_frequency_and_level_changes(method):
     x = x + np.where(t < 1000, 0.0, 3.0) + 0.1 * rng.standard_normal(1500)
     cps = SSTDetector(n_cps=2, method=method, random_state=0).fit_predict(x)
     assert cps.tolist() == sorted(cps.tolist()) and len(cps) == 2
-    assert 500 <= cps[0] <= 550 and 1000 <= cps[1] <= 1050
+    # frequency change: up to about window_size after; level shift: soon after
+    assert 500 <= cps[0] <= 700 and 1000 <= cps[1] <= 1050, cps
 
 
 def test_univariate_1d_and_2d_agree():
@@ -142,7 +143,7 @@ def test_invalid_settings_rejected():
     with pytest.raises(ValueError):
         SSTDetector(n_cps=1, window_size=10, rank=10).fit_predict(x)
     with pytest.raises(ValueError):
-        SSTDetector(n_cps=1, method="svd").fit_predict(x)
+        SSTDetector(n_cps=1, window_size=10, method="svd").fit_predict(x)
 
 
 def test_constant_series_gives_no_error():
