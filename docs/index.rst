@@ -72,9 +72,10 @@ instead):
    source .venv/bin/activate      # Windows: .venv\Scripts\activate
    pip install -e ".[all,dev]"
 
-``tsseg[tscp2]``, hence ``tsseg[all]``, needs Python 3.10 to 3.12: the
-TensorFlow versions it pins (below 2.19) have no wheel for Python 3.13 or later.
-On Linux, ``torch`` from PyPI comes with the CUDA libraries; without a GPU,
+On Python 3.14, ``tsseg[all]`` leaves out ``tsseg[tscp2]`` and
+``tsseg[snlds]``: TensorFlow has no stable release for it yet, nor tf-keras any
+release, so ``TSCP2Detector`` and ``SNLDSDetector`` need Python 3.10 to 3.13 for
+now. On Linux, ``torch`` from PyPI comes with the CUDA libraries; without a GPU,
 install its CPU build first, as the CI does:
 ``pip install torch --index-url https://download.pytorch.org/whl/cpu``.
 

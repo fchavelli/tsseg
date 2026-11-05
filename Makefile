@@ -10,9 +10,8 @@ endif
 VENV ?= .venv
 # Interpreter that creates the virtual environment, e.g. VENV_PYTHON=python3.12.
 VENV_PYTHON ?= python3
-# Extras installed by make install and make install-conda. The all extra pins
-# TensorFlow below 2.19, which has no wheel for Python 3.13 or later: there, pick
-# other extras, e.g. EXTRAS=dev,torch,prophet,aeon,accelerators.
+# Extras installed by make install and make install-conda. On Python 3.14, the
+# all extra leaves out tscp2 and snlds, which need TensorFlow.
 EXTRAS ?= all,dev
 # Index from which make install takes torch first, e.g. the CPU build that the CI
 # installs: TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu. Empty: torch
