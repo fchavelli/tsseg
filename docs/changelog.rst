@@ -11,6 +11,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+0.3.2 (2026-11-05)
+------------------
+
+Upgrading from 0.3.1: ``ClaspDetector``, ``ClapDetector`` and
+``TGLADDetector`` now segment a series passed to ``predict`` that differs from
+the one given to ``fit``, with a warning, instead of returning the output of the
+fitted series; results on the fitted series are unchanged. Python 3.13 and 3.14
+are supported, and ``tsseg[tscp2]`` accepts TensorFlow 2.19 and later. New:
+``SSTDetector``.
+
 * New ``SSTDetector``: singular spectrum transformation (Idé and Inoue, SDM
   2005; Idé and Tsuda, SDM 2007), with the fast randomised SVD of Weber and
   Lenz (IEEE Access, 2025). The score compares the leading future direction
