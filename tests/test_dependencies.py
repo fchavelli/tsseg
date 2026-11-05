@@ -56,9 +56,14 @@ def _distribution(requirement: str) -> str:
 
 
 def _resolve(extra: str) -> set[str]:
-    """Distributions installed by ``tsseg[extra]``, nested extras expanded."""
+    """Distributions installed by ``tsseg[extra]``, nested extras expanded.
+
+    Environment markers are ignored: a distribution counts as installed by the
+    extra even when only some Python versions get it.
+    """
     names = set()
     for requirement in _EXTRAS[extra]:
+        requirement = requirement.split(";", 1)[0]
         nested = re.fullmatch(r"tsseg\[([^\]]*)\]", requirement.replace(" ", ""))
         if nested:
             for sub in nested.group(1).split(","):

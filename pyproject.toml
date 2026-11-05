@@ -20,6 +20,11 @@ keywords = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -55,8 +60,9 @@ docs = [
 ]
 aeon = ["aeon"]
 tscp2 = [
-    "tensorflow>=2.16,<2.19",
-    "keras-tcn>=3.5.0,<3.6",
+    "tensorflow>=2.16",
+    # keras-tcn 3.5.7 requires tensorflow-macos, on every platform
+    "keras-tcn>=3.5.0,<3.6,!=3.5.7",
 ]
 snlds = [
     "tensorflow>=2.16",
@@ -82,7 +88,10 @@ dev = [
     "pre-commit>=3.7",
 ]
 all = [
-    "tsseg[torch,prophet,accelerators,docs,aeon,tglad,tscp2,snlds,beast,changeforest,fluss]",
+    "tsseg[torch,prophet,accelerators,docs,aeon,tglad,beast,changeforest,fluss]",
+    # No stable TensorFlow (2.22 is a release candidate) nor tf-keras for Python
+    # 3.14 yet: raise this bound once both publish wheels for it.
+    "tsseg[tscp2,snlds]; python_version < '3.14'",
 ]
 tglad = [
     "torch>=2.0",

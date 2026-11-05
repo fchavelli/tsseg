@@ -144,7 +144,11 @@ Usage
    change_points = detector.fit_predict(X)
 
 **Implementation:** wraps the `Rbeast <https://github.com/zhaokg/Rbeast>`_
-package, version 0.1.25 or later (``pip install tsseg[beast]``).
+package, version 0.1.25 or later (``pip install tsseg[beast]``). On Python 3.13
+and later, Rbeast 0.1.25 prints ``Exception ignored in
+PyObject_HasAttrString()`` and a ``SystemError`` to standard error at each call:
+its C extension misuses a function of the Python C API, which Python 3.12 and
+earlier ignore silently. The change points are unaffected.
 
 **Reproducibility:** Rbeast picks its numerical routines by CPU instruction
 set (SSE, AVX2, AVX-512), and the MCMC sampler amplifies their rounding

@@ -31,6 +31,17 @@ Unreleased
   unchanged, as in ``EAggloDetector``, ``HidalgoDetector`` and
   ``TiccDetector``; ``fit_predict`` and ``predict`` on the fitted series are
   unchanged.
+* Python 3.13 and 3.14 are supported, and tested by the CI.
+  ``tsseg[tscp2]`` no longer caps TensorFlow below 2.19, which has no wheel
+  for Python 3.13 or later, so ``pip install "tsseg[all]"`` works on Python
+  3.13 (Google Colab, for instance); ``TSCP2Detector`` runs with TensorFlow
+  2.21 and Keras 3. It excludes keras-tcn 3.5.7, which requires
+  ``tensorflow-macos`` on every platform. On Python 3.14, ``tsseg[all]``
+  leaves out ``tsseg[tscp2]`` and ``tsseg[snlds]``: TensorFlow has no stable
+  release for it yet, nor tf-keras any release. On Python 3.13 and later,
+  Rbeast 0.1.25 prints ``Exception ignored in PyObject_HasAttrString()``
+  messages at each call of ``BeastDetector``; its change points are
+  unaffected.
 
 0.3.1 (2026-11-02)
 ------------------

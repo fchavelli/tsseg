@@ -14,7 +14,7 @@
   <a href="https://doi.org/10.1007/978-3-032-37685-5_41"><img src="https://img.shields.io/badge/paper-ECML--PKDD%202026-8250df" alt="Paper: ECML-PKDD 2026"></a>
   <a href="https://pypi.org/project/tsseg/"><img src="https://img.shields.io/pypi/v/tsseg?logo=pypi&logoColor=white" alt="PyPI version"></a>
   <a href="https://pepy.tech/projects/tsseg"><img src="https://static.pepy.tech/badge/tsseg" alt="PyPI downloads"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python&logoColor=white" alt="Python 3.10 | 3.11 | 3.12"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue?logo=python&logoColor=white" alt="Python 3.10 | 3.11 | 3.12 | 3.13 | 3.14"></a>
   <a href="https://github.com/fchavelli/tsseg/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/fchavelli/tsseg/ci.yml?branch=main&label=CI&logo=github" alt="CI status"></a>
   <a href="https://fchavelli.github.io/tsseg/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue?logo=readthedocs&logoColor=white" alt="Documentation"></a>
   <a href="https://huggingface.co/spaces/fchavelli/tsseg"><img src="https://img.shields.io/badge/demo-Hugging%20Face%20Spaces-ffcc4d?logo=huggingface&logoColor=white" alt="Interactive demo on Hugging Face Spaces"></a>
@@ -103,8 +103,9 @@ extra, for instance `pip install "tsseg[torch]"`, or all of them at once with
 The `tsseg[patss]` extra installs nothing: the deprecated `PatssDetector` needs
 `npbad`, which is not on PyPI and must be installed by hand.
 
-`tsseg[tscp2]`, hence `tsseg[all]`, needs Python 3.10 to 3.12: the TensorFlow
-versions it pins (below 2.19) have no wheel for Python 3.13 or later. On Linux,
+On Python 3.14, `tsseg[all]` leaves out `tsseg[tscp2]` and `tsseg[snlds]`:
+TensorFlow has no stable release for it yet, nor tf-keras any release, so
+`TSCP2Detector` and `SNLDSDetector` need Python 3.10 to 3.13 for now. On Linux,
 `torch` from PyPI comes with the CUDA libraries; without a GPU, install its CPU
 build first, as the CI does:
 `pip install torch --index-url https://download.pytorch.org/whl/cpu`.
