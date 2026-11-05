@@ -1,206 +1,324 @@
-tsseg — Time Series Segmentation
-================================
+:html_theme.sidebar_secondary.remove:
 
-.. image:: _static/logo.png
-   :alt: tsseg logo
-   :width: 200px
-   :align: center
+.. title:: tsseg: time series segmentation in Python
 
-|
+.. rst-class:: tsseg-landing
 
-**tsseg** is a Python library for **Time Series Segmentation**, covering both
-**Change Point Detection** and **State Detection**. It bundles 30+ segmentation
-algorithms and evaluation metrics under a unified API, with a small
-real-world dataset for examples.
+tsseg: time series segmentation in Python
+=========================================
 
-Segmentation algorithms follow the segmenter interface of the
-`aeon <https://github.com/aeon-toolkit/aeon>`_ time-series toolkit (``fit`` /
-``predict`` on NumPy arrays, scikit-learn style parameters). A few detectors
-are adapted from aeon's implementations (E-Agglo, HMM, Hidalgo, IGTS).
+.. raw:: html
 
-.. toctree::
-   :hidden:
-   :caption: User guide
-   :maxdepth: 1
+   <div class="ts-hero">
+     <div class="ts-hero-text">
+       <a class="ts-pill" href="https://doi.org/10.1007/978-3-032-37685-5_41">
+         <b>ECML-PKDD 2026</b><span>Read the demo paper</span>
+       </a>
+       <p class="ts-title">Time series <span class="ts-grad">segmentation</span> in Python</p>
+       <p class="ts-sub">Change point detection and state detection: 30+ algorithms behind one
+         scikit-learn-style API, with the metrics to evaluate them.</p>
+       <div class="ts-install">
+         <span class="ts-prompt">$</span><code>pip install tsseg</code>
+         <button type="button" class="ts-copy" data-ts-copy="pip install tsseg" aria-label="Copy the install command">
+           <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="2"/><path d="M3 10.5V4a1.5 1.5 0 0 1 1.5-1.5H11"/></svg><span>Copy</span>
+         </button>
+       </div>
+       <div class="ts-actions">
+         <a class="ts-btn ts-btn-primary" href="guides/getting-started.html">Get started
+           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></a>
+         <a class="ts-btn" href="taxonomy.html">Explore the taxonomy</a>
+         <a class="ts-btn" href="https://huggingface.co/spaces/fchavelli/tsseg">Live demo
+           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5h6.5V10M12.5 3.5L4 12"/></svg></a>
+       </div>
+     </div>
+     <div class="ts-art">
+       <div class="ts-art-bar"><i></i><i></i><i></i><span>detector.fit_predict(X)</span></div>
 
-   guides/getting-started
-   datasets
-   detectors/index
-   evaluation
+.. raw:: html
+   :file: _includes/hero.svg
 
+.. raw:: html
 
-Overview
---------
+     </div>
+   </div>
 
-The library is organised around three concepts:
+   <div class="ts-stats">
+     <div class="ts-stat"><b>30+</b><span>detectors, classic to deep</span></div>
+     <div class="ts-stat"><b>2</b><span>tasks: change points and states</span></div>
+     <div class="ts-stat"><b>11</b><span>evaluation metrics</span></div>
+     <div class="ts-stat"><b>592</b><span>series benchmarked in TSB-SEG</span></div>
+   </div>
 
-* :doc:`datasets` — the bundled MoCap dataset and the expected data format.
-* :doc:`detectors/index` — 30+ change-point and state-detection algorithms
-  exposed through a single ``fit`` / ``predict`` / ``fit_predict`` API.
-* :doc:`evaluation` — evaluation metrics for both change-point and
-  state-labelling tasks.
+   <section class="ts-section">
+     <div class="ts-section-head">
+       <span class="ts-kicker">What is tsseg?</span>
+       <h2 class="ts-h2">Two questions about one series</h2>
+       <p class="ts-lead">tsseg gathers classic and recent algorithms for time series segmentation
+         behind a single API. It covers the two faces of the problem.</p>
+     </div>
+     <div class="ts-tasks">
+       <div class="ts-task is-cpd">
+         <span class="ts-task-label">Change point detection</span>
+         <h3>Where does the behaviour change?</h3>
+         <svg viewBox="0 0 240 70" aria-hidden="true">
+           <path class="mini-cp" d="M65 10V64M127 10V64M177 10V64"/>
+           <path class="mini-tri" d="M60 2h10l-5 7zM122 2h10l-5 7zM172 2h10l-5 7z"/>
+           <path class="mini-line" d="M4 50Q10 46 16 51T28 50T40 49T52 51T64 50L66 26Q72 22 78 27T90 26T102 25T114 27T126 26L128 46Q134 42 140 47T152 46T164 45T176 47L178 24Q184 20 190 25T202 24T214 23T226 25T236 24"/>
+         </svg>
+         <dl class="ts-io">
+           <dt>Output</dt><dd>the sorted indices where a new segment starts</dd>
+           <dt>Example</dt><dd><code>[580, 1125, 2050, 2465, 3995]</code></dd>
+         </dl>
+         <div class="ts-task-links">
+           <a href="detectors/index.html#change-point-detection">Change point detectors &rarr;</a>
+           <a href="taxonomy.html#task=cpd">In the taxonomy &rarr;</a>
+         </div>
+       </div>
+       <div class="ts-task is-sd">
+         <span class="ts-task-label">State detection</span>
+         <h3>Which recurring state is each point in?</h3>
+         <svg viewBox="0 0 240 70" aria-hidden="true">
+           <path class="mini-line" d="M4 34Q10 30 16 35T28 34T40 33T52 35T64 34L66 10Q72 6 78 11T90 10T102 9T114 11T126 10L128 30Q134 26 140 31T152 30T164 29T176 31L178 8Q184 4 190 9T202 8T214 7T226 9T236 8"/>
+           <rect class="mini-a" x="4" y="50" width="60" height="16" rx="4"/><text class="mini-txt" x="34" y="61.5" text-anchor="middle">A</text>
+           <rect class="mini-b" x="66" y="50" width="60" height="16" rx="4"/><text class="mini-txt" x="96" y="61.5" text-anchor="middle">B</text>
+           <rect class="mini-a" x="128" y="50" width="48" height="16" rx="4"/><text class="mini-txt" x="152" y="61.5" text-anchor="middle">A</text>
+           <rect class="mini-b" x="178" y="50" width="58" height="16" rx="4"/><text class="mini-txt" x="207" y="61.5" text-anchor="middle">B</text>
+         </svg>
+         <dl class="ts-io">
+           <dt>Output</dt><dd>one integer label per time point</dd>
+           <dt>Example</dt><dd><code>[0, 0, …, 2, 2, …, 1, 1, …, 0, 0, …]</code></dd>
+         </dl>
+         <div class="ts-task-links">
+           <a href="detectors/index.html#state-detection">State detectors &rarr;</a>
+           <a href="taxonomy.html#task=sd">In the taxonomy &rarr;</a>
+         </div>
+       </div>
+     </div>
+   </section>
 
-An interactive demo is available on
-`Hugging Face Spaces <https://huggingface.co/spaces/fchavelli/tsseg>`_.
+   <section class="ts-section">
+     <div class="ts-section-head">
+       <span class="ts-kicker">Highlights</span>
+       <h2 class="ts-h2">Built for comparing segmentation methods</h2>
+     </div>
+     <div class="ts-features">
+       <div class="ts-feature">
+         <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4c-2 0-3 1-3 3v2c0 1.2-.8 2-2 2 1.2 0 2 .8 2 2v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.2.8 2 2 2-1.2 0-2 .8-2 2v2c0 2-1 3-3 3"/></svg></span>
+         <h3>One API for every method</h3>
+         <p>Each detector is a scikit-learn estimator that follows the segmenter interface of
+           <a href="https://github.com/aeon-toolkit/aeon">aeon</a>: <code>fit</code>, <code>predict</code>,
+           <code>fit_predict</code>, <code>get_params</code>, <code>clone</code>.</p>
+       </div>
+       <div class="ts-feature">
+         <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>
+         <h3>Unsupervised or guided</h3>
+         <p>Run a detector without knowing how many segments to expect, or pass the number of change
+           points or states to its constructor when you know it. Tags tell which modes each detector supports.</p>
+       </div>
+       <div class="ts-feature">
+         <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg></span>
+         <h3>Metrics for both tasks</h3>
+         <p>F1, covering, Hausdorff distance and Gaussian F1 for change points; ARI, AMI, NMI, their
+           time-sensitive counterparts and the interpretable State Matching Score for states.</p>
+       </div>
+       <div class="ts-feature">
+         <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5L12 12l8-4.5M12 12v9"/></svg></span>
+         <h3>Light core, opt-in extras</h3>
+         <p>The core needs NumPy, pandas, SciPy, scikit-learn and statsmodels. PyTorch, TensorFlow,
+           Prophet or numba are installed only for the detectors that use them.</p>
+       </div>
+       <div class="ts-feature">
+         <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></svg></span>
+         <h3>Fast classics</h3>
+         <p>PELT, BinSeg, BottomUp, DynP and Window run on a vendored copy of
+           <a href="https://github.com/deepcharles/ruptures">ruptures</a> with an optional numba backend.</p>
+       </div>
+       <div class="ts-feature">
+         <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20v-7M10 20V6M14 20v-9M18 20V9"/></svg></span>
+         <h3>Benchmarked</h3>
+         <p><a href="https://github.com/fchavelli/TSB-SEG">TSB-SEG</a> (NeurIPS 2026) evaluates 26 tsseg
+           detectors on 592 series from 8 datasets, for both tasks, and publishes every run.</p>
+       </div>
+     </div>
+   </section>
 
-
-Installation
-------------
-
-From PyPI:
-
-.. code-block:: bash
-
-   pip install tsseg
-
-With optional extras:
-
-.. code-block:: bash
-
-   pip install tsseg[torch]   # PyTorch-based detectors
-   pip install tsseg[all]     # everything
-
-From source, in a virtual environment (``make install`` does the same in
-``.venv``; ``make install-conda`` creates the conda environment ``tsseg-env``
-instead):
-
-.. code-block:: bash
-
-   git clone https://github.com/fchavelli/tsseg.git
-   cd tsseg
-   python -m venv .venv
-   source .venv/bin/activate      # Windows: .venv\Scripts\activate
-   pip install -e ".[all,dev]"
-
-On Python 3.14, ``tsseg[all]`` leaves out ``tsseg[tscp2]`` and
-``tsseg[snlds]``: TensorFlow has no stable release for it yet, nor tf-keras any
-release, so ``TSCP2Detector`` and ``SNLDSDetector`` need Python 3.10 to 3.13 for
-now. On Linux, ``torch`` from PyPI comes with the CUDA libraries; without a GPU,
-install its CPU build first, as the CI does:
-``pip install torch --index-url https://download.pytorch.org/whl/cpu``.
-
-Most detectors work out of the box. Heavier dependencies are opt-in:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 75
-
-   * - Extra
-     - What it adds
-   * - ``tsseg[aeon]``
-     - aeon's time series classifiers, used by ``ClapDetector``
-   * - ``tsseg[prophet]``
-     - Facebook Prophet (``ProphetDetector``)
-   * - ``tsseg[patss]``
-     - Nothing: ``PatssDetector`` (deprecated) needs ``npbad``, which is not
-       on PyPI and must be installed by hand
-   * - ``tsseg[torch]``
-     - PyTorch-based detectors (``TireDetector``, ``Time2StateDetector``,
-       ``E2USDDetector``)
-   * - ``tsseg[tglad]``
-     - PyTorch + NetworkX (``TGLADDetector``)
-   * - ``tsseg[tscp2]``
-     - TensorFlow + TCN layer (``TSCP2Detector``)
-   * - ``tsseg[snlds]``
-     - TensorFlow + TensorFlow Probability (``SNLDSDetector``)
-   * - ``tsseg[beast]``
-     - Rbeast (``BeastDetector``)
-   * - ``tsseg[changeforest]``
-     - changeforest (``ChangeForestDetector``)
-   * - ``tsseg[fluss]``
-     - stumpy (``FLUSSDetector``)
-   * - ``tsseg[accelerators]``
-     - Numba / Cython: needed by CLaP, ClaSP and E-Agglo; speeds up HDP-HSMM
-   * - ``tsseg[docs]``
-     - Sphinx documentation toolchain
-   * - ``tsseg[all]``
-     - Everything above
-
-Every detector imports without its extra: ``from tsseg.algorithms import *``
-works on a bare ``pip install tsseg``. Constructing a detector whose
-dependencies are missing raises ``ModuleNotFoundError`` with the extra to
-install, e.g. ``ClapDetector requires numba, aeon: pip install
-"tsseg[accelerators,aeon]"``. The modules a detector needs are listed in its
-``python_dependencies`` tag (``ClapDetector.get_class_tag("python_dependencies")``).
-
-
-Usage
------
-
-This example needs the ``accelerators`` and ``aeon`` extras (CLaP uses numba
-and aeon's classifiers):
+   <section class="ts-section">
+     <div class="ts-quick">
+       <div>
+         <span class="ts-kicker">Quick start</span>
+         <h2 class="ts-h2">Segment a recording in a few lines</h2>
+         <p class="ts-lead">Segment a motion-capture recording bundled with tsseg, then score both
+           results against its ground truth.</p>
+         <ol class="ts-steps">
+           <li><b>Install</b> tsseg; the state detector of this example needs
+             <code>pip install "tsseg[accelerators,aeon]"</code>.</li>
+           <li><b>Load</b> a series: a NumPy array of shape <code>(n_timepoints, n_channels)</code>,
+             a pandas Series or DataFrame.</li>
+           <li><b>Fit and predict</b> with any detector, then <b>score</b> the result.</li>
+         </ol>
+         <div class="ts-actions">
+           <a class="ts-btn" href="guides/getting-started.html">Getting started</a>
+           <a class="ts-btn" href="guides/installation.html">Installation</a>
+         </div>
+       </div>
+       <div class="ts-code">
+         <div class="ts-code-bar"><i></i><i></i><i></i><span>quickstart.py</span></div>
 
 .. code-block:: python
 
-   from tsseg.data.datasets import load_mocap
-   from tsseg.algorithms import ClapDetector
-   from tsseg.metrics import StateMatchingScore
+   from tsseg import load_mocap
+   from tsseg.algorithms import BottomUpDetector, ClapDetector
+   from tsseg.algorithms.utils import extract_cps
+   from tsseg.metrics import Covering, StateMatchingScore
 
-   # Load a time series
-   X, y_true = load_mocap(trial=0)
+   # 4 channels (arms and legs), one activity label per time point
+   X, y = load_mocap(trial=0)  # X: (4579, 4), y: (4579,)
+   true_cps = extract_cps(y)  # [ 588 1200 2006 2530 3282 4048]
 
-   # Segment
-   segmenter = ClapDetector()
-   segmenter.fit(X)
-   y_pred = segmenter.predict(X)
+   # Change point detection: where does the movement change?
+   cps = BottomUpDetector(model="rbf", pen_scale="bic").fit_predict(X)
+   print(cps)  # [ 580 1125 2050 2465 3995]
+   print(Covering().compute(true_cps, cps, n_timepoints=len(X))["score"])  # 0.748
 
-   # Evaluate
-   score = StateMatchingScore().compute(y_true, y_pred)
-   print(f"SMS: {score['score']:.4f}")
+   # State detection: which activity is each time point in?
+   states = ClapDetector().fit_predict(X)
+   print(StateMatchingScore().compute(y, states)["score"])  # 0.700
 
-See :doc:`guides/getting-started` for a longer walk-through.
+   # Know how many segments to expect? Pass it to the constructor (guided mode)
+   from tsseg.algorithms import DynpDetector
 
+   print(DynpDetector(model="rbf", n_cps=6).fit_predict(X))
+   # [ 595 1145 2160 2455 3300 4115]
 
-License
--------
+.. raw:: html
 
-``tsseg`` is released under the
-`AGPLv3 <https://github.com/fchavelli/tsseg/blob/main/LICENSE>`_.
+       </div>
+     </div>
+   </section>
 
-Several detectors bundle adapted or vendored code under their own licenses
-(BSD, MIT, Apache-2.0, GPLv3, etc.). Where the original code publishes a
-license, the directory that bundles it contains a copy (``LICENSE``, or
-``LICENCE`` for PaTSS), and the base classes adapted from aeon carry its
-license in the opening comment of ``tsseg/algorithms/base.py``; the
-`README <https://github.com/fchavelli/tsseg#third-party-components>`_ lists
-every component, including those whose source publishes no license.
+   <section class="ts-section">
+     <div class="ts-explore">
+       <div>
+         <span class="ts-kicker">Find the right method</span>
+         <h2 class="ts-h2">An interactive map of the methods</h2>
+         <p class="ts-lead">Every detector placed by how it searches for a segmentation and by what
+           it compares to decide that two parts of a series differ. Filter by task, mode or install,
+           search by name or idea, and open any method in one click.</p>
+         <div class="ts-actions">
+           <a class="ts-btn ts-btn-primary" href="taxonomy.html">Open the taxonomy
+             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></a>
+           <a class="ts-btn" href="detectors/index.html">All detectors</a>
+         </div>
+       </div>
 
+.. tsseg-taxonomy-preview:: taxonomy
 
-Citation
---------
+.. raw:: html
 
-If you use ``tsseg`` in academic work, please cite:
+     </div>
+   </section>
+
+   <section class="ts-section">
+     <div class="ts-demo">
+       <div>
+         <span class="ts-kicker">Interactive demo</span>
+         <h2 class="ts-h2">Try it in the browser</h2>
+         <p class="ts-lead">The tsseg demo on Hugging Face Spaces loads a series, runs segmentation
+           algorithms, then compares and evaluates their results, with nothing to install.</p>
+         <div class="ts-actions">
+           <a class="ts-btn ts-btn-primary" href="https://huggingface.co/spaces/fchavelli/tsseg">Open the demo
+             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5h6.5V10M12.5 3.5L4 12"/></svg></a>
+         </div>
+       </div>
+       <div>
+
+.. image:: ../assets/demo.png
+   :class: ts-shot
+   :alt: A MoCap recording segmented in the tsseg demo: ground truth, change point detection and state detection
+
+.. raw:: html
+
+       </div>
+     </div>
+   </section>
+
+   <section class="ts-section">
+     <div class="ts-paper">
+       <div>
+         <span class="ts-kicker">Cite tsseg</span>
+         <h2 class="ts-h2">Published at ECML-PKDD 2026</h2>
+         <div class="ts-paper-card">
+           <span class="ts-venue">Demo Track &middot; Lecture Notes in Computer Science</span>
+           <h3>tsseg: An Interactive Toolkit for Time Series Segmentation</h3>
+           <p>Félix Chavelli, Arik Ermshaus, Fan Yang, Patrick Schäfer, John Paparrizos, Paul Boniol</p>
+           <a class="ts-btn" href="https://doi.org/10.1007/978-3-032-37685-5_41">doi:10.1007/978-3-032-37685-5_41</a>
+         </div>
+         <p class="ts-lead" style="margin-top:1.4rem;margin-bottom:.6rem">Please also cite:</p>
+         <ul class="ts-also">
+           <li><a href="https://github.com/fchavelli/TSB-SEG">TSB-SEG</a> (NeurIPS 2026), if you compare
+             segmentation methods or use its results;</li>
+           <li><a href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/09425891e393e64b0535194a81ba15b7-Abstract-Conference.html">Toward
+             Interpretable Evaluation Measures for Time Series Segmentation</a> (NeurIPS 2025), if you use
+             WARI, WNMI or SMS;</li>
+           <li>the original paper of each detector, given on its page.</li>
+         </ul>
+         <p class="ts-license">BibTeX entries for all three are in the
+           <a href="https://github.com/fchavelli/tsseg#citation">README</a> and in
+           <a href="https://github.com/fchavelli/tsseg/blob/main/CITATION.cff">CITATION.cff</a>.</p>
+       </div>
+       <div class="ts-code is-wrap">
+         <div class="ts-code-bar"><i></i><i></i><i></i><span>tsseg.bib</span></div>
 
 .. code-block:: bibtex
 
    @inproceedings{tsseg2026,
      title     = {tsseg: An Interactive Toolkit for Time Series Segmentation},
-     author    = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
-     booktitle = {Machine Learning and Knowledge Discovery in Databases},
-     year      = {2027},
+     author    = {Chavelli, F{\'e}lix and Ermshaus, Arik and Yang, Fan and
+                  Sch{\"a}fer, Patrick and Paparrizos, John and Boniol, Paul},
+     booktitle = {Machine Learning and Knowledge Discovery in Databases.
+                  Applied Data Science Track, Demo Track and Industrial Track},
+     series    = {Lecture Notes in Computer Science},
+     year      = {2026},
      pages     = {391--394},
      publisher = {Springer Nature Switzerland},
      doi       = {10.1007/978-3-032-37685-5_41}
    }
 
+.. raw:: html
 
-Contributors
-------------
+       </div>
+     </div>
+   </section>
 
-* Felix Chavelli (Inria, ENS, Paris)
-* Arik Ermshaus (Humboldt-Universität, Berlin)
-* Fan Yang (The Ohio State University, Columbus)
-* Paul Boniol (Inria, ENS, Paris)
-* Patrick Schäfer (Humboldt-Universität, Berlin)
-* John Paparrizos (The Ohio State University, AUTh, Columbus)
+   <section class="ts-section">
+     <div class="ts-section-head">
+       <span class="ts-kicker">People</span>
+       <h2 class="ts-h2">Contributors</h2>
+     </div>
+     <div class="ts-people">
+       <div class="ts-person"><span class="ts-avatar">FC</span><div><b>Félix Chavelli</b><span>Inria, ENS, Paris</span></div></div>
+       <div class="ts-person"><span class="ts-avatar">AE</span><div><b>Arik Ermshaus</b><span>Humboldt-Universität, Berlin</span></div></div>
+       <div class="ts-person"><span class="ts-avatar">FY</span><div><b>Fan Yang</b><span>The Ohio State University, Columbus</span></div></div>
+       <div class="ts-person"><span class="ts-avatar">PB</span><div><b>Paul Boniol</b><span>Inria, ENS, Paris</span></div></div>
+       <div class="ts-person"><span class="ts-avatar">PS</span><div><b>Patrick Schäfer</b><span>Humboldt-Universität, Berlin</span></div></div>
+       <div class="ts-person"><span class="ts-avatar">JP</span><div><b>John Paparrizos</b><span>The Ohio State University, AUTh, Columbus</span></div></div>
+     </div>
+     <p class="ts-license">Contributions are welcome: see the <a href="guides/contributing.html">contributing
+       guide</a>. tsseg is released under the
+       <a href="https://github.com/fchavelli/tsseg/blob/main/LICENSE">AGPL-3.0</a>; several detectors
+       bundle adapted or vendored code under their own licenses, listed in the
+       <a href="https://github.com/fchavelli/tsseg#third-party-components">README</a>.</p>
+   </section>
 
-Contributions are welcome — see :doc:`guides/contributing` for development
-setup, code style and testing guidelines.
+.. toctree::
+   :hidden:
+   :maxdepth: 1
 
-
-Indices
--------
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   guides/installation
+   guides/getting-started
+   detectors/index
+   taxonomy
+   evaluation
+   datasets
+   changelog
+   guides/contributing

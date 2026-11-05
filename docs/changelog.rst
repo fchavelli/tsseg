@@ -1,5 +1,3 @@
-:orphan:
-
 .. _changelog:
 
 Changelog
@@ -10,6 +8,18 @@ This changelog highlights notable updates. For full commit history, refer to
 
 Unreleased
 ----------
+
+* Documentation: new design (PyData Sphinx theme, light and dark modes, copy
+  buttons on code blocks) and a new home page; installation instructions move
+  to their own page. The ``docs`` extra now installs ``pydata-sphinx-theme``
+  and ``sphinx-copybutton`` instead of ``sphinx-rtd-theme``.
+* Documentation: new interactive :doc:`taxonomy <taxonomy>` of the detectors,
+  placed by search procedure and homogeneity criterion as in TSB-SEG, with
+  search, filters (task, guided or unsupervised, multivariate, optional extra,
+  deep learning), a sortable list and a link to each detector page; each
+  detector page links back to its place in the grid. The capabilities shown
+  are read from the estimator tags, and the build fails when a public detector
+  is missing from the taxonomy.
 
 0.3.2 (2026-11-05)
 ------------------

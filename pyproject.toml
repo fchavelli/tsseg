@@ -54,7 +54,8 @@ accelerators = [
 ]
 docs = [
     "sphinx>=8.0",
-    "sphinx-rtd-theme>=2.0",
+    "pydata-sphinx-theme>=0.16",
+    "sphinx-copybutton>=0.5",
     "myst-parser>=3.0",
     "sphinx-autodoc-typehints>=2.2",
 ]

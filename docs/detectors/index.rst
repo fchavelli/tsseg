@@ -22,7 +22,9 @@ Each detector declares its capabilities through tags, read with
 * ``python_dependencies`` — ``None``, or the list of optional modules the
   detector imports (e.g. ``["torch"]``); the detector fails without them
 
-Use the table of contents below to jump to a specific detector. The detectors
+To compare the detectors by how they search for a segmentation and by what
+they compare, open the :doc:`interactive taxonomy <../taxonomy>`. Use the table
+of contents below to jump to a specific detector. The detectors
 are grouped into two tasks: **change-point detection** returns a sorted array
 of change point indices (each index is the first point of a new segment; by
 convention ``0`` and the series length are left out), **state detection**
