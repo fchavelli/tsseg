@@ -26,6 +26,7 @@
   <a href="https://fchavelli.github.io/tsseg/"><b>Documentation</b></a> ·
   <a href="https://huggingface.co/spaces/fchavelli/tsseg"><b>Live demo</b></a> ·
   <a href="https://fchavelli.github.io/tsseg/detectors/index.html"><b>Detectors</b></a> ·
+  <a href="https://fchavelli.github.io/tsseg/taxonomy.html"><b>Taxonomy</b></a> ·
   <a href="https://fchavelli.github.io/tsseg/evaluation.html"><b>Metrics</b></a> ·
   <a href="https://fchavelli.github.io/tsseg/changelog.html"><b>Changelog</b></a> ·
   <a href="https://github.com/fchavelli/TSB-SEG"><b>Benchmark</b></a>
@@ -195,7 +196,10 @@ goes further.
 **Unsup.**: runs without being told the number of change points or states.
 **Guided**: takes that number in its constructor (`n_cps`, `n_states`, …).
 📦: needs an optional dependency (see [Installation](https://github.com/fchavelli/tsseg#installation)).
-Each name links to the documentation page of the detector.
+Each name links to the documentation page of the detector. The
+[interactive taxonomy](https://fchavelli.github.io/tsseg/taxonomy.html) places
+them by how they search for a segmentation and by what they compare, with
+filters and search.
 
 <details open>
 <summary><b>Change point detection (23)</b></summary>

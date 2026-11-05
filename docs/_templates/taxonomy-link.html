@@ -1,0 +1,14 @@
+{#- Placement of the detector in the interactive taxonomy (docs/_ext/tsseg_taxonomy.py) -#}
+{%- if tsseg_taxonomy %}
+<div class="ts-side-tax">
+  <p class="ts-side-title">In the taxonomy</p>
+  {%- for m in tsseg_taxonomy %}
+  <a class="ts-side-card is-{{ m.task }}" href="{{ m.url }}">
+    <span class="ts-side-name">{{ m.name }}</span>
+    <span class="ts-side-row"><span>Search</span>{{ m.search }}</span>
+    <span class="ts-side-row"><span>Compares</span>{{ m.criterion }}</span>
+    <span class="ts-side-go">Show in the grid &rarr;</span>
+  </a>
+  {%- endfor %}
+</div>
+{%- endif %}
