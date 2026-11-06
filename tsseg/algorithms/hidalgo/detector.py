@@ -852,7 +852,8 @@ class HidalgoDetector(BaseSegmenter):
             UserWarning,
             stacklevel=3,
         )
-        return self.clone().fit(X)._Z
+        # X is already time-major, whatever self.axis
+        return self.clone().fit(X, axis=0)._Z
 
     @classmethod
     def _get_test_params(cls, parameter_set="default"):

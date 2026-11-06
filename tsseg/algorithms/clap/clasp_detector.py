@@ -271,4 +271,5 @@ class ClaspDetector(BaseSegmenter):
             UserWarning,
             stacklevel=3,
         )
-        return self.clone().fit(X).change_points_
+        # X is already time-major, whatever self.axis
+        return self.clone().fit(X, axis=0).change_points_

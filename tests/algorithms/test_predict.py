@@ -217,7 +217,8 @@ class TestDeterminism:
 
 class TestAxis:
     """``Foo(axis=1).fit_predict(X.T)`` must segment the series that
-    ``Foo().fit_predict(X)`` segments."""
+    ``Foo().fit_predict(X)`` segments, and ``predict`` a new series the same
+    way too."""
 
     def test_axis_one_reads_time_along_the_columns(self, algorithm, synthetic_data):
         _name, cls, ovr, instance = algorithm
@@ -228,6 +229,9 @@ class TestAxis:
         else:
             data = synthetic_data["univariate"]
         X, y = data["X"], data["y"]
+        # a series other than the fitted one, on which some detectors refit;
+        # with an empty fit, predict does not depend on the fitted series
+        other = None if instance.get_tag("fit_is_empty") else X[::-1]
 
         detector = cls(**{**(ovr.init_kwargs or {}), "axis": 1})
         if ovr.semi_supervised:
@@ -236,15 +240,24 @@ class TestAxis:
         else:
             result = detector.fit_predict(X.T)
         _assert_output_contract(detector, result, X.shape[0])
+        if other is not None:
+            result_other = detector.predict(other.T)
+            _assert_output_contract(detector, result_other, X.shape[0])
 
         if instance.get_tag(
             "non_deterministic", raise_error=False, tag_value_default=False
         ):
             return
-        _, expected = _run_fit_predict(cls, ovr, data)
+        reference, expected = _run_fit_predict(cls, ovr, data)
         np.testing.assert_array_equal(
             result, expected, err_msg="axis=1 on X.T != axis=0 on X"
         )
+        if other is not None:
+            np.testing.assert_array_equal(
+                result_other,
+                reference.predict(other),
+                err_msg="predict: axis=1 on a new series != axis=0",
+            )
 
 
 # ==================================================================
