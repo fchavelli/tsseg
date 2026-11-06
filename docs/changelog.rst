@@ -38,6 +38,10 @@ Unreleased
   and provides a figure, data and code. The examples run offline from
   ``examples/gallery`` in a source checkout and are not installed with the
   package.
+* Documentation and README: a new figure for the interactive demo
+  (``assets/demo.svg``) replaces the screenshot ``assets/demo.png``: the
+  sample dataset of the demo, its ground truth, the change points of BottomUp
+  and the states of Time2State, each scored against the truth.
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.

@@ -305,10 +305,11 @@ Spaces runs in the browser: load a series, run segmentation algorithms, then
 compare and evaluate their results, with nothing to install.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/fchavelli/tsseg/main/assets/demo.png" alt="A MoCap recording segmented in the tsseg demo: ground truth, change point detection and state detection" width="720">
+  <a href="https://huggingface.co/spaces/fchavelli/tsseg"><img src="https://raw.githubusercontent.com/fchavelli/tsseg/main/assets/demo.svg" alt="The sample dataset of the tsseg demo, a four-channel motion-capture recording: the ground truth (seven segments in four states, state A coming back three times), the change points found by BottomUp with an RBF cost without being told how many (Covering 0.75), and the states found by Time2State told that there are four (State Matching Score 0.93)" width="840"></a>
   <br>
-  <sub>A motion-capture recording bundled with tsseg, as shown in the interactive demo: ground truth (top),
-  the change points of a change point detector (middle) and the states of a state detector (bottom).</sub>
+  <sub>The sample dataset of the demo, a motion-capture recording bundled with tsseg: ground truth (top),
+  change points of BottomUp, unsupervised (middle), and states of Time2State, told the number of states (bottom),
+  each scored against the truth.</sub>
 </p>
 
 ## Contributing

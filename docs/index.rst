@@ -255,9 +255,9 @@ tsseg: time series segmentation in Python
        </div>
        <div>
 
-.. image:: ../assets/demo.png
+.. image:: ../assets/demo.svg
    :class: ts-shot
-   :alt: A MoCap recording segmented in the tsseg demo: ground truth, change point detection and state detection
+   :alt: The sample dataset of the tsseg demo, a four-channel motion-capture recording: the ground truth (seven segments in four states, state A coming back three times), the change points found by BottomUp with an RBF cost without being told how many (Covering 0.75), and the states found by Time2State told that there are four (State Matching Score 0.93)
 
 .. raw:: html
 
