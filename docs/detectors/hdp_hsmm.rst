@@ -1,7 +1,7 @@
 HDP-HSMM
 ========
 
-HDP-HSMM — Bayesian non-parametric state detection with Gibbs sampling.
+HDP-HSMM – Bayesian non-parametric state detection with Gibbs sampling.
 
 Description
 -----------

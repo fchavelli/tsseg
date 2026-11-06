@@ -20,6 +20,19 @@ Unreleased
   detector page links back to its place in the grid. The capabilities shown
   are read from the estimator tags, and the build fails when a public detector
   is missing from the taxonomy.
+* Documentation: the :doc:`evaluation <evaluation>` page illustrates each
+  metric with a figure on a small example, whose scores are computed by the
+  metrics at build time. Metric pages and signatures show the class name
+  alone (``F1Score``, not ``tsseg.metrics.F1Score``).
+* Documentation: ClaSP (change point detection) and CLaP (state detection) get
+  a page each, under their task, and the sidebar of the detector pages groups
+  the detectors by task. Change point detection is shown in blue, in the
+  taxonomy too. The home page shows the overview figure of the README and
+  keeps three highlights. Em dashes are replaced by en dashes, and a test
+  keeps them out of the documentation.
+* Fix the affiliation of John Paparrizos (The Ohio State University and
+  Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
+  home page.
 
 0.3.2 (2026-11-05)
 ------------------
@@ -1089,7 +1102,7 @@ solvers (ties): results computed with 0.2.0 can differ.
 
 Initial public release.
 
-* Vendored a lightweight subset of ``ruptures`` v1.1.8 — BinSeg, BottomUp,
+* Vendored a lightweight subset of ``ruptures`` v1.1.8 – BinSeg, BottomUp,
   DynP, KCPD, PELT and Window detectors no longer need an external dependency.
 * Added ``BottomUpDetector`` and ``DynpDetector`` wrappers with aeon-compatible
   interfaces.

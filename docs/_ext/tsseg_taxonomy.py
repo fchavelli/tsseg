@@ -3,8 +3,8 @@
 Sphinx extension providing the ``tsseg-taxonomy`` directive. It places every
 detector of :mod:`tsseg.algorithms` on a grid whose columns are search
 procedures (how a segmentation is searched for) and whose rows are homogeneity
-criteria (what is compared to decide that two parts of a series differ), the
-taxonomy of the TSB-SEG benchmark.
+criteria (what makes a segment homogeneous), the taxonomy of the TSB-SEG
+benchmark.
 
 The placement, complexity and reference of each method are declared below. The
 capabilities shown by the page (unsupervised or guided, multivariate, optional
@@ -279,7 +279,7 @@ METHODS = [
        "dn log n"),
     _m("changeforest", "ChangeForestDetector", "changeforest", "binseg", "distrib",
        "random forest classifier between segments", "Londschien et al. (2023), JMLR"),
-    _m("ClaSP", "ClaspDetector", "clap", "binseg", "shapes",
+    _m("ClaSP", "ClaspDetector", "clasp", "binseg", "shapes",
        "classification score profile", "Ermshaus et al. (2023), DMKD", "n_CP dn^2"),
     # ---- convex relaxation
     _m("Prophet", "ProphetDetector", "prophet", "convex", "model",

@@ -1,5 +1,5 @@
-﻿tsseg.metrics.WeightedAdjustedRandIndex
-=======================================
+﻿WeightedAdjustedRandIndex
+=========================
 
 .. currentmodule:: tsseg.metrics
 

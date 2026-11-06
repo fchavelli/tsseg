@@ -1,7 +1,7 @@
 Random (baseline)
 =================
 
-Random — baseline detector for benchmarking.
+Random – baseline detector for benchmarking.
 
 Description
 -----------
@@ -11,8 +11,8 @@ bound for benchmarks and for pipeline testing.
 
 Two modes of operation:
 
-- **Unsupervised** — draws a random ``n_change_points`` and/or ``n_states``.
-- **Semi-supervised** — given quantities, randomises locations/labels.
+- **Unsupervised** – draws a random ``n_change_points`` and/or ``n_states``.
+- **Semi-supervised** – given quantities, randomises locations/labels.
 
 | **Type:** state detection
 | **Supervision:** unsupervised or semi-supervised
@@ -59,7 +59,7 @@ Usage
 
 **Implementation:** *Origin: new code.*
 
-**Reference:** —
+**Reference:** none.
 
 API reference
 -------------

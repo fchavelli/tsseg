@@ -1,7 +1,7 @@
 E-Agglo
 =======
 
-E-Agglo — energy-based agglomerative change point detection.
+E-Agglo – energy-based agglomerative change point detection.
 
 Description
 -----------

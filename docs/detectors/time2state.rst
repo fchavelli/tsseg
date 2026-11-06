@@ -1,7 +1,7 @@
 Time2State
 ==========
 
-Time2State — unsupervised latent state inference.
+Time2State – unsupervised latent state inference.
 
 Description
 -----------

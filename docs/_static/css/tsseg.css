@@ -126,6 +126,12 @@ code.literal {
   border-radius: 6px;
 }
 
+/* toctree captions group the left sidebar (detectors: by task); in the page
+   body, the section heading above the toctree already says it */
+.bd-article .toctree-wrapper p.caption {
+  display: none;
+}
+
 /* tables */
 table.table {
   border-radius: 10px;
@@ -551,8 +557,8 @@ html[data-theme="dark"] .hero-svg .hero-state text {
   background: var(--ts-accent);
 }
 .ts-task.is-cpd {
-  --ts-accent: var(--ts-green);
-  --ts-accent-soft: var(--ts-green-soft);
+  --ts-accent: var(--ts-blue);
+  --ts-accent-soft: var(--ts-blue-soft);
 }
 .ts-task.is-sd {
   --ts-accent: var(--ts-orange);
@@ -826,7 +832,7 @@ html[data-theme="dark"] .ts-task .mini-txt {
   border-radius: 4px;
 }
 .txp-head.is-cpd {
-  background: var(--ts-green);
+  background: var(--ts-blue);
 }
 .txp-head.is-sd {
   background: var(--ts-orange);
@@ -847,7 +853,7 @@ html[data-theme="dark"] .ts-task .mini-txt {
   border-radius: 3px;
 }
 .txp-cell i.is-cpd {
-  background: var(--ts-green);
+  background: var(--ts-blue);
 }
 .txp-cell i.is-sd {
   background: var(--ts-orange);
@@ -867,6 +873,19 @@ html[data-theme="dark"] .ts-task .mini-txt {
   gap: 2.5rem;
   align-items: center;
 }
+.ts-overview {
+  margin-top: 1.6rem;
+}
+.ts-overview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+}
+html[data-theme="dark"] .ts-overview img {
+  box-shadow: 0 0 0 1px var(--ts-line);
+}
+
 .ts-demo img.ts-shot {
   display: block;
   width: 100%;
@@ -1044,7 +1063,7 @@ html[data-theme="dark"] .ts-task .mini-txt {
     transform 0.15s;
 }
 .ts-side-card.is-cpd {
-  --ts-accent: var(--ts-green);
+  --ts-accent: var(--ts-blue);
 }
 .ts-side-card.is-sd {
   --ts-accent: var(--ts-orange);
@@ -1070,4 +1089,131 @@ html[data-theme="dark"] .ts-task .mini-txt {
   margin-top: 0.2rem;
   font-weight: 650;
   color: var(--pst-color-primary);
+}
+
+/* ------------------------------------------- metric figures (evaluation) */
+/* docs/_ext/tsseg_metric_figures.py draws them; colours follow the theme */
+figure.tm-fig {
+  margin: 1.1rem 0 1.6rem;
+  padding: 0.9rem 1rem 0.6rem;
+  border: 1px solid var(--ts-line);
+  border-radius: var(--ts-radius);
+  background: var(--pst-color-on-background, var(--ts-card));
+}
+.tm-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--pst-font-family-base);
+  font-size: 12.5px;
+}
+.tm-svg text {
+  fill: var(--ts-muted);
+}
+.tm-svg text.tm-row,
+.tm-svg text.tm-head {
+  fill: var(--ts-ink);
+  font-weight: 650;
+}
+.tm-svg text.tm-ink {
+  fill: var(--ts-ink);
+}
+.tm-svg text.tm-ink-strong,
+.tm-svg text.tm-score {
+  fill: var(--ts-ink);
+  font-weight: 700;
+}
+.tm-svg text.tm-score {
+  font-weight: 600;
+}
+.tm-svg text.tm-state-txt {
+  fill: #fff;
+  font-weight: 750;
+  font-size: 11px;
+}
+html[data-theme="dark"] .tm-svg text.tm-state-txt {
+  fill: #0e1217;
+}
+.tm-svg .tm-base {
+  stroke: var(--ts-line);
+  stroke-width: 1.5;
+}
+.tm-svg .tm-true {
+  stroke: var(--ts-ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.tm-svg .tm-true.is-missed {
+  stroke-dasharray: 3 3;
+}
+.tm-svg .tm-pred {
+  stroke: var(--ts-blue);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.tm-svg .tm-dot {
+  fill: var(--ts-blue);
+  stroke: var(--pst-color-on-background, #fff);
+  stroke-width: 2;
+}
+.tm-svg .tm-pred.is-bad {
+  stroke: var(--ts-orange);
+}
+.tm-svg .tm-dot.is-bad {
+  fill: var(--ts-orange);
+}
+.tm-svg .tm-window {
+  fill: var(--ts-blue-soft);
+}
+.tm-svg .tm-guide {
+  stroke: var(--ts-muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+.tm-svg .tm-gauss,
+.tm-svg .tm-curve {
+  fill: none;
+  stroke: var(--ts-blue);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.tm-svg .tm-area {
+  fill: var(--ts-blue-soft);
+}
+.tm-svg .tm-link {
+  stroke: var(--ts-muted);
+  stroke-width: 1.5;
+}
+.tm-svg .tm-link.is-max {
+  stroke: var(--ts-orange);
+  stroke-width: 2.5;
+}
+.tm-svg .tm-seg0 {
+  fill: var(--ts-blue-soft);
+  stroke: var(--ts-blue);
+  stroke-width: 1;
+}
+.tm-svg .tm-seg1 {
+  fill: var(--pst-color-surface);
+  stroke: var(--ts-muted);
+  stroke-width: 1;
+}
+.tm-svg .tm-s0 {
+  fill: var(--ts-blue);
+}
+.tm-svg .tm-s1 {
+  fill: var(--ts-orange);
+}
+.tm-svg .tm-s2 {
+  fill: var(--ts-green);
+}
+.tm-svg .tm-errbox {
+  fill: none;
+  stroke: var(--ts-ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+.tm-svg .tm-errband {
+  fill: var(--ts-orange);
+  opacity: 0.22;
 }

@@ -198,8 +198,8 @@ goes further.
 📦: needs an optional dependency (see [Installation](https://github.com/fchavelli/tsseg#installation)).
 Each name links to the documentation page of the detector. The
 [interactive taxonomy](https://fchavelli.github.io/tsseg/taxonomy.html) places
-them by how they search for a segmentation and by what they compare, with
-filters and search.
+them by how they search for a segmentation and by what makes a segment
+homogeneous, with filters and search.
 
 <details open>
 <summary><b>Change point detection (23)</b></summary>
@@ -213,7 +213,7 @@ filters and search.
 | [BottomUp](https://fchavelli.github.io/tsseg/detectors/bottomup.html)<br>`BottomUpDetector` | greedy bottom-up merging | ✓ | ✓ | Keogh et al. (2001), ICDM |
 | [changeforest](https://fchavelli.github.io/tsseg/detectors/changeforest.html) 📦<br>`ChangeForestDetector` | random forest classifier between segments | ✓ | ✓ | Londschien et al. (2023), JMLR |
 | [ChangeFinder](https://fchavelli.github.io/tsseg/detectors/changefinder.html)<br>`ChangeFinderDetector` | two-stage autoregressive outlier scores | ✓ | ✓ | Takeuchi & Yamanishi (2006), TKDE |
-| [ClaSP](https://fchavelli.github.io/tsseg/detectors/clap.html) 📦<br>`ClaspDetector` | classification score profile | ✓ | ✓ | Ermshaus et al. (2023), DMKD |
+| [ClaSP](https://fchavelli.github.io/tsseg/detectors/clasp.html) 📦<br>`ClaspDetector` | classification score profile | ✓ | ✓ | Ermshaus et al. (2023), DMKD |
 | [DynP](https://fchavelli.github.io/tsseg/detectors/dynp.html)<br>`DynpDetector` | exact dynamic programming | | ✓ | Auger & Lawrence (1989) |
 | [E-Agglo](https://fchavelli.github.io/tsseg/detectors/eagglo.html) 📦<br>`EAggloDetector` | agglomerative, energy distance | ✓ | | Matteson & James (2014), JASA |
 | [ESPRESSO](https://fchavelli.github.io/tsseg/detectors/espresso.html)<br>`EspressoDetector` | entropy and shape of the matrix profile | | ✓ | Deldari et al. (2020), UbiComp |
@@ -366,7 +366,7 @@ Each detector also cites its original paper on its
 - Fan Yang (The Ohio State University, Columbus)
 - Paul Boniol (Inria, ENS, Paris)
 - Patrick Schäfer (Humboldt-Universität, Berlin)
-- John Paparrizos (The Ohio State University, AUTh, Columbus)
+- John Paparrizos (The Ohio State University, Columbus; Aristotle University of Thessaloniki)
 
 ## License
 

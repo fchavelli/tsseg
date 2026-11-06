@@ -1,7 +1,7 @@
 PaTSS
 =====
 
-PaTSS — Pattern-based Time Series Segmentation.
+PaTSS – Pattern-based Time Series Segmentation.
 
 .. warning::
    **Deprecated.** ``PatssDetector`` will be removed in a future release. It
@@ -19,17 +19,17 @@ patterns that occur around it, then clusters these descriptions into states.
 For each channel and each window length (the powers of two from ``word_size``
 to :math:`\min(2^{10}, n/2)` by default):
 
-1. **Pattern mining** — the sliding windows are discretised with SAX
+1. **Pattern mining** – the sliding windows are discretised with SAX
    (``word_size`` symbols, ``alphabet_size`` bins), and the
    ``top_k_patterns`` most frequent sequential patterns of
    ``min_pattern_size`` to ``max_pattern_size`` symbols are mined (a Java
    miner run by ``npbad``).
-2. **Embedding** — each window is described by the relative support of the
+2. **Embedding** – each window is described by the relative support of the
    patterns it contains, and each time step by the average over the windows
    that cover it. Patterns whose occurrences overlap those of a kept pattern
    (Jaccard index above ``jaccard_similarity_threshold``) are dropped, and the
    ``nb_largest_variance`` most variable patterns of each channel are kept.
-3. **Segmentation** — on the embeddings of all channels and window lengths,
+3. **Segmentation** – on the embeddings of all channels and window lengths,
    k-means is run for each number of states in ``n_clusters``, and the
    clustering with the best silhouette score is kept. By default, a logistic
    regression fitted on its labels then gives the probability of each state

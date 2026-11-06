@@ -1,5 +1,5 @@
-﻿tsseg.metrics.StateMatchingScore
-================================
+﻿StateMatchingScore
+==================
 
 .. currentmodule:: tsseg.metrics
 

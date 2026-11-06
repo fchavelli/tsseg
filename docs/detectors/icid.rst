@@ -1,7 +1,7 @@
 iCID
 ====
 
-iCID — Isolation Distributional Kernel Change Interval Detection.
+iCID – Isolation Distributional Kernel Change Interval Detection.
 
 Description
 -----------

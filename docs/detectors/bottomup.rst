@@ -1,7 +1,7 @@
 BottomUp
 ========
 
-Bottom-Up segmentation — agglomerative merging of segments.
+Bottom-Up segmentation – agglomerative merging of segments.
 
 Description
 -----------

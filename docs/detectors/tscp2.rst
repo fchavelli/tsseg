@@ -1,7 +1,7 @@
 TS-CP2
 ======
 
-TS-CP² — change point detection with contrastive predictive coding.
+TS-CP² – change point detection with contrastive predictive coding.
 
 Description
 -----------

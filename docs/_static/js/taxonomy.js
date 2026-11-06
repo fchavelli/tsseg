@@ -716,7 +716,7 @@
     for (const m of METHODS) {
       const lit = !isTsseg(m);
       const modes = lit
-        ? h("span", { class: "tx-muted" }, "—")
+        ? h("span", { class: "tx-muted" }, "–")
         : h(
             "span",
             { class: "tx-modes" },

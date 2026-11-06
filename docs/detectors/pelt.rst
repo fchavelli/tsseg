@@ -1,7 +1,7 @@
 PELT
 ====
 
-PELT — Pruned Exact Linear Time change point detection.
+PELT – Pruned Exact Linear Time change point detection.
 
 Description
 -----------
@@ -9,17 +9,17 @@ Description
 PELT solves the penalised change point optimisation problem exactly by
 pruning the search space with a dynamic-programming rule.  When the number of
 change points grows linearly with the number of samples *n* (Killick et al.,
-2012), the expected complexity is :math:`O(C\,n)` — linear in *n* and
-independent of the number of change points — where *C* is the cost function
+2012), the expected complexity is :math:`O(C\,n)` – linear in *n* and
+independent of the number of change points – where *C* is the cost function
 complexity; with few change points, little is pruned and the worst case is
 :math:`O(C\,n^{2})`.  In practice, ``"l2"``
 cost models are significantly faster than linear or autoregressive ones.
 
 Key tuning levers:
 
-- ``penalty`` — higher values produce fewer change points.
-- ``min_size`` — minimum distance between change points.
-- ``jump`` — grid step for admissible positions.
+- ``penalty`` – higher values produce fewer change points.
+- ``min_size`` – minimum distance between change points.
+- ``jump`` – grid step for admissible positions.
 
 | **Type:** change point detection
 | **Supervision:** fully unsupervised

@@ -1,7 +1,7 @@
 BOCD
 ====
 
-BOCD (Bayesian Online Change-point Detection) — posterior thresholding.
+BOCD (Bayesian Online Change-point Detection) – posterior thresholding.
 
 Description
 -----------
@@ -15,8 +15,8 @@ Fearnhead (2006) and Adams & MacKay (2007) to multivariate time series.
 A constant hazard function :math:`H(\tau) = 1/\lambda` controls the prior
 expectation of segment length.  Two strategies handle multivariate inputs:
 
-- ``"l2"`` — reduces channels via L2 norm before inference.
-- ``"ensembling"`` — runs per-channel inference and aggregates change points.
+- ``"l2"`` – reduces channels via L2 norm before inference.
+- ``"ensembling"`` – runs per-channel inference and aggregates change points.
 
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised

@@ -22,7 +22,7 @@ diverges from it in two ways, all justified by the original paper.
 The aeon code only augments **univariate** series (appending the complement
 channel so that Shannon entropy varies across segments).  The paper's
 Section 4.4 (Eq. 12-13) describes this transformation as a general
-preprocessing step for **all** data — including multivariate — to handle
+preprocessing step for **all** data – including multivariate – to handle
 positively-correlated channels that would otherwise mask entropy differences.
 
 We now apply `_augment_univariate` unconditionally: each channel is
@@ -47,7 +47,7 @@ measured ~5× speed-up on a 1 000-point, 4-channel series.
 
 ## Potential future implementation from paper
 
-- Dynamic programming optimisation (Algorithm 2) — produces global optimum
+- Dynamic programming optimisation (Algorithm 2) – produces global optimum
   but O(kn²); not implemented yet.
 - Automatic k estimation via knee-point detection (Section 4.5).
 

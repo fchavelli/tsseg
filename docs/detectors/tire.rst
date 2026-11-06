@@ -1,7 +1,7 @@
 TIRE
 ====
 
-TIRE — Time-Invariant Representation for change point detection.
+TIRE – Time-Invariant Representation for change point detection.
 
 Description
 -----------

@@ -1,7 +1,7 @@
 InformationGain (IGTS)
 ======================
 
-IGTS — Information Gain based Temporal Segmentation.
+IGTS – Information Gain based Temporal Segmentation.
 
 Description
 -----------

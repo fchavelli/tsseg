@@ -1,7 +1,7 @@
 Window
 ======
 
-Window — sliding-window discrepancy change point detection.
+Window – sliding-window discrepancy change point detection.
 
 Description
 -----------
@@ -18,7 +18,7 @@ similar and the discrepancy is low.  When they straddle a change point the
 discrepancy spikes.  A sequential peak search on the discrepancy curve produces
 the final change points.
 
-Complexity is :math:`O(n\,w)` where *w* is the window width — making Window one
+Complexity is :math:`O(n\,w)` where *w* is the window width – making Window one
 of the fastest methods.  The ``jump`` parameter further speeds up prediction at
 the expense of positional precision.
 
