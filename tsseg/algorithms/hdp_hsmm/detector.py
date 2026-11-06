@@ -257,8 +257,6 @@ class HdpHsmmDetector(BaseSegmenter):
         arr = np.asarray(X, dtype=float)
         if arr.ndim == 1:
             arr = arr.reshape(-1, 1)
-        if self.axis == 1:
-            arr = arr.T
         return arr
 
     def _check_params(self):

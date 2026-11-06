@@ -249,10 +249,6 @@ class HidalgoDetector(BaseSegmenter):
 
         super().__init__(axis=axis)
 
-    def _time_major(self, X):
-        """Return ``X`` with the time points along the rows."""
-        return X.T if self.axis == 1 else X
-
     def _get_neighbourhood_params(self, X):
         """
         Neighbourhood information from input data X.
@@ -747,7 +743,6 @@ class HidalgoDetector(BaseSegmenter):
         -------
         self
         """
-        X = self._time_major(X)
         # a copy: an array modified in place after fit is a new series
         self._X = X.copy()
         K = self.K_states
@@ -848,7 +843,7 @@ class HidalgoDetector(BaseSegmenter):
             time points whose most probable manifold has a posterior probability
             below 0.8.
         """
-        if np.array_equal(self._time_major(X), self._X):
+        if np.array_equal(X, self._X):
             return self._Z
         warnings.warn(
             "Input data X differs from that given to fit(): labelling X with a "
