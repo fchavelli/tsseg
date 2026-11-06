@@ -17,14 +17,12 @@ from ..param_schema import (
 __all__ = ["AmocDetector"]
 
 
-def _ensure_time_major(X, *, axis: int | None) -> np.ndarray:
-    """Convert input array to time-major shape (n_timepoints, n_features)."""
+def _ensure_time_major(X) -> np.ndarray:
+    """Return ``X`` as a float array of shape (n_timepoints, n_features)."""
 
     data = np.asarray(X, dtype=float)
     if data.ndim == 1:
         data = data[:, np.newaxis]
-    elif axis is not None and axis != 0:
-        data = np.moveaxis(data, axis, 0)
     if data.ndim != 2:
         raise ValueError("Input time series must be one- or two-dimensional")
     return data
@@ -143,13 +141,12 @@ class AmocDetector(BaseSegmenter):
         super().__init__(axis=axis)
 
     def _fit(self, X, y=None):
-        signal = _ensure_time_major(X, axis=self.axis)
+        signal = _ensure_time_major(X)
         self._engine = _AmocEngine(min_size=self.min_size).fit(signal)
         return self
 
-    def _predict(self, X, axis=None):
-        axis = self.axis if axis is None else axis
-        signal = _ensure_time_major(X, axis=axis)
+    def _predict(self, X):
+        signal = _ensure_time_major(X)
 
         if self._engine is None or self._engine.signal is None:
             self._engine = _AmocEngine(min_size=self.min_size).fit(signal)

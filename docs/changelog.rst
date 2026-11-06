@@ -42,6 +42,19 @@ Unreleased
   (``assets/demo.svg``) replaces the screenshot ``assets/demo.png``: the
   sample dataset of the demo, its ground truth, the change points of BottomUp
   and the states of Time2State, each scored against the truth.
+* Fix ``axis=1`` given to a detector's constructor: ``Foo(axis=1).fit(X)`` on
+  a series of shape ``(n_channels, n_timepoints)`` now segments it as
+  ``Foo().fit(X.T)`` does. The base class handed such a detector its series in
+  that layout, which almost every detector reads as ``(n_timepoints,
+  n_channels)``: BOCD, BottomUp, ChangeFinder, ChangeForest, ClaSP, CLaP, Dynp,
+  GaussianHMM, ICID, PELT, Prophet, SeededBinSeg, SNLDS and SST returned wrong
+  change points or labels without an error, while FLUSS, RuLSIF, TGLAD, TICC,
+  TS-CP2 and Window raised one; a 1D series became a single time point with
+  ``n`` channels. The default ``axis=0`` and ``fit(X, axis=1)`` are unchanged.
+  ``_fit`` and ``_predict`` now always receive ``(n_timepoints, n_channels)``:
+  a detector that subclasses ``BaseSegmenter`` must not transpose its input
+  itself, and AMOC, BinSeg, E2USD, ESPRESSO, HDP-HSMM, Hidalgo, Time2State and
+  TIRE no longer do.
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.
