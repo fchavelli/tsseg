@@ -883,6 +883,7 @@ html[data-theme="dark"] .ts-task .mini-txt {
   border-radius: 18px;
 }
 html[data-theme="dark"] .ts-overview img {
+  border-radius: 18px;
   box-shadow: 0 0 0 1px var(--ts-line);
 }
 
@@ -893,6 +894,10 @@ html[data-theme="dark"] .ts-overview img {
   border: 1px solid var(--ts-line);
   border-radius: 16px;
   box-shadow: 0 24px 60px -24px rgb(15 23 42 / 30%);
+}
+/* the theme squares the corners of images in dark mode */
+html[data-theme="dark"] .ts-demo img.ts-shot {
+  border-radius: 16px;
 }
 
 /* paper and citation */
