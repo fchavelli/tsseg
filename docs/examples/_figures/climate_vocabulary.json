@@ -1,0 +1,578 @@
+{
+  "slug": "climate_vocabulary",
+  "title": "Four expressions enter climate research at different times",
+  "features": [
+    "log_rate"
+  ],
+  "standardized": true,
+  "seed": 42,
+  "groups": [
+    {
+      "group": "climate justice",
+      "n": 36,
+      "labels": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025"
+      ],
+      "x": [
+        1990,
+        1991,
+        1992,
+        1993,
+        1994,
+        1995,
+        1996,
+        1997,
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "scaling": {
+        "mean": [
+          0.8904855250333333
+        ],
+        "scale": [
+          0.7889297613356794
+        ]
+      },
+      "runs": [
+        {
+          "label": "PELT",
+          "detector": "PeltDetector",
+          "params": {
+            "axis": 0,
+            "backend": "python",
+            "cost_params": {},
+            "jump": 1,
+            "min_size": 3,
+            "model": "l2",
+            "pen_scale": "bic",
+            "penalty": 2.0
+          },
+          "kind": "change_point_detection",
+          "prediction": [
+            19
+          ],
+          "warnings": [],
+          "boundaries": [
+            "2009"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "loss and damage",
+      "n": 36,
+      "labels": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025"
+      ],
+      "x": [
+        1990,
+        1991,
+        1992,
+        1993,
+        1994,
+        1995,
+        1996,
+        1997,
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "scaling": {
+        "mean": [
+          0.4580024741369444
+        ],
+        "scale": [
+          0.4215846950156483
+        ]
+      },
+      "runs": [
+        {
+          "label": "PELT",
+          "detector": "PeltDetector",
+          "params": {
+            "axis": 0,
+            "backend": "python",
+            "cost_params": {},
+            "jump": 1,
+            "min_size": 3,
+            "model": "l2",
+            "pen_scale": "bic",
+            "penalty": 2.0
+          },
+          "kind": "change_point_detection",
+          "prediction": [
+            23
+          ],
+          "warnings": [],
+          "boundaries": [
+            "2013"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "just transition",
+      "n": 36,
+      "labels": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025"
+      ],
+      "x": [
+        1990,
+        1991,
+        1992,
+        1993,
+        1994,
+        1995,
+        1996,
+        1997,
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "scaling": {
+        "mean": [
+          0.5020094459955556
+        ],
+        "scale": [
+          0.6766854503193318
+        ]
+      },
+      "runs": [
+        {
+          "label": "PELT",
+          "detector": "PeltDetector",
+          "params": {
+            "axis": 0,
+            "backend": "python",
+            "cost_params": {},
+            "jump": 1,
+            "min_size": 3,
+            "model": "l2",
+            "pen_scale": "bic",
+            "penalty": 2.0
+          },
+          "kind": "change_point_detection",
+          "prediction": [
+            29
+          ],
+          "warnings": [],
+          "boundaries": [
+            "2019"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "climate emergency",
+      "n": 36,
+      "labels": [
+        "1990",
+        "1991",
+        "1992",
+        "1993",
+        "1994",
+        "1995",
+        "1996",
+        "1997",
+        "1998",
+        "1999",
+        "2000",
+        "2001",
+        "2002",
+        "2003",
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025"
+      ],
+      "x": [
+        1990,
+        1991,
+        1992,
+        1993,
+        1994,
+        1995,
+        1996,
+        1997,
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "scaling": {
+        "mean": [
+          0.3069219266061111
+        ],
+        "scale": [
+          0.5270617595327137
+        ]
+      },
+      "runs": [
+        {
+          "label": "PELT",
+          "detector": "PeltDetector",
+          "params": {
+            "axis": 0,
+            "backend": "python",
+            "cost_params": {},
+            "jump": 1,
+            "min_size": 3,
+            "model": "l2",
+            "pen_scale": "bic",
+            "penalty": 2.0
+          },
+          "kind": "change_point_detection",
+          "prediction": [
+            29
+          ],
+          "warnings": [],
+          "boundaries": [
+            "2019"
+          ]
+        }
+      ]
+    }
+  ],
+  "environment": {
+    "python": "3.12.12",
+    "tsseg": "0.3.2",
+    "numpy": "1.26.4",
+    "pandas": "2.1.4",
+    "scipy": "1.15.3",
+    "scikit-learn": "1.8.0",
+    "matplotlib": "3.9.2",
+    "aeon": "1.3.0",
+    "numba": "0.61.2"
+  },
+  "snapshot": {
+    "file": "climate_titles.csv",
+    "rows": 144,
+    "sha256": "ce8e30880d7cef7e46e57c327817e3611a612fb1bba5eb2a9608ba58aa8bbabb"
+  },
+  "evidence": {
+    "rows": [
+      [
+        "\u201cclimate justice\u201d",
+        "2009",
+        "9/9",
+        "2015",
+        "0.3 \u2192 4.6",
+        "COP15, Copenhagen (2009)"
+      ],
+      [
+        "\u201closs and damage\u201d",
+        "2013",
+        "9/9",
+        "2013",
+        "0.2 \u2192 1.6",
+        "Warsaw mechanism, COP19 (2013)"
+      ],
+      [
+        "\u201cjust transition\u201d",
+        "2019",
+        "9/9",
+        "2021",
+        "0.3 \u2192 5.2",
+        "Silesia declaration, COP24 (2018)"
+      ],
+      [
+        "\u201cclimate emergency\u201d",
+        "2019",
+        "9/9",
+        "2019",
+        "0.1 \u2192 2.9",
+        "UK Parliament declaration (2019)"
+      ]
+    ],
+    "expressions": [
+      {
+        "expression": "climate justice",
+        "onsets": [
+          2009
+        ],
+        "same_onsets_in_settings": "9/9",
+        "raw_scale_onsets": [
+          2015
+        ],
+        "rate_before": 0.2769095595526316,
+        "rate_after": 4.621776459235294,
+        "context_year": 2009,
+        "context": "COP15, Copenhagen"
+      },
+      {
+        "expression": "loss and damage",
+        "onsets": [
+          2013
+        ],
+        "same_onsets_in_settings": "9/9",
+        "raw_scale_onsets": [
+          2013
+        ],
+        "rate_before": 0.21955794288869565,
+        "rate_after": 1.6489164686923077,
+        "context_year": 2013,
+        "context": "Warsaw mechanism, COP19"
+      },
+      {
+        "expression": "just transition",
+        "onsets": [
+          2019
+        ],
+        "same_onsets_in_settings": "9/9",
+        "raw_scale_onsets": [
+          2021
+        ],
+        "rate_before": 0.2585001700296552,
+        "rate_after": 5.184767152857143,
+        "context_year": 2018,
+        "context": "Silesia declaration, COP24"
+      },
+      {
+        "expression": "climate emergency",
+        "onsets": [
+          2019
+        ],
+        "same_onsets_in_settings": "9/9",
+        "raw_scale_onsets": [
+          2019
+        ],
+        "rate_before": 0.06008327597482759,
+        "rate_after": 2.935087679428572,
+        "context_year": 2019,
+        "context": "UK Parliament declaration"
+      }
+    ],
+    "headers": [
+      "Expression",
+      "Onset (log scale)",
+      "Same result",
+      "Onset (raw scale)",
+      "Rate before \u2192 after",
+      "Context"
+    ],
+    "widths": "16 12 10 12 14 36"
+  }
+}

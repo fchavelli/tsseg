@@ -1,0 +1,14 @@
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Quantity
+     - Value
+   * - Segments with mean GC above 45%
+     - 100,801–109,200; 130,001–137,600
+   * - Share of the genome in these segments
+     - 10.4%
+   * - Annotated rRNA bases inside them
+     - 8,892 of 8,929 (99.6%)
+   * - Share of their bases annotated as rRNA
+     - 55.6%

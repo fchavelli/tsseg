@@ -1,0 +1,16 @@
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Quantity
+     - Value
+   * - Adjusted Rand index with the reference
+     - 0.655
+   * - Accuracy after matching states to reference labels
+     - 79.4%
+   * - States found / expert stages
+     - 6 / 5
+   * - Deep NREM: best-matching state
+     - S5 holds 85.5% of expert Deep NREM epochs; 81.7% of the state is that stage
+   * - REM: best-matching state
+     - S0 holds 99.2% of expert REM epochs; 89.2% of the state is that stage

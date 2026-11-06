@@ -1,0 +1,12 @@
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Quantity
+     - Value
+   * - State S0: mean shares
+     - wind 27%, gas 49%, nuclear 8%; carbon intensity 231 gCO₂/kWh
+   * - State S1: mean shares
+     - wind 40%, gas 27%, nuclear 11%; carbon intensity 128 gCO₂/kWh
+   * - Sequence of states
+     - S1 from 1 January → S0 from 8 January → S1 from 19 January

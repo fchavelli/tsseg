@@ -1,0 +1,28 @@
+/* Examples gallery: cards, filters and wider example pages (light and dark). */
+body:has(.tsseg-gallery) .bd-main .bd-content .bd-article-container,
+body:has(.tsseg-example) .bd-main .bd-content .bd-article-container {
+  max-width: 1180px;
+}
+body:has(.tsseg-example) .bd-sidebar-secondary { display: none; }  /* wider figures */
+.tsseg-gallery { margin: 1.5rem 0 2rem; }
+.tsseg-sequence { display: flex; margin: 1.25rem 0; border-radius: var(--ts-radius); overflow: hidden; }
+.tsseg-sequence span { flex: 1; padding: .8rem .5rem; text-align: center; background: var(--ts-blue); color: #fff; font-weight: 600; }
+.tsseg-sequence span + span { border-left: 3px solid var(--pst-color-background); }
+.tsseg-sequence span:nth-child(2) { background: var(--ts-orange); }
+.tsseg-filters { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+.tsseg-filters button { border: 1px solid var(--ts-line); border-radius: 1rem; background: var(--ts-card); color: var(--ts-ink); padding: .4rem .9rem; font: inherit; font-size: .85rem; cursor: pointer; }
+.tsseg-filters button[aria-pressed="true"] { background: var(--ts-blue); border-color: var(--ts-blue); color: #fff; }
+.tsseg-filters button:focus-visible, .tsseg-card:focus-visible { outline: 3px solid var(--ts-orange); outline-offset: 3px; }
+.tsseg-filter-status { font-size: .8rem; color: var(--ts-muted); }
+.tsseg-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.tsseg-card { display: flex; flex-direction: column; gap: .4rem; padding: 1rem; border: 1px solid var(--ts-line); border-radius: var(--ts-radius); background: var(--ts-card); color: var(--ts-ink) !important; text-decoration: none !important; transition: box-shadow .15s, border-color .15s; }
+.tsseg-card:hover { box-shadow: 0 4px 16px rgb(15 23 42 / 12%); border-color: var(--ts-blue); }
+.tsseg-card[hidden] { display: none; }
+.tsseg-card img { width: 100%; height: auto; aspect-ratio: 25 / 9; border-radius: 6px; }
+.tsseg-card strong { font-size: 1.05rem; line-height: 1.35; }
+.tsseg-card > span { font-size: .85rem; line-height: 1.45; }
+.tsseg-card .tsseg-card-meta { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ts-muted); }
+.tsseg-card .tsseg-task { align-self: flex-start; margin-top: auto; padding: .15rem .5rem; background: var(--ts-blue-soft); border-radius: .3rem; color: var(--ts-blue); font-size: .72rem; }
+.tsseg-card[data-task="states"] .tsseg-task { background: var(--ts-orange-soft); color: var(--ts-orange); }
+@media (max-width: 640px) { .tsseg-cards { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .tsseg-card { transition: none; } }

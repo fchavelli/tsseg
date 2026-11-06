@@ -1,0 +1,10 @@
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Quantity
+     - Value
+   * - Adjusted Rand index with the reference
+     - 0.950
+   * - Accuracy after matching states to reference labels
+     - 98.3%
