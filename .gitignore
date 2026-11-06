@@ -36,6 +36,7 @@ tGLAD-main/
 
 # Others
 .agent/
+/AGENTS.md
 .pytest_cache/
 .tmp/
 latex/
