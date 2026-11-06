@@ -193,6 +193,33 @@ tsseg: time series segmentation in Python
    </section>
 
    <section class="ts-section">
+     <div class="ts-demo">
+       <div>
+         <span class="ts-kicker">Examples</span>
+         <h2 class="ts-h2">Eight worked examples on public data</h2>
+         <p class="ts-lead">From the narrative voice of a Victorian novel to a night of sleep
+           recordings: each example asks a question about a real record, answers it with one
+           detector and checks the result against a reference the detector never sees.</p>
+         <div class="ts-actions">
+           <a class="ts-btn ts-btn-primary" href="examples/index.html">Browse the examples
+             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></a>
+         </div>
+       </div>
+       <div>
+
+.. image:: examples/_figures/mocap.svg
+   :class: ts-shot
+   :target: examples/mocap.html
+   :alt: The motion-capture recording of the quick start, with the four activities
+         recognised by TICC and their composition
+
+.. raw:: html
+
+       </div>
+     </div>
+   </section>
+
+   <section class="ts-section">
      <div class="ts-explore">
        <div>
          <span class="ts-kicker">Find the right method</span>
@@ -312,6 +339,7 @@ tsseg: time series segmentation in Python
 
    guides/installation
    guides/getting-started
+   examples/index
    detectors/index
    taxonomy
    evaluation

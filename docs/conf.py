@@ -37,8 +37,8 @@ html_theme = "pydata_sphinx_theme"
 html_title = "tsseg"
 html_favicon = "_static/img/favicon.svg"
 html_static_path = ["_static"]
-html_css_files = ["css/tsseg.css"]
-html_js_files = [("js/tsseg.js", {"defer": "defer"})]
+html_css_files = ["css/tsseg.css", "css/gallery.css"]
+html_js_files = [("js/tsseg.js", {"defer": "defer"}), "js/gallery.js"]
 html_show_sourcelink = False
 
 html_theme_options = {
@@ -49,7 +49,7 @@ html_theme_options = {
         "alt_text": "tsseg - Home",
     },
     "navbar_align": "left",
-    "header_links_before_dropdown": 5,
+    "header_links_before_dropdown": 6,
     "icon_links": [
         {
             "name": "Live demo on Hugging Face Spaces",

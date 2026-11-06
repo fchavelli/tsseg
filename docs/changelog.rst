@@ -29,6 +29,15 @@ Unreleased
   the detectors by task. Change point detection is shown in blue, in the
   taxonomy too. The home page shows the overview figure of the README and
   keeps three highlights. Em dashes are replaced by en dashes.
+* Documentation: new :doc:`examples <examples/index>` section, eight worked
+  examples on public data (*Jekyll and Hyde*, storm surge at The Battery, a
+  chloroplast genome, expressions in climate research titles, human activities
+  in the bundled motion-capture data, the British generation mix, returning
+  speakers and sleep stages). Each one uses a single detector (PELT, CLaP, TICC
+  or HDP-HSMM), checks the result against a reference never used for fitting,
+  and provides a figure, data and code. The examples run offline from
+  ``examples/gallery`` in a source checkout and are not installed with the
+  package.
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.

@@ -24,6 +24,7 @@
 
 <p align="center">
   <a href="https://fchavelli.github.io/tsseg/"><b>Documentation</b></a> ·
+  <a href="https://fchavelli.github.io/tsseg/examples/index.html"><b>Examples</b></a> ·
   <a href="https://huggingface.co/spaces/fchavelli/tsseg"><b>Live demo</b></a> ·
   <a href="https://fchavelli.github.io/tsseg/detectors/index.html"><b>Detectors</b></a> ·
   <a href="https://fchavelli.github.io/tsseg/taxonomy.html"><b>Taxonomy</b></a> ·
@@ -190,6 +191,19 @@ Detectors accept NumPy arrays of shape `(n_timepoints, n_channels)` (or 1-D for
 univariate series), pandas Series and DataFrames. The
 [getting started guide](https://fchavelli.github.io/tsseg/guides/getting-started.html)
 goes further.
+
+## Examples
+
+The [examples](https://fchavelli.github.io/tsseg/examples/index.html) apply
+tsseg to public data, from the narrative voice of *Jekyll and Hyde* and the
+storm surge of Hurricane Sandy to a night of sleep recordings, and compare
+each result with a reference the detector never sees. They run offline from a
+source checkout:
+
+```bash
+python -m examples.gallery.jekyll
+python -m examples.gallery.run_all --output /tmp/tsseg-gallery
+```
 
 ## Algorithms
 

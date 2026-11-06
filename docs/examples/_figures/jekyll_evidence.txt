@@ -1,0 +1,12 @@
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Quantity
+     - Value
+   * - Start of chapter 9 (Lanyon’s narrative)
+     - word 15,920
+   * - Detected change point
+     - word 15,900 (window of 300 words)
+   * - First-person pronouns before / after chapter 9
+     - 2.5 / 7.2 per 100 words

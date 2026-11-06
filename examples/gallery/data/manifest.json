@@ -1,0 +1,42 @@
+{
+  "novel": {
+    "file": "novel.csv",
+    "rows": 85,
+    "sha256": "37e5d5530548d142db4b2fc63a9b16d89b98fec9721dbc4b4e79d450c625cc5a"
+  },
+  "dna": {
+    "file": "dna.csv",
+    "rows": 386,
+    "sha256": "fbb48a1eb89348b15ade171424bef6c497e5c81316b7863056d03e6b8f81fd97"
+  },
+  "tides": {
+    "file": "tides.csv",
+    "rows": 696,
+    "sha256": "cfa98d7c9410f08d1344dfb48f4cc0a377b9ec3ceef8dd4c13a003dbbf1c9743"
+  },
+  "grid": {
+    "file": "grid.csv",
+    "rows": 1488,
+    "sha256": "763eea509322816b65cb531cb04e777d43135e7914bb16f8c5055bdda4fd02a4"
+  },
+  "speech": {
+    "file": "speech.csv",
+    "rows": 120,
+    "sha256": "6fce87b299efc1096684c19282d8eec01e951d9be46cfeb7f6b99ce014cb6969"
+  },
+  "sleep": {
+    "file": "sleep.csv",
+    "rows": 1080,
+    "sha256": "5af6352f4bb85eb0f2802677dbb7291fa56e0c25a0d0184a87e94a5e113193aa"
+  },
+  "annotations": {
+    "file": "annotations.csv",
+    "rows": 7,
+    "sha256": "73648520798df944f54695c821fdff39c81616bf34b8bd1933341f599c5b7d12"
+  },
+  "climate_titles": {
+    "file": "climate_titles.csv",
+    "rows": 144,
+    "sha256": "ce8e30880d7cef7e46e57c327817e3611a612fb1bba5eb2a9608ba58aa8bbabb"
+  }
+}

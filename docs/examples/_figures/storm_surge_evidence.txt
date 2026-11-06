@@ -1,0 +1,10 @@
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Quantity
+     - Value
+   * - Sandy: peak residual
+     - 2.79 m at 01:00 UTC, 30 October; 4 change points in the episode
+   * - November nor’easter: peak residual
+     - 0.89 m at 03:00 UTC, 8 November; 2 change points in the episode

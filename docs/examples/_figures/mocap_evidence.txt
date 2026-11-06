@@ -1,0 +1,22 @@
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Quantity
+     - Value
+   * - Adjusted Rand index with the reference
+     - 0.880
+   * - Accuracy after matching states to reference labels
+     - 95.3%
+   * - Transitions found / in the reference
+     - 6 / 6
+   * - Largest gap to a reference transition
+     - 0.53 s
+   * - Walking: best-matching state
+     - S2 holds 97.2% of its frames; 95.9% of the state is that activity
+   * - Jumping forward: best-matching state
+     - S3 holds 95.9% of its frames; 95.9% of the state is that activity
+   * - Punching: best-matching state
+     - S1 holds 88.3% of its frames; 96.4% of the state is that activity
+   * - Leg kicking: best-matching state
+     - S0 holds 99.3% of its frames; 92.2% of the state is that activity

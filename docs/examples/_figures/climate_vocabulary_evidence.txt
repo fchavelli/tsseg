@@ -1,0 +1,34 @@
+.. list-table::
+   :header-rows: 1
+   :widths: 16 12 10 12 14 36
+
+   * - Expression
+     - Onset (log scale)
+     - Same result
+     - Onset (raw scale)
+     - Rate before → after
+     - Context
+   * - “climate justice”
+     - 2009
+     - 9/9
+     - 2015
+     - 0.3 → 4.6
+     - COP15, Copenhagen (2009)
+   * - “loss and damage”
+     - 2013
+     - 9/9
+     - 2013
+     - 0.2 → 1.6
+     - Warsaw mechanism, COP19 (2013)
+   * - “just transition”
+     - 2019
+     - 9/9
+     - 2021
+     - 0.3 → 5.2
+     - Silesia declaration, COP24 (2018)
+   * - “climate emergency”
+     - 2019
+     - 9/9
+     - 2019
+     - 0.1 → 2.9
+     - UK Parliament declaration (2019)
