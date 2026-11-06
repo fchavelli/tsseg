@@ -197,6 +197,9 @@ line-ending = "auto"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The repository root, so that the tests can import the ``examples`` package,
+# which is not installed, even when pytest is run without ``python -m``.
+pythonpath = ["."]
 addopts = [
     "-v",
     "--tb=short",
