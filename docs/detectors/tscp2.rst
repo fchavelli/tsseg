@@ -60,7 +60,7 @@ Parameters
      - float / None
      - ``None``
      - Similarity below which a pair centre is a candidate change point
-       (``None`` = set by ``fit``).
+       (``None`` = learned by ``fit`` and stored in ``threshold_``).
    * - ``stride``
      - int
      - ``5``

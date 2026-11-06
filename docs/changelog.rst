@@ -45,6 +45,14 @@ Unreleased
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.
+* ``TSCP2Detector`` stores the similarity threshold it learns in the new
+  fitted attribute ``threshold_`` instead of writing it into the
+  ``similarity_threshold`` parameter. With ``similarity_threshold=None`` (the
+  default) and no ``n_cps``, a second ``fit`` on another series, a clone of a
+  fitted detector and a refit by ``refit_on_predict`` after two fits reused
+  the threshold learned on the first series, so they could return other
+  change points than a new detector. A single fit followed by ``predict`` is
+  unchanged.
 
 0.3.2 (2026-11-05)
 ------------------

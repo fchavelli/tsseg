@@ -148,9 +148,11 @@ class TSCP2Detector(BaseSegmenter):
         The pair centres whose similarity is below this value are the
         candidate change points; of those less than one window apart, only the
         highest-scoring one is kept (see Notes). With neither ``n_cps`` nor
-        ``similarity_threshold``, the threshold is set by ``fit`` from the last
-        training batch: ``pos - (pos - neg) / 3``, with ``pos`` and ``neg`` the
-        mean similarities of positive and negative pairs.
+        ``similarity_threshold``, ``fit`` learns the threshold from the last
+        training batch, ``pos - (pos - neg) / 3``, with ``pos`` and ``neg`` the
+        mean similarities of positive and negative pairs, and stores it in
+        ``threshold_``: the parameter stays ``None``, so the next ``fit`` (or a
+        clone) learns its own.
     stride : int, default=5
         Step between consecutive window pairs, hence between candidate change
         points.
@@ -205,6 +207,12 @@ class TSCP2Detector(BaseSegmenter):
         reseeds the global Python, NumPy and TensorFlow generators.
     axis : int, default=0
         The time axis of ``X``: ``0`` if time points are rows.
+
+    Attributes
+    ----------
+    threshold_ : float or None
+        Similarity threshold used by ``predict``: ``similarity_threshold`` when
+        given, else the one learned by ``fit``; ``None`` when ``n_cps`` is set.
 
     Notes
     -----
@@ -386,7 +394,6 @@ class TSCP2Detector(BaseSegmenter):
         self.similarity_threshold = (
             None if similarity_threshold is None else float(similarity_threshold)
         )
-        self._auto_threshold = self.n_cps is None and self.similarity_threshold is None
         self.stride = max(int(stride), 1)
         self.code_size = int(code_size)
         if dilations is None:
@@ -545,10 +552,12 @@ class TSCP2Detector(BaseSegmenter):
         self._window_size = window
         self._train_stats = _TrainingStats(pos_sim=last_pos, neg_sim=last_neg)
         self._train_signal = signal
-        if self._auto_threshold and self._train_stats is not None:
-            pos = self._train_stats.pos_sim
-            neg = self._train_stats.neg_sim
-            self.similarity_threshold = pos - ((pos - neg) / 3.0)
+        if self.n_cps is not None:
+            self.threshold_ = None
+        elif self.similarity_threshold is not None:
+            self.threshold_ = self.similarity_threshold
+        else:
+            self.threshold_ = last_pos - (last_pos - last_neg) / 3.0
         return self
 
     def _predict(self, X):  # noqa: D401 - docstring inherited
@@ -585,13 +594,9 @@ class TSCP2Detector(BaseSegmenter):
             if self.n_cps == 0:
                 return np.array([], dtype=int)
             bkps = _spaced_peaks(centers, change_scores, window, n_peaks=self.n_cps)
-        elif self.similarity_threshold is not None:
-            mask = similarities < self.similarity_threshold
-            bkps = _spaced_peaks(centers[mask], change_scores[mask], window)
         else:
-            raise RuntimeError(
-                "No selection criterion available. Fit the detector before predict or set n_cps/similarity_threshold."
-            )
+            mask = similarities < self.threshold_
+            bkps = _spaced_peaks(centers[mask], change_scores[mask], window)
         bkps = np.unique(bkps.astype(int))
         bkps = bkps[(bkps > 0) & (bkps < signal.shape[0])]
         return bkps

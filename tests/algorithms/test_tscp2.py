@@ -28,7 +28,7 @@ def test_random_state_makes_training_reproducible(dropout_rate):
     second = TSCP2Detector(**params).fit(X)
     # The automatic threshold is derived from the last training batch: it
     # differs between unseeded runs (weights and shuffling are random).
-    assert first.similarity_threshold == second.similarity_threshold
+    assert first.threshold_ == second.threshold_
     np.testing.assert_array_equal(first.predict(X), second.predict(X))
 
 
@@ -37,10 +37,63 @@ def test_random_state_is_reapplied_on_each_fit():
     X = _mean_shift()
     detector = TSCP2Detector(random_state=3, **FAST)
     first = detector.fit_predict(X)
-    threshold = detector.similarity_threshold
+    threshold = detector.threshold_
     second = detector.fit_predict(X)
-    assert detector.similarity_threshold == threshold
+    assert detector.threshold_ == threshold
     np.testing.assert_array_equal(first, second)
+
+
+def _variance_shift(seed: int = 0) -> np.ndarray:
+    rng = np.random.default_rng(seed)
+    return np.concatenate([rng.normal(0.0, 1.0, 200), rng.normal(0.0, 4.0, 200)])
+
+
+def test_learned_threshold_is_a_fitted_attribute():
+    """``fit`` stores the learned threshold in ``threshold_`` only."""
+    detector = TSCP2Detector(random_state=0, **FAST).fit(_mean_shift())
+    assert detector.get_params()["similarity_threshold"] is None
+    assert isinstance(detector.threshold_, float)
+    assert "threshold_" in detector.get_fitted_params()
+
+
+def test_given_threshold_is_the_fitted_threshold():
+    detector = TSCP2Detector(random_state=0, similarity_threshold=0.9, **FAST)
+    assert detector.fit(_mean_shift()).threshold_ == 0.9
+
+
+def test_guided_detector_learns_no_threshold():
+    detector = TSCP2Detector(random_state=0, n_cps=1, **FAST).fit(_mean_shift())
+    assert detector.threshold_ is None
+
+
+def test_second_fit_learns_the_threshold_of_its_series():
+    """A refit on another series ignores the threshold of the first one."""
+    X, other = _mean_shift(), _variance_shift()
+    params = {"random_state": 0, **FAST}
+    expected = TSCP2Detector(**params).fit(other)
+    detector = TSCP2Detector(**params).fit(X).fit(other)
+    assert detector.get_params()["similarity_threshold"] is None
+    assert detector.threshold_ == expected.threshold_
+    np.testing.assert_array_equal(detector.predict(other), expected.predict(other))
+
+
+def test_clone_of_a_fitted_detector_learns_its_own_threshold():
+    X, other = _mean_shift(), _variance_shift()
+    params = {"random_state": 0, **FAST}
+    expected = TSCP2Detector(**params).fit(other)
+    cloned = TSCP2Detector(**params).fit(X).clone()
+    assert cloned.get_params()["similarity_threshold"] is None
+    assert cloned.fit(other).threshold_ == expected.threshold_
+
+
+def test_refit_on_predict_learns_the_threshold_of_the_new_series():
+    """``predict`` refits the threshold too, however many fits came before."""
+    X, other = _mean_shift(), _variance_shift()
+    params = {"random_state": 0, "refit_on_predict": True, **FAST}
+    expected = TSCP2Detector(**params).fit(other)
+    detector = TSCP2Detector(**params).fit(X).fit(X)
+    np.testing.assert_array_equal(detector.predict(other), expected.predict(other))
+    assert detector.threshold_ == expected.threshold_
 
 
 def test_random_state_is_a_parameter():
