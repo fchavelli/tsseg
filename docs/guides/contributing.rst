@@ -67,6 +67,13 @@ Tests whose optional dependency is not installed are skipped. The CI installs
 ``pip install -e .[dev,aeon,prophet,tglad,beast,changeforest,fluss]``, so it
 skips the TensorFlow-based detectors among others.
 
+The CI skips the test job when only documentation changed: files under
+``docs/`` (except ``docs/examples/``, whose data the tests check) or
+``assets/``, Markdown files and ``CITATION.cff``. A pull request is compared
+with its base branch, a push to ``main`` with the last commit whose CI run
+succeeded; tags always run the tests. Lint and the documentation build always
+run.
+
 When adding a new feature, please include relevant tests in ``tests/``.
 If adding a new algorithm, ensure it passes the common estimator checks (see :doc:`../detectors/index`).
 
