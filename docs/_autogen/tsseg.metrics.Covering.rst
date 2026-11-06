@@ -1,5 +1,5 @@
-﻿tsseg.metrics.Covering
-======================
+﻿Covering
+========
 
 .. currentmodule:: tsseg.metrics
 

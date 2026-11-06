@@ -1,7 +1,7 @@
 Prophet
 =======
 
-Prophet — trend change point detection via Facebook Prophet.
+Prophet – trend change point detection via Facebook Prophet.
 
 Description
 -----------
@@ -24,15 +24,15 @@ change points for one shift, which may leave a smaller shift out of the
 
 Key parameters:
 
-- ``n_changepoints`` — number of change points to return (semi-supervised);
+- ``n_changepoints`` – number of change points to return (semi-supervised);
   ``None`` thresholds the rate changes instead.
-- ``n_candidates`` — number of evenly spaced potential change points; their
+- ``n_candidates`` – number of evenly spaced potential change points; their
   spacing bounds the localisation accuracy.
-- ``changepoint_prior_scale`` — scale of the Laplace prior: larger values
+- ``changepoint_prior_scale`` – scale of the Laplace prior: larger values
   give sharper trend changes, closer to the true change points.  The default
   (500) was calibrated for change point detection on TSB-SEG, far above
   Prophet's forecasting default (0.05).
-- ``max_points`` — longer series are reduced to block means before the fit.
+- ``max_points`` – longer series are reduced to block means before the fit.
 
 | **Type:** change point detection
 | **Supervision:** semi-supervised (``n_changepoints``) or unsupervised

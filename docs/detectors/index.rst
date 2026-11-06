@@ -10,31 +10,31 @@ not depend on aeon for the base class).
 Each detector declares its capabilities through tags, read with
 ``detector.get_tag(name)``:
 
-* ``detector_type`` — ``"change_point_detection"`` or ``"state_detection"``
-* ``returns_dense`` — ``True`` when ``predict`` returns change point indices
+* ``detector_type`` – ``"change_point_detection"`` or ``"state_detection"``
+* ``returns_dense`` – ``True`` when ``predict`` returns change point indices
   (aeon's "dense" format), ``False`` when it returns one state label per time
   point
 * ``capability:univariate`` / ``capability:multivariate``
-* ``capability:unsupervised`` — ``True`` when the detector runs without being
+* ``capability:unsupervised`` – ``True`` when the detector runs without being
   told the number of change points or states
-* ``capability:semi_supervised`` — ``True`` when that number can be passed to
+* ``capability:semi_supervised`` – ``True`` when that number can be passed to
   the constructor (guided mode, e.g. ``n_cps`` or ``n_states``)
-* ``python_dependencies`` — ``None``, or the list of optional modules the
+* ``python_dependencies`` – ``None``, or the list of optional modules the
   detector imports (e.g. ``["torch"]``); the detector fails without them
 
-To compare the detectors by how they search for a segmentation and by what
-they compare, open the :doc:`interactive taxonomy <../taxonomy>`. Use the table
-of contents below to jump to a specific detector. The detectors
-are grouped into two tasks: **change-point detection** returns a sorted array
-of change point indices (each index is the first point of a new segment; by
+The :doc:`interactive taxonomy <../taxonomy>` places the detectors by how they
+search for a segmentation and by what makes a segment homogeneous. Below, they
+are grouped by task: **change point detection** returns a sorted array of
+change point indices (each index is the first point of a new segment; by
 convention ``0`` and the series length are left out), **state detection**
 returns an array of integer state labels of the same length as the series.
 
-Change-point detection
+Change point detection
 ----------------------
 
 .. toctree::
    :maxdepth: 1
+   :caption: Change point detection
 
    amoc
    beast
@@ -43,6 +43,7 @@ Change-point detection
    bottomup
    changefinder
    changeforest
+   clasp
    dynp
    eagglo
    espresso
@@ -67,6 +68,7 @@ State detection
 
 .. toctree::
    :maxdepth: 1
+   :caption: State detection
 
    autoplait
    clap
@@ -85,6 +87,7 @@ Baseline
 
 .. toctree::
    :maxdepth: 1
+   :caption: Baseline
 
    random
 

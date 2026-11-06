@@ -18,9 +18,9 @@ detection with uncertainty quantification.
 
 Three strategies handle multivariate inputs:
 
-- ``"native"`` — uses ``beast123`` which handles multi-dimensional data natively.
-- ``"l2"`` — reduces channels via L2 norm before inference.
-- ``"ensembling"`` — runs BEAST per channel and aggregates change points.
+- ``"native"`` – uses ``beast123`` which handles multi-dimensional data natively.
+- ``"l2"`` – reduces channels via L2 norm before inference.
+- ``"ensembling"`` – runs BEAST per channel and aggregates change points.
 
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised (``max_cps``)

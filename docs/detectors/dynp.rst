@@ -1,7 +1,7 @@
 DynP
 ====
 
-Dynamic Programming (DynP) — exact optimal segmentation.
+Dynamic Programming (DynP) – exact optimal segmentation.
 
 Description
 -----------

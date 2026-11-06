@@ -1,7 +1,7 @@
 ChangeFinder
 ============
 
-ChangeFinder — Online two-stage change-point detection via outlier scoring.
+ChangeFinder – Online two-stage change-point detection via outlier scoring.
 
 Description
 -----------

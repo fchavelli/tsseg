@@ -2,10 +2,10 @@
 
 :root,
 html[data-theme="light"] {
-  --tx-cpd: #23804f;
-  --tx-cpd-strong: #1b6a40;
-  --tx-cpd-soft: #e8f5ed;
-  --tx-cpd-line: #b8dec6;
+  --tx-cpd: #3f73c2;
+  --tx-cpd-strong: #2d5aa0;
+  --tx-cpd-soft: #e8eff9;
+  --tx-cpd-line: #bccfee;
   --tx-sd: #c65a22;
   --tx-sd-strong: #a7461a;
   --tx-sd-soft: #fdeee4;
@@ -28,10 +28,10 @@ html[data-theme="light"] {
 }
 
 html[data-theme="dark"] {
-  --tx-cpd: #5ec98f;
-  --tx-cpd-strong: #2c7a51;
-  --tx-cpd-soft: rgb(94 201 143 / 12%);
-  --tx-cpd-line: rgb(94 201 143 / 32%);
+  --tx-cpd: #7ea7ea;
+  --tx-cpd-strong: #34599a;
+  --tx-cpd-soft: rgb(126 167 234 / 12%);
+  --tx-cpd-line: rgb(126 167 234 / 32%);
   --tx-sd: #f39b63;
   --tx-sd-strong: #a24d1e;
   --tx-sd-soft: rgb(243 155 99 / 12%);
@@ -489,7 +489,7 @@ html[data-theme="dark"] .tx-mini.is-sd {
   background: linear-gradient(90deg, var(--tx-sd-strong), var(--tx-sd));
 }
 html[data-theme="dark"] .tx-band.is-cpd {
-  background: linear-gradient(90deg, #1d5a39, var(--tx-cpd-strong));
+  background: linear-gradient(90deg, #223d6c, var(--tx-cpd-strong));
 }
 html[data-theme="dark"] .tx-band.is-sd {
   background: linear-gradient(90deg, #7c3713, var(--tx-sd-strong));

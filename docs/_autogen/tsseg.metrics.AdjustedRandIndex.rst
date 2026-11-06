@@ -1,5 +1,5 @@
-﻿tsseg.metrics.AdjustedRandIndex
-===============================
+﻿AdjustedRandIndex
+=================
 
 .. currentmodule:: tsseg.metrics
 

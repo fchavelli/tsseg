@@ -1,7 +1,7 @@
 TICC
 ====
 
-TICC — Toeplitz Inverse Covariance-based Clustering.
+TICC – Toeplitz Inverse Covariance-based Clustering.
 
 Description
 -----------
@@ -13,10 +13,10 @@ covariance matrix that captures temporal and cross-variable partial correlations
 
 The algorithm alternates between:
 
-1. **Assignment step** — dynamic programming assigns each window to a
+1. **Assignment step** – dynamic programming assigns each window to a
    cluster, minimising the negative log-likelihood of the windows plus a
    switching penalty :math:`\beta` for each change of cluster.
-2. **Update step** — ADMM updates the Toeplitz inverse covariance of each
+2. **Update step** – ADMM updates the Toeplitz inverse covariance of each
    cluster subject to a sparsity penalty :math:`\lambda`.
 
 The label of time point *t* is that of the window of points *t* to

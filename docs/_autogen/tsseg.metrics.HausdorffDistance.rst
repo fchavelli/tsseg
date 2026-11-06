@@ -1,5 +1,5 @@
-﻿tsseg.metrics.HausdorffDistance
-===============================
+﻿HausdorffDistance
+=================
 
 .. currentmodule:: tsseg.metrics
 

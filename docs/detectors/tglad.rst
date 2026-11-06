@@ -1,7 +1,7 @@
 tGLAD
 =====
 
-tGLAD — temporal Graph-difference change point detection.
+tGLAD – temporal Graph-difference change point detection.
 
 Description
 -----------

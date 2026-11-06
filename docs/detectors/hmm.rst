@@ -1,7 +1,7 @@
 HMM
 ===
 
-HMM — Hidden Markov Model state annotation via Viterbi decoding.
+HMM – Hidden Markov Model state annotation via Viterbi decoding.
 
 .. warning::
    **Deprecated.** ``HMMDetector`` will be removed in a future release. It learns

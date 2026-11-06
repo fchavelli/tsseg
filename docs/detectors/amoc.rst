@@ -1,7 +1,7 @@
 AMOC
 ====
 
-AMOC (At Most One Change) — single change point detection.
+AMOC (At Most One Change) – single change point detection.
 
 Description
 -----------

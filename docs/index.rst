@@ -94,12 +94,25 @@ tsseg: time series segmentation in Python
          </div>
        </div>
      </div>
+     <div class="ts-overview">
+
+.. image:: ../assets/overview.svg
+   :alt: Overview of tsseg: a multivariate series loaded from a labelled dataset
+         (human activity, physiology, motion and surgery, industry and energy,
+         animal behaviour, Earth observation) is segmented by a method from any
+         family, behind one API, into change points and recurring states (A, B,
+         then A again); metrics such as F1, Covering, ARI and the State Matching
+         Score evaluate it against the truth
+
+.. raw:: html
+
+     </div>
    </section>
 
    <section class="ts-section">
      <div class="ts-section-head">
        <span class="ts-kicker">Highlights</span>
-       <h2 class="ts-h2">Built for comparing segmentation methods</h2>
+       <h2 class="ts-h2">Ready for your own series</h2>
      </div>
      <div class="ts-features">
        <div class="ts-feature">
@@ -116,28 +129,11 @@ tsseg: time series segmentation in Python
            points or states to its constructor when you know it. Tags tell which modes each detector supports.</p>
        </div>
        <div class="ts-feature">
-         <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg></span>
-         <h3>Metrics for both tasks</h3>
-         <p>F1, covering, Hausdorff distance and Gaussian F1 for change points; ARI, AMI, NMI, their
-           time-sensitive counterparts and the interpretable State Matching Score for states.</p>
-       </div>
-       <div class="ts-feature">
-         <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5L12 12l8-4.5M12 12v9"/></svg></span>
-         <h3>Light core, opt-in extras</h3>
-         <p>The core needs NumPy, pandas, SciPy, scikit-learn and statsmodels. PyTorch, TensorFlow,
-           Prophet or numba are installed only for the detectors that use them.</p>
-       </div>
-       <div class="ts-feature">
-         <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></svg></span>
-         <h3>Fast classics</h3>
-         <p>PELT, BinSeg, BottomUp, DynP and Window run on a vendored copy of
-           <a href="https://github.com/deepcharles/ruptures">ruptures</a> with an optional numba backend.</p>
-       </div>
-       <div class="ts-feature">
          <span class="ts-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20v-7M10 20V6M14 20v-9M18 20V9"/></svg></span>
          <h3>Benchmarked</h3>
          <p><a href="https://github.com/fchavelli/TSB-SEG">TSB-SEG</a> (NeurIPS 2026) evaluates 26 tsseg
-           detectors on 592 series from 8 datasets, for both tasks, and publishes every run.</p>
+           detectors on 592 series from 8 datasets, for both tasks, and publishes every run: pick a
+           method from measured results.</p>
        </div>
      </div>
    </section>
@@ -202,8 +198,8 @@ tsseg: time series segmentation in Python
          <span class="ts-kicker">Find the right method</span>
          <h2 class="ts-h2">An interactive map of the methods</h2>
          <p class="ts-lead">Every detector placed by how it searches for a segmentation and by what
-           it compares to decide that two parts of a series differ. Filter by task, mode or install,
-           search by name or idea, and open any method in one click.</p>
+           makes a segment homogeneous. Filter by task, mode or install, search by name or idea,
+           and open any method in one click.</p>
          <div class="ts-actions">
            <a class="ts-btn ts-btn-primary" href="taxonomy.html">Open the taxonomy
              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></a>
@@ -301,7 +297,7 @@ tsseg: time series segmentation in Python
        <div class="ts-person"><span class="ts-avatar">FY</span><div><b>Fan Yang</b><span>The Ohio State University, Columbus</span></div></div>
        <div class="ts-person"><span class="ts-avatar">PB</span><div><b>Paul Boniol</b><span>Inria, ENS, Paris</span></div></div>
        <div class="ts-person"><span class="ts-avatar">PS</span><div><b>Patrick Schäfer</b><span>Humboldt-Universität, Berlin</span></div></div>
-       <div class="ts-person"><span class="ts-avatar">JP</span><div><b>John Paparrizos</b><span>The Ohio State University, AUTh, Columbus</span></div></div>
+       <div class="ts-person"><span class="ts-avatar">JP</span><div><b>John Paparrizos</b><span>The Ohio State University, Columbus; Aristotle University of Thessaloniki</span></div></div>
      </div>
      <p class="ts-license">Contributions are welcome: see the <a href="guides/contributing.html">contributing
        guide</a>. tsseg is released under the

@@ -1,7 +1,7 @@
 KCPD
 ====
 
-KCPD — Kernel Change Point Detection.
+KCPD – Kernel Change Point Detection.
 
 .. warning::
    **Deprecated.** ``KCPDDetector`` is not a method of its own: it runs the solvers of
@@ -86,7 +86,7 @@ Usage
    detector = KCPDDetector(kernel="rbf", n_cps=3)
    change_points = detector.fit_predict(X)
 
-   # Unknown K — use a penalty
+   # Unknown K – use a penalty
    detector = KCPDDetector(kernel="rbf", pen=10)
    change_points = detector.fit_predict(X)
 

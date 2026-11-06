@@ -13,8 +13,8 @@ Built-in dataset
 (4 channels: left and right arms and legs), with one activity label per time
 point. It returns a tuple ``(X, y)``:
 
-* ``X`` — a 2-D array of shape ``(n_timepoints, n_channels)``
-* ``y`` — an integer array of state labels aligned with ``X``
+* ``X`` – a 2-D array of shape ``(n_timepoints, n_channels)``
+* ``y`` – an integer array of state labels aligned with ``X``
 
 Example:
 

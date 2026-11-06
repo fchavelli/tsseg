@@ -1,7 +1,7 @@
 AutoPlait
 =========
 
-AutoPlait — parameter-free mining of co-evolving time sequences.
+AutoPlait – parameter-free mining of co-evolving time sequences.
 
 Description
 -----------
@@ -16,13 +16,13 @@ the data, without any user parameter.
 The search is top-down. Starting from a single regime that covers the whole
 series, AutoPlait tries to split each regime in two:
 
-1. **Seeds** — pairs of windows of length :math:`\lceil n/10 \rceil` taken
+1. **Seeds** – pairs of windows of length :math:`\lceil n/10 \rceil` taken
    uniformly in the regime each initialise an HMM; the pair whose split is the
    shortest to describe is kept.
-2. **CutPointSearch** — a Viterbi pass over the two HMMs, with a switching
+2. **CutPointSearch** – a Viterbi pass over the two HMMs, with a switching
    probability per regime, assigns each part of the regime to one of them;
    segments that the other model describes almost as well are moved to it.
-3. **RegimeSplit** — model estimation (Baum-Welch, number of states chosen by
+3. **RegimeSplit** – model estimation (Baum-Welch, number of states chosen by
    MDL) and cut point search alternate until the description length stops
    decreasing.
 

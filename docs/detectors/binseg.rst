@@ -1,7 +1,7 @@
 BinSeg
 ======
 
-Binary Segmentation (BinSeg) — fast sequential change point detection.
+Binary Segmentation (BinSeg) – fast sequential change point detection.
 
 Description
 -----------
@@ -10,9 +10,9 @@ Binary segmentation is a greedy, top-down procedure: it first detects a single
 change point in the full signal, then splits the series at that point and
 repeats the operation on each sub-signal until a stopping criterion is met.
 
-The benefits include low complexity — :math:`O(C\,n\log n)` where *n* is the
+The benefits include low complexity – :math:`O(C\,n\log n)` where *n* is the
 number of samples and *C* the cost of evaluating the cost function on one
-sub-signal — and the ability to work whether the number of regimes is known
+sub-signal – and the ability to work whether the number of regimes is known
 beforehand or not.
 
 | **Type:** change point detection
@@ -94,7 +94,7 @@ Usage
    detector = BinSegDetector(model="l2", n_cps=3)
    change_points = detector.fit_predict(X)
 
-   # Unknown number of change points — use a penalty
+   # Unknown number of change points – use a penalty
    detector = BinSegDetector(model="l2", penalty=10)
    change_points = detector.fit_predict(X)
 

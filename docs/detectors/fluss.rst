@@ -1,7 +1,7 @@
 FLUSS
 =====
 
-FLUSS — Fast Low-cost Unipotent Semantic Segmentation.
+FLUSS – Fast Low-cost Unipotent Semantic Segmentation.
 
 Description
 -----------
@@ -14,7 +14,7 @@ few matching subsequences span across a true regime change.
 
 A sequential peak search on the inverted arc curve yields the requested number
 of change points, or fewer when the curve left outside the exclusion zones of
-the first ones is flat.  FLUSS has only one parameter — the window size — which
+the first ones is flat.  FLUSS has only one parameter – the window size – which
 corresponds to the dominant period length.
 
 By default, as in the FLUSS paper, the matrix profile compares z-normalized

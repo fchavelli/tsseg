@@ -1,5 +1,5 @@
-﻿tsseg.metrics.NormalizedMutualInformation
-=========================================
+﻿NormalizedMutualInformation
+===========================
 
 .. currentmodule:: tsseg.metrics
 

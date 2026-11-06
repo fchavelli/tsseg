@@ -1,5 +1,5 @@
-﻿tsseg.metrics.WeightedNormalizedMutualInformation
-=================================================
+﻿WeightedNormalizedMutualInformation
+===================================
 
 .. currentmodule:: tsseg.metrics
 

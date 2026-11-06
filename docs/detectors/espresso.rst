@@ -1,7 +1,7 @@
 ESPRESSO
 ========
 
-ESPRESSO — Entropy and Shape-aware Time Series Segmentation.
+ESPRESSO – Entropy and Shape-aware Time Series Segmentation.
 
 Description
 -----------

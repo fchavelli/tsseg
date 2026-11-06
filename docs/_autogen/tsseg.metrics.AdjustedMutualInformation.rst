@@ -1,5 +1,5 @@
-﻿tsseg.metrics.AdjustedMutualInformation
-=======================================
+﻿AdjustedMutualInformation
+=========================
 
 .. currentmodule:: tsseg.metrics
 

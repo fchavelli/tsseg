@@ -1,5 +1,5 @@
-﻿tsseg.metrics.GaussianF1Score
-=============================
+﻿GaussianF1Score
+===============
 
 .. currentmodule:: tsseg.metrics
 

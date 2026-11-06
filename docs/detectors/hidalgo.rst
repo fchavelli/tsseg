@@ -1,7 +1,7 @@
 Hidalgo
 =======
 
-Hidalgo — Heterogeneous Intrinsic Dimensionality Algorithm.
+Hidalgo – Heterogeneous Intrinsic Dimensionality Algorithm.
 
 Description
 -----------

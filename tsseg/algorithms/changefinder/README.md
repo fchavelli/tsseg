@@ -17,14 +17,14 @@ models with moving-average smoothing.
 
 ChangeFinder operates in two stages:
 
-1. **Stage 1 — Outlier scoring.** An SDAR model (AR model with
+1. **Stage 1 – Outlier scoring.** An SDAR model (AR model with
    exponential discounting) is fitted incrementally on the raw time
    series. At each time step the model produces a one-step-ahead
    prediction; the discrepancy between prediction and observation
    yields an *outlier score* (logarithmic or quadratic loss). These
    scores are smoothed with a causal moving average of width *T*.
 
-2. **Stage 2 — Change-point scoring.** A second, independent SDAR
+2. **Stage 2 – Change-point scoring.** A second, independent SDAR
    model is fitted on the smoothed outlier scores from Stage 1. The
    same scoring procedure produces a second score curve, which is
    again smoothed. Peaks in this *change-point score* correspond to
@@ -69,12 +69,12 @@ changes.
 
 The implementation consists of two modules:
 
-- `sdar.py` — The `SDAR` class implementing the Sequential Discounting
+- `sdar.py` – The `SDAR` class implementing the Sequential Discounting
   AR model with batch initialisation (Yule-Walker) and online update.
   Uses `scipy.linalg.solve` with a Toeplitz system and small
   regularisation to prevent singularity.
 
-- `detector.py` — The `ChangeFinderDetector` class (inherits
+- `detector.py` – The `ChangeFinderDetector` class (inherits
   `BaseSegmenter`), orchestrating the two-stage pipeline, moving-
   average smoothing, peak selection, and multivariate strategies.
 

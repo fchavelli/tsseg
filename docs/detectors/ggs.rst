@@ -1,7 +1,7 @@
 GreedyGaussian (GGS)
 ====================
 
-GGS — Greedy Gaussian Segmentation.
+GGS – Greedy Gaussian Segmentation.
 
 Description
 -----------

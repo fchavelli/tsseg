@@ -1,7 +1,7 @@
 E2USD
 =====
 
-E2USD — Efficient-yet-Effective Unsupervised State Detection.
+E2USD – Efficient-yet-Effective Unsupervised State Detection.
 
 Description
 -----------
@@ -9,10 +9,10 @@ Description
 E2USD combines two key ideas for scalable, accurate unsupervised state detection
 in multivariate time series:
 
-1. **DDEM** (Decomposed Dual-view Embedding Module) — a lightweight encoder
+1. **DDEM** (Decomposed Dual-view Embedding Module) – a lightweight encoder
    that compresses sliding windows into low-dimensional representations using
    FFT-based compression and a decomposed contrastive learning objective.
-2. **DPGMM clustering** — a Dirichlet Process Gaussian Mixture Model that
+2. **DPGMM clustering** – a Dirichlet Process Gaussian Mixture Model that
    automatically determines the number of states from the learned embeddings.
 
 A False Negative Cancellation Contrastive Learning method (FNCCLearning) is

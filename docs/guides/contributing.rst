@@ -76,12 +76,12 @@ Algorithm test suite
 The ``tests/algorithms/`` directory contains a scikit-learn-style test suite
 that **automatically discovers** every algorithm listed in
 ``tsseg.algorithms.__all__``.  Adding a new detector to ``__all__`` is
-sufficient for it to be exercised by all generic checks — no manual test
+sufficient for it to be exercised by all generic checks – no manual test
 registration required.
 
 The generic checks are organised into six modules:
 
-``test_common.py`` — **Estimator contract** (scikit-learn style)
+``test_common.py`` – **Estimator contract** (scikit-learn style)
     Verifies the generic API contract that every ``BaseSegmenter`` must honour:
 
     * ``get_params`` / ``set_params`` round-trip
@@ -93,14 +93,14 @@ The generic checks are organised into six modules:
     * ``repr`` does not crash
     * Pickle round-trip (unless ``cant_pickle=True``)
 
-``test_tags.py`` — **Tag contract**
+``test_tags.py`` – **Tag contract**
     Ensures every algorithm declares valid metadata:
 
     * ``returns_dense`` (bool), ``detector_type`` (known value)
     * At least one ``capability:*`` tag is ``True``
     * ``returns_dense`` is consistent with ``detector_type``
 
-``test_predict.py`` — **Prediction output contract**
+``test_predict.py`` – **Prediction output contract**
     Validates that ``fit_predict`` output conforms to declared tags:
 
     * Change-point detectors (``returns_dense=True``): 1-D strictly increasing
@@ -110,7 +110,7 @@ The generic checks are organised into six modules:
     * Repeated calls produce identical results (determinism check)
     * Both univariate and multivariate inputs are exercised
 
-``test_input_validation.py`` — **Robustness**
+``test_input_validation.py`` – **Robustness**
     Checks that detectors raise clear errors on bad inputs:
 
     * Invalid types (lists, strings), empty arrays
@@ -118,11 +118,11 @@ The generic checks are organised into six modules:
     * NaN values when ``capability:missing_values`` is ``False``
     * ``pd.Series`` and ``pd.DataFrame`` are accepted
 
-``test_docstrings.py`` — **Docstring contract**
+``test_docstrings.py`` – **Docstring contract**
     The ``Parameters`` section of the class docstring lists exactly the
     constructor parameters, and the defaults it states are the actual ones.
 
-``test_guided_no_change_point.py`` — **Guided mode**
+``test_guided_no_change_point.py`` – **Guided mode**
     ``apply_supervision`` (in ``conftest.py``) sets the count of every
     detector tagged ``capability:semi_supervised``, and a guidance without
     any change point (``n_cps=0``, ``n_segments=1``, ``n_states=1``) passes

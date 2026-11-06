@@ -25,9 +25,12 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
     "tsseg_taxonomy",  # docs/_ext: the interactive taxonomy page
+    "tsseg_metric_figures",  # docs/_ext: the figures of the evaluation page
 ]
 
 autosummary_generate = True
+# Show "F1Score", not "tsseg.metrics.F1Score", in signatures and tables
+add_module_names = False
 
 # -- HTML output -----------------------------------------------------------
 html_theme = "pydata_sphinx_theme"

@@ -1,5 +1,5 @@
-﻿tsseg.metrics.BidirectionalCovering
-===================================
+﻿BidirectionalCovering
+=====================
 
 .. currentmodule:: tsseg.metrics
 
