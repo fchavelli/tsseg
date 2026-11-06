@@ -45,6 +45,19 @@ Unreleased
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.
+* Helpers that nothing in the package calls are removed, without deprecation
+  (none is part of ``tsseg.algorithms``): ``parameters_to_cps``,
+  ``cp_to_timestamps``, ``tpr_fpr`` and ``minmaxscale`` of
+  ``tsseg.algorithms.tire.utils``, with commented-out plotting code;
+  ``roll_array``, ``normalize_time_series``, ``create_sliding_window``,
+  ``expand_label_sequence``, ``collapse_label_sequence`` and ``extract_cps`` of
+  ``tsseg.algorithms.clap.utils``; and ``E2USD.online_threshold_cluster`` of
+  ``tsseg.algorithms.e2usd.e2usd``. Three of them did not work:
+  ``roll_array`` returned uninitialised memory, ``normalize_time_series``
+  raised ``NameError`` and ``online_threshold_cluster`` raised
+  ``AttributeError``. Use ``tsseg.algorithms.utils.extract_cps`` instead of
+  the removed ``extract_cps`` of CLaP; it gives the same change points. The
+  detectors are unchanged.
 * ``TSCP2Detector`` stores the similarity threshold it learns in the new
   fitted attribute ``threshold_`` instead of writing it into the
   ``similarity_threshold`` parameter. With ``similarity_threshold=None`` (the
