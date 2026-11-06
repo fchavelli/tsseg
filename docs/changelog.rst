@@ -28,8 +28,7 @@ Unreleased
   a page each, under their task, and the sidebar of the detector pages groups
   the detectors by task. Change point detection is shown in blue, in the
   taxonomy too. The home page shows the overview figure of the README and
-  keeps three highlights. Em dashes are replaced by en dashes, and a test
-  keeps them out of the documentation.
+  keeps three highlights. Em dashes are replaced by en dashes.
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.
