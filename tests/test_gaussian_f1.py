@@ -3,14 +3,16 @@
 Every true change point carries a Gaussian reward
 ``exp(-0.5 * (d / sigma) ** 2)`` for a prediction ``d`` samples away, with
 ``sigma = max(min_sigma, sigma_fraction * n)`` (or, with ``adaptive_sigma``,
-half the mean gap to the neighbouring true change points). Predictions are
-paired greedily, by decreasing reward; precision and recall divide the summed
-reward of the pairs by the number of predicted and true change points.
+half the mean gap to the neighbouring true change points). Predictions and
+true change points are paired one-to-one so that the summed reward is maximal;
+precision and recall divide that reward by the number of predicted and true
+change points.
 Expected values below are computed by hand from these definitions.
 """
 
 from __future__ import annotations
 
+import itertools
 import warnings
 
 import numpy as np
@@ -114,20 +116,61 @@ class TestPrecisionRecall:
         assert result["recall"] == pytest.approx(1.0)
 
 
-class TestGreedyMatching:
-    def test_pairs_are_taken_by_decreasing_reward(self):
-        # sigma = 4. The closest pair (104, 103) is taken first, which leaves
-        # (100, 107) to the other prediction: 0.969 + 0.216 = 1.185.
-        result = _scores(GaussianF1Score(sigma_fraction=0.004), [100, 104], [103, 107])
-        greedy = _reward(1, 4.0) + _reward(7, 4.0)
-        assert result["matched_weight"] == pytest.approx(greedy)
+def _best_total_reward(y_true, y_pred, sigma: float) -> float:
+    """Maximum summed reward over every one-to-one pairing, by enumeration."""
+    small, large = sorted((list(y_true), list(y_pred)), key=len)
+    return max(
+        sum(_reward(a - b, sigma) for a, b in zip(small, perm, strict=True))
+        for perm in itertools.permutations(large, len(small))
+    )
 
-    def test_greedy_pairing_can_be_below_the_optimal_assignment(self):
-        # The assignment (100, 103), (104, 107) would earn 2 * 0.755 = 1.510:
-        # the greedy pairing is not a maximum-weight matching.
+
+class TestOptimalMatching:
+    def test_pairing_maximises_the_total_reward(self):
+        # sigma = 4. Taking the closest pair (104, 103) first would leave
+        # (100, 107): 0.969 + 0.216 = 1.185. The pairs (100, 103) and
+        # (104, 107) earn more: 2 * 0.755 = 1.510.
         result = _scores(GaussianF1Score(sigma_fraction=0.004), [100, 104], [103, 107])
         optimal = 2 * _reward(3, 4.0)
-        assert result["matched_weight"] < optimal
+        assert result["matched_weight"] == pytest.approx(optimal)
+        assert result["score"] == pytest.approx(optimal / 2)
+
+    def test_closest_pairs_are_kept_when_they_are_optimal(self):
+        # sigma = 10: each prediction is far closer to one true change point.
+        result = _scores(GaussianF1Score(), [300, 600], [590, 310])
+        assert result["matched_weight"] == pytest.approx(2 * _reward(10, 10.0))
+
+    @pytest.mark.parametrize("seed", range(20))
+    def test_matched_weight_is_the_best_one_to_one_pairing(self, seed):
+        # Up to 5 change points within 20 samples, sigma = 4: the pairings
+        # compete, and taking the largest reward first is often suboptimal.
+        rng = np.random.default_rng(seed)
+        points = np.arange(100, 120)
+        y_true = rng.choice(points, size=rng.integers(1, 6), replace=False)
+        y_pred = rng.choice(points, size=rng.integers(1, 6), replace=False)
+        result = _scores(GaussianF1Score(sigma_fraction=0.004), y_true, y_pred)
+        expected = _best_total_reward(y_true, y_pred, 4.0)
+        assert result["matched_weight"] == pytest.approx(expected)
+
+    def test_adaptive_widths_enter_the_assignment(self):
+        # Adaptive widths: sigma(100) = 0.5 * 20 = 10,
+        # sigma(120) = 0.5 * (20 + 280) / 2 = 75, sigma(400) = 0.5 * 280 = 140.
+        # Taking the largest reward first gives 1.777; the best pairing,
+        # (100, 110), (120, 130), (400, 300), gives 2.373.
+        metric = GaussianF1Score(adaptive_sigma=True)
+        result = _scores(metric, [100, 120, 400], [110, 130, 300])
+        widths = (10.0, 75.0, 140.0)
+        expected = max(
+            sum(
+                _reward(pred - true, sigma)
+                for pred, true, sigma in zip(perm, (100, 120, 400), widths, strict=True)
+            )
+            for perm in itertools.permutations([110, 130, 300])
+        )
+        assert expected == pytest.approx(
+            _reward(10, 10.0) + _reward(10, 75.0) + _reward(100, 140.0)
+        )
+        assert result["matched_weight"] == pytest.approx(expected)
 
 
 class TestAdaptiveSigma:

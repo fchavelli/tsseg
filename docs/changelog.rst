@@ -9,6 +9,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``GaussianF1Score`` pairs predicted and true change points by an optimal
+  assignment, which maximises the total reward
+  (``scipy.optimize.linear_sum_assignment``), instead of taking the largest
+  rewards first. The greedy pairing could fall short of the best total when
+  change points are less than a few widths apart: with ``sigma = 4``, true
+  ``[100, 104]`` and predicted ``[103, 107]`` earned ``1.19`` instead of
+  ``1.51``. Scores can only increase, since a greedy total never exceeds the
+  optimal one, and they differ noticeably only where several change points lie
+  within a few widths of each other. Gaussian F1 scores computed with 0.3.2 or
+  earlier may be slightly lower than with this version.
 * Documentation: new design (PyData Sphinx theme, light and dark modes, copy
   buttons on code blocks) and a new home page; installation instructions move
   to their own page. The ``docs`` extra now installs ``pydata-sphinx-theme``

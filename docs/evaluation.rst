@@ -42,9 +42,10 @@ Gaussian F1 score
 ``GaussianF1Score`` replaces the window by a Gaussian reward of width
 :math:`\sigma` = ``sigma_fraction`` · n around each true change point (1 % of
 the length by default; 2.5 % in the figure). A prediction earns the height of
-the curve at its position, so a close miss keeps partial credit. Precision and
-recall divide the total reward by the number of predictions and of true change
-points.
+the curve at its position, so a close miss keeps partial credit. Predictions
+and true change points are paired one to one so that the total reward is
+maximal. Precision and recall divide that reward by the number of predictions
+and of true change points.
 
 .. tsseg-metric-figure:: gaussian_f1
 
