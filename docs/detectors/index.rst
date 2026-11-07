@@ -77,6 +77,7 @@ State detection
    hdp_hsmm
    hidalgo
    hmm
+   laplacian
    patss
    snlds
    ticc

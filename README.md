@@ -247,7 +247,7 @@ homogeneous, with filters and search.
 </details>
 
 <details open>
-<summary><b>State detection (9)</b></summary>
+<summary><b>State detection (10)</b></summary>
 
 | Detector | Approach | Unsup. | Guided | Reference |
 | --- | --- | :---: | :---: | --- |
@@ -257,6 +257,7 @@ homogeneous, with filters and search.
 | [Gaussian HMM](https://fchavelli.github.io/tsseg/detectors/gaussian_hmm.html)<br>`GaussianHMMDetector` | hidden Markov model fitted by EM | ✓ | ✓ | Rabiner (1989) |
 | [HDP-HSMM](https://fchavelli.github.io/tsseg/detectors/hdp_hsmm.html)<br>`HdpHsmmDetector` | Bayesian nonparametric semi-Markov model | ✓ | ✓ | Johnson & Willsky (2013), JMLR |
 | [Hidalgo](https://fchavelli.github.io/tsseg/detectors/hidalgo.html)<br>`HidalgoDetector` | local intrinsic dimension | | ✓ | Allegra et al. (2020), Sci. Rep. |
+| [Laplacian](https://fchavelli.github.io/tsseg/detectors/laplacian.html)<br>`LaplacianDetector` | spectral clustering of a recurrence graph of windows | ✓ | ✓ | McFee & Ellis (2014), ISMIR |
 | [SNLDS](https://fchavelli.github.io/tsseg/detectors/snlds.html) 📦<br>`SNLDSDetector` | switching nonlinear dynamical system (experimental) | | ✓ | Dong et al. (2020), ICML |
 | [TICC](https://fchavelli.github.io/tsseg/detectors/ticc.html)<br>`TiccDetector` | Toeplitz inverse covariance clustering | ✓ | ✓ | Hallac et al. (2017), KDD |
 | [Time2State](https://fchavelli.github.io/tsseg/detectors/time2state.html) 📦<br>`Time2StateDetector` | contrastive encoder, clustering | ✓ | ✓ | Wang et al. (2023), SIGMOD |
@@ -403,6 +404,7 @@ Several algorithms bundle adapted or vendored code under their own licenses.
 | `clap/` (ClaSP / CLaP) | BSD-3 | [ermshaua/claspy](https://github.com/ermshaua/claspy) |
 | `ggs/` (adapted from aeon, itself from the authors' code) | BSD-3 and BSD-2 | [aeon-toolkit/aeon](https://github.com/aeon-toolkit/aeon); [cvxgrp/GGS](https://github.com/cvxgrp/GGS) |
 | `icid/` | GPLv3 | [IsolationKernel/iCID](https://github.com/IsolationKernel/iCID) |
+| `laplacian/` (recurrence and diagonal median filter from librosa; Louvain from NetworkX) | ISC; BSD-3 | [librosa/librosa](https://github.com/librosa/librosa); [networkx/networkx](https://github.com/networkx/networkx) |
 | `patss/` | MIT | [KU Leuven DTAI](https://gitlab.kuleuven.be/u0143709/patss) |
 | `rulsif/` (port of the authors' MATLAB code) | MIT | [anewgithubname/change_detection](https://github.com/anewgithubname/change_detection) |
 | `snlds/vendor/` | Apache-2.0 | [google-research/snlds](https://github.com/google-research/google-research/tree/master/snlds) |
