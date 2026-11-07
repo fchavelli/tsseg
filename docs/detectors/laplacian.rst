@@ -13,7 +13,8 @@ applies their structural decomposition to windows of a time series:
 1. The series, standardised per channel, is cut into frames of
    ``window_size`` points every ``step`` points. Each frame is described by
    the log-magnitude spectrum of each channel (``feature="spec"``,
-   :math:`\log(1 + |\mathrm{FFT}|)` with the signed log of the mean term),
+   :math:`\log(1 + |\mathrm{FFT}|)` with the signed log of the window sum,
+   the DC term),
    which does not depend on the phase of a periodic pattern, or by the window
    itself (``feature="raw"``).
 2. **Recurrence**: frames :math:`i` and :math:`j` are linked when each is
@@ -28,8 +29,8 @@ applies their structural decomposition to windows of a time series:
    :math:`\exp(-\|f_i - f_{i+1}\|^2 / \tilde\delta)`, where
    :math:`\tilde\delta` is the median of these squared distances.
 4. The graph :math:`A = \mu R + (1 - \mu) P` balances the two kinds of edges:
-   :math:`\mu` makes the degrees of :math:`\mu R` and :math:`(1 - \mu) P`
-   equal on average (McFee & Ellis, Eq. 7).
+   :math:`\mu` is the least-squares fit, frame by frame, of the degrees of
+   :math:`\mu R` and :math:`(1 - \mu) P` (McFee & Ellis, Eqs. 6-7).
 5. The smallest eigenvectors of the normalised Laplacian of :math:`A`, median
    filtered over ``evec_smooth`` frames and divided row-wise by their
    cumulative norm, are clustered by k-means into :math:`k` states. Each
@@ -39,7 +40,10 @@ A state is thus a set of frames that look alike wherever they occur in the
 series (recurrence edges) and that stay together in time (path edges).
 
 **Number of states.** Guided, :math:`k` is ``n_states``. Unsupervised, the
-paper and its reference implementations fix :math:`k`; tsseg uses
+paper keeps, among :math:`m = 2, \dots, 10`, the partition of largest label
+entropy whose mean segment lasts at least 10 s (Sec. 3.3), a threshold in
+seconds without a counterpart for an arbitrary series; msaf and the librosa
+example fix :math:`k`. tsseg uses
 :math:`k = \mathrm{round}(\sqrt{k_L k_S})`, the geometric mean of two
 estimates that err in opposite directions: :math:`k_L`, the number of Louvain
 communities (modularity, resolution 1) of the recurrence graph with
@@ -57,6 +61,20 @@ decompose is not a graph Laplacian: its smallest eigenvalue can be negative,
 and the solver can break down when a frame is almost isolated. tsseg
 symmetrises the filtered matrix, :math:`(R_f + R_f^\top) / 2`, and checks that
 the spectrum lies in :math:`[0, 2]`.
+
+**Departures from the paper.** tsseg follows the librosa example and msaf
+where they differ from the paper: cosine distance and
+:math:`\exp(-d / \tilde d)` instead of a Gaussian kernel on the Euclidean
+distance, :math:`2\lceil\sqrt{N - 2e + 1}\rceil` neighbours instead of
+:math:`1 + \lceil 2 \log_2 N \rceil`, a median filter of the weighted
+affinity instead of a majority vote over 17 frames on the binary graph, path
+weights on the same features as the recurrence, and median-filtered
+eigenvectors. The cosine ignores scale: with ``feature="raw"``, states that
+differ only by their amplitude look alike, and with ``"spec"`` nearly
+constant frames are dominated by their DC term, so that two levels of the
+same sign look alike. Two frames at distance exactly 0 are never linked, and
+when more than half of the consecutive frames are identical all path weights
+are 1.
 
 **Defaults.** ``feature="spec"``, ``window_size=128``, ``step=16`` were
 declared before an evaluation on the 592 series of TSB-SEG. Guided, the mean
@@ -95,8 +113,8 @@ Parameters
    * - ``window_size``
      - int
      - ``128``
-     - Frame length :math:`w` in points (at most a quarter of the series and
-       at least 8 points).
+     - Frame length :math:`w` in points; on a series shorter than
+       :math:`4w`, frames of :math:`\max(8, \lfloor n / 4 \rfloor)` points.
    * - ``step``
      - int
      - ``16``

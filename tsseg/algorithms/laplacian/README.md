@@ -29,7 +29,16 @@ the repeated sections of songs, applied to frames of a time series.
 - `laplacian.py`: frames, features, path graph, balanced graph, normalised
   Laplacian, eigenvectors, k-means, the two estimates of the number of states
 - `detector.py`: `LaplacianDetector`
-- tsseg choices (not in the paper): the filtered recurrence matrix is
+- Departures from the paper taken from the librosa example and msaf: cosine
+  distance and `exp(-d / median)` instead of the Gaussian kernel of Sec. 2.3;
+  `2 ceil(sqrt(N - 2e + 1))` neighbours instead of `1 + ceil(2 log2 N)` and an
+  exclusion of `e` frames instead of 3 beats (Sec. 4.2); median filter of the
+  weighted affinity instead of a majority vote over 17 frames on the binary
+  graph (Eqs. 2, 8); path weights on the same features, median bandwidth
+  (Eq. 9); median-filtered eigenvectors. The cosine ignores scale (states
+  that differ only by amplitude with `raw`, levels of the same sign with
+  `spec`, can look alike).
+- tsseg choices (in neither): the filtered recurrence matrix is
   symmetrised, `(Rf + Rf.T) / 2`, because librosa's diagonal filter breaks its
   symmetry and `eigh` then decomposes a matrix that is not a Laplacian (the
   librosa example and msaf have this defect); the spectrum is checked, with a
@@ -39,7 +48,8 @@ the repeated sections of songs, applied to frames of a time series.
   the number of frames. Unsupervised: `k = round(sqrt(k_L * k_S))`, Louvain
   communities of the recurrence graph (`2 ceil(sqrt(N))` neighbours, no
   diagonal filter, no path edges) and best cosine silhouette in feature
-  space; selected on held-out TSB-SEG series. Defaults `feature="spec"`,
+  space, selected on held-out TSB-SEG series (the paper's selector, Sec. 3.3,
+  needs a minimal segment duration in seconds). Defaults `feature="spec"`,
   `window_size=128`, `step=16` declared before the TSB-SEG evaluation (592
   series): guided SMS 0.717 per series against 0.692 for CLaP.
 - Reproduction: the paper evaluates songs (audio, constant-Q features), not

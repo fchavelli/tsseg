@@ -36,8 +36,8 @@ class LaplacianDetector(BaseSegmenter):
         ``k`` with the best silhouette in the feature space (``k_S``, tends to
         under-segment).
     window_size : int, default=128
-        Frame length in points (at most a quarter of the series, and at
-        least 8).
+        Frame length in points; on a series shorter than ``4 * window_size``,
+        frames of ``max(8, n_timepoints // 4)`` points instead.
     step : int, default=16
         Points between consecutive frames. The cost is quadratic (memory) and
         cubic (eigensolver) in the number of frames, about
@@ -45,7 +45,8 @@ class LaplacianDetector(BaseSegmenter):
     feature : {"spec", "raw"}, default="spec"
         Frame features: ``"spec"`` is the log-magnitude spectrum of each
         channel (``log(1 + |FFT|)``, with the signed log DC term), invariant
-        to the phase of periodic patterns; ``"raw"`` is the window itself.
+        to the phase of periodic patterns, with the signed log of the
+        window sum (DC term); ``"raw"`` is the window itself.
     rec_smooth : int, default=9
         Size, in frames, of the median filter along the diagonals of the
         recurrence matrix (1: no filter).
@@ -77,30 +78,53 @@ class LaplacianDetector(BaseSegmenter):
     points every ``step`` points; mutual k-NN recurrence affinity between
     frames (cosine distance, ``2 ceil(sqrt(N - 2 e + 1))`` neighbours, links
     within ``e = ceil(window_size / (2 step))`` frames excluded),
-    ``exp(-d / median)``; diagonal median filter of ``rec_smooth`` frames; path
-    affinity between consecutive frames, ``exp(-||f_i - f_{i+1}||^2 /
-    median)``; ``A = mu R + (1 - mu) P`` with ``mu`` balancing the degrees
-    ([1]_, Eq. 7); smallest eigenvectors of the normalised Laplacian of ``A``,
+    ``exp(-d / b)`` with ``b`` the median distance of a frame to its farthest
+    link; diagonal median filter of ``rec_smooth`` frames; path affinity
+    between consecutive frames, ``exp(-||f_i - f_{i+1}||^2 / median)``;
+    ``A = mu R + (1 - mu) P`` with ``mu`` the least-squares balance of the
+    degrees ([1]_, Eqs. 6-7); smallest eigenvectors of the normalised
+    Laplacian of ``A`` ([1]_, Eq. 10),
     median filtered over ``evec_smooth`` frames, rows normalised by their
     cumulative norm; k-means (10 initialisations) on the first ``k``. Each
     point takes the label of the frame whose centre is nearest.
 
-    Departures from the recipe:
+    Departures from the paper (the first three as in the librosa example and
+    msaf, the others tsseg's):
 
-    - **symmetrised recurrence**: the diagonal median filter breaks the
-      symmetry of the recurrence matrix, and the librosa example and msaf
+    - recurrence: cosine distance and ``exp(-d / b)`` instead of the Gaussian
+      kernel ``exp(-||x_i - x_j||^2 / (2 sigma^2))`` ([1]_, Sec. 2.3);
+      ``2 ceil(sqrt(N - 2 e + 1))`` neighbours instead of
+      ``1 + ceil(2 log2 N)``, and an exclusion of ``e`` frames instead of 3
+      beats ([1]_, Sec. 4.2); median filter of the weighted affinity along
+      the diagonals instead of a majority vote over 17 frames on the binary
+      graph, weighted afterwards ([1]_, Eqs. 2 and 8). The cosine ignores
+      scale: with ``feature="raw"``, two states that differ only by their
+      amplitude look alike, and with ``"spec"`` frames that are nearly
+      constant are dominated by their DC term, so that two levels of the
+      same sign look alike;
+    - path: weights on the same features as the recurrence, with the median
+      squared distance as bandwidth, instead of a Gaussian kernel on MFCC
+      ([1]_, Eq. 9); all path weights are 1 when more than half of the
+      consecutive frames are identical. As in librosa, two frames at
+      distance exactly 0 are never a recurrence link;
+    - eigenvectors median filtered over ``evec_smooth`` frames (not in the
+      paper);
+    - frame features: a spectrum per window instead of beat-synchronous
+      constant-Q and MFCC features of audio;
+    - **symmetrised recurrence** (tsseg): the diagonal median filter breaks
+      the symmetry of the recurrence matrix, and the librosa example and msaf
       decompose the resulting non-symmetric matrix with ``eigh``, which reads
       a single triangle. tsseg uses ``(Rf + Rf.T) / 2`` and checks that the
       spectrum lies in ``[0, 2]``, with a fallback to other LAPACK drivers;
-    - frame features: a spectrum per window instead of beat-synchronous
-      constant-Q and MFCC features of audio, the same features for the
-      recurrence and the path;
-    - fixed step in points, so that the smoothing lengths mean the same
-      duration on every series (no cap on the number of frames);
-    - unknown number of states: the paper and msaf fix ``k``; the rule above
-      was selected on held-out TSB-SEG series (Louvain graph with
-      ``2 ceil(sqrt(N))`` neighbours, no diagonal filter, no path edges;
-      silhouette with cosine distance, on at most 2000 frames);
+    - fixed step in points (tsseg), so that the smoothing lengths mean the
+      same duration on every series (no cap on the number of frames);
+    - unknown number of states (tsseg): the paper keeps, among ``m = 2..10``,
+      the partition of largest label entropy whose mean segment lasts at
+      least 10 s ([1]_, Sec. 3.3), a threshold in seconds that has no
+      counterpart for an arbitrary series; msaf and the librosa example fix
+      ``k``. The rule above was selected on held-out TSB-SEG series (Louvain
+      graph with ``2 ceil(sqrt(N))`` neighbours, no diagonal filter, no path
+      edges; silhouette with cosine distance, on at most 2000 frames);
     - degenerate inputs: a single state when there are fewer than 6 frames
       or all frames are identical (constant series); the path graph alone
       when no pair of frames is a recurrence link.

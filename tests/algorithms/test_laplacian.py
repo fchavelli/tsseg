@@ -291,3 +291,52 @@ def test_timelag_median_filter_matches_librosa():
     R = recurrence_affinity(emb.features, width=emb.exclusion)
     expected = librosa.segment.timelag_filter(median_filter)(R, size=(1, 9))
     np.testing.assert_array_equal(timelag_median_filter(R, 9), expected)
+
+
+def test_embedding_matches_the_librosa_recipe_with_symmetrisation():
+    """Steps 2 to 5 with librosa's functions, mu (Eq. 7) and the normalised
+    Laplacian (Eq. 10) written out, give the same spectrum and vectors."""
+    librosa = pytest.importorskip("librosa")
+    import scipy.linalg
+    import scipy.sparse.csgraph
+
+    emb = _mocap_frames()
+    F, e = emb.features, emb.exclusion
+    R = librosa.segment.recurrence_matrix(
+        F.T, width=e, mode="affinity", metric="cosine", sym=True
+    )
+    Rf = librosa.segment.timelag_filter(median_filter)(R, size=(1, 9))
+    Rf = 0.5 * (Rf + Rf.T)
+    d = np.sum(np.diff(F, axis=0) ** 2, axis=1)
+    s = np.exp(-d / np.median(d))
+    P = np.diag(s, k=1) + np.diag(s, k=-1)
+    deg_p, deg_r = P.sum(1), Rf.sum(1)
+    mu = deg_p.dot(deg_p + deg_r) / np.sum((deg_p + deg_r) ** 2)
+    A = mu * Rf + (1 - mu) * P
+    deg = A.sum(1)
+    L = np.eye(len(A)) - A / np.sqrt(np.outer(deg, deg))
+    np.testing.assert_allclose(
+        L, scipy.sparse.csgraph.laplacian(A, normed=True), atol=1e-12
+    )
+    evals, evecs = scipy.linalg.eigh(L, subset_by_index=[0, 4])
+    np.testing.assert_allclose(emb.eigenvalues, evals, atol=1e-10)
+    V = median_filter(evecs, size=(9, 1))
+    # eigenvectors up to their sign
+    np.testing.assert_allclose(
+        np.abs(np.sum(emb.eigenvectors * V, axis=0)),
+        np.sum(V * V, axis=0),
+        rtol=1e-6,
+    )
+
+
+def test_path_graph_alone_when_there_is_no_recurrence_link(monkeypatch):
+    from tsseg.algorithms.laplacian import laplacian as module
+
+    monkeypatch.setattr(
+        module, "recurrence_affinity", lambda F, **kw: np.zeros((len(F),) * 2)
+    )
+    x, _ = _two_regimes()
+    emb = module.laplacian_embedding(x[:, None], n_eig=4)
+    ev = emb.eigenvalues
+    assert ev[0] == pytest.approx(0.0, abs=1e-10) and ev[1] > 1e-6  # connected
+    assert ev.max() < 2 + 1e-8
