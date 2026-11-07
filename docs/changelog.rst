@@ -9,6 +9,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``WeightedAdjustedRandIndex`` uses the weighted pair counts as real numbers,
+  as its definition does, instead of truncating them to integers (a step
+  inherited from the scikit-learn ARI, whose counts are integers). The
+  truncation shifted scores on short series (``0.2005`` instead of ``0.2012``
+  on 20 points, up to about ``5e-4`` on 50 points) and is invisible at three
+  decimals beyond about 200 points. Labelings that agree up to a renaming of
+  the states score exactly ``1.0`` at any length, a case now read from the
+  contingency table: on series of a few hundred thousand points, the
+  truncated counts could give ``1 ± 2e-16``. WARI scores of short series
+  computed with 0.3.2 or earlier may differ slightly from this version.
 * ``GaussianF1Score`` pairs predicted and true change points by an optimal
   assignment, which maximises the total reward
   (``scipy.optimize.linear_sum_assignment``), instead of taking the largest

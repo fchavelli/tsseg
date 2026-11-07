@@ -392,18 +392,38 @@ class TestWeightedAdjustedRandIndex:
                 _ari_from_weighted_counts(y_true, y_pred, weights), abs=1e-6
             )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="T50: the weighted pair counts are truncated with int(), which "
-        "shifts WARI on short series (here 0.2005 instead of 0.2012)",
-    )
     def test_short_series_match_the_weighted_count_formula(self):
+        # Truncating the weighted pair counts to integers gave 0.2005 here.
         y_true = np.repeat([0, 1, 2], [7, 6, 7])
         y_pred = np.repeat([0, 1, 2, 1], [5, 6, 4, 5])
         weights = 1.0 + 0.1 * _compute_boundary_distances(y_true)
         assert weighted_adjusted_rand_score(y_true, y_pred, weights) == pytest.approx(
             _ari_from_weighted_counts(y_true, y_pred, weights), abs=1e-12
         )
+
+    def test_relabelled_truth_scores_exactly_one(self):
+        # The weighted pair counts carry rounding noise: fp and fn of a
+        # relabelled truth are not exactly zero, yet the score must be.
+        rng = np.random.default_rng(11)
+        metric = WeightedAdjustedRandIndex()
+        for n in (30, 300, 3000):
+            for _ in range(15):
+                n_segments = int(rng.integers(2, 12))
+                y_true = _piecewise_labels(rng, n, n_segments, n_states=6)
+                y_pred = rng.permutation(100)[y_true]
+                assert metric(y_true, y_pred)["score"] == 1.0
+
+    @pytest.mark.parametrize("seed", [1, 5])
+    def test_relabelled_truth_scores_exactly_one_on_long_series(self, seed):
+        # On 200 000 points the rounding noise of fn exceeds 1, so a check of
+        # fn == fp == 0 misses the perfect agreement.
+        rng = np.random.default_rng(seed)
+        n = 200_000
+        states = rng.permutation(6)
+        lengths = rng.multinomial(n - 6, np.ones(6) / 6) + 1
+        y_true = np.repeat(states, lengths)
+        y_pred = 15 - y_true
+        assert WeightedAdjustedRandIndex()(y_true, y_pred)["score"] == 1.0
 
 
 # ---------------------------------------------------------------------------
