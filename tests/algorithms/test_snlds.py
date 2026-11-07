@@ -121,14 +121,28 @@ def test_window_training_and_seeded_predict():
 
 
 def _fit_weights(seed_of_python_random):
-    """Weights after one training step, with Python's ``random`` seeded first."""
+    """Weights after one tiny training step, with Python's ``random`` seeded first.
+
+    The model creates its variables on its first call, inside the training
+    step, so the initial weights are read after one step. Its first step moves
+    each weight by up to the learning rate in either direction (Adam divides
+    the gradient by its own magnitude), and the sign of a near-zero gradient
+    changes from run to run, as the posterior samples do (they are drawn in a
+    parallel while loop). A step of 1e-10 keeps that difference far below the
+    tolerance.
+    """
     import random
 
     rng = np.random.default_rng(2)
     X = np.concatenate([rng.normal(0, 1, (100, 1)), rng.normal(3, 1, (100, 1))])
     random.seed(seed_of_python_random)
     det = SNLDSDetector(
-        n_states=2, n_train_steps=1, train_window=64, batch_size=2, random_state=0
+        n_states=2,
+        n_train_steps=1,
+        learning_rate=1e-10,
+        train_window=64,
+        batch_size=2,
+        random_state=0,
     ).fit(X)
     return [v.numpy() for v in det._model.trainable_variables]
 
@@ -144,8 +158,7 @@ def test_random_state_fixes_the_initial_weights():
     a, b = _fit_weights(1), _fit_weights(2)
     assert len(a) == len(b)
     for u, v in zip(a, b, strict=True):
-        # one Adam step of 1e-4 from the same weights: equal up to the
-        # run-to-run rounding of TensorFlow
+        # same initial weights, then one Adam step of at most 1e-10 each
         np.testing.assert_allclose(u, v, rtol=0, atol=1e-6)
 
 
