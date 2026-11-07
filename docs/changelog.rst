@@ -42,6 +42,11 @@ Unreleased
   (``assets/demo.svg``) replaces the screenshot ``assets/demo.png``: the
   sample dataset of the demo, its ground truth, the change points of BottomUp
   and the states of Time2State, each scored against the truth.
+* The test of ``BeastDetector`` on a 6,000-point series no longer expects a
+  failure on CPUs that support AVX-512: in continuous integration, Rbeast
+  returned NaN for every output on that series in 10 of 177 test jobs, all on
+  such CPUs, and the rerun with its SSE routines found the change point every
+  time. The :doc:`BEAST page <detectors/beast>` says so.
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.
