@@ -65,6 +65,11 @@ Unreleased
   a detector that subclasses ``BaseSegmenter`` must not transpose its input
   itself, and AMOC, BinSeg, E2USD, ESPRESSO, HDP-HSMM, Hidalgo, Time2State and
   TIRE no longer do.
+* The test of ``BeastDetector`` on a 6,000-point series no longer expects a
+  failure on CPUs that support AVX-512: in continuous integration, Rbeast
+  returned NaN for every output on that series in 10 of 177 test jobs, all on
+  such CPUs, and the rerun with its SSE routines found the change point every
+  time. The :doc:`BEAST page <detectors/beast>` says so.
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.

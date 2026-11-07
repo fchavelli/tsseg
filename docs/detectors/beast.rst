@@ -162,7 +162,10 @@ Xeon CPUs. When the median number of change points (``ncp_median``) is NaN in
 every component and every channel, the detector raises a ``RuntimeWarning``
 and reruns Rbeast once with its SSE routines (``cputype="sse"``, which took
 1.5 to 2 times as long on an AVX2 CPU); if the rerun returns NaN too, the
-detector returns no change point. Other runs are unchanged.
+detector returns no change point. Other runs are unchanged. In the
+continuous integration of tsseg, the first run returned NaN on that series in
+10 of 177 test jobs (27 October to 6 November 2026), all on CPUs with
+AVX-512, and the rerun found the change point every time.
 
 **Crashes with seasonal models:** with ``season`` set to ``"harmonic"``,
 ``"dummy"`` or ``"svd"``, Rbeast 0.1.25 can kill the Python process (abort on

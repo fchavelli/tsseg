@@ -69,12 +69,14 @@ def test_long_univariate_series_returns():
 
     Rbeast picks its numerical routines by CPU instruction set (SSE, AVX2,
     AVX-512), so a fixed seed gives the same output on one machine only
-    (zhaokg/Rbeast#53). On some CI machines, Rbeast 0.1.25 returned NaN for
-    every output on this series; the detector then reruns Rbeast with its SSE
-    routines. If the rerun returns NaN too, the test marks the case as an
-    expected failure on AVX-512 CPUs, where Rbeast is reported to compute
-    wrong outputs (zhaokg/Rbeast#56), and fails anywhere else. If the rerun
-    finds the change point, the test passes and says so in a warning.
+    (zhaokg/Rbeast#53). On some CI machines with AVX-512 CPUs, Rbeast 0.1.25
+    returned NaN for every output on this series (zhaokg/Rbeast#56); the
+    detector then reruns Rbeast with its SSE routines. This test long marked
+    the case as an expected failure when the rerun returned NaN too, but the
+    rerun found the change point in all 10 CI jobs (out of 177, 27 October to
+    6 November 2026) in which the first run returned NaN, so the change point
+    is now required on every CPU. When the rerun was needed, the test says so
+    in a warning.
     """
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
@@ -85,11 +87,6 @@ def test_long_univariate_series_returns():
         "returned nan for ncp_median" in m for m in messages
     )
     avx512 = _cpu_has_avx512()
-    if nan_output and avx512:
-        pytest.xfail(
-            "Rbeast returned NaN for every output on this AVX-512 CPU, also "
-            f"when rerun with cputype='sse' ({sse_rerun=}; zhaokg/Rbeast#53, #56)"
-        )
     assert 3000 in cps, f"{cps=}, {nan_output=}, {sse_rerun=}, {avx512=}"
     if sse_rerun:
         # Visible in the warnings summary: the record that the rerun works.
