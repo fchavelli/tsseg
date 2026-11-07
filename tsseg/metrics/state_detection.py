@@ -551,8 +551,11 @@ def weighted_pair_confusion_matrix(labels_true, labels_pred, weights):
     contingency = weighted_contingency_matrix(
         labels_true, labels_pred, weights, sparse=True
     )
+    return _pair_confusion_from_contingency(contingency, np.sum(weights))
 
-    total_weight = np.sum(weights)
+
+def _pair_confusion_from_contingency(contingency, total_weight):
+    """Pair confusion matrix of a sparse weighted contingency table."""
     row_sum = np.ravel(contingency.sum(axis=1))
     col_sum = np.ravel(contingency.sum(axis=0))
 
@@ -567,22 +570,40 @@ def weighted_pair_confusion_matrix(labels_true, labels_pred, weights):
     return C
 
 
+def _is_one_to_one(contingency):
+    """Whether no row and no column of a sparse table has two non-zero cells."""
+    table = contingency.tocoo()
+    nonzero = table.data != 0
+    per_row = np.bincount(table.row[nonzero], minlength=table.shape[0])
+    per_col = np.bincount(table.col[nonzero], minlength=table.shape[1])
+    return bool(np.all(per_row <= 1) and np.all(per_col <= 1))
+
+
 def weighted_adjusted_rand_score(labels_true, labels_pred, weights):
-    """Compute the Weighted Adjusted Rand Index (WARI)."""
-    (tn, fp), (fn, tp) = weighted_pair_confusion_matrix(
-        labels_true, labels_pred, weights
+    """Compute the Weighted Adjusted Rand Index (WARI).
+
+    The ARI formula applied to weighted counts: each cell of the contingency
+    table sums the weights of its time points, and the pair counts derived
+    from it are real numbers, used as they are.
+
+    Two labelings that agree up to a renaming of the states score exactly
+    ``1.0``. This case is read from the contingency table (no row and no
+    column with two non-zero cells), not from the pair counts, whose rounding
+    errors grow with the length of the series.
+    """
+    contingency = weighted_contingency_matrix(
+        labels_true, labels_pred, weights, sparse=True
     )
-
-    tn, fp, fn, tp = int(tn), int(fp), int(fn), int(tp)
-
-    if fn == 0 and fp == 0:
+    if _is_one_to_one(contingency):
         return 1.0
+
+    (tn, fp), (fn, tp) = _pair_confusion_from_contingency(contingency, np.sum(weights))
 
     denominator = (tp + fn) * (fn + tn) + (tp + fp) * (fp + tn)
     if denominator == 0:
         return 1.0
 
-    return 2.0 * (tp * tn - fn * fp) / denominator
+    return float(2.0 * (tp * tn - fn * fp) / denominator)
 
 
 class WeightedAdjustedRandIndex(BaseMetric):
