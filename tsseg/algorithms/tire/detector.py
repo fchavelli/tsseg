@@ -523,12 +523,8 @@ class TireDetector(BaseSegmenter):
         self._fit_data = np.asarray(X, dtype=float)
         return self
 
-    def _predict(self, X, axis=None):
+    def _predict(self, X):
         X = np.asarray(X, dtype=float)
-        if axis is None:
-            axis = self.axis
-        if axis != 0:
-            X = np.moveaxis(X, axis, 0)
         if X.ndim == 1:
             X = X[:, np.newaxis]
         scores = self._run_pipeline(X)

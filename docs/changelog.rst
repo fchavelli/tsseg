@@ -9,6 +9,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``GaussianF1Score`` pairs predicted and true change points by an optimal
+  assignment, which maximises the total reward
+  (``scipy.optimize.linear_sum_assignment``), instead of taking the largest
+  rewards first. The greedy pairing could fall short of the best total when
+  change points are less than a few widths apart: with ``sigma = 4``, true
+  ``[100, 104]`` and predicted ``[103, 107]`` earned ``1.19`` instead of
+  ``1.51``. Scores can only increase, since a greedy total never exceeds the
+  optimal one, and they differ noticeably only where several change points lie
+  within a few widths of each other. Gaussian F1 scores computed with 0.3.2 or
+  earlier may be slightly lower than with this version.
 * Documentation: new design (PyData Sphinx theme, light and dark modes, copy
   buttons on code blocks) and a new home page; installation instructions move
   to their own page. The ``docs`` extra now installs ``pydata-sphinx-theme``
@@ -42,6 +52,19 @@ Unreleased
   (``assets/demo.svg``) replaces the screenshot ``assets/demo.png``: the
   sample dataset of the demo, its ground truth, the change points of BottomUp
   and the states of Time2State, each scored against the truth.
+* Fix ``axis=1`` given to a detector's constructor: ``Foo(axis=1).fit(X)`` on
+  a series of shape ``(n_channels, n_timepoints)`` now segments it as
+  ``Foo().fit(X.T)`` does. The base class handed such a detector its series in
+  that layout, which almost every detector reads as ``(n_timepoints,
+  n_channels)``: BOCD, BottomUp, ChangeFinder, ChangeForest, ClaSP, CLaP, Dynp,
+  GaussianHMM, ICID, PELT, Prophet, SeededBinSeg, SNLDS and SST returned wrong
+  change points or labels without an error, while FLUSS, RuLSIF, TGLAD, TICC,
+  TS-CP2 and Window raised one; a 1D series became a single time point with
+  ``n`` channels. The default ``axis=0`` and ``fit(X, axis=1)`` are unchanged.
+  ``_fit`` and ``_predict`` now always receive ``(n_timepoints, n_channels)``:
+  a detector that subclasses ``BaseSegmenter`` must not transpose its input
+  itself, and AMOC, BinSeg, E2USD, ESPRESSO, HDP-HSMM, Hidalgo, Time2State and
+  TIRE no longer do.
 * The test of ``BeastDetector`` on a 6,000-point series no longer expects a
   failure on CPUs that support AVX-512: in continuous integration, Rbeast
   returned NaN for every output on that series in 10 of 177 test jobs, all on
@@ -50,6 +73,27 @@ Unreleased
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.
+* Helpers that nothing in the package calls are removed, without deprecation
+  (none is part of ``tsseg.algorithms``): ``parameters_to_cps``,
+  ``cp_to_timestamps``, ``tpr_fpr`` and ``minmaxscale`` of
+  ``tsseg.algorithms.tire.utils``, with commented-out plotting code;
+  ``roll_array``, ``normalize_time_series``, ``create_sliding_window``,
+  ``expand_label_sequence``, ``collapse_label_sequence`` and ``extract_cps`` of
+  ``tsseg.algorithms.clap.utils``; and ``E2USD.online_threshold_cluster`` of
+  ``tsseg.algorithms.e2usd.e2usd``. Three of them did not work:
+  ``roll_array`` returned uninitialised memory, ``normalize_time_series``
+  raised ``NameError`` and ``online_threshold_cluster`` raised
+  ``AttributeError``. Use ``tsseg.algorithms.utils.extract_cps`` instead of
+  the removed ``extract_cps`` of CLaP; it gives the same change points. The
+  detectors are unchanged.
+* ``TSCP2Detector`` stores the similarity threshold it learns in the new
+  fitted attribute ``threshold_`` instead of writing it into the
+  ``similarity_threshold`` parameter. With ``similarity_threshold=None`` (the
+  default) and no ``n_cps``, a second ``fit`` on another series, a clone of a
+  fitted detector and a refit by ``refit_on_predict`` after two fits reused
+  the threshold learned on the first series, so they could return other
+  change points than a new detector. A single fit followed by ``predict`` is
+  unchanged.
 
 0.3.2 (2026-11-05)
 ------------------

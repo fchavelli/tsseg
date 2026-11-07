@@ -284,7 +284,8 @@ class EAggloDetector(BaseSegmenter):
                 UserWarning,
                 stacklevel=3,
             )
-            estimates = self.clone().fit(X)._estimates
+            # X is already time-major, whatever self.axis
+            estimates = self.clone().fit(X, axis=0)._estimates
 
         return np.array(
             sorted(int(cp) for cp in estimates if 0 < cp < n), dtype=np.int64

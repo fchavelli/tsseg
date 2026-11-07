@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from math import isfinite
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 
 from .base import BaseMetric
 from .change_point_detection import _prepare_change_points
@@ -113,12 +114,6 @@ def _local_sigma(
     )
 
 
-def _gaussian_weight(distance: float, sigma: float) -> float:
-    """Compute the Gaussian reward for a given distance and spread."""
-
-    return float(np.exp(-0.5 * (distance / sigma) ** 2))
-
-
 @dataclass
 class GaussianMatchResult:
     """Container storing intermediate results of the fuzzy matching."""
@@ -133,41 +128,38 @@ def _max_weight_matching(
     pred_cps: Sequence[int],
     sigma_getter: Callable[[int, int], float],
 ) -> GaussianMatchResult:
-    """Greedy bipartite matching on the Gaussian weights.
+    """Maximum-weight bipartite matching on the Gaussian weights.
 
-    Every (true, predicted) pair is built, the pairs are sorted by weight in
-    descending order, and the best non-conflicting ones are kept. This is
-    not a maximum-weight matching: when the Gaussian width is comparable to
-    the spacing of the change points, pairing the closest points first can
-    leave the others badly paired (with ``sigma = 4``, true ``[100, 104]``
-    and predicted ``[103, 107]`` give ``1.19`` instead of ``1.51``).
+    The reward of the pair (true ``c``, predicted ``p``) is
+    ``exp(-0.5 * ((p - c) / sigma) ** 2)``, with the width ``sigma`` of ``c``.
+    Each true change point is paired with at most one prediction and each
+    prediction with at most one true change point, so that the summed reward
+    is maximal (a rectangular assignment problem, solved exactly by
+    :func:`scipy.optimize.linear_sum_assignment`). Taking the largest rewards
+    first is not enough: with ``sigma = 4``, true ``[100, 104]`` and predicted
+    ``[103, 107]``, it pairs ``(104, 103)`` and leaves ``(100, 107)``, for a
+    total of ``1.19`` instead of ``1.51``.
     """
 
     if not true_cps or not pred_cps:
         return GaussianMatchResult(0.0, [], [])
 
-    pairs = []
-    for i, true_cp in enumerate(true_cps):
-        sigma = sigma_getter(i, true_cp)
-        for j, pred_cp in enumerate(pred_cps):
-            weight = _gaussian_weight(abs(pred_cp - true_cp), sigma)
-            if weight > 0:
-                pairs.append((weight, i, j))
+    true_arr = np.asarray(true_cps, dtype=float)
+    pred_arr = np.asarray(pred_cps, dtype=float)
+    sigmas = np.array(
+        [sigma_getter(i, true_cp) for i, true_cp in enumerate(true_cps)], dtype=float
+    )
+    distances = np.abs(pred_arr[np.newaxis, :] - true_arr[:, np.newaxis])
+    weights = np.exp(-0.5 * (distances / sigmas[:, np.newaxis]) ** 2)
 
-    pairs.sort(reverse=True, key=lambda item: item[0])
+    rows, cols = linear_sum_assignment(weights, maximize=True)
+    # Pairs of zero reward (beyond the float range) are not matches.
+    keep = weights[rows, cols] > 0
+    rows, cols = rows[keep], cols[keep]
 
-    used_true: list[int] = []
-    used_pred: list[int] = []
-    matched_weight = 0.0
-
-    for weight, i, j in pairs:
-        if i in used_true or j in used_pred:
-            continue
-        matched_weight += weight
-        used_true.append(i)
-        used_pred.append(j)
-
-    return GaussianMatchResult(matched_weight, used_true, used_pred)
+    return GaussianMatchResult(
+        float(weights[rows, cols].sum()), rows.tolist(), cols.tolist()
+    )
 
 
 class GaussianF1Score(BaseMetric):
@@ -179,8 +171,10 @@ class GaussianF1Score(BaseMetric):
         lists, remove boundary markers, and infer the series length.
     2. **Gaussian matching** – every true change point is associated with a
         Gaussian of width ``sigma_fraction * n`` (clamped below by ``min_sigma``).
-        Predictions are rewarded according to that shared kernel and a greedy
-        assignment keeps the best non-overlapping pairs.
+        Predictions are rewarded according to that shared kernel, and each
+        prediction is paired with at most one true change point (and vice
+        versa) so that the summed reward is maximal (an optimal assignment,
+        not a greedy one).
     3. **Soft precision & recall** – derive precision and recall from the sum of
         Gaussian rewards, yielding a fuzzy F1 in :math:`[0, 1]`.
 

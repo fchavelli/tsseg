@@ -284,8 +284,8 @@ class Time2StateDetector(BaseSegmenter):
 
         Parameters
         ----------
-        X : np.ndarray of shape (n_timepoints, n_channels) or (n_channels, n_timepoints)
-            The training time series. Shape depends on ``self.axis``.
+        X : np.ndarray of shape (n_timepoints, n_channels)
+            The training time series.
         y : None
             Not used, for API compatibility.
         axis : None
@@ -354,8 +354,8 @@ class Time2StateDetector(BaseSegmenter):
 
         Parameters
         ----------
-        X : np.ndarray of shape (n_timepoints, n_channels) or (n_channels, n_timepoints)
-            The time series to segment. Shape depends on ``self.axis``.
+        X : np.ndarray of shape (n_timepoints, n_channels)
+            The time series to segment.
         axis : None
             Not used.
 
@@ -409,16 +409,11 @@ class Time2StateDetector(BaseSegmenter):
             return state_sequence
 
     def _validate_data(self, X):
-        """Validate and reshape input data according to axis."""
+        """Return ``X`` as a 2D array of shape (n_timepoints, n_channels)."""
         X = np.asarray(X)
         if X.ndim == 1:
             X = X.reshape(-1, 1)
-        elif X.ndim == 2:
-            # Handle axis orientation
-            if self.axis == 1:
-                # Time series are in rows, transpose to (n_timepoints, n_channels)
-                X = X.T
-        else:
+        elif X.ndim != 2:
             raise ValueError(f"Input X must be 1D or 2D, got {X.ndim}D")
 
         return X
