@@ -9,6 +9,19 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New ``LaplacianDetector`` (state detection, unsupervised or guided): the
+  Laplacian structural decomposition of McFee & Ellis (ISMIR 2014) applied to
+  windows of a series. Frames are linked to their mutual nearest neighbours
+  (recurrence) and to their neighbours in time (path), and k-means on the
+  smallest eigenvectors of the normalised Laplacian gives the states. Unlike
+  the librosa example and msaf, the filtered recurrence matrix is symmetrised,
+  so that the matrix decomposed is a graph Laplacian. Without ``n_states``,
+  the number of states is the geometric mean of the number of Louvain
+  communities of the recurrence graph and of the best silhouette. The
+  recurrence, the diagonal median filter and Louvain are ported from librosa
+  (ISC) and NetworkX (BSD-3), which are not dependencies. With the true number
+  of states, mean SMS 0.717 on the 592 series of TSB-SEG, against 0.692 for
+  CLaP.
 * ``WeightedAdjustedRandIndex`` uses the weighted pair counts as real numbers,
   as its definition does, instead of truncating them to integers (a step
   inherited from the scikit-learn ARI, whose counts are integers). The
