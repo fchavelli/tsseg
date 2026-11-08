@@ -137,6 +137,64 @@ transitions are also weighted by their distance to the nearest true boundary.
    WeightedNormalizedMutualInformation
    StateMatchingScore
 
+Partially annotated references
+------------------------------
+
+A reference may leave points without a usable label: missing truth (often
+coded ``-1``), labels the provider marks as unknown, or classes that are not
+scored, such as a background of unannotated activities. Deleting these points
+before scoring would join unrelated intervals and create transitions that no
+annotator saw. The metrics instead take ``scored_intervals``, the half-open
+intervals ``[a, b)`` of the points to score, in original coordinates; the
+series keeps its length and the prediction is never cut.
+:func:`~tsseg.metrics.scored_islands` derives them from a label sequence.
+
+* **ARI, AMI, NMI**: the score of the scored points.
+* **WARI, WNMI**: the distances that weight the points are measured in
+  original coordinates, to the true changes inside each interval and to its
+  edges, before the other points are left out.
+* **SMS** (masked SMS): one Hungarian mapping, fitted on the scored points and
+  applied to all; error segments stop at the edges of the intervals, where
+  neighbours count as absent; the edges anchor the boundary distance without
+  being true boundaries; losses are divided by the number of scored points.
+  The output adds ``n_scored`` and ``n_total``.
+* **F1**: an interval ``[a, b)`` judges the change points ``a + 1`` to
+  ``b - 1``. True and predicted change points elsewhere count for nothing,
+  and a match never crosses a gap, even within the margin.
+* **Covering, BiC**: true and predicted segments are clipped to each interval
+  of at least two points and matched inside it; the coverings are weighted by
+  the scored duration.
+
+Scores do not depend on the length of the unscored gaps, and an interval
+covering the whole series gives the plain score. A reference without any
+scored point, or without any position where a change point can be judged,
+raises a ``ValueError``. Gaussian F1 and the Hausdorff distance do not take
+``scored_intervals``.
+
+.. code-block:: python
+
+   import numpy as np
+   from tsseg.metrics import F1Score, StateMatchingScore, scored_islands
+
+   y_true = np.array([0, 0, 0, -1, -1, 1, 1, 1])  # -1: no reference
+   y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+   support = scored_islands(y_true, unscored=[-1])  # [(0, 3), (5, 8)]
+   StateMatchingScore().compute(y_true, y_pred, scored_intervals=support)
+   # {'score': 1.0, 'n_scored': 6, 'n_total': 8}
+
+   # Change points: the prediction at 4 lies in the gap and counts for nothing.
+   # (For change points, background classes stay in the support: their edges
+   # are true change points. Only the points of unknown truth are left out.)
+   F1Score(margin=1).compute(
+       [2], [2, 4], n_timepoints=8, scored_intervals=support
+   )["score"]  # 1.0
+
+.. autosummary::
+   :toctree: _autogen
+   :nosignatures:
+
+   scored_islands
+
 Base protocol
 -------------
 

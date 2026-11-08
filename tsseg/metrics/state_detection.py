@@ -16,6 +16,13 @@ from sklearn.metrics import (
     normalized_mutual_info_score,
 )
 
+from ._support import (
+    _boundary_distances,
+    _check_intervals,
+    _covers_all,
+    _island_boundary_distances,
+    _mask,
+)
 from .base import BaseMetric
 
 """
@@ -27,7 +34,7 @@ SPDX-License-Identifier: BSD-3-Clause
 """
 
 
-def _map_predicted_labels(labels_true, labels_pred):
+def _map_predicted_labels(labels_true, labels_pred, mask=None):
     """
     Maps predicted labels to match true labels using the Hungarian algorithm,
     ensuring the number of unique output labels equals the number of unique
@@ -36,6 +43,8 @@ def _map_predicted_labels(labels_true, labels_pred):
     Parameters:
         labels_true: numpy array of ground truth labels.
         labels_pred: numpy array of predicted labels.
+        mask: optional boolean array of the scored points. The assignment is
+            then fitted on these points only, and applied to every point.
 
     Returns:
         mapped_pred: numpy array of predicted labels after mapping.
@@ -43,6 +52,11 @@ def _map_predicted_labels(labels_true, labels_pred):
     labels_true = np.asarray(labels_true)
     labels_pred = np.asarray(labels_pred)
     original_shape = labels_pred.shape
+    if mask is not None:
+        all_unique_pred = np.unique(labels_pred)
+        final_map = _label_map(labels_true[mask], labels_pred[mask], all_unique_pred)
+        mapped_pred_flat = np.array([final_map[val] for val in labels_pred.ravel()])
+        return mapped_pred_flat.reshape(original_shape)
 
     if labels_pred.size == 0:
         return np.array([])
@@ -64,7 +78,19 @@ def _map_predicted_labels(labels_true, labels_pred):
 
     true_comp = labels_true.ravel()[:compare_len]
     pred_comp = labels_pred.ravel()[:compare_len]
+    final_map = _label_map(true_comp, pred_comp, all_unique_pred)
 
+    # Apply the final map to the original full predicted sequence
+    mapped_pred_flat = np.array([final_map[val] for val in labels_pred.ravel()])
+    mapped_pred = mapped_pred_flat.reshape(original_shape)
+
+    return mapped_pred
+
+
+def _label_map(true_comp, pred_comp, all_unique_pred):
+    """Hungarian assignment of the predicted labels of ``pred_comp`` to the true
+    labels of ``true_comp``, completed so that every label of
+    ``all_unique_pred`` gets a distinct output label."""
     unique_pred_comp = np.unique(pred_comp)
     unique_true_comp = np.unique(true_comp)
 
@@ -108,11 +134,7 @@ def _map_predicted_labels(labels_true, labels_pred):
                 final_map[p_label] = next_new_label
                 used_targets.add(next_new_label)
 
-    # Apply the final map to the original full predicted sequence
-    mapped_pred_flat = np.array([final_map[val] for val in labels_pred.ravel()])
-    mapped_pred = mapped_pred_flat.reshape(original_shape)
-
-    return mapped_pred
+    return final_map
 
 
 def _error_type(error_label, true_atomicity, p0, p1, t0, t1):
@@ -212,30 +234,89 @@ def _atomicity(sequence):
 
 
 def _state_matching_score(
-    labels_true, labels_pred, weights, return_mapped=False, return_errors=False
+    labels_true,
+    labels_pred,
+    weights,
+    return_mapped=False,
+    return_errors=False,
+    islands=None,
 ):
     """
     Computes a new State Matching Score (SMS) based on identifying and classifying
     error segments between true and predicted label sequences after optimal mapping.
+
+    ``islands`` lists the scored intervals ``[a, b)`` (default: the whole
+    series). The mapping is fitted on their points, error segments stop at
+    their edges, neighbours beyond an edge are absent, the edges anchor the
+    boundary distance, and the losses are divided by the number of scored
+    points.
     """
     n = len(labels_true)
     if n == 0:
         return None  # Return None for empty input
+    if islands is None:
+        islands = [(0, n)]
+        mapped_pred = _map_predicted_labels(labels_true, labels_pred)
+    else:
+        mapped_pred = _map_predicted_labels(
+            labels_true, labels_pred, mask=_mask(islands, n)
+        )
+    n_scored = sum(b - a for a, b in islands)
 
-    # Map predicted labels to true labels
-    mapped_pred = _map_predicted_labels(labels_true, labels_pred)
-    true_boundaries = np.unique(
-        [0] + _compute_boundaries_symmetrical(labels_true) + [n]
-    )
-
-    i = 0
     total_penalty = (
         0.0  # Renamed from error_score for clarity, represents the sum of penalties
     )
     total_error_length = 0
     errors_list = [] if return_errors else None
 
-    while i < n:
+    for island_start, island_end in islands:
+        total_error_length, total_penalty = _island_errors(
+            labels_true,
+            mapped_pred,
+            weights,
+            island_start,
+            island_end,
+            n_scored,
+            total_error_length,
+            total_penalty,
+            errors_list,
+        )
+
+    # Calculate the final score
+    # The total error is the length of incorrect points plus the weighted penalty
+    total_weighted_error = total_error_length + total_penalty
+    score = 1.0 - total_weighted_error / n_scored
+
+    # Return based on flags
+    if return_mapped and return_errors:
+        return score, mapped_pred, errors_list
+    elif return_mapped:
+        return score, mapped_pred
+    elif return_errors:
+        return score, errors_list
+    else:
+        return score
+
+
+def _island_errors(
+    labels_true,
+    mapped_pred,
+    weights,
+    a,
+    b,
+    n_scored,
+    total_error_length,
+    total_penalty,
+    errors_list,
+):
+    """Error segments of the scored interval ``[a, b)``, added to the totals."""
+    true_boundaries = np.unique(
+        [a] + [a + k for k in _compute_boundaries_symmetrical(labels_true[a:b])] + [b]
+    )
+    return_errors = errors_list is not None
+
+    i = a
+    while i < b:
         if labels_true[i] != mapped_pred[i]:
             # Start of a potential error segment
             start_index = i
@@ -243,7 +324,7 @@ def _state_matching_score(
             j = i + 1
             # Extend the segment as long as the error persists with the same predicted label
             while (
-                j < n
+                j < b
                 and labels_true[j] != mapped_pred[j]
                 and mapped_pred[j] == error_label
             ):
@@ -259,12 +340,12 @@ def _state_matching_score(
             total_error_length += segment_size
 
             # Determine neighbor values for predicted labels
-            p0 = mapped_pred[start_index - 1] if start_index > 0 else None
-            p1 = mapped_pred[end_index + 1] if end_index < n - 1 else None
+            p0 = mapped_pred[start_index - 1] if start_index > a else None
+            p1 = mapped_pred[end_index + 1] if end_index < b - 1 else None
 
             # Determine neighbor values for true labels
-            t0 = labels_true[start_index - 1] if start_index > 0 else None
-            t1 = labels_true[end_index + 1] if end_index < n - 1 else None
+            t0 = labels_true[start_index - 1] if start_index > a else None
+            t1 = labels_true[end_index + 1] if end_index < b - 1 else None
 
             # Call the error_type function with the required arguments
             err_type = _error_type(error_label, true_atomicity, p0, p1, t0, t1)
@@ -277,7 +358,7 @@ def _state_matching_score(
 
             elif err_type == "transition" or err_type == "isolation":
                 distance = _normalized_block_boundary_distance(
-                    true_boundaries, start_index, end_index, n
+                    true_boundaries, start_index, end_index, n_scored
                 )
                 segment_penalty = segment_size * (weight * distance)
 
@@ -307,20 +388,7 @@ def _state_matching_score(
             # No error at this index, move to the next
             i += 1
 
-    # Calculate the final score
-    # The total error is the length of incorrect points plus the weighted penalty
-    total_weighted_error = total_error_length + total_penalty
-    score = 1.0 - total_weighted_error / n
-
-    # Return based on flags
-    if return_mapped and return_errors:
-        return score, mapped_pred, errors_list
-    elif return_mapped:
-        return score, mapped_pred
-    elif return_errors:
-        return score, errors_list
-    else:
-        return score
+    return total_error_length, total_penalty
 
 
 class StateMatchingScore(BaseMetric):
@@ -343,6 +411,8 @@ class StateMatchingScore(BaseMetric):
         self,
         y_true: np.ndarray,
         y_pred: np.ndarray,
+        *,
+        scored_intervals=None,
         **kwargs,
     ) -> dict[str, Any]:
         """Compute the State Matching Score.
@@ -358,6 +428,14 @@ class StateMatchingScore(BaseMetric):
         weighted by type with ``self.weights`` (isolation and transition also
         by the distance to the nearest true boundary).
 
+        With ``scored_intervals`` (masked SMS), the mapping is fitted on the
+        scored points only and applied to every point; error segments stop at
+        the edges of the intervals, where neighbours count as absent; the
+        edges serve as anchors of the boundary distance without being true
+        boundaries; and the losses are divided by the number of scored points.
+        The score therefore does not depend on the length of the unscored
+        gaps, and an interval covering the whole series gives the plain SMS.
+
         Parameters
         ----------
         y_true : np.ndarray of shape (n_timepoints,)
@@ -365,6 +443,11 @@ class StateMatchingScore(BaseMetric):
         y_pred : np.ndarray of shape (n_timepoints,)
             Predicted state label of every time point. Labels are compared up
             to a permutation: their values carry no meaning.
+        scored_intervals : sequence of (int, int), optional
+            Half-open intervals ``[a, b)`` of the time points to score, in
+            original coordinates, for a reference with unscored points
+            (missing truth, unknown or background labels); see
+            :func:`tsseg.metrics.scored_islands`. Default: every point.
         **kwargs
             ``return_mapped`` (bool, default False): also return the predicted
             labels after mapping. ``return_errors`` (bool, default False): also
@@ -376,7 +459,14 @@ class StateMatchingScore(BaseMetric):
             ``"score"`` (float, 1.0 for empty inputs), plus ``"mapped_pred"``
             (np.ndarray) if ``return_mapped`` and ``"errors"`` (list of dict
             with keys ``type``, ``start``, ``end``, ``size``, ``penalty``) if
-            ``return_errors``.
+            ``return_errors``. With ``scored_intervals``, also ``"n_scored"``
+            and ``"n_total"``, the numbers of scored and of all time points.
+
+        Raises
+        ------
+        ValueError
+            If ``scored_intervals`` holds no scored point, or if ``y_true``
+            and ``y_pred`` differ in length when it is given.
         """
         labels_true = y_true
         labels_pred = y_pred
@@ -384,12 +474,20 @@ class StateMatchingScore(BaseMetric):
         return_mapped = kwargs.get("return_mapped", False)
         return_errors = kwargs.get("return_errors", False)
 
+        islands = None
+        if scored_intervals is not None:
+            labels_true = np.asarray(labels_true)
+            labels_pred = np.asarray(labels_pred)
+            _check_same_length(labels_true, labels_pred)
+            islands = _check_intervals(scored_intervals, len(labels_true))
+
         result = _state_matching_score(
             labels_true,
             labels_pred,
             self.weights,
             return_mapped=return_mapped,
             return_errors=return_errors,
+            islands=islands,
         )
 
         output: dict[str, Any] = {}
@@ -412,14 +510,41 @@ class StateMatchingScore(BaseMetric):
             score = float(score)
 
         output["score"] = score
+        if islands is not None:
+            output["n_scored"] = sum(b - a for a, b in islands)
+            output["n_total"] = len(labels_true)
         return output
+
+
+def _check_same_length(labels_true: np.ndarray, labels_pred: np.ndarray) -> None:
+    if labels_true.ndim != 1 or labels_true.shape != labels_pred.shape:
+        raise ValueError(
+            "y_true and y_pred must be one-dimensional and of the same length, "
+            f"got shapes {labels_true.shape} and {labels_pred.shape}"
+        )
+
+
+def _restrict(y_true, y_pred, scored_intervals):
+    """The scored points of ``y_true`` and ``y_pred``, and their mask."""
+    y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
+    if scored_intervals is None:
+        return y_true, y_pred, None
+    _check_same_length(y_true, y_pred)
+    islands = _check_intervals(scored_intervals, len(y_true))
+    mask = _mask(islands, len(y_true))
+    return y_true[mask], y_pred[mask], islands
 
 
 class AdjustedRandIndex(BaseMetric):
     """Computes the Adjusted Rand Index (ARI)."""
 
     def compute(
-        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        *,
+        scored_intervals=None,
+        **kwargs,
     ) -> dict[str, float]:
         """Compute the Adjusted Rand Index with :func:`sklearn.metrics.adjusted_rand_score`.
 
@@ -430,6 +555,12 @@ class AdjustedRandIndex(BaseMetric):
         y_pred : np.ndarray of shape (n_timepoints,)
             Predicted state label of every time point. Labels are compared up
             to a permutation: their values carry no meaning.
+        scored_intervals : sequence of (int, int), optional
+            Half-open intervals ``[a, b)`` of the time points to score, in
+            original coordinates, for a reference with unscored points
+            (missing truth, unknown or background labels); see
+            :func:`tsseg.metrics.scored_islands`. Default: every point. The score is
+            that of the scored points.
         **kwargs
             Ignored.
 
@@ -438,8 +569,7 @@ class AdjustedRandIndex(BaseMetric):
         dict
             ``{"score": float}``.
         """
-        labels_true = y_true
-        labels_pred = y_pred
+        labels_true, labels_pred, _ = _restrict(y_true, y_pred, scored_intervals)
         return {"score": adjusted_rand_score(labels_true, labels_pred)}
 
 
@@ -447,7 +577,12 @@ class NormalizedMutualInformation(BaseMetric):
     """Computes the Normalized Mutual Information (NMI)."""
 
     def compute(
-        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        *,
+        scored_intervals=None,
+        **kwargs,
     ) -> dict[str, float]:
         """Compute the Normalized Mutual Information with :func:`sklearn.metrics.normalized_mutual_info_score`.
 
@@ -458,6 +593,12 @@ class NormalizedMutualInformation(BaseMetric):
         y_pred : np.ndarray of shape (n_timepoints,)
             Predicted state label of every time point. Labels are compared up
             to a permutation: their values carry no meaning.
+        scored_intervals : sequence of (int, int), optional
+            Half-open intervals ``[a, b)`` of the time points to score, in
+            original coordinates, for a reference with unscored points
+            (missing truth, unknown or background labels); see
+            :func:`tsseg.metrics.scored_islands`. Default: every point. The score is
+            that of the scored points.
         **kwargs
             Ignored.
 
@@ -466,8 +607,7 @@ class NormalizedMutualInformation(BaseMetric):
         dict
             ``{"score": float}``.
         """
-        labels_true = y_true
-        labels_pred = y_pred
+        labels_true, labels_pred, _ = _restrict(y_true, y_pred, scored_intervals)
         return {"score": normalized_mutual_info_score(labels_true, labels_pred)}
 
 
@@ -475,7 +615,12 @@ class AdjustedMutualInformation(BaseMetric):
     """Computes the Adjusted Mutual Information (AMI)."""
 
     def compute(
-        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        *,
+        scored_intervals=None,
+        **kwargs,
     ) -> dict[str, float]:
         """Compute the Adjusted Mutual Information with :func:`sklearn.metrics.adjusted_mutual_info_score`.
 
@@ -486,6 +631,12 @@ class AdjustedMutualInformation(BaseMetric):
         y_pred : np.ndarray of shape (n_timepoints,)
             Predicted state label of every time point. Labels are compared up
             to a permutation: their values carry no meaning.
+        scored_intervals : sequence of (int, int), optional
+            Half-open intervals ``[a, b)`` of the time points to score, in
+            original coordinates, for a reference with unscored points
+            (missing truth, unknown or background labels); see
+            :func:`tsseg.metrics.scored_islands`. Default: every point. The score is
+            that of the scored points.
         **kwargs
             Ignored.
 
@@ -494,25 +645,37 @@ class AdjustedMutualInformation(BaseMetric):
         dict
             ``{"score": float}``.
         """
-        labels_true = y_true
-        labels_pred = y_pred
+        labels_true, labels_pred, _ = _restrict(y_true, y_pred, scored_intervals)
         return {"score": adjusted_mutual_info_score(labels_true, labels_pred)}
 
 
 def _compute_boundary_distances(labels: np.ndarray) -> np.ndarray:
-    """Computes distance to nearest boundary."""
+    """Distance of each point to the nearest label change or end of the series;
+    ``n`` everywhere when the labels never change."""
+    labels = np.asarray(labels)
     n = len(labels)
-    boundaries = np.where(np.diff(labels) != 0)[0] + 1
-    if len(boundaries) == 0:
+    if not np.any(np.diff(labels) != 0):
         return np.full(n, n)
+    return _boundary_distances(labels, np.array([0, n]))
 
-    boundaries = np.concatenate(([0], boundaries, [n]))
 
-    distances = np.empty(n)
-    for i in range(n):
-        distances[i] = np.min(np.abs(i - boundaries))
+def _distance_weights(metric, y_true, y_pred, scored_intervals):
+    """Weights of the WARI and WNMI, and the points they score.
 
-    return distances
+    With ``scored_intervals``, the distances are measured in original
+    coordinates, to the true changes inside each interval and to its edges,
+    before the unscored points are left out.
+    """
+    if scored_intervals is None:
+        return y_true, y_pred, metric.distance_func(_compute_boundary_distances(y_true))
+    y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
+    _check_same_length(y_true, y_pred)
+    islands = _check_intervals(scored_intervals, len(y_true))
+    if _covers_all(islands, len(y_true)):
+        return y_true, y_pred, metric.distance_func(_compute_boundary_distances(y_true))
+    mask = _mask(islands, len(y_true))
+    distances = _island_boundary_distances(y_true, islands)[mask]
+    return y_true[mask], y_pred[mask], metric.distance_func(distances)
 
 
 def _linear_distance(distances: np.ndarray, alpha: float = 0.1) -> np.ndarray:
@@ -618,7 +781,12 @@ class WeightedAdjustedRandIndex(BaseMetric):
         self.alpha = alpha
 
     def compute(
-        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        *,
+        scored_intervals=None,
+        **kwargs,
     ) -> dict[str, float]:
         """Compute the Weighted Adjusted Rand Index.
 
@@ -633,6 +801,14 @@ class WeightedAdjustedRandIndex(BaseMetric):
         y_pred : np.ndarray of shape (n_timepoints,)
             Predicted state label of every time point. Labels are compared up
             to a permutation: their values carry no meaning.
+        scored_intervals : sequence of (int, int), optional
+            Half-open intervals ``[a, b)`` of the time points to score, in
+            original coordinates, for a reference with unscored points
+            (missing truth, unknown or background labels); see
+            :func:`tsseg.metrics.scored_islands`. Default: every point. The distances
+            are then measured in original coordinates, to the true changes
+            inside each interval and to its edges, before the other points are
+            left out.
         **kwargs
             Ignored.
 
@@ -641,11 +817,9 @@ class WeightedAdjustedRandIndex(BaseMetric):
         dict
             ``{"score": float}``.
         """
-        labels_true = y_true
-        labels_pred = y_pred
-
-        d_true = _compute_boundary_distances(labels_true)
-        weights = self.distance_func(d_true)
+        labels_true, labels_pred, weights = _distance_weights(
+            self, y_true, y_pred, scored_intervals
+        )
 
         wari_score = weighted_adjusted_rand_score(labels_true, labels_pred, weights)
 
@@ -671,7 +845,12 @@ class WeightedNormalizedMutualInformation(BaseMetric):
         self.average_method = average_method
 
     def compute(
-        self, y_true: np.ndarray, y_pred: np.ndarray, **kwargs
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        *,
+        scored_intervals=None,
+        **kwargs,
     ) -> dict[str, float]:
         """Compute the Weighted Normalized Mutual Information.
 
@@ -686,6 +865,14 @@ class WeightedNormalizedMutualInformation(BaseMetric):
         y_pred : np.ndarray of shape (n_timepoints,)
             Predicted state label of every time point. Labels are compared up
             to a permutation: their values carry no meaning.
+        scored_intervals : sequence of (int, int), optional
+            Half-open intervals ``[a, b)`` of the time points to score, in
+            original coordinates, for a reference with unscored points
+            (missing truth, unknown or background labels); see
+            :func:`tsseg.metrics.scored_islands`. Default: every point. The distances
+            are then measured in original coordinates, to the true changes
+            inside each interval and to its edges, before the other points are
+            left out.
         **kwargs
             Ignored.
 
@@ -694,11 +881,9 @@ class WeightedNormalizedMutualInformation(BaseMetric):
         dict
             ``{"score": float}``.
         """
-        labels_true = y_true
-        labels_pred = y_pred
-
-        d_true = _compute_boundary_distances(labels_true)
-        weights = self.distance_func(d_true)
+        labels_true, labels_pred, weights = _distance_weights(
+            self, y_true, y_pred, scored_intervals
+        )
 
         wnmi_score = weighted_normalized_mutual_info_score(
             labels_true, labels_pred, weights, average_method=self.average_method

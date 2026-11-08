@@ -8,8 +8,19 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from ._support import (
+    _check_intervals,
+    _covers_all,
+    _directional_covering,
+    _masked_covering,
+    _n_supported,
+)
 from .base import BaseMetric
-from .change_point_detection import _ensure_boundaries, _prepare_change_points
+from .change_point_detection import (
+    _ensure_boundaries,
+    _prepare_change_points,
+    _require_length_for_support,
+)
 
 
 @dataclass(frozen=True)
@@ -95,6 +106,7 @@ class BidirectionalCovering(BaseMetric):
         y_pred: Sequence[int] | np.ndarray,
         *,
         n_timepoints: int | None = None,
+        scored_intervals: Sequence[tuple[int, int]] | None = None,
     ) -> dict[str, float]:
         """Compute the bidirectional covering of two segmentations.
 
@@ -110,12 +122,33 @@ class BidirectionalCovering(BaseMetric):
             or omit the boundaries ``0`` and ``n_timepoints``. When omitted, a
             ``UserWarning`` is emitted (unless ``convert_labels_to_segments``
             is set).
+        scored_intervals:
+            Half-open intervals ``[a, b)`` of the time points where the
+            reference can be judged (masked BiC), for a reference with gaps of
+            unknown truth; see :func:`tsseg.metrics.scored_islands`. True and
+            predicted segments are clipped to each interval of at least two
+            points, matched inside it only, and the two directional coverings
+            are weighted by the scored duration. Change points outside the
+            intervals count for nothing. Requires ``n_timepoints`` or
+            ``convert_labels_to_segments``. Default: the whole series.
 
         Returns
         -------
         dict
-            ``score``, ``ground_truth_covering`` and ``prediction_covering``.
+            ``score``, ``ground_truth_covering`` and ``prediction_covering``;
+            with ``scored_intervals``, also ``n_scored`` (scored duration),
+            ``n_supported`` (change-point positions that can be judged) and
+            ``n_total``.
+
+        Raises
+        ------
+        ValueError
+            If ``scored_intervals`` has no interval of at least two points.
         """
+        if scored_intervals is not None:
+            _require_length_for_support(
+                n_timepoints, self.convert_labels_to_segments, type(self).__name__
+            )
         if isinstance(y_true, np.ndarray):
             y_true = y_true.tolist()
         else:
@@ -134,6 +167,24 @@ class BidirectionalCovering(BaseMetric):
             metric_name=type(self).__name__,
         )
 
+        if scored_intervals is not None:
+            n = y_true[-1]
+            islands = _check_intervals(scored_intervals, n)
+            if not _covers_all(islands, n):
+                ground_truth_covering, prediction_covering, duration = _masked_covering(
+                    y_true, y_pred, islands
+                )
+                return {
+                    "score": self._aggregation(
+                        ground_truth_covering, prediction_covering
+                    ),
+                    "ground_truth_covering": ground_truth_covering,
+                    "prediction_covering": prediction_covering,
+                    "n_scored": duration,
+                    "n_supported": _n_supported(islands),
+                    "n_total": n,
+                }
+
         y_true, y_pred = _ensure_boundaries(y_true, y_pred)
 
         gt_segments = self._compute_segments(y_true)
@@ -144,11 +195,14 @@ class BidirectionalCovering(BaseMetric):
 
         score = self._aggregation(ground_truth_covering, prediction_covering)
 
-        return {
+        output = {
             "score": score,
             "ground_truth_covering": ground_truth_covering,
             "prediction_covering": prediction_covering,
         }
+        if scored_intervals is not None:
+            output.update(n_scored=n, n_supported=n - 1, n_total=n)
+        return output
 
     @staticmethod
     def _compute_segments(change_points: Sequence[int]) -> list[tuple[int, int]]:
@@ -167,48 +221,7 @@ class BidirectionalCovering(BaseMetric):
         source_segments: Iterable[tuple[int, int]],
         target_segments: Iterable[tuple[int, int]],
     ) -> float:
-        source_segments = list(source_segments)
-        target_segments = list(target_segments)
-
-        if not source_segments:
-            return 1.0 if not target_segments else 0.0
-
-        total_length = sum(max(0, end - start) for start, end in source_segments)
-        if total_length <= 0:
-            return 0.0
-
-        if not target_segments:
-            return 0.0
-
-        # Ensure target segments are sorted for the sweep.
-        target_segments.sort(key=lambda seg: seg[0])
-
-        coverage_sum = 0.0
-        target_len = len(target_segments)
-        pointer = 0
-
-        for src_start, src_end in source_segments:
-            if src_end <= src_start:
-                continue
-
-            max_iou = 0.0
-
-            while pointer < target_len and target_segments[pointer][1] <= src_start:
-                pointer += 1
-
-            idx = pointer
-            while idx < target_len and target_segments[idx][0] < src_end:
-                tgt_start, tgt_end = target_segments[idx]
-                intersection = max(0, min(src_end, tgt_end) - max(src_start, tgt_start))
-                if intersection > 0:
-                    union = (src_end - src_start) + (tgt_end - tgt_start) - intersection
-                    if union > 0:
-                        max_iou = max(max_iou, intersection / union)
-                idx += 1
-
-            coverage_sum += (src_end - src_start) * max_iou
-
-        return coverage_sum / total_length
+        return _directional_covering(source_segments, target_segments)
 
 
 __all__ = ["BidirectionalCovering"]
