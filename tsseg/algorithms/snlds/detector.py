@@ -33,9 +33,10 @@ class SNLDSDetector(BaseSegmenter):
     time-step.
 
     .. warning::
-        **Experimental.** On a sample of TSB-SEG, with the default parameters,
-        SNLDS scores below a random segmentation: its labels change far more
-        often than the true regimes. See the documentation page.
+        **Experimental.** A historical TSB-SEG pilot, before the numerical
+        corrections to the objectives and covariances, scored below a random
+        segmentation and switched labels far too often. Benchmark quality of
+        the corrected model has not been established. See the documentation page.
 
     Parameters
     ----------
@@ -99,10 +100,10 @@ class SNLDSDetector(BaseSegmenter):
     the same windows, but TensorFlow does not compute the training identically
     in every run, even after ``tf.config.experimental.enable_op_determinism()``,
     and over 2,000 steps the differences can lead to another model. On a series
-    of three segments with clear mean shifts (1,000 points), three runs with the
-    default parameters gave adjusted Rand indices of 0.54, 0.97 and 0.54, and
-    seeds 0 to 4 gave 0.50 to 0.97, two of them above 0.8: the other runs merged
-    two regimes. Prediction samples the continuous states once, so two calls to
+    of three segments with clear mean shifts (1,000 points), historical runs
+    before the numerical corrections gave adjusted Rand indices of 0.54, 0.97
+    and 0.54. Seeds 0 to 4 gave 0.50 to 0.97, two of them above 0.8: the other
+    runs merged two regimes. Prediction samples the continuous states once, so two calls to
     ``predict`` on one fitted model can still differ on a few labels.
 
     The vendored model code comes from Google Research (Apache License 2.0),
