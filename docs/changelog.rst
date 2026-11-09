@@ -17,8 +17,12 @@ Unreleased
   to some CPUs), the threads were not created: Rbeast returned unset outputs,
   hence no change point or wrong ones on every multivariate series, and
   corrupted the memory, which killed the process later (segmentation fault).
-  Where the threads were created, the change points are the same as before.
-  The channels are now fitted one after the other, not in parallel, and a
+  Where the threads were created, the change points can differ from before:
+  Rbeast fits a column of a 2D array and a single series with different
+  routines (``beastv2_COREV4_mthrd.c`` and ``beastv2_COREV4.c``), whose
+  outputs differ at the same seed; ``"native"`` now uses the routine of
+  univariate series and of ``"ensembling"`` everywhere. The channels are now
+  fitted one after the other, not in parallel, and a
   multivariate series of two points gets no change point without a call to
   Rbeast.
 * Metrics on partially annotated references: ``F1Score``, ``Covering``,

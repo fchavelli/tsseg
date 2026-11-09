@@ -176,7 +176,9 @@ threads are not created: Rbeast returns unset outputs and corrupts the
 memory, so that the process is killed later. The ``"native"`` strategy
 therefore runs ``beast123`` on one channel at a time, which Rbeast computes
 in the calling thread; the channels are fitted one after the other, not in
-parallel.
+parallel. Where the threads could be created, its outputs can differ from
+those of the run on the whole array, which goes through other routines of
+Rbeast.
 
 **Crashes with seasonal models:** with ``season`` set to ``"harmonic"``,
 ``"dummy"`` or ``"svd"``, Rbeast 0.1.25 can kill the Python process (abort on
