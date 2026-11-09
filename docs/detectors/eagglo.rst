@@ -202,6 +202,98 @@ examples and implementation details, see the
 `ecp paper <https://arxiv.org/abs/1309.3295>`_ and
 `R implementation <https://github.com/cran/ecp/blob/master/R/e_agglomerative.R>`_.
 
+A calibrated MoCap profile
+--------------------------
+
+For the bundled MoCap signals, a useful starting profile is channel-wise
+z-normalisation, ``alpha=0.5``, initial blocks of 200 observations and
+``penalty=None``. This keeps the existing detector and estimates the change
+point count without receiving labels or a count:
+
+.. code-block:: python
+
+   import numpy as np
+   from tsseg import load_mocap
+   from tsseg.algorithms import EAggloDetector
+
+   X, _ = load_mocap(trial=0, return_X_y=True)
+   std = X.std(axis=0)
+   X = (X - X.mean(axis=0)) / np.where(std == 0, 1, std)
+   detector = EAggloDetector(
+       alpha=0.5,
+       member=np.arange(len(X)) // 200,
+       penalty=None,
+   )
+   change_points = detector.fit_predict(X)
+
+The profile was selected in an exploratory grid of 288 settings on the nine
+original MoCap trials, without shuffling. The grid varied ``alpha`` in
+``{0.5, 1, 2}``, block size in ``{10, 25, 50, 100, 200, 400}``, and 16 penalty
+settings: eleven linear coefficients (including no penalty and
+``len_penalty``), the paper's mean-length reward, and four distance-scaled
+logarithmic penalties. The logarithmic choices are comparison heuristics,
+not a derived information criterion. Both the grid and the final evaluation
+use the benchmark's per-channel z-normalisation.
+
+.. list-table:: Mean BiCovering on the nine original MoCap trials
+   :header-rows: 1
+   :widths: 20 25 25 30
+
+   * - Alpha
+     - Initial blocks
+     - Penalty
+     - Mean BiCovering
+   * - 1.0
+     - Singletons (default)
+     - None
+     - 0.272
+   * - 1.0
+     - 50 observations
+     - None
+     - 0.317
+   * - 1.0
+     - 200 observations
+     - None
+     - 0.649
+   * - 0.5
+     - 200 observations
+     - None
+     - 0.718
+
+The chosen profile improves BiCovering on all nine trials. Its mean F1 at a
+1% margin is 0.437, against 0.240 for the defaults. These are scores on the
+same trials used to select the profile, not an independent test estimate.
+In a leave-one-trial-out check, selecting among all 288 settings on eight
+trials and scoring only the ninth gives mean BiCovering 0.688. Every fold
+selects ``alpha=0.5`` and blocks of 200; eight select no penalty, and one
+selects a linear coefficient of 0.25. Reference labels select hyperparameters
+across trials; the held-out detector receives neither labels nor the true
+number of changes.
+
+Longer blocks substantially reduce over-segmentation on these signals.
+Adding a fixed penalty can remove real transitions: it is not an automatic
+improvement once the partition is coarser. The selected block size also
+restricts every returned boundary to a multiple of 200 observations. It can
+miss close changes and limits location precision, so this profile is intended
+for MoCap, not as a universal replacement for the constructor defaults. The
+F1 decreases on two trials despite a higher BiCovering; on ``86_09`` it falls
+from 0.750 to zero because the coarse boundaries miss the 1% tolerance. The
+paper motivates block initialisation and permits exponents below one; the
+specific values here come from this calibration, not a recommendation made
+by the authors.
+
+To reproduce the grid, its cross-validation, and the final comparison:
+
+.. code-block:: sh
+
+   PYTHONPATH=. python examples/eagglo_mocap_calibration.py --sweep --verify
+
+The script writes the full grid, ranking, held-out selections and verified
+predictions under ``/tmp/eagglo-mocap-calibration`` (``--output`` changes this).
+Exploration shares a SciPy pairwise-distance matrix across block sizes and
+reuses merge histories across penalties. Verification recomputes the default
+and proposed profiles with the public detector and its normal kernels.
+
 API reference
 -------------
 

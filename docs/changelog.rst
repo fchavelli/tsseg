@@ -18,6 +18,12 @@ Unreleased
   The detector guide and ``examples/eagglo_diagnostics.py`` explain and
   illustrate the distinct causes of over-segmentation: the inherited ``ecp``
   statistic, penalty scale, initial partition and serial dependence.
+  A separate MoCap calibration example recommends per-channel
+  z-normalisation, ``alpha=0.5``, blocks of 200 and no penalty: mean
+  BiCovering 0.718 on the nine original trials, against 0.272 with the
+  defaults; leave-one-trial-out parameter selection gives 0.688. The
+  constructor defaults are unchanged, and the profile limits boundary
+  resolution to 200 observations.
 * Metrics on partially annotated references: ``F1Score``, ``Covering``,
   ``BidirectionalCovering`` and the six state detection metrics take a
   keyword-only ``scored_intervals``, the half-open intervals of the points to
