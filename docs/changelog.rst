@@ -9,6 +9,19 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Fix ``BOCDDetector`` inference: a constant hazard now defines a geometric
+  segment-duration prior, with right censoring of the final segment. Boundary
+  probabilities are marginal events rather than scores normalised to sum to
+  one; the latter imposed an artificial limit of 20 candidates at the default
+  threshold of 0.05. A forward-backward recursion with stable running moments
+  replaces the cubic-time, quadratic-memory ordinal change-point calculation:
+  the detector now uses quadratic worst-case time and linear inference memory,
+  without new dependencies. The Normal-Gamma evidence also includes its missing
+  factor ``2**(-n/2)``, which cancels between full-series segmentations.
+  ``truncate`` uses natural logs (``exp(truncate)``), as the original comparison
+  did; documentation incorrectly said ``10**truncate``. ``max_cps=0`` skips
+  inference. Detection outputs change; earlier BOCD benchmark scores need to be
+  recomputed. Constructor parameters and defaults are unchanged.
 * Metrics on partially annotated references: ``F1Score``, ``Covering``,
   ``BidirectionalCovering`` and the six state detection metrics take a
   keyword-only ``scored_intervals``, the half-open intervals of the points to
