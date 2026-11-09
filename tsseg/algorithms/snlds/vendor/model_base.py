@@ -12,7 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Modified for tsseg (2026): imports made relative to this vendored package.
+# Modified for tsseg (2026): relative imports; align log_b with the destination
+# state in the expected complete-data likelihood; use the forward normalizers
+# for the collapsed ELBO/IWAE instead of the expected complete-data score.
 # Upstream: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
 
 """Switching non-linear dynamical systems (SwitchingNLDS)."""
@@ -184,8 +186,9 @@ class SwitchingNLDS(tf.keras.Model):
     # Forward-backward algorithm will return the posterior marginal of
     # discrete states `log_gamma2 = p(s[t]=k, s[t-1]=j | x[1:T], z[1:T])'
     # and `log_gamma1 = p(s[t]=k | x[1:T], z[1:T])'.
-    _, _, log_gamma1, log_gamma2 = forward_backward_algo.forward_backward(
-        log_a, log_b, self.log_init)
+    _, _, log_gamma1, log_gamma2, log_marginal = (
+        forward_backward_algo.forward_backward(
+            log_a, log_b, self.log_init, return_log_likelihood=True))
 
     recon_inputs = self.get_reconstruction(
         z_sampled,
@@ -201,7 +204,8 @@ class SwitchingNLDS(tf.keras.Model):
     #   zt_entropy: the entropy of posterior distribution.
     return_dict = self.get_objective_values(log_a, log_b, self.log_init,
                                             log_gamma1, log_gamma2, log_prob_q,
-                                            z_entropy, num_samples)
+                                            z_entropy, num_samples,
+                                            log_marginal=log_marginal)
 
     # Estimate the cross entropy between state prior and posterior likelihoods.
     state_crossentropy = utils.get_posterior_crossentropy(
@@ -256,7 +260,7 @@ class SwitchingNLDS(tf.keras.Model):
     gamma1 = tf.exp(log_gamma1)
     gamma2 = tf.exp(log_gamma2)
     t1 = tf.reduce_sum(gamma2[:, 1:, :, :]
-                       * (log_b[:, 1:, tf.newaxis, :]
+                       * (log_b[:, 1:, :, tf.newaxis]
                           + log_a[:, 1:, :, :]),
                        axis=[1, 2, 3])
 
@@ -270,7 +274,8 @@ class SwitchingNLDS(tf.keras.Model):
                            log_gamma1, log_gamma2,
                            log_prob_q,
                            posterior_entropies,
-                           num_samples):
+                           num_samples,
+                           log_marginal=None):
     """Given all precalculated probabilities, return ELBO."""
     # All the sequences should be of the shape
     # [batch_size, num_steps, (data_dim)]
@@ -283,8 +288,14 @@ class SwitchingNLDS(tf.keras.Model):
     t1_mean = tf.reduce_mean(sequence_likelihood, axis=0)
     t2_mean = tf.reduce_mean(initial_likelihood, axis=0)
     t3_mean = tf.reduce_mean(t3, axis=0)
-    elbo = t1_mean + t2_mean + t3_mean
-    iwae = self._get_iwae(sequence_likelihood, initial_likelihood, log_prob_q,
+    # E_s[log p(x,z,s)] alone omits H(p(s|x,z)). Differentiating it through
+    # the smoothing marginals is not the gradient of log p(x,z). Summing the
+    # forward normalizers marginalizes s exactly, as in Eq. (12) of the paper.
+    if log_marginal is None:
+      _, normalizers = forward_backward_algo.forward_pass(log_a, log_b, log_init)
+      log_marginal = tf.reduce_sum(normalizers, axis=1)
+    elbo = tf.reduce_mean(log_marginal, axis=0) + t3_mean
+    iwae = self._get_iwae(log_marginal, log_prob_q,
                           num_samples)
     return dict(
         elbo=elbo,
@@ -293,7 +304,7 @@ class SwitchingNLDS(tf.keras.Model):
         sequence_likelihood=t1_mean,
         zt_entropy=t3_mean)
 
-  def _get_iwae(self, sequence_likelihood, initial_likelihood, log_prob_q,
+  def _get_iwae(self, log_likelihood, log_prob_q,
                 num_samples):
     r"""Computes the IWAE bound given the pre-computed log-probabilities.
 
@@ -302,12 +313,10 @@ class SwitchingNLDS(tf.keras.Model):
     where z^i and x are complete trajectories z_{1:T}^i and x_{1:T}. The {1:T}
     is omitted for simplicity of notation.
 
-    log p(x, z) is given by E_s[log p(s, x, z)]
+    log p(x, z) is computed by the forward recursion, summing out s.
 
     Args:
-      sequence_likelihood: E_s[log p(s[1:T], v[1:T] | s[0], v[0])],
-        size [num_samples * batch_size]
-      initial_likelihood: E_s[log p(s[0], v[0])],
+      log_likelihood: log p(x[1:T], z[1:T]), with s marginalized out,
         size [num_samples * batch_size]
       log_prob_q: log q(z[t]| x[1:T], z[1:t-1]),
         size [num_samples * batch_size, T]
@@ -316,7 +325,6 @@ class SwitchingNLDS(tf.keras.Model):
     Returns:
       tf.Tensor, the estimated IWAE bound.
     """
-    log_likelihood = sequence_likelihood + initial_likelihood
     log_surrogate_posterior = tf.reduce_sum(log_prob_q, axis=-1)
 
     # Reshape likelihoods to [num_samples, batch_size]

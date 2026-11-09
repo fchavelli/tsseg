@@ -8,8 +8,10 @@ highest posterior probability.
 
 ## Key properties
 
-- **Experimental**: below a random segmentation on a 54-series sample of TSB-SEG
-  (labels change about 200 times too often); kept for further study
+- **Experimental**: a historical pilot, before the objective and covariance
+  corrections, scored below a random segmentation on 54 series of TSB-SEG
+  (labels changed about 200 times too often). Benchmark quality of the corrected
+  implementation has not been established.
 
 - Type: state detection
 - Semi-supervised (`n_states` is the number of regimes)
@@ -28,14 +30,23 @@ TensorFlow code.
 - Origin: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
   (`forward_backward_algo.py`, `model_base.py`, `model_cavi_snlds.py`, `utils.py`,
   `examples/config_utils.py`)
-- Changes: relative imports; Keras 3 compatible initial state and call of the
-  posterior RNN in `model_cavi_snlds.py`. Each modified file says so in its header.
+- Changes: relative imports; Keras 3 compatible initial states (including LSTM)
+  and calls of the posterior RNN; destination-state indexing of the expected
+  complete-data score; exact collapsed objectives using forward normalizers;
+  tracked Gaussian scale parameters transformed inside the training graph.
+  Each modified file says so in its header.
 - Licence: Apache License 2.0 (Copyright The Google Research Authors)
 - Licence file: `vendor/LICENSE`
 
 Training follows the annealing schedule of the paper's Reacher experiment,
 scaled to `n_train_steps`, on random windows of the series (see the class
 docstring).
+
+The wrapper uses a forward inference RNN without the paper's bidirectional
+encoder, and fits one series rather than a collection of trajectories. The
+documentation page records the numerical audit, runtime costs and remaining
+limitations. These differences prevent treating this wrapper as a reproduction
+of the paper's reported performance.
 
 ## Citation
 

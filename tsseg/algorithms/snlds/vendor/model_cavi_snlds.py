@@ -12,7 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Modified for tsseg (2026): imports made relative to this vendored package; Keras 3 compatibility of the posterior RNN (initial state, positional call).
+# Modified for tsseg (2026): relative imports; Keras 3 posterior RNN initial
+# states and positional calls; track covariance weights and evaluate their
+# transforms inside call so trainable scales receive gradients.
 # Upstream: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
 
 """Collapsed Amortized Variational Inference for SNLDS.
@@ -46,6 +48,32 @@ tfd = tfp.distributions
 tfpl = tfp.layers
 
 RANDOM_SEED = 131
+
+
+class _GaussianScale(layers.Layer):
+  """Tracked covariance parameter, transformed at call time rather than init."""
+
+  def __init__(self, dimension, triangular, trainable, raw_sigma_bias,
+               sigma_min, sigma_scale, dtype, name):
+    super().__init__(dtype=dtype, name=name)
+    self.triangular = triangular
+    self.raw_sigma_bias = raw_sigma_bias
+    self.sigma_min = sigma_min
+    self.sigma_scale = sigma_scale
+    size = dimension * (dimension + 1) // 2 if triangular else dimension
+    self.raw_cov = self.add_weight(
+        name="raw_cov", shape=[size], dtype=dtype, trainable=trainable,
+        initializer=lambda shape, dtype=None: tf.random.uniform(
+            shape, minval=0., maxval=1., dtype=dtype))
+    # This parameter-only layer has no input-dependent state to build later.
+    self.built = True
+
+  @property
+  def value(self):
+    raw = (tfp.math.fill_triangular(self.raw_cov) if self.triangular
+           else self.raw_cov)
+    return (tf.maximum(tf.nn.softmax(raw + self.raw_sigma_bias), self.sigma_min)
+            * self.sigma_scale)
 
 
 def construct_initial_state_distribution(
@@ -178,32 +206,16 @@ class ContinuousStateTransition(tf.keras.Model):
     self.use_triangular_cov = use_triangular_cov
     self.distribution_dim = distribution_dim
 
-    if cov_mat:
-      self.cov_mat = cov_mat
-    elif self.use_triangular_cov:
-      self.cov_mat = tfp.math.fill_triangular(
-          tf.Variable(
-              tf.random.uniform(
-                  shape=[
-                      int(self.distribution_dim
-                          * (self.distribution_dim + 1) / 2)],
-                  minval=0., maxval=1.,
-                  dtype=dtype),
-              name="{}_cov".format(name),
-              dtype=dtype,
-              trainable=use_trainable_cov))
-      self.cov_mat = tf.maximum(tf.nn.softmax(self.cov_mat + raw_sigma_bias),
-                                sigma_min) * sigma_scale
-    else:
-      self.cov_mat = tf.Variable(
-          tf.random.uniform(shape=[self.distribution_dim],
-                            minval=0.0, maxval=1.,
-                            dtype=dtype),
-          name="{}_cov".format(name),
-          dtype=dtype,
-          trainable=use_trainable_cov)
-      self.cov_mat = tf.maximum(tf.nn.softmax(self.cov_mat + raw_sigma_bias),
-                                sigma_min) * sigma_scale
+    self._fixed_cov = cov_mat
+    self._scale = None
+    if cov_mat is None:
+      self._scale = _GaussianScale(
+          distribution_dim, use_triangular_cov, use_trainable_cov,
+          raw_sigma_bias, sigma_min, sigma_scale, dtype, name + "_scale")
+
+  @property
+  def cov_mat(self):
+    return self._fixed_cov if self._scale is None else self._scale.value
 
   def call(self, input_tensor, dtype=tf.float32):
 
@@ -313,31 +325,16 @@ class GaussianDistributionFromMean(tf.keras.Model):
     self.x_emission_net = emission_mean_network
     self.use_triangular_cov = use_triangular_cov
 
-    if cov_mat:
-      self.cov_mat = cov_mat
-    elif self.use_triangular_cov:
-      local_variable = tf.Variable(
-          tf.random.uniform(
-              shape=[int(self.observation_dim*(self.observation_dim+1)/2)],
-              minval=0., maxval=1.,
-              dtype=dtype),
-          name="{}_cov".format(name),
-          dtype=dtype,
-          trainable=use_trainable_cov)
-      self.cov_mat = tfp.math.fill_triangular(
-          local_variable)
-      self.cov_mat = tf.maximum(tf.nn.softmax(self.cov_mat + raw_sigma_bias),
-                                sigma_min) * sigma_scale
-    else:
-      self.cov_mat = tf.Variable(
-          initial_value=tf.random.uniform(shape=[self.observation_dim],
-                                          minval=0.0, maxval=1.,
-                                          dtype=dtype),
-          name="{}_cov".format(name),
-          dtype=dtype,
-          trainable=use_trainable_cov)
-      self.cov_mat = tf.maximum(tf.nn.softmax(self.cov_mat + raw_sigma_bias),
-                                sigma_min) * sigma_scale
+    self._fixed_cov = cov_mat
+    self._scale = None
+    if cov_mat is None:
+      self._scale = _GaussianScale(
+          observation_dim, use_triangular_cov, use_trainable_cov,
+          raw_sigma_bias, sigma_min, sigma_scale, dtype, name + "_scale")
+
+  @property
+  def cov_mat(self):
+    return self._fixed_cov if self._scale is None else self._scale.value
 
   def call(self, input_tensor, dtype=tf.float32):
 
@@ -438,9 +435,12 @@ class RnnInferenceNetwork(tf.keras.Model):
           dtype=dtype)
     except TypeError:
       # Newer Keras versions changed the get_initial_state signature
-      initial_rnn_state = tf.zeros(
-          [batch_size * num_samples, self.posterior_rnn.units],
-          dtype=dtype)
+      # Keras 3 removed dtype, but its method still constructs the cell's
+      # state structure (in particular both hidden and cell states for LSTM).
+      initial_rnn_state = self.posterior_rnn.get_initial_state(
+          batch_size=batch_size * num_samples)
+      initial_rnn_state = tf.nest.map_structure(
+          lambda state: tf.cast(state, dtype), initial_rnn_state)
     if (isinstance(self.posterior_rnn, layers.GRUCell)
         or isinstance(self.posterior_rnn, layers.SimpleRNNCell)):
       if not isinstance(initial_rnn_state, (list, tuple)):
