@@ -9,6 +9,15 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``EAggloDetector`` computes the quadratic initial distance loops and
+  candidate-merge scans inside Numba, skips repeated membership scans for
+  default singleton clusters, and evaluates penalties without retaining a
+  Python list for every partition. The statistic and returned segmentation
+  are unchanged. A local 4,000-point, four-channel example took 1.67 s instead
+  of 18.06 s after initial compilation; time and memory remain quadratic.
+  The detector guide and ``examples/eagglo_diagnostics.py`` explain and
+  illustrate the distinct causes of over-segmentation: the inherited ``ecp``
+  statistic, penalty scale, initial partition and serial dependence.
 * Metrics on partially annotated references: ``F1Score``, ``Covering``,
   ``BidirectionalCovering`` and the six state detection metrics take a
   keyword-only ``scored_intervals``, the half-open intervals of the points to
