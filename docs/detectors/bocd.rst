@@ -1,19 +1,24 @@
 BOCD
 ====
 
-BOCD (Bayesian Online Change-point Detection) – posterior thresholding.
+BOCD – offline Bayesian change-point detection with posterior thresholding.
 
 Description
 -----------
 
 This offline Bayesian change-point detector integrates out the mean and variance
-of each segment under a conjugate Normal-Gamma prior, constructs a run-length
-posterior via dynamic programming, and selects change points by thresholding the
-posterior probability of a boundary.  It extends the classical framework of
-Fearnhead (2006) and Adams & MacKay (2007) to multivariate time series.
+of each segment under a conjugate Normal-Gamma prior and uses forward and backward
+messages to compute the marginal probability of a boundary at each position,
+following the product-partition model of Fearnhead (2006). It uses the whole
+series; the historical class name does not imply the online filtering algorithm
+of Adams & MacKay (2007).
 
 A constant hazard function :math:`H(\tau) = 1/\lambda` controls the prior
-expectation of segment length.  Two strategies handle multivariate inputs:
+expectation of segment length. The duration mass is geometric,
+:math:`g(l) = H(1-H)^{l-1}`, and the final segment is right censored.
+Boundary probabilities are separate marginal events: their sum is the posterior
+expected number of changes, and can exceed one. Two strategies handle
+multivariate inputs:
 
 - ``"l2"`` – reduces channels via L2 norm before inference.
 - ``"ensembling"`` – runs per-channel inference and aggregates change points.
@@ -21,8 +26,15 @@ expectation of segment length.  Two strategies handle multivariate inputs:
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
-| **Complexity:** :math:`O(d\,n + n^{3})` time, :math:`O(n^{2})` memory
-  (``"l2"`` strategy; ``"ensembling"``: :math:`O(d\,n^{3})`)
+| **Complexity:** :math:`O(d\,n + n^{2})` worst-case time, :math:`O(n)` working memory
+  beyond the input (``"l2"`` strategy; ``"ensembling"``: :math:`O(d\,n^{2})`
+  time and up to :math:`O(d\,n)` candidate storage).
+
+The implementation updates segment moments with Welford's recurrence and
+precomputes the likelihood terms that depend only on segment length. It does not
+store every segment or compute the distribution of the ordinal number of each
+change point. Truncation approximates message sums; it does not make this
+implementation linear in time, since all segment moments are still evaluated.
 
 Parameters
 ----------
@@ -58,7 +70,8 @@ Parameters
    * - ``truncate``
      - int
      - ``-40``
-     - Log-probability truncation threshold for the DP matrix.
+     - Natural-log cutoff: stop a sum after a term smaller than
+       ``exp(truncate)`` times its accumulated total.
    * - ``cp_prob_threshold``
      - float
      - ``0.05``
@@ -70,7 +83,8 @@ Parameters
    * - ``max_cps``
      - int / None
      - ``None``
-     - Optional upper bound on the number of change points.
+     - Optional upper bound after thresholding, not inference conditional on
+       exactly this many changes.
    * - ``multivariate_strategy``
      - str
      - ``"l2"``
@@ -97,8 +111,34 @@ Usage
 **Implementation:** Adapted from hildensia/bayesian_changepoint_detection.
 MIT License.
 
-**Reference:** Fearnhead (2006), Statistics and Computing; Adams & MacKay (2007),
-arXiv.
+**Reference:** `Fearnhead (2006), Statistics and Computing
+<https://eprints.lancs.ac.uk/id/eprint/8189/>`_; `Adams & MacKay (2007), arXiv
+<https://arxiv.org/abs/0710.3742>`_.
+
+Suitability and limitations
+---------------------------
+
+The observation model is an independent Gaussian distribution within each
+segment, with an unknown mean and variance. It suits abrupt changes of level or
+variance. A change in autocorrelation, frequency or cross-channel dependence can
+leave these statistics unchanged. Temporal dependence and outliers can also
+produce extra detections. The conjugate prior must match the scale and offset of
+the observations; ``hazard_lambda`` is in samples, so its interpretation depends
+on the sampling rate.
+
+L2 reduction discards direction: a multivariate mean changing from ``(a, 0)`` to
+``(-a, 0)`` has the same norm. Ensembling preserves changes visible in individual
+channels, at a cost proportional to their number; it still does not model their
+joint covariance. ``min_distance`` excludes candidates near both series edges
+and spaces the retained boundaries. It does not constrain segment lengths in the
+Bayesian model.
+
+Before the correction in Unreleased, the detector passed a constant mass instead
+of a geometric duration mass, normalised boundary marginals to sum to one, and
+used cubic-time inference with quadratic memory. Consequently, earlier benchmark
+scores measure that implementation and its decision rule. They need to be
+recomputed before drawing conclusions about the corrected model. Performance
+improvements alone do not establish detection quality on real data.
 
 API reference
 -------------

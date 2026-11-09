@@ -296,8 +296,8 @@ METHODS = [
        "Arlot, Celisse & Harchaoui (2019), JMLR", status="deprecated"),
     # ---- Bayesian (DP)
     _m("BOCD", "BOCDDetector", "bocd", "bayes", "model",
-       "Bayesian run-length posterior (offline run of an online method)",
-       "Adams & MacKay (2007)", "dn + n^3"),
+       "offline Bayesian boundary marginals with a geometric duration prior",
+       "Fearnhead (2006), Statistics and Computing", "dn + n^2"),
     _m("BEAST", "BeastDetector", "beast", "bayes", "model",
        "Bayesian model averaging of trend and seasonality", "Zhao et al. (2019), RSE",
        "dn"),

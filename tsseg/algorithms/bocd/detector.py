@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy.special import gammaln, logsumexp
+from scipy.special import gammaln
 
-from tsseg.algorithms.bocd.bayesian_models import offline_changepoint_detection
+from tsseg.algorithms.bocd.bayesian_models import _offline_changepoint_probabilities
 
 from ..base import BaseSegmenter
 from ..param_schema import (
@@ -19,8 +19,8 @@ from ..utils import aggregate_change_points, multivariate_l2_norm
 class BOCDDetector(BaseSegmenter):
     """Bayesian change-point detector based on offline inference.
 
-    This implementation wraps the offline Bayesian change-point detection
-    heuristic introduced by Fearnhead (2006). It integrates out the mean and
+    This implementation uses the offline product-partition model of
+    Fearnhead (2006). It integrates out the mean and
     variance of each segment under a conjugate Normal-Gamma prior and selects
     change points by thresholding the posterior probability of a boundary.
 
@@ -38,8 +38,9 @@ class BOCDDetector(BaseSegmenter):
     beta : float, default=1.0
         Prior scale of the inverse-gamma distribution over the variance.
     truncate : int, default=-40
-        Log probability truncation used by the dynamic programme. Values
-        further than ``10**truncate`` below the running total are skipped.
+        Natural-log truncation used by the dynamic programme. A segment
+        sum stops after a term whose fraction of the accumulated sum is
+        below ``exp(truncate)``. Worst-case time remains quadratic.
     cp_prob_threshold : float, default=0.05
         Minimum posterior probability required to accept a change point.
     min_distance : int, default=25
@@ -95,7 +96,7 @@ class BOCDDetector(BaseSegmenter):
         ),
         "truncate": ParamDef(
             constraint=Interval(int, None, 0, Closed.RIGHT),
-            description="Log-probability truncation exponent.",
+            description="Natural-log truncation cutoff for segment sums.",
         ),
         "cp_prob_threshold": ParamDef(
             constraint=Interval(float, 0, 1, Closed.NEITHER),
@@ -167,7 +168,7 @@ class BOCDDetector(BaseSegmenter):
 
         n_samples, n_channels = data.shape
 
-        if n_samples < 2:
+        if n_samples < 2 or self.max_cps == 0:
             return np.empty(0, dtype=np.int64)
 
         if n_channels > 1 and self.multivariate_strategy == "ensembling":
@@ -206,29 +207,13 @@ class BOCDDetector(BaseSegmenter):
         hazard_prob = 1.0 / max(self.hazard_lambda, 1.0)
         hazard_prob = float(np.clip(hazard_prob, 1e-6, 1.0 - 1e-6))
 
-        def _prior(run_length: int) -> float:
-            _ = run_length  # unused, but kept for API compatibility
-            return np.log(hazard_prob)
-
         log_likelihood = _StudentTLogMarginal(
             mu0=self.mu, kappa0=self.kappa, alpha0=self.alpha, beta0=self.beta
         )
 
-        _, _, log_pcp = offline_changepoint_detection(
-            signal, _prior, log_likelihood, truncate=self.truncate
+        cp_probabilities = _offline_changepoint_probabilities(
+            signal, hazard_prob, log_likelihood, truncate=self.truncate
         )
-
-        if log_pcp.size == 0:
-            return np.empty(0, dtype=np.int64)
-
-        log_cp_probs = logsumexp(log_pcp, axis=0)
-        finite_mask = np.isfinite(log_cp_probs)
-        if not finite_mask.any():
-            return np.empty(0, dtype=np.int64)
-
-        normaliser = logsumexp(log_cp_probs[finite_mask])
-        cp_probabilities = np.zeros(log_cp_probs.shape[0], dtype=float)
-        cp_probabilities[finite_mask] = np.exp(log_cp_probs[finite_mask] - normaliser)
 
         return _select_change_points(
             cp_probabilities,
@@ -250,8 +235,8 @@ class BOCDDetector(BaseSegmenter):
 class _StudentTLogMarginal:
     """Normal-Gamma marginal likelihood for a univariate Gaussian segment.
 
-    Results are cached per ``(t, s)`` pair to avoid redundant computation
-    during the :math:`O(n^2)` dynamic programme.
+    The detector evaluates vectors of segments from sufficient statistics.
+    The scalar ``pdf`` interface is retained for the legacy inference helper.
     """
 
     def __init__(self, mu0: float, kappa0: float, alpha0: float, beta0: float):
@@ -263,6 +248,34 @@ class _StudentTLogMarginal:
         self.beta0 = float(beta0)
         self._cache: dict[tuple[int, int], float] = {}
         self._cached_data_id: int | None = None
+
+    def _prepare(self, n_samples: int) -> None:
+        """Cache only the O(n) terms that depend on segment length."""
+        counts = np.arange(n_samples + 1)
+        kappa_n = self.kappa0 + counts
+        self._alpha_n = self.alpha0 + 0.5 * counts
+        self._mean_weights = self.kappa0 * counts / (2 * kappa_n)
+        self._log_constants = (
+            gammaln(self._alpha_n)
+            - gammaln(self.alpha0)
+            + self.alpha0 * np.log(self.beta0)
+            + 0.5 * (np.log(self.kappa0) - np.log(kappa_n))
+            - 0.5 * counts * np.log(2 * np.pi)
+        )
+
+    def _log_marginals(
+        self,
+        mean_deviations: np.ndarray,
+        sample_ss: np.ndarray,
+        counts: np.ndarray,
+    ) -> np.ndarray:
+        """Evaluate segment evidence from stable running sample moments."""
+        beta_n = (
+            self.beta0
+            + 0.5 * sample_ss
+            + self._mean_weights[counts] * mean_deviations**2
+        )
+        return self._log_constants[counts] - self._alpha_n[counts] * np.log(beta_n)
 
     def pdf(self, data: np.ndarray, t: int, s: int) -> float:
         # Invalidate cache when the underlying data array changes.
@@ -307,7 +320,7 @@ class _StudentTLogMarginal:
             + self.alpha0 * np.log(self.beta0)
             - alpha_n * np.log(beta_n)
             + 0.5 * (np.log(self.kappa0) - np.log(kappa_n))
-            - 0.5 * n * np.log(np.pi)
+            - 0.5 * n * np.log(2 * np.pi)
         )
 
 
