@@ -9,6 +9,21 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Metrics on partially annotated references: ``F1Score``, ``Covering``,
+  ``BidirectionalCovering`` and the six state detection metrics take a
+  keyword-only ``scored_intervals``, the half-open intervals of the points to
+  score, and the new ``tsseg.metrics.scored_islands`` derives them from a
+  label sequence (for example the runs that are not ``-1``). The series keeps
+  its length: ARI, AMI and NMI score the scored points; WARI and WNMI measure
+  their distance weights inside each interval, its edges included, before
+  leaving out the other points; SMS fits one mapping on the scored points,
+  stops error segments at the edges of the intervals and divides its losses
+  by the number of scored points (masked SMS); F1 judges only the change
+  points inside an interval and never matches across a gap; Covering and BiC
+  clip segments to the intervals. Without the argument, or with one interval
+  covering the series, the scores are unchanged. The boundary distances of
+  WARI and WNMI are now computed without a loop over the points (same
+  values), which makes them usable on series of a million points.
 * New ``LaplacianDetector`` (state detection, unsupervised or guided): the
   Laplacian structural decomposition of McFee & Ellis (ISMIR 2014) applied to
   windows of a series. Frames are linked to their mutual nearest neighbours

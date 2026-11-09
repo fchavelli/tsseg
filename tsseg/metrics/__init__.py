@@ -1,3 +1,4 @@
+from ._support import scored_islands
 from .base import BaseMetric
 from .bidirectional_covering import BidirectionalCovering
 from .change_point_detection import Covering, F1Score, HausdorffDistance
@@ -24,4 +25,5 @@ __all__ = [
     "NormalizedMutualInformation",
     "WeightedAdjustedRandIndex",
     "WeightedNormalizedMutualInformation",
+    "scored_islands",
 ]

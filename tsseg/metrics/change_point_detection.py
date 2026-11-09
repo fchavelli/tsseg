@@ -2,6 +2,13 @@ import warnings
 
 import numpy as np
 
+from ._support import (
+    _check_intervals,
+    _covers_all,
+    _masked_covering,
+    _n_supported,
+    _supported_points,
+)
 from .base import BaseMetric
 
 """
@@ -96,6 +103,17 @@ def _prepare_change_points(
         _with_series_bounds(y_true, n_timepoints),
         _with_series_bounds(y_pred, n_timepoints),
     )
+
+
+def _require_length_for_support(
+    n_timepoints: int | None, convert_labels_to_segments: bool, metric_name: str
+) -> None:
+    """``scored_intervals`` lie in original coordinates: the length is needed."""
+    if n_timepoints is None and not convert_labels_to_segments:
+        raise ValueError(
+            f"{metric_name}: scored_intervals needs n_timepoints (or label "
+            "sequences with convert_labels_to_segments=True)"
+        )
 
 
 def _ensure_boundaries(
@@ -194,6 +212,7 @@ class F1Score(BaseMetric):
         y_pred: np.ndarray,
         *,
         n_timepoints: int | None = None,
+        scored_intervals=None,
     ) -> dict[str, float]:
         """
         Computes the F1-score, precision, and recall.
@@ -207,12 +226,32 @@ class F1Score(BaseMetric):
                     ``n_timepoints``. When omitted, the length is read from
                     the last element of ``y_true`` and a ``UserWarning`` is
                     emitted (unless ``convert_labels_to_segments`` is set).
+            scored_intervals: Half-open intervals ``[a, b)`` of the time
+                    points where the reference can be judged (masked F1),
+                    for a reference with gaps of unknown truth; see
+                    :func:`tsseg.metrics.scored_islands`. An interval
+                    ``[a, b)`` judges the change points ``a + 1`` to
+                    ``b - 1``; true and predicted change points elsewhere
+                    count for nothing, and a true and a predicted change point
+                    match only inside the same interval. Requires
+                    ``n_timepoints`` or ``convert_labels_to_segments``.
+                    Default: the whole series.
         Returns:
             A dictionary with F1-score, precision, and recall. When neither
             list has a change point once the boundaries ``0`` and the series
             length are set aside (e.g. ``compute([n], [])``), all three are
-            1.0; when only one of them is empty, all three are 0.0.
+            1.0; when only one of them is empty, all three are 0.0. With
+            ``scored_intervals``, also ``n_supported`` (change-point
+            positions that can be judged), ``n_scored`` and ``n_total``.
+
+        Raises:
+            ValueError: If ``scored_intervals`` supports no change-point
+                    position.
         """
+        if scored_intervals is not None:
+            _require_length_for_support(
+                n_timepoints, self.convert_labels_to_segments, type(self).__name__
+            )
         if isinstance(y_true, np.ndarray):
             y_true = y_true.tolist()
         if isinstance(y_pred, np.ndarray):
@@ -251,11 +290,36 @@ class F1Score(BaseMetric):
         filtered_true = _strip_boundaries(y_true, series_length)
         filtered_pred = _strip_boundaries(y_pred, series_length)
 
+        support = {}
+        groups = None
+        if scored_intervals is not None:
+            islands = _check_intervals(scored_intervals, series_length)
+            support = {
+                "n_supported": _n_supported(islands),
+                "n_scored": sum(b - a for a, b in islands),
+                "n_total": series_length,
+            }
+            if support["n_supported"] == 0:
+                raise ValueError(
+                    "scored_intervals supports no change-point position "
+                    "(no interval of at least two points)"
+                )
+            groups = list(
+                zip(
+                    _supported_points(filtered_true, islands),
+                    _supported_points(filtered_pred, islands),
+                    strict=True,
+                )
+            )
+            filtered_true = [cp for t, _ in groups for cp in t]
+            filtered_pred = [cp for _, p in groups for cp in p]
+
         if not filtered_true and not filtered_pred:
             return {
                 "score": 1.0,
                 "precision": 1.0,
                 "recall": 1.0,
+                **support,
             }
 
         if not filtered_true or not filtered_pred:
@@ -263,6 +327,7 @@ class F1Score(BaseMetric):
                 "score": 0.0,
                 "precision": 0.0,
                 "recall": 0.0,
+                **support,
             }
 
         if margin_rounded_to_zero:
@@ -272,7 +337,10 @@ class F1Score(BaseMetric):
                 UserWarning,
             )
 
-        tp = _true_positives(filtered_true, filtered_pred, margin)
+        if groups is None:
+            tp = _true_positives(filtered_true, filtered_pred, margin)
+        else:
+            tp = sum(_true_positives(t, p, margin) for t, p in groups if t and p)
 
         precision = tp / len(filtered_pred)
         recall = tp / len(filtered_true)
@@ -286,6 +354,7 @@ class F1Score(BaseMetric):
             "score": f1,
             "precision": precision,
             "recall": recall,
+            **support,
         }
 
 
@@ -320,6 +389,7 @@ class Covering(BaseMetric):
         y_pred: np.ndarray,
         *,
         n_timepoints: int | None = None,
+        scored_intervals=None,
     ) -> dict[str, float]:
         """
         Computes the Covering score.
@@ -333,10 +403,27 @@ class Covering(BaseMetric):
                     may include or omit the boundaries ``0`` and
                     ``n_timepoints``. When omitted, a ``UserWarning`` is
                     emitted (unless ``convert_labels_to_segments`` is set).
+            scored_intervals: Half-open intervals ``[a, b)`` of the time
+                    points where the reference can be judged (masked
+                    Covering); see :func:`tsseg.metrics.scored_islands`. True
+                    and predicted segments are clipped to each interval of at
+                    least two points and matched inside it only; the score is
+                    weighted by the scored duration. Requires
+                    ``n_timepoints`` or ``convert_labels_to_segments``.
+                    Default: the whole series.
 
         Returns:
-            A dictionary with the Covering score.
+            A dictionary with the Covering score; with ``scored_intervals``,
+            also ``n_scored`` (scored duration) and ``n_total``.
+
+        Raises:
+            ValueError: If ``scored_intervals`` has no interval of at least
+                    two points.
         """
+        if scored_intervals is not None:
+            _require_length_for_support(
+                n_timepoints, self.convert_labels_to_segments, type(self).__name__
+            )
         if isinstance(y_true, np.ndarray):
             y_true = y_true.tolist()
         if isinstance(y_pred, np.ndarray):
@@ -349,6 +436,15 @@ class Covering(BaseMetric):
             convert_labels_to_segments=self.convert_labels_to_segments,
             metric_name=type(self).__name__,
         )
+
+        support = {}
+        if scored_intervals is not None:
+            n = y_true[-1]
+            islands = _check_intervals(scored_intervals, n)
+            if not _covers_all(islands, n):
+                covering, _, duration = _masked_covering(y_true, y_pred, islands)
+                return {"score": covering, "n_scored": duration, "n_total": n}
+            support = {"n_scored": n, "n_total": n}
 
         y_true, y_pred = _ensure_boundaries(y_true, y_pred)
 
@@ -392,7 +488,7 @@ class Covering(BaseMetric):
 
         covering = covering_score / total_length if total_length > 0 else 0.0
 
-        return {"score": covering}
+        return {"score": covering, **support}
 
 
 class HausdorffDistance(BaseMetric):
