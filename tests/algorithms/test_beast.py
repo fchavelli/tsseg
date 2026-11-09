@@ -45,7 +45,9 @@ def test_tcp_minmax_applies_to_every_multivariate_strategy(strategy):
 @pytest.mark.parametrize("n_channels", [1, 2])
 def test_sse_rerun_finds_the_change_point(monkeypatch, n_channels):
     """Rbeast accepts the SSE rerun of a failed run (the failure is forced here)."""
-    failed = iter([True])  # the first run counts as failed, the rerun does not
+    # The first run (of each channel, with "native") counts as failed, the
+    # rerun does not.
+    failed = iter([True] * n_channels)
     monkeypatch.setattr(beast_module, "_all_nan_output", lambda o: next(failed, False))
     x = _step()
     if n_channels == 2:
