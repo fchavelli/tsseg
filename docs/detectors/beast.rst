@@ -18,7 +18,8 @@ detection with uncertainty quantification.
 
 Three strategies handle multivariate inputs:
 
-- ``"native"`` – uses ``beast123`` which handles multi-dimensional data natively.
+- ``"native"`` – runs ``beast123`` on each channel (Rbeast fits the channels
+  independently) and pools their candidates by probability.
 - ``"l2"`` – reduces channels via L2 norm before inference.
 - ``"ensembling"`` – runs BEAST per channel and aggregates change points.
 
@@ -113,7 +114,7 @@ Parameters
    * - ``multivariate_strategy``
      - str
      - ``"native"``
-     - ``"native"`` (beast123), ``"l2"`` (L2 norm), or ``"ensembling"`` (per-channel).
+     - ``"native"`` (beast123 per channel), ``"l2"`` (L2 norm), or ``"ensembling"`` (per-channel).
    * - ``tolerance``
      - float
      - ``0``
@@ -166,6 +167,16 @@ detector returns no change point. Other runs are unchanged. In the
 continuous integration of tsseg, the first run returned NaN on that series in
 10 of 177 test jobs (27 October to 6 November 2026), all on CPUs with
 AVX-512, and the rerun found the change point every time.
+
+**Cluster jobs and containers:** given a 2D array, Rbeast 0.1.25 fits its
+columns independently, in threads pinned to CPUs 0, 1, ... whatever CPUs the
+process may use. In a process that may not use these CPUs (a job of a cluster
+scheduler that allots it other CPUs, a container limited to some CPUs), the
+threads are not created: Rbeast returns unset outputs and corrupts the
+memory, so that the process is killed later. The ``"native"`` strategy
+therefore runs ``beast123`` on one channel at a time, which Rbeast computes
+in the calling thread; the channels are fitted one after the other, not in
+parallel.
 
 **Crashes with seasonal models:** with ``season`` set to ``"harmonic"``,
 ``"dummy"`` or ``"svd"``, Rbeast 0.1.25 can kill the Python process (abort on
