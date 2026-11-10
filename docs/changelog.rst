@@ -9,6 +9,28 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``BeastDetector`` with ``multivariate_strategy="native"`` (the default for
+  multivariate series) no longer returns the union of the candidates of its
+  channels. Each channel gives up to the maximum of ``tcp_minmax`` (10 by
+  default) and, on real series, most channels give that many, so the number
+  of change points grew with the number of channels. Candidates are now
+  ranked by their support, the probability (``cpPr``) of the same change
+  summed over the channels, then by their own probability; without
+  ``max_cps``, as many are returned as the median number of candidates of
+  the channels that have any. With ``max_cps``, the most supported are kept.
+  Outputs change on most multivariate series.
+* ``BeastDetector``: a ``max_cps`` above the maximum of ``tcp_minmax`` (or of
+  ``scp_minmax``, when the seasonal change points are returned) raises that
+  maximum to ``max_cps``. Rbeast never returns more change points per
+  component and channel, so ``max_cps`` could not be reached on a univariate
+  series, with ``"l2"``, or on any channel. With both changes, on the first
+  2,000 points of 435 real series from 47 datasets (z-normalised channels,
+  default parameters), ``"native"`` without ``max_cps`` rises from F1
+  0.140 to 0.186 and bidirectional covering 0.326 to 0.511 (15 times the
+  true number of change points in the median multivariate series, now 3),
+  and with ``max_cps`` set to the true number from 0.384 to 0.403 and 0.681
+  to 0.698; ``"l2"`` with ``max_cps`` returned fewer change points than asked
+  on 29 % of the series, now 5 %.
 * ``BeastDetector`` with ``multivariate_strategy="native"`` (the default)
   runs ``beast123`` on one channel at a time. Given the whole array, Rbeast
   0.1.25 fits its columns independently, in threads pinned to CPUs 0, 1, ...

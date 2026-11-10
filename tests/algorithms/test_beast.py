@@ -42,6 +42,18 @@ def test_tcp_minmax_applies_to_every_multivariate_strategy(strategy):
     assert detector.fit_predict(X).tolist() == []
 
 
+@pytest.mark.parametrize("strategy", ["native", "l2"])
+def test_max_cps_above_the_maximum_of_tcp_minmax(strategy):
+    """Fourteen steps: Rbeast returned at most ``tcp_minmax[1] = 10`` of them."""
+    rng = np.random.default_rng(0)
+    truth = np.arange(100, 1500, 100)
+    x = np.repeat(np.arange(15.0) % 2 * 3, 100) + rng.normal(0, 0.3, 1500)
+    X = x if strategy == "l2" else np.c_[x, x + rng.normal(0, 0.3, 1500)]
+    cps = BeastDetector(max_cps=14, multivariate_strategy=strategy).fit_predict(X)
+    assert len(cps) == 14, cps
+    assert np.abs(cps - truth).max() <= 2, cps
+
+
 @pytest.mark.parametrize("n_channels", [1, 2])
 def test_sse_rerun_finds_the_change_point(monkeypatch, n_channels):
     """Rbeast accepts the SSE rerun of a failed run (the failure is forced here)."""
