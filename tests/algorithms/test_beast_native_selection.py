@@ -1,8 +1,8 @@
 """How the ``"native"`` strategy of BeastDetector selects its change points.
 
-``beast123`` gives, for each channel, Rbeast's ranked candidates (``cp``) with
-their probabilities (``cpPr``). Stand-in outputs need no Rbeast; the last test
-runs Rbeast when it is installed.
+``beast123``, run on each channel, gives Rbeast's ranked candidates (``cp``)
+with their probabilities (``cpPr``). Stand-in outputs need no Rbeast; the last
+tests run Rbeast when it is installed.
 """
 
 from types import SimpleNamespace
@@ -17,10 +17,30 @@ NAN = float("nan")
 
 
 def _use_fake_beast123(monkeypatch, output):
-    """Make ``beast123`` return ``output`` (Rbeast need not be installed)."""
-    fake = SimpleNamespace(
-        beast123=lambda *args, **kwargs: output, args=SimpleNamespace
-    )
+    """Make ``beast123`` return ``output`` (Rbeast need not be installed).
+
+    ``output`` holds the arrays of every channel, of shape (slots, channels):
+    the detector runs ``beast123`` on one channel at a time, in order, and
+    each call returns the column of its channel.
+    """
+    n_runs = []
+
+    def beast123(data, **kwargs):
+        assert np.ndim(data) == 1, "beast123 gets one channel at a time"
+        ch = len(n_runs)
+        n_runs.append(ch)
+        return SimpleNamespace(
+            **{
+                name: SimpleNamespace(
+                    cp=comp.cp[:, ch],
+                    cpPr=comp.cpPr[:, ch],
+                    ncp_median=comp.ncp_median[ch : ch + 1],
+                )
+                for name, comp in vars(output).items()
+            }
+        )
+
+    fake = SimpleNamespace(beast123=beast123, args=SimpleNamespace)
     monkeypatch.setattr(beast_module, "_import_rbeast", lambda: fake)
     # Skip the dependency check at construction, which looks Rbeast up.
     monkeypatch.setattr(

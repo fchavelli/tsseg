@@ -12,7 +12,7 @@ detection with uncertainty quantification.
 
 - Type: change point detection
 - Unsupervised (probability-thresholded) or semi-supervised (`max_cps`)
-- Univariate and multivariate (native `beast123`, L2 norm reduction, or per-channel ensembling)
+- Univariate and multivariate (native `beast123` run on each channel, L2 norm reduction, or per-channel ensembling)
 - Detects both trend and seasonal change points
 - Provides posterior probability of change-point occurrence at each time step
 - Captures nonlinear trends via Bayesian model averaging

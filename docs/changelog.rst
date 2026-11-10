@@ -9,6 +9,22 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``BeastDetector`` with ``multivariate_strategy="native"`` (the default)
+  runs ``beast123`` on one channel at a time. Given the whole array, Rbeast
+  0.1.25 fits its columns independently, in threads pinned to CPUs 0, 1, ...
+  whatever CPUs the process may use. In a process that may not use these CPUs
+  (a job of a cluster scheduler that allots it other CPUs, a container limited
+  to some CPUs), the threads were not created: Rbeast returned unset outputs,
+  hence no change point or wrong ones on every multivariate series, and
+  corrupted the memory, which killed the process later (segmentation fault).
+  Where the threads were created, the change points can differ from before:
+  Rbeast fits a column of a 2D array and a single series with different
+  routines (``beastv2_COREV4_mthrd.c`` and ``beastv2_COREV4.c``), whose
+  outputs differ at the same seed; ``"native"`` now uses the routine of
+  univariate series and of ``"ensembling"`` everywhere. The channels are now
+  fitted one after the other, not in parallel, and a
+  multivariate series of two points gets no change point without a call to
+  Rbeast.
 * Metrics on partially annotated references: ``F1Score``, ``Covering``,
   ``BidirectionalCovering`` and the six state detection metrics take a
   keyword-only ``scored_intervals``, the half-open intervals of the points to

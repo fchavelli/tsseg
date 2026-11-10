@@ -16,6 +16,9 @@ def _use_fake_rbeast(monkeypatch, output, sse_output=None, received=None):
 
     ``beast`` and ``beast123`` return ``output``, or ``sse_output`` (if given)
     when called with ``cputype="sse"`` (``extra.cputype`` for ``beast123``).
+    A multivariate output holds the arrays of every channel, of shape
+    (slots, channels): ``"native"`` runs ``beast123`` on one channel at a
+    time, in order, and each call returns the column of its channel.
     Returns the list of the ``cputype`` of each call (``None`` if not passed).
     If ``received`` is a list, the keyword arguments of each call are appended
     to it.
@@ -33,10 +36,13 @@ def _use_fake_rbeast(monkeypatch, output, sse_output=None, received=None):
             received.append(kwargs)
         return answer(kwargs.get("cputype"))
 
-    def beast123(*args, extra=None, **kwargs):
+    def beast123(data, extra=None, **kwargs):
+        assert np.ndim(data) == 1, "beast123 gets one channel at a time"
         if received is not None:
             received.append(kwargs)
-        return answer(getattr(extra, "cputype", None))
+        cputype = getattr(extra, "cputype", None)
+        n_runs = calls.count(cputype)  # earlier runs with the same routines
+        return _channel(answer(cputype), n_runs)
 
     fake = SimpleNamespace(beast=beast, beast123=beast123, args=SimpleNamespace)
     monkeypatch.setattr(beast_module, "_import_rbeast", lambda: fake)
@@ -45,6 +51,18 @@ def _use_fake_rbeast(monkeypatch, output, sse_output=None, received=None):
         BeastDetector, "_tags", {**BeastDetector._tags, "python_dependencies": None}
     )
     return calls
+
+
+def _channel(output, ch):
+    """The output of channel ``ch`` of a multivariate stand-in output."""
+    components = {}
+    for name, comp in vars(output).items():
+        comp = SimpleNamespace(**vars(comp))
+        if comp.cp.ndim == 2:
+            comp.cp, comp.cpPr = comp.cp[:, ch], comp.cpPr[:, ch]
+            comp.ncp_median = comp.ncp_median[ch : ch + 1]
+        components[name] = comp
+    return SimpleNamespace(**components)
 
 
 def _trend(cp, cp_pr, ncp_median):
@@ -89,7 +107,7 @@ def test_nan_ncp_median_does_not_crash_multivariate(monkeypatch):
     # Channel 0 is capped at one CP by its ncp_median, channel 1 is not.
     assert cps.tolist() == [300, 700]
     # A finite ncp_median in one channel is not a failed run: no rerun.
-    assert calls == [None]
+    assert calls == [None, None]  # one run per channel
 
 
 def _all_nan_output(n_channels=1):
@@ -121,7 +139,7 @@ def test_all_nan_output_is_rerun_with_sse_multivariate(monkeypatch):
     with pytest.warns(RuntimeWarning, match="cputype='sse'"):
         cps = BeastDetector().fit_predict(np.zeros((1000, 2)))
     assert cps.tolist() == [300, 700]
-    assert calls == [None, "sse"]
+    assert calls == [None, None, "sse", "sse"]  # one run per channel
 
 
 def test_all_nan_output_gives_no_change_point(monkeypatch):
@@ -177,5 +195,5 @@ def test_native_passes_the_prior_to_beast123(monkeypatch, season):
             "seasonMaxOrder": 3,
             "seasonMinSepDist": 30,
         }
-    assert len(received) == 1
-    assert vars(received[0]["prior"]) == expected
+    assert len(received) == 2  # one run per channel
+    assert all(vars(kwargs["prior"]) == expected for kwargs in received)
