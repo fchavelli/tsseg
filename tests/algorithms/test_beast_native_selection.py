@@ -75,7 +75,8 @@ def test_max_cps_keeps_the_most_probable_change_points(monkeypatch):
     output = SimpleNamespace(
         trend=_component([[(400, 0.95), (700, 0.5)], [(150, 0.3)]])
     )
-    assert _predict(monkeypatch, output) == [150, 400, 700]
+    # without max_cps, the median channel's count: 1.5 candidates, rounded up
+    assert _predict(monkeypatch, output) == [400, 700]
     assert _predict(monkeypatch, output, max_cps=1) == [400]
     assert _predict(monkeypatch, output, max_cps=2) == [400, 700]
     assert _predict(monkeypatch, output, max_cps=3) == [150, 400, 700]
@@ -96,7 +97,11 @@ def test_max_cps_ranks_the_seasonal_candidates_by_their_own_probability(
         trend=_component([[(200, 0.3)], [(250, 0.2)]]),
         season=_component([[(700, 0.9)], []]),
     )
-    assert _predict(monkeypatch, output, component="both") == [200, 250, 700]
+    assert _predict(monkeypatch, output, component="both", max_cps=3) == [
+        200,
+        250,
+        700,
+    ]
     assert _predict(monkeypatch, output, component="both", max_cps=1) == [700]
     assert _predict(monkeypatch, output, component="season", max_cps=1) == [700]
     assert _predict(monkeypatch, output, component="trend", max_cps=1) == [200]
@@ -122,7 +127,8 @@ def test_close_candidates_of_different_channels_count_once(
 
     def predict(gap):
         output = SimpleNamespace(trend=_component([[(400, 0.8)], [(400 + gap, 0.9)]]))
-        return _predict(monkeypatch, output, **params)
+        # max_cps=2: each channel has one candidate, the count without it
+        return _predict(monkeypatch, output, max_cps=2, **params)
 
     assert predict(1) == [401]
     assert predict(separation - 1) == [400 + separation - 1]
@@ -141,7 +147,7 @@ def test_close_candidates_of_one_channel_are_kept(monkeypatch):
         trend=_component([[(400, 0.9)], []]),
         season=_component([[], [(401, 0.8)]]),
     )
-    assert _predict(monkeypatch, two_channels, component="both") == [400]
+    assert _predict(monkeypatch, two_channels, component="both", max_cps=2) == [400]
 
 
 def test_tolerance_merges_close_candidates(monkeypatch):
@@ -150,16 +156,22 @@ def test_tolerance_merges_close_candidates(monkeypatch):
         trend=_component([[(400, 0.9), (150, 0.5)], [(405, 0.8), (155, 0.7)]])
     )
     # 5 points apart: two change points each by default (separation 3)
-    assert _predict(monkeypatch, output) == [150, 155, 400, 405]
-    assert _predict(monkeypatch, output, tolerance=4) == [150, 155, 400, 405]
-    # a candidate within tolerance of a more probable one is dropped
+    assert _predict(monkeypatch, output, max_cps=4) == [150, 155, 400, 405]
+    assert _predict(monkeypatch, output, tolerance=4, max_cps=4) == [
+        150,
+        155,
+        400,
+        405,
+    ]
+    # a candidate within tolerance of a more supported one is dropped
     assert _predict(monkeypatch, output, tolerance=5) == [155, 400]
+    assert _predict(monkeypatch, output, tolerance=5, max_cps=4) == [155, 400]
     # merging comes before max_cps, which then keeps two distinct changes
     assert _predict(monkeypatch, output, max_cps=2) == [400, 405]
     assert _predict(monkeypatch, output, tolerance=5, max_cps=2) == [155, 400]
     # a float below 1 is a fraction of the series length, as with "ensembling"
     assert _predict(monkeypatch, output, tolerance=0.005) == [155, 400]
-    assert _predict(monkeypatch, output, tolerance=0.005, n=800) == [
+    assert _predict(monkeypatch, output, tolerance=0.005, n=800, max_cps=4) == [
         150,
         155,
         400,
@@ -171,6 +183,42 @@ def test_tolerance_does_not_chain_merges(monkeypatch):
     """Each candidate is compared with the candidates kept, not with its neighbours."""
     output = SimpleNamespace(trend=_component([[(300, 0.9), (310, 0.5)], [(305, 0.6)]]))
     assert _predict(monkeypatch, output, tolerance=5) == [300, 310]
+
+
+def test_the_count_does_not_grow_with_the_channels(monkeypatch):
+    """Without ``max_cps``, the union of the channels used to be returned: on
+    real series, each channel gives up to 10 candidates, so their number grew
+    with the channels. Two changes shared by six channels, two of which also
+    have a change of their own: the median channel with candidates has two."""
+    shared = [(300, 0.9), (700, 0.8)]
+    per_channel = [shared + [(100, 0.95)], shared + [(500, 0.95)]] + [shared] * 4
+    output = SimpleNamespace(trend=_component(per_channel))
+    assert _predict(monkeypatch, output, n_channels=6) == [300, 700]
+    assert _predict(monkeypatch, output, n_channels=6, max_cps=4) == [
+        100,
+        300,
+        500,
+        700,
+    ]
+
+
+def test_a_change_seen_by_several_channels_comes_first(monkeypatch):
+    """Candidates are ranked by their probability summed over the channels
+    that find them (closer than the separation), before their own ``cpPr``."""
+    output = SimpleNamespace(
+        trend=_component([[(400, 0.6)], [(401, 0.6)], [(700, 0.9)]])
+    )
+    assert _predict(monkeypatch, output, n_channels=3, max_cps=1) == [400]
+    assert _predict(monkeypatch, output, n_channels=3, max_cps=2) == [400, 700]
+
+
+def test_a_change_of_one_channel_only_is_returned(monkeypatch):
+    """The count is the median over the channels that have candidates: a
+    quiet channel does not count as a channel without change points."""
+    output = SimpleNamespace(trend=_component([[(500, 0.9)], [], []]))
+    assert _predict(monkeypatch, output, n_channels=3) == [500]
+    nothing = SimpleNamespace(trend=_component([[], [], []]))
+    assert _predict(monkeypatch, nothing, n_channels=3) == []
 
 
 def test_native_max_cps_on_a_real_series():

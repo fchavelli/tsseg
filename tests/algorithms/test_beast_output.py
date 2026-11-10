@@ -137,7 +137,8 @@ def test_all_nan_output_is_rerun_with_sse_multivariate(monkeypatch):
     )
     calls = _use_fake_rbeast(monkeypatch, _all_nan_output(n_channels=2), sse_output)
     with pytest.warns(RuntimeWarning, match="cputype='sse'"):
-        cps = BeastDetector().fit_predict(np.zeros((1000, 2)))
+        # max_cps=2: one candidate per channel, the count without it
+        cps = BeastDetector(max_cps=2).fit_predict(np.zeros((1000, 2)))
     assert cps.tolist() == [300, 700]
     assert calls == [None, None, "sse", "sse"]  # one run per channel
 
@@ -197,3 +198,49 @@ def test_native_passes_the_prior_to_beast123(monkeypatch, season):
         }
     assert len(received) == 2  # one run per channel
     assert all(vars(kwargs["prior"]) == expected for kwargs in received)
+
+
+@pytest.mark.parametrize(
+    ("params", "trend", "season"),
+    [
+        ({}, (0, 10), (0, 10)),
+        ({"max_cps": 5}, (0, 10), (0, 10)),
+        ({"max_cps": 15}, (0, 15), (0, 10)),
+        ({"max_cps": 15, "season": "harmonic", "period": 24.0}, (0, 15), (0, 10)),
+        (
+            {"max_cps": 15, "season": "harmonic", "period": 24.0, "component": "both"},
+            (0, 15),
+            (0, 15),
+        ),
+        (
+            {
+                "max_cps": 15,
+                "season": "harmonic",
+                "period": 24.0,
+                "component": "season",
+            },
+            (0, 10),
+            (0, 15),
+        ),
+    ],
+)
+def test_max_cps_raises_the_maximum_number_of_change_points(
+    monkeypatch, params, trend, season
+):
+    """Rbeast returns at most the maximum of ``tcp_minmax`` (or ``scp_minmax``)
+    change points per component and channel: a larger ``max_cps`` could not be
+    reached, on 29 % of the Guided runs of a 47-dataset smoke test."""
+    output = SimpleNamespace(
+        trend=_trend([[300, 300], [NAN, NAN]], [[0.9, 0.9], [NAN, NAN]], [1.0, 1.0])
+    )
+    received = []
+    _use_fake_rbeast(monkeypatch, output, received=received)
+    BeastDetector(**params).fit_predict(np.zeros((1000, 2)))  # "native"
+    BeastDetector(multivariate_strategy="l2", **params).fit_predict(np.zeros((1000, 2)))
+    native, univariate = received[0], received[-1]  # 2 channels, then 1 run
+    assert (native["prior"].trendMinKnotNum, native["prior"].trendMaxKnotNum) == trend
+    assert tuple(univariate["tcp_minmax"]) == trend
+    assert tuple(univariate["scp_minmax"]) == season
+    if params.get("season", "none") != "none":
+        prior = native["prior"]
+        assert (prior.seasonMinKnotNum, prior.seasonMaxKnotNum) == season

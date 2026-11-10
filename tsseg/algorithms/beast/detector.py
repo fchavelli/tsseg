@@ -140,7 +140,9 @@ class BeastDetector(BaseSegmenter):
         ``concurrent.futures.ProcessPoolExecutor``, which raises
         ``BrokenProcessPool`` when the child dies.
     tcp_minmax : tuple of int, default=(0, 10)
-        Minimum and maximum number of trend change points.
+        Minimum and maximum number of trend change points. Rbeast returns at
+        most the maximum per channel; a larger ``max_cps`` raises it (see
+        ``max_cps``).
     torder_minmax : tuple of int, default=(0, 1)
         Minimum and maximum polynomial orders for the trend.
     tseg_minlength : int or None, default=None
@@ -176,8 +178,12 @@ class BeastDetector(BaseSegmenter):
         step to be selected.
     max_cps : int or None, default=None
         Maximum number of change points to return (by decreasing probability).
-        ``None`` returns all candidates above ``cp_prob_threshold``; ``0``
-        returns none. On a univariate series, with ``"l2"``, and on each
+        ``None`` returns all candidates above ``cp_prob_threshold`` (with
+        ``"native"``, as many as a channel has, see Notes); ``0`` returns none.
+        A ``max_cps`` above the maximum of ``tcp_minmax`` (and, with a
+        seasonal component returned, of ``scp_minmax``) raises that maximum to
+        ``max_cps``, since Rbeast never returns more change points per
+        component and channel. On a univariate series, with ``"l2"``, and on each
         channel with ``"ensembling"``, the candidates kept are those with the
         largest occurrence probability (Rbeast's ``cpOccPr``) of ``component``
         at their time step; with ``"both"``, the larger of the trend and
@@ -194,7 +200,7 @@ class BeastDetector(BaseSegmenter):
         Distance, in time steps, within which change points of a multivariate
         series count as one (a float below 1 is a fraction of the series
         length). With ``"native"``, candidates are taken by decreasing
-        probability (``cpPr``), and a candidate within ``tolerance`` of one
+        support (see Notes), and a candidate within ``tolerance`` of one
         already taken is dropped, on top of the merge of close candidates of
         different channels described in the Notes; ``0`` adds none. With
         ``"ensembling"``,
@@ -221,10 +227,21 @@ class BeastDetector(BaseSegmenter):
     steps (half the period with a seasonal component), at least the largest
     trend order plus one and at most ``n / 2 - 1``. Two candidates of
     different channels closer than this distance are taken as the same
-    change, found by both channels: only the more probable one is returned.
-    The same change found a few more time steps apart is returned twice,
-    unless ``tolerance`` merges them. ``max_cps`` keeps the most probable
-    candidates, after these merges.
+    change, found by both channels: only one of them is returned. The same
+    change found a few more time steps apart is returned twice, unless
+    ``tolerance`` merges them.
+
+    The pooled candidates are taken by decreasing support, the sum over the
+    channels of the ``cpPr`` of the candidate of each channel at the same
+    step, closer than this distance or within ``tolerance`` (a change seen
+    by several channels comes first), then by decreasing ``cpPr``. Without
+    ``max_cps``, as many are returned as a channel that changes has: the
+    median number of candidates of the channels that have any, rounded half
+    up. Their union would grow with the number of channels, each giving up to
+    the maximum of ``tcp_minmax``. ``max_cps`` keeps that many, after the
+    merges. A change seen by one channel only is returned, but the count
+    assumes changes shared by the channels: when they change at different
+    times, some of their changes are left out.
 
     With ``"native"``, each channel goes to ``beast123`` on its own. Given a
     2D array, Rbeast 0.1.25 fits its columns independently too, but in threads
@@ -433,10 +450,10 @@ class BeastDetector(BaseSegmenter):
             season=self.season,
             deltat=self.deltat,
             period=self.period,
-            tcp_minmax=list(self.tcp_minmax),
+            tcp_minmax=list(self._tcp_minmax()),
             torder_minmax=list(self.torder_minmax),
             tseg_minlength=self.tseg_minlength,
-            scp_minmax=list(self.scp_minmax),
+            scp_minmax=list(self._scp_minmax()),
             sorder_minmax=list(self.sorder_minmax),
             sseg_minlength=self.sseg_minlength,
             mcmc_samples=self.mcmc_samples,
@@ -446,6 +463,25 @@ class BeastDetector(BaseSegmenter):
             mcmc_seed=self.mcmc_seed,
             quiet=True,
         )
+
+    def _raised(self, minmax, used: bool) -> tuple[int, int]:
+        """``(min, max)`` number of change points, the max raised to ``max_cps``.
+
+        Rbeast returns at most ``max`` change points per component and
+        channel, so a larger ``max_cps`` could never be reached. Only for a
+        component whose change points are returned (``used``).
+        """
+        low, high = int(minmax[0]), int(minmax[1])
+        if used and self.max_cps is not None and self.max_cps > high:
+            high = self.max_cps
+        return low, high
+
+    def _tcp_minmax(self) -> tuple[int, int]:
+        return self._raised(self.tcp_minmax, self.component in ("trend", "both"))
+
+    def _scp_minmax(self) -> tuple[int, int]:
+        used = self.season != "none" and self.component in ("season", "both")
+        return self._raised(self.scp_minmax, used)
 
     def _run_beast_univariate(self, signal: np.ndarray) -> np.ndarray:
         """Run BEAST on a univariate signal and extract change points."""
@@ -480,14 +516,12 @@ class BeastDetector(BaseSegmenter):
         # Rbeast.beast fills from the same arguments (seasonal ones only with
         # a seasonal component), so that "native" honours them too.
         prior = rb.args()
-        prior.trendMinKnotNum = self.tcp_minmax[0]
-        prior.trendMaxKnotNum = self.tcp_minmax[1]
+        prior.trendMinKnotNum, prior.trendMaxKnotNum = self._tcp_minmax()
         prior.trendMinOrder = self.torder_minmax[0]
         prior.trendMaxOrder = self.torder_minmax[1]
         prior.trendMinSepDist = self.tseg_minlength
         if self.season != "none":
-            prior.seasonMinKnotNum = self.scp_minmax[0]
-            prior.seasonMaxKnotNum = self.scp_minmax[1]
+            prior.seasonMinKnotNum, prior.seasonMaxKnotNum = self._scp_minmax()
             prior.seasonMinOrder = self.sorder_minmax[0]
             prior.seasonMaxOrder = self.sorder_minmax[1]
             prior.seasonMinSepDist = self.sseg_minlength
@@ -522,15 +556,23 @@ class BeastDetector(BaseSegmenter):
             extra.cputype = "sse"
             outputs = run_each_channel()
 
+        # Candidates of each channel (and component), with their cpPr.
+        per_channel = [
+            [
+                (cp, pr)
+                for cp, pr in self._extract_cps_channel(o, ch)
+                if 0 < cp < n_samples
+            ]
+            for ch, o in enumerate(outputs)
+        ]
         # A time step found on several channels (or components) keeps its
         # largest probability.
         probs: dict[int, float] = {}
         channels: dict[int, set[int]] = {}
-        for ch, o in enumerate(outputs):
-            for cp, prob in self._extract_cps_channel(o, ch):
-                if 0 < cp < n_samples:
-                    probs[cp] = max(prob, probs.get(cp, prob))
-                    channels.setdefault(cp, set()).add(ch)
+        for ch, cands in enumerate(per_channel):
+            for cp, prob in cands:
+                probs[cp] = max(prob, probs.get(cp, prob))
+                channels.setdefault(cp, set()).add(ch)
 
         # Rbeast keeps the change points of one channel at least `separation`
         # apart: closer candidates of different channels are taken as the
@@ -544,13 +586,35 @@ class BeastDetector(BaseSegmenter):
                 gap < separation and channels[cp].isdisjoint(channels[other])
             )
 
+        # Support: the cpPr of the change at `cp` summed over the channels,
+        # each giving its most probable candidate at that step, closer than
+        # `separation` or within `tolerance`.
+        steps = np.array(sorted(probs), dtype=np.int64)
+        support = np.zeros(len(steps))
+        for cands in per_channel:
+            if not cands:
+                continue
+            cps = np.array([cp for cp, _ in cands], dtype=np.int64)
+            prs = np.array([prob for _, prob in cands], dtype=float)
+            gap = np.abs(steps[:, None] - cps[None, :])
+            near = (gap < separation) | (gap <= tolerance)
+            support += np.where(near, prs[None, :], 0.0).max(axis=1)
+        supports = dict(zip(steps.tolist(), support.tolist(), strict=True))
+
         kept: list[int] = []
-        # By decreasing probability, ties by position.
-        for cp in sorted(probs, key=lambda cp: (-probs[cp], cp)):
+        # By decreasing support, then probability, ties by position.
+        for cp in sorted(probs, key=lambda cp: (-supports[cp], -probs[cp], cp)):
             if not any(same_change(cp, other) for other in kept):
                 kept.append(cp)
         if self.max_cps is not None:
-            kept = kept[: self.max_cps]
+            count = self.max_cps
+        else:
+            # As many as a channel that changes has (the median over the
+            # channels with candidates): the union of the channels grows with
+            # their number.
+            counts = [len(cands) for cands in per_channel if cands]
+            count = int(np.floor(np.median(counts) + 0.5)) if counts else 0
+        kept = kept[:count]
 
         return np.array(sorted(kept), dtype=np.int64)
 
