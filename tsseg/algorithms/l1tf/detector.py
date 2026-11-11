@@ -127,22 +127,35 @@ def _solve_channel(D, H, y, lam, *, eps_abs, eps_rel, max_iter, polish):
     )
     res = model.solve()
     status = res.info.status
-    nu0 = np.clip(res.x, -lam, lam)
+    # OSQP DISCARDS its iterate when it stops on "maximum iterations
+    # reached"; keep the last ADMM iterate as the warm start of the next
+    # solve instead of restarting from zero
+    nu0 = np.clip(res.x, -lam, lam) if res.x is not None else np.zeros(m)
     nu, beta, exact = _active_set_polish(H, Dy, lam, nu0)
-    if not exact:
-        # one escalation with tighter tolerances before giving up
+    for _ in range(1):
+        if exact or status not in ("maximum iterations reached", "solved inaccurate"):
+            break
+        # escalate once: tighter tolerances, warm started. A single
+        # escalation bounds the failure cost on ill-conditioned regimes
+        # (one more pass cannot rescue them, see notes/l1tf/)
         model.update_settings(
-            eps_abs=eps_abs * 1e-3, eps_rel=eps_rel * 1e-3, max_iter=max_iter * 4
+            eps_abs=max(eps_abs * 1e-3, 1e-12),
+            eps_rel=max(eps_rel * 1e-3, 1e-12),
+            max_iter=2 * max_iter,
         )
+        model.warm_start(x=nu0)
         res = model.solve()
         status = res.info.status
-        nu0 = np.clip(res.x, -lam, lam)
+        if res.x is not None:
+            nu0 = np.clip(res.x, -lam, lam)
         nu, beta, exact = _active_set_polish(H, Dy, lam, nu0)
-        if not exact:
-            raise RuntimeError(
-                "failed to certify the KKT solution of the dual box-QP"
-                f" (OSQP status: {status})"
-            )
+    if not exact:
+        raise RuntimeError(
+            "failed to certify the KKT solution of the dual box-QP"
+            f" (OSQP status: {status}); this happens on long series at a"
+            " penalty well below lambda_max_: raise the penalty towards"
+            " lambda_max_ (or report the series)"
+        )
     x = y - (D.T @ nu)
     return x, beta, nu, status
 
@@ -187,8 +200,12 @@ class TrendFilteringDetector(BaseSegmenter):
         saturated, ``|dual| >= (1 - knot_tol) * penalty``, and its second
         difference exceeds ``knot_tol`` times the largest second difference.
         The solver accuracy must be significantly tighter than ``knot_tol``.
-    eps_abs, eps_rel : float, default=1e-9
-        Absolute and relative tolerances of OSQP.
+    eps_abs, eps_rel : float, default=1e-6
+        Absolute and relative tolerances of OSQP. They only steer the
+        identification of the active set: the active-set polish then
+        certifies the solution, so they can stay well above the kink
+        tolerance; refining them past 1e-6 multiplies the iterations of
+        the ADMM without changing the certified answer.
     max_iter : int, default=200000
         Maximum number of OSQP iterations.
     polish : bool, default=True
@@ -294,8 +311,8 @@ class TrendFilteringDetector(BaseSegmenter):
         *,
         penalty: float = 1.0,
         knot_tol: float = 1e-3,
-        eps_abs: float = 1e-9,
-        eps_rel: float = 1e-9,
+        eps_abs: float = 1e-6,
+        eps_rel: float = 1e-6,
         max_iter: int = 200000,
         polish: bool = True,
         axis: int = 0,
