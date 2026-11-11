@@ -9,10 +9,14 @@ affine fit, and the affine equivariance of the estimate.
 
 from __future__ import annotations
 
+import sys
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
 from tsseg.algorithms import TrendFilteringDetector
+from tsseg.algorithms.l1tf import detector as l1tf
 
 
 @pytest.fixture
@@ -149,3 +153,57 @@ def test_sklearn_contract():
     detector = TrendFilteringDetector(penalty=5.0, knot_tol=1e-4)
     cloned = clone(detector)
     assert cloned.get_params() == detector.get_params()
+
+
+def test_caps_kkt_certification_escalation(monkeypatch):
+    class FakeOSQP:
+        def __init__(self):
+            self.settings = None
+            self.solve_count = 0
+            self.warm_starts = []
+
+        def setup(self, **settings):
+            self.settings = settings
+
+        def solve(self):
+            self.solve_count += 1
+            return SimpleNamespace(
+                info=SimpleNamespace(status="maximum iterations reached"),
+                x=np.array([0.25]),
+            )
+
+        def update_settings(self, **settings):
+            self.settings.update(settings)
+
+        def warm_start(self, *, x):
+            self.warm_starts.append(x.copy())
+
+    solver = FakeOSQP()
+    monkeypatch.setitem(
+        sys.modules,
+        "osqp",
+        SimpleNamespace(OSQP=lambda: solver),
+    )
+    monkeypatch.setattr(
+        l1tf,
+        "_active_set_polish",
+        lambda H, Dy, lam, nu0: (nu0, np.zeros_like(nu0), False),
+    )
+
+    with pytest.raises(RuntimeError, match="raise the penalty towards lambda_max_"):
+        l1tf._solve_channel(
+            np.array([[1.0, -2.0, 1.0]]),
+            np.eye(1),
+            np.array([0.0, 1.0, 0.0]),
+            0.1,
+            eps_abs=1e-6,
+            eps_rel=1e-6,
+            max_iter=10,
+            polish=True,
+        )
+
+    assert solver.solve_count == 2
+    assert solver.settings["max_iter"] == 20
+    assert solver.settings["eps_abs"] == pytest.approx(1e-9)
+    assert solver.settings["eps_rel"] == pytest.approx(1e-9)
+    np.testing.assert_array_equal(solver.warm_starts, [[0.1]])

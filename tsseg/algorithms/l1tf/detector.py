@@ -137,7 +137,7 @@ def _solve_channel(D, H, y, lam, *, eps_abs, eps_rel, max_iter, polish):
             break
         # escalate once: tighter tolerances, warm started. A single
         # escalation bounds the failure cost on ill-conditioned regimes
-        # (one more pass cannot rescue them, see notes/l1tf/)
+        # (one more pass cannot rescue them)
         model.update_settings(
             eps_abs=max(eps_abs * 1e-3, 1e-12),
             eps_rel=max(eps_rel * 1e-3, 1e-12),

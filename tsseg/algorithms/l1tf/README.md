@@ -42,7 +42,7 @@ best affine fit.
   (its section 6); the strictly convex problem has a unique minimiser, which
   OSQP returns up to its tolerances. Validated against CVXPY/CLARABEL on the
   paper's S&P 500 example and on the paper's properties (6) and (7)
-  (`notes/l1tf/`).
+  (the numerical checks are covered by the detector tests).
 - Multivariate: the "sum of l1 norms" branch of the paper's section 7.5 —
   the channels are filtered separately with the same `penalty`, the change
   points are the union of the channel kinks. The section's group penalty
@@ -50,7 +50,7 @@ best affine fit.
   conic (second-order cone) solver; it is not implemented.
 - Milder penalties detect more kinks: `knot_tol` (relative threshold on the
   second differences) separates the kinks from the solver noise; defaults
-  calibrated against the OSQP/CLARABEL agreement in `notes/l1tf/`.
+  balance solver time with the exact active-set certification.
 
 ## Citation
 

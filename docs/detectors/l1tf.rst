@@ -68,11 +68,12 @@ Parameters
        difference).
    * - ``eps_abs``
      - float
-     - ``1e-9``
-     - Absolute tolerance of OSQP.
+     - ``1e-6``
+     - Absolute tolerance of OSQP (steers the active-set search only; the
+       polish certifies the solution).
    * - ``eps_rel``
      - float
-     - ``1e-9``
+     - ``1e-6``
      - Relative tolerance of OSQP.
    * - ``max_iter``
      - int
@@ -139,7 +140,7 @@ paper's figure 2 (n=2000) the detected kink positions agree with an
 independent solve of the same problem; the paper reports 8 change points at
 :math:`\lambda = 100` where the exact KKT support has 12 (including kinks
 with a second difference a hundred times smaller than the largest one, which
-the paper's figure does not separate). See ``notes/l1tf/`` in the repository.
+the paper's figure does not separate).
 
 API reference
 -------------
