@@ -73,6 +73,10 @@ Unreleased
   optimal one, and they differ noticeably only where several change points lie
   within a few widths of each other. Gaussian F1 scores computed with 0.3.2 or
   earlier may be slightly lower than with this version.
+* New ``CachalotDetector``: Lasso-path candidates refined by
+  reduced dynamic programming and selected by relative residual improvement
+  (Harchaoui and Lévy-Leduc, 2007). Multivariate input is handled channel by
+  channel, with the returned change points formed by their union.
 * Documentation: new design (PyData Sphinx theme, light and dark modes, copy
   buttons on code blocks) and a new home page; installation instructions move
   to their own page. The ``docs`` extra now installs ``pydata-sphinx-theme``
