@@ -91,6 +91,7 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     "EAggloDetector": AlgorithmOverride(dependencies=("numba",)),
     "E2USDDetector": AlgorithmOverride(dependencies=("torch",)),
     "FLUSSDetector": AlgorithmOverride(dependencies=("stumpy",)),
+    "TrendFilteringDetector": AlgorithmOverride(dependencies=("osqp",)),
     "PatssDetector": AlgorithmOverride(dependencies=("npbad",)),
     "ProphetDetector": AlgorithmOverride(dependencies=("prophet",)),
     "SNLDSDetector": AlgorithmOverride(

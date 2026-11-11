@@ -79,6 +79,9 @@ changeforest = [
 fluss = [
     "stumpy",
 ]
+l1tf = [
+    "osqp>=1.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
@@ -89,7 +92,7 @@ dev = [
     "pre-commit>=3.7",
 ]
 all = [
-    "tsseg[torch,prophet,accelerators,docs,aeon,tglad,beast,changeforest,fluss]",
+    "tsseg[torch,prophet,accelerators,docs,aeon,tglad,beast,changeforest,fluss,l1tf]",
     # No stable TensorFlow (2.22 is a release candidate) nor tf-keras for Python
     # 3.14 yet: raise this bound once both publish wheels for it.
     "tsseg[tscp2,snlds]; python_version < '3.14'",

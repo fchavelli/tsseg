@@ -15,6 +15,7 @@ from .hmm.detector import HMMDetector
 from .icid.detector import ICIDDetector
 from .igts.detector import InformationGainDetector
 from .kcpd.detector import KCPDDetector
+from .l1tf.detector import TrendFilteringDetector
 from .patss.detector import PatssDetector
 from .pelt.detector import PeltDetector
 from .random.detector import RandomDetector
@@ -84,6 +85,7 @@ __all__ = [
     "ICIDDetector",
     "InformationGainDetector",
     "KCPDDetector",
+    "TrendFilteringDetector",
     "PatssDetector",
     "PeltDetector",
     "ProphetDetector",
