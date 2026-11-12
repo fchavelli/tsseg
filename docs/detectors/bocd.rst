@@ -1,102 +1,93 @@
 BOCD
 ====
 
-BOCD – offline Bayesian change-point detection with posterior thresholding.
+Offline Bayesian Gaussian segmentation with joint MAP decoding.
 
 Description
 -----------
 
-This offline Bayesian change-point detector integrates out the mean and variance
-of each segment under a conjugate Normal-Gamma prior and uses forward and backward
-messages to compute the marginal probability of a boundary at each position,
-following the product-partition model of Fearnhead (2006). It uses the whole
-series; the historical class name does not imply the online filtering algorithm
-of Adams & MacKay (2007).
+``BOCDDetector`` fits the Gaussian product-partition model of Fearnhead (2006).
+A constant hazard :math:`h=1/\lambda` gives segment duration mass
+:math:`g(l)=h(1-h)^{l-1}`; the final segment contributes its right-censored
+survival probability. The default returns the single most probable partition
+(MAP), using the recursion of Fearnhead and Liu (2007). The whole series is
+used. The historical name does not imply the causal online filter of Adams
+and MacKay (2007).
 
-A constant hazard function :math:`H(\tau) = 1/\lambda` controls the prior
-expectation of segment length. The duration mass is geometric,
-:math:`g(l) = H(1-H)^{l-1}`, and the final segment is right censored.
-Boundary probabilities are separate marginal events: their sum is the posterior
-expected number of changes, and can exceed one. Two strategies handle
-multivariate inputs:
+The default ``multivariate_strategy="native"`` integrates out the mean vector
+and full covariance under a Normal-inverse-Wishart prior. It can distinguish
+changes of direction or covariance that a norm reduction loses. For
+:math:`d` channels, the prior parameters are
 
-- ``"l2"`` – reduces channels via L2 norm before inference.
-- ``"ensembling"`` – runs per-channel inference and aggregates change points.
+.. math::
+
+   \mu_0 = \mu\mathbf{1}, \qquad \kappa_0=\kappa, \qquad
+   \nu_0 = 2\alpha+d-1, \qquad \Psi_0 = 2\beta I_d.
+
+Each marginal variance has an inverse-gamma prior with shape ``alpha`` and
+scale ``beta``. For one channel this is exactly the Normal-Gamma model.
+The alternatives ``"l2"`` and ``"ensembling"`` respectively analyse the norm or
+fit each channel separately and merge the boundaries. Ensembling does not
+model cross-channel covariance; MAP then applies to each channel separately.
 
 | **Type:** change point detection
-| **Supervision:** unsupervised or semi-supervised
+| **Supervision:** unsupervised or an upper bound on the number of changes
 | **Scope:** univariate and multivariate
-| **Complexity:** :math:`O(d\,n + n^{2})` worst-case time, :math:`O(n)` working memory
-  beyond the input (``"l2"`` strategy; ``"ensembling"``: :math:`O(d\,n^{2})`
-  time and up to :math:`O(d\,n)` candidate storage).
 
-The implementation updates segment moments with Welford's recurrence and
-precomputes the likelihood terms that depend only on segment length. It does not
-store every segment or compute the distribution of the ordinal number of each
-change point. Truncation approximates message sums; it does not make this
-implementation linear in time, since all segment moments are still evaluated.
+Defaults and decision rule
+--------------------------
 
-Parameters
-----------
+The defaults use per-channel standardisation, ``hazard_lambda=1000``,
+``alpha=kappa=1``, ``beta=10``, a minimum segment length of 25, and joint MAP
+inference on at most 2,000 interior candidate positions. These values were
+selected on 15 series from five benchmark datasets, with basic mean, variance,
+covariance and stationary-noise checks. They are a practical starting point,
+not a guarantee of suitability for every time scale or observation model.
 
-.. list-table::
-   :header-rows: 1
-   :widths: 20 10 10 60
+``standardize=True`` centers and scales the series supplied to ``predict``;
+prior parameters are in these standardised units. In L2 mode, the norm is
+computed first and its scalar series is then standardised, so that centering
+channels does not itself erase a magnitude change. To supply priors in physical
+units, set ``standardize=False``.
 
-   * - Name
-     - Type
-     - Default
-     - Description
-   * - ``hazard_lambda``
-     - float
-     - ``300``
-     - Expected run length (constant hazard = ``1/lambda``).
-   * - ``mu``
-     - float
-     - ``0.0``
-     - Prior mean of segment observations.
-   * - ``kappa``
-     - float
-     - ``1.0``
-     - Strength of the prior mean (normal precision).
-   * - ``alpha``
-     - float
-     - ``1.0``
-     - Shape of the inverse-gamma prior over variance.
-   * - ``beta``
-     - float
-     - ``1.0``
-     - Scale of the inverse-gamma prior over variance.
-   * - ``truncate``
-     - int
-     - ``-40``
-     - Natural-log cutoff: stop a sum after a term smaller than
-       ``exp(truncate)`` times its accumulated total.
-   * - ``cp_prob_threshold``
-     - float
-     - ``0.05``
-     - Minimum posterior probability to accept a change point.
-   * - ``min_distance``
-     - int
-     - ``25``
-     - Minimum distance (samples) between successive change points.
-   * - ``max_cps``
-     - int / None
-     - ``None``
-     - Optional upper bound after thresholding, not inference conditional on
-       exactly this many changes.
-   * - ``multivariate_strategy``
-     - str
-     - ``"l2"``
-     - ``"l2"`` (reduce via L2 norm) or ``"ensembling"`` (per-channel).
-   * - ``tolerance``
-     - float
-     - ``0``
-     - Tolerance for aggregating change points in ensembling mode.
-   * - ``axis``
-     - int
-     - ``0``
-     - Time axis.
+``max_cps=K`` constrains MAP inference to partitions with **at most** K changes.
+It optimises their locations jointly; it does not trim a previously fitted
+partition and does not force exactly K changes. ``max_cps=0`` skips inference.
+``min_distance`` constrains segment lengths during inference, including both
+edge segments. Ensembling also spaces its final aggregated boundaries.
+
+For marginal rather than MAP decoding, set ``decoding="marginal"``.
+``cp_prob_threshold=0.5`` then thresholds peaks of the boundary probabilities,
+with spacing and an optional count cap. Boundary probabilities are distinct
+events: their sum is the posterior expected number of changes, not one.
+The probability threshold and ``truncate`` do not affect MAP decoding.
+``truncate=None`` sums every message term. The optional finite legacy cutoff
+can discard important later terms; it does not accelerate likelihood evaluation.
+
+Candidate grid and cost
+-----------------------
+
+``max_candidates=2000`` restricts the possible boundary locations on a regular
+grid, always including 0 and n as segment endpoints. **Every observation** still
+contributes to segment means and covariance matrices. This is a restriction on
+boundary locations, not downsampling or replacing blocks by their means. Both
+MAP and marginal inference are conditional on this candidate set and the minimum
+segment length. Set ``max_candidates=None`` to allow every interior position.
+The geometric prior retains the original sample-time units on this grid;
+changing the grid changes the conditioned model.
+
+Let :math:`m` be the number of candidate vertices, including the two endpoints.
+For native multivariate inference, worst-case time is
+:math:`O(nd^2+m^2d^3)`, with :math:`O(n+md^2)` working memory beyond the input.
+For one channel it is :math:`O(n+m^2)` time and :math:`O(n+m)` memory. An active
+MAP count constraint K adds :math:`O(m^2K)` time and :math:`O(mK)` memory;
+unconstrained MAP needs no table indexed by the number of changes. Ensembling
+runs the univariate calculation per channel and stores their candidates.
+
+Block moments are combined using Welford's recurrence. A determinant lemma
+keeps large mean offsets out of covariance matrices; Cholesky evaluation falls
+back to an eigenvalue calculation if a tiny prior ridge is not numerically
+resolved. No n-by-n segment or ordinal-change matrix is stored.
 
 Usage
 -----
@@ -105,50 +96,65 @@ Usage
 
    from tsseg.algorithms import BOCDDetector
 
-   detector = BOCDDetector(hazard_lambda=200, cp_prob_threshold=0.1)
-   change_points = detector.fit_predict(X)
+   change_points = BOCDDetector().fit_predict(X)
+   at_most_three = BOCDDetector(max_cps=3).fit_predict(X)
+   probabilities_as_peaks = BOCDDetector(
+       decoding="marginal", cp_prob_threshold=0.5
+   ).fit_predict(X)
 
-**Implementation:** Adapted from hildensia/bayesian_changepoint_detection.
-MIT License.
+Suitability and earlier results
+-------------------------------
 
-**Reference:** `Fearnhead (2006), Statistics and Computing
-<https://eprints.lancs.ac.uk/id/eprint/8189/>`_; `Adams & MacKay (2007), arXiv
-<https://arxiv.org/abs/0710.3742>`_.
+The model assumes independent Gaussian observations within a segment. Full
+covariance detects more multivariate distribution changes than L2 reduction,
+but does not describe arbitrary temporal dynamics. Oscillations, drift or
+outliers can still produce extra boundaries; short weak changes can be missed.
+``hazard_lambda`` and ``min_distance`` are in samples and depend on the sampling
+rate. Check both boundary precision and segmentation quality for the application.
 
-Suitability and limitations
----------------------------
+Versions before the inference correction passed a constant duration mass,
+normalised boundary scores to sum to one, and used cubic-time inference with
+quadratic memory. The corrected inference first retained the old defaults.
+The new native likelihood, MAP decision rule, standardisation, candidate grid
+and calibrated defaults change the outputs again. Earlier BOCD benchmark
+results must be recomputed for this configuration.
 
-The observation model is an independent Gaussian distribution within each
-segment, with an unknown mean and variance. It suits abrupt changes of level or
-variance. A change in autocorrelation, frequency or cross-channel dependence can
-leave these statistics unchanged. Temporal dependence and outliers can also
-produce extra detections. The conjugate prior must match the scale and offset of
-the observations; ``hazard_lambda`` is in samples, so its interpretation depends
-on the sampling rate.
+When migrating an experiment configuration, explicit old values still override
+the constructor defaults. Set ``hazard_lambda=1000`` and ``beta=10`` (or remove
+their overrides) to use the calibrated prior. In MAP mode, remove probability
+threshold and truncation axes from tuning grids: they are inactive; vary the
+duration and Gaussian prior parameters instead. For example:
 
-L2 reduction discards direction: a multivariate mean changing from ``(a, 0)`` to
-``(-a, 0)`` has the same norm. Ensembling preserves changes visible in individual
-channels, at a cost proportional to their number; it still does not model their
-joint covariance. ``min_distance`` excludes candidates near both series edges
-and spaces the retained boundaries. It does not constrain segment lengths in the
-Bayesian model.
+.. code-block:: yaml
 
-Before the correction in Unreleased, the detector passed a constant mass instead
-of a geometric duration mass, normalised boundary marginals to sum to one, and
-used cubic-time inference with quadratic memory. Consequently, earlier benchmark
-scores measure that implementation and its decision rule. They need to be
-recomputed before drawing conclusions about the corrected model. Performance
-improvements alone do not establish detection quality on real data.
+   instance:
+     _target_: tsseg.algorithms.bocd.detector.BOCDDetector
+     multivariate_strategy: native
+     decoding: map
+     hazard_lambda: 1000
+     beta: 10
+     standardize: true
+     max_candidates: 2000
+     truncate: null
+
+**Implementation:** the detector uses ``_offline.py``. Legacy generic helpers
+in ``bayesian_models.py``, originally adapted from hildensia under MIT, remain
+available for compatibility and are not called by the detector.
+
+**References:** `Fearnhead (2006)
+<https://eprints.lancs.ac.uk/id/eprint/8189/>`_; `Fearnhead and Liu (2007),
+Section 3.1 <https://eprints.lancs.ac.uk/id/eprint/745/>`_; `Murphy (2007),
+conjugate Gaussian analysis <https://www.cs.ubc.ca/~murphyk/Papers/bayesGauss.pdf>`_.
 
 API reference
 -------------
 
-.. automodule:: tsseg.algorithms.bocd.bayesian_models
+.. automodule:: tsseg.algorithms.bocd.detector
    :members:
    :show-inheritance:
    :undoc-members:
 
-.. automodule:: tsseg.algorithms.bocd.detector
+.. automodule:: tsseg.algorithms.bocd.bayesian_models
    :members:
    :show-inheritance:
    :undoc-members:

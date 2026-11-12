@@ -650,7 +650,11 @@ class TestUIHints:
     def test_bocd_hints(self):
         hints = get_ui_hints(BOCDDetector)
         assert hints["kappa"]["min"] == 0  # low bound
-        assert hints["multivariate_strategy"]["choices"] == ["ensembling", "l2"]
+        assert hints["multivariate_strategy"]["choices"] == [
+            "ensembling",
+            "l2",
+            "native",
+        ]
 
     @pytest.mark.skipif(not _can_import("torch"), reason="torch not installed")
     def test_e2usd_groups(self):
