@@ -188,6 +188,7 @@ def test_all_advertised_rnn_types_fit_and_predict(rnn_type, inference_type):
 def test_scalar_gaussian_scale_can_learn_its_variance(triangular):
     _tf_stack()
     import tensorflow as tf
+
     from tsseg.algorithms.snlds.vendor.model_cavi_snlds import (
         GaussianDistributionFromMean,
     )
@@ -210,6 +211,7 @@ def test_scalar_gaussian_scale_can_learn_its_variance(triangular):
 def test_initial_prior_is_optimized_with_the_model(prior):
     _tf_stack()
     import tensorflow as tf
+
     from tsseg.algorithms import SNLDSDetector
 
     model = SNLDSDetector(n_states=2, hidden_dim=2)._build_model(1, 8)
@@ -227,6 +229,7 @@ def test_initial_prior_is_optimized_with_the_model(prior):
 def test_stateless_posterior_noise_varies_over_time_and_repeats_with_seed():
     _tf_stack()
     import tensorflow as tf
+
     from tsseg.algorithms.snlds.vendor import model_cavi_snlds as core
 
     posterior = core.GaussianDistributionFromMean(
