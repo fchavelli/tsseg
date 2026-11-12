@@ -113,11 +113,8 @@ KNOWN_FAILURES: dict[str, str] = {
         "shift is one coefficient of 65)"
     ),
     "SNLDSDetector": (
-        "ARI 0.04 (3 states) after the suite's 3 training steps. After the "
-        "default 2000 (110 s): 0.50 to 0.97 over seeds 0 to 4, two of them "
-        "above 0.8, and 0.54, 0.97, 0.54 over three runs with the default "
-        "random_state: training differs from run to run, and the runs below "
-        "the bar merge two regimes"
+        "the generic fixture runs 3 updates with init_steps=0, rather than "
+        "the 1000-update configuration with reconstruction initialization"
     ),
     "Time2StateDetector": (
         "ARI 0.22 (3 states) guided; 0.37 (4 states) unsupervised: each window "

@@ -5,6 +5,12 @@ Copied from Google Research's ``snlds`` package
 ``forward_backward_algo``, ``model_base``, ``model_cavi_snlds``, ``utils`` and
 ``examples/config_utils`` (here ``config_utils``). Changes, also noted at the top of each
 file: relative imports, and a Keras 3 compatible initial state and call of the
-posterior RNN in ``model_cavi_snlds``. The licence is in ``LICENSE`` in this directory.
+posterior RNN in ``model_cavi_snlds``. Numerical fixes align the complete-data
+score with the destination state, compute the collapsed objectives from forward
+normalizers, and track trainable covariance parameters. The licence is in
+``LICENSE`` in this directory.
+Further adaptations use tsseg components for positive Gaussian scales, tracked
+initial priors and factorized inference, plus stateless per-time noise and
+dynamic sequence lengths.
 Importing these modules imports TensorFlow (and TensorFlow Probability).
 """

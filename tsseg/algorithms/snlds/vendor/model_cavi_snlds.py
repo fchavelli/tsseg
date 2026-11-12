@@ -12,7 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Modified for tsseg (2026): imports made relative to this vendored package; Keras 3 compatibility of the posterior RNN (initial state, positional call).
+# Modified for tsseg (2026): relative imports; Keras 3 posterior RNN initial
+# states and positional calls; track covariance weights and evaluate their
+# transforms inside call so trainable scales receive gradients.
+# Further tsseg changes: positive scales and tracked priors from components;
+# stateless sampling per timestep, posterior means and optional factorization.
+# Positive scales and initial priors come from tsseg components. Stateless
+# seeds vary by time; optional mean propagation and factorized inference are
+# tsseg adaptations. The autoregressive posterior is retained.
 # Upstream: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
 
 """Collapsed Amortized Variational Inference for SNLDS.
@@ -38,6 +45,8 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from . import model_base
 from . import utils
+from ..components import (GaussianScale as _GaussianScale, InitialStatePrior,
+                          FactorizedInference, stateless_seed)
 
 namedtuple = collections.namedtuple
 
@@ -75,53 +84,19 @@ def construct_initial_state_distribution(
       underflow. Default to `1e-5`.
     sigma_scale: a `float` scalar for scaling the sigma. Default to `0.05`.
       The above three arguments are used as
-      `sigma_scale * max(softmax(raw_sigma + raw_sigma_bias), sigma_min))`.
+      `sigma_scale * softplus(raw_sigma + raw_sigma_bias) + sigma_min`.
     dtype: data type for variables within the scope. Default to `tf.float32`.
     name: a `str` to construct names of variables.
 
   Returns:
-    return_dist: a `tfp.distributions` instance for the initial state
-      distribution, `p(z[0])`.
+    return_dist: a tracked Keras layer exposing log_prob for p(z[0]).
   """
 
-  glorot_initializer = tf.keras.initializers.GlorotUniform()
-  z0_mean = tf.Variable(
-      initial_value=glorot_initializer(shape=[num_categ, latent_dim],
-                                       dtype=dtype),
-      name="{}_mean".format(name))
-
-  if use_triangular_cov:
-    z0_scale = tfp.math.fill_triangular(
-        tf.Variable(
-            initial_value=glorot_initializer(
-                shape=[int(latent_dim * (latent_dim + 1) / 2)],
-                dtype=dtype),
-            name="{}_scale".format(name),
-            trainable=use_trainable_cov))
-    z0_scale = (tf.maximum(tf.nn.softmax(z0_scale + raw_sigma_bias),
-                           sigma_min)
-                * sigma_scale)
-    return_dist = tfd.Independent(
-        distribution=tfd.MultivariateNormalTriL(
-            loc=z0_mean, scale_tril=z0_scale),
-        reinterpreted_batch_ndims=0)
-
-  else:
-    z0_scale = tf.Variable(
-        initial_value=glorot_initializer(
-            shape=[latent_dim],
-            dtype=dtype),
-        name="{}_scale".format(name),
-        trainable=use_trainable_cov)
-    z0_scale = (tf.maximum(tf.nn.softmax(z0_scale + raw_sigma_bias),
-                           sigma_min)
-                * sigma_scale)
-    return_dist = tfd.Independent(
-        distribution=tfd.MultivariateNormalDiag(
-            loc=z0_mean, scale_diag=z0_scale),
-        reinterpreted_batch_ndims=0)
-
-  return return_dist
+  return InitialStatePrior(
+      latent_dim=latent_dim, num_categ=num_categ,
+      use_trainable_cov=use_trainable_cov,
+      use_triangular_cov=use_triangular_cov, raw_sigma_bias=raw_sigma_bias,
+      sigma_min=sigma_min, sigma_scale=sigma_scale, dtype=dtype, name=name)
 
 
 class ContinuousStateTransition(tf.keras.Model):
@@ -164,7 +139,7 @@ class ContinuousStateTransition(tf.keras.Model):
         underflow. Default to `1e-5`.
       sigma_scale: a `float` scalar for scaling the sigma. Default to `0.05`.
         The above three arguments are used as
-        `sigma_scale * max(softmax(raw_sigma + raw_sigma_bias), sigma_min))`.
+        `sigma_scale * softplus(raw_sigma + raw_sigma_bias) + sigma_min`.
       dtype: data type for variables within the scope. Default to `tf.float32`.
       name: a `str` to construct names of variables.
     """
@@ -178,32 +153,16 @@ class ContinuousStateTransition(tf.keras.Model):
     self.use_triangular_cov = use_triangular_cov
     self.distribution_dim = distribution_dim
 
-    if cov_mat:
-      self.cov_mat = cov_mat
-    elif self.use_triangular_cov:
-      self.cov_mat = tfp.math.fill_triangular(
-          tf.Variable(
-              tf.random.uniform(
-                  shape=[
-                      int(self.distribution_dim
-                          * (self.distribution_dim + 1) / 2)],
-                  minval=0., maxval=1.,
-                  dtype=dtype),
-              name="{}_cov".format(name),
-              dtype=dtype,
-              trainable=use_trainable_cov))
-      self.cov_mat = tf.maximum(tf.nn.softmax(self.cov_mat + raw_sigma_bias),
-                                sigma_min) * sigma_scale
-    else:
-      self.cov_mat = tf.Variable(
-          tf.random.uniform(shape=[self.distribution_dim],
-                            minval=0.0, maxval=1.,
-                            dtype=dtype),
-          name="{}_cov".format(name),
-          dtype=dtype,
-          trainable=use_trainable_cov)
-      self.cov_mat = tf.maximum(tf.nn.softmax(self.cov_mat + raw_sigma_bias),
-                                sigma_min) * sigma_scale
+    self._fixed_cov = cov_mat
+    self._scale = None
+    if cov_mat is None:
+      self._scale = _GaussianScale(
+          distribution_dim, use_triangular_cov, use_trainable_cov,
+          raw_sigma_bias, sigma_min, sigma_scale, dtype, name + "_scale")
+
+  @property
+  def cov_mat(self):
+    return self._fixed_cov if self._scale is None else self._scale.value
 
   def call(self, input_tensor, dtype=tf.float32):
 
@@ -304,7 +263,7 @@ class GaussianDistributionFromMean(tf.keras.Model):
         underflow. Default to `1e-5`.
       sigma_scale: a `float` scalar for scaling the sigma. Default to `0.05`.
         The above three arguments are used as
-        `sigma_scale * max(softmax(raw_sigma + raw_sigma_bias), sigma_min))`.
+        `sigma_scale * softplus(raw_sigma + raw_sigma_bias) + sigma_min`.
       dtype: data type for variables within the scope. Default to `tf.float32`.
       name: a `str` to construct names of variables.
     """
@@ -313,31 +272,16 @@ class GaussianDistributionFromMean(tf.keras.Model):
     self.x_emission_net = emission_mean_network
     self.use_triangular_cov = use_triangular_cov
 
-    if cov_mat:
-      self.cov_mat = cov_mat
-    elif self.use_triangular_cov:
-      local_variable = tf.Variable(
-          tf.random.uniform(
-              shape=[int(self.observation_dim*(self.observation_dim+1)/2)],
-              minval=0., maxval=1.,
-              dtype=dtype),
-          name="{}_cov".format(name),
-          dtype=dtype,
-          trainable=use_trainable_cov)
-      self.cov_mat = tfp.math.fill_triangular(
-          local_variable)
-      self.cov_mat = tf.maximum(tf.nn.softmax(self.cov_mat + raw_sigma_bias),
-                                sigma_min) * sigma_scale
-    else:
-      self.cov_mat = tf.Variable(
-          initial_value=tf.random.uniform(shape=[self.observation_dim],
-                                          minval=0.0, maxval=1.,
-                                          dtype=dtype),
-          name="{}_cov".format(name),
-          dtype=dtype,
-          trainable=use_trainable_cov)
-      self.cov_mat = tf.maximum(tf.nn.softmax(self.cov_mat + raw_sigma_bias),
-                                sigma_min) * sigma_scale
+    self._fixed_cov = cov_mat
+    self._scale = None
+    if cov_mat is None:
+      self._scale = _GaussianScale(
+          observation_dim, use_triangular_cov, use_trainable_cov,
+          raw_sigma_bias, sigma_min, sigma_scale, dtype, name + "_scale")
+
+  @property
+  def cov_mat(self):
+    return self._fixed_cov if self._scale is None else self._scale.value
 
   def call(self, input_tensor, dtype=tf.float32):
 
@@ -387,16 +331,16 @@ class RnnInferenceNetwork(tf.keras.Model):
     self.posterior_rnn = posterior_rnn
     self.posterior_dist = posterior_dist
 
-    if embedding_network is None:
-      self.embedding_network = lambda x: x
-    self.embedding_network = embedding_network
+    self.embedding_network = (embedding_network if embedding_network is not None
+                              else lambda x: x)
 
   def call(self,
            inputs,
            num_samples=1,
            dtype=tf.float32,
            random_seed=RANDOM_SEED,
-           parallel_iterations=10):
+           parallel_iterations=10,
+           sample=True):
     """Recursively sample z[t] ~ q(z[t]|h[t]=f_RNN(h[t-1], z[t-1], h[t]^b)).
 
     Args:
@@ -424,6 +368,7 @@ class RnnInferenceNetwork(tf.keras.Model):
 
     ## passing through embedding_network, e.g. bidirectional RNN
     inputs = self.embedding_network(inputs)
+    random_seed = stateless_seed(random_seed)
 
     ## passing through forward RNN
     ta_names = ["rnn_states", "latent_states", "entropies", "log_probs"]
@@ -438,9 +383,12 @@ class RnnInferenceNetwork(tf.keras.Model):
           dtype=dtype)
     except TypeError:
       # Newer Keras versions changed the get_initial_state signature
-      initial_rnn_state = tf.zeros(
-          [batch_size * num_samples, self.posterior_rnn.units],
-          dtype=dtype)
+      # Keras 3 removed dtype, but its method still constructs the cell's
+      # state structure (in particular both hidden and cell states for LSTM).
+      initial_rnn_state = self.posterior_rnn.get_initial_state(
+          batch_size=batch_size * num_samples)
+      initial_rnn_state = tf.nest.map_structure(
+          lambda state: tf.cast(state, dtype), initial_rnn_state)
     if (isinstance(self.posterior_rnn, layers.GRUCell)
         or isinstance(self.posterior_rnn, layers.SimpleRNNCell)):
       if not isinstance(initial_rnn_state, (list, tuple)):
@@ -471,7 +419,8 @@ class RnnInferenceNetwork(tf.keras.Model):
           rnn_input,
           prev_rnn_state)
       dist = self.posterior_dist(rnn_out)
-      latent_state = dist.sample(seed=random_seed)
+      step_seed = tf.random.experimental.stateless_fold_in(random_seed, t)
+      latent_state = dist.sample(seed=step_seed) if sample else dist.mean()
 
       ## rnn_state is a list of [batch_size, rnn_hidden_dim],
       ## after TA.stack(), the dimension will be
@@ -515,7 +464,8 @@ def create_model(num_categ,
                  network_s_transition,
                  networks_z_transition,
                  network_posterior_mlp=lambda x: x,
-                 name="snlds"):
+                 name="snlds",
+                 inference_type="autoregressive"):
   """Construct SNLDS model.
 
   Args:
@@ -598,6 +548,9 @@ def create_model(num_categ,
       posterior_dist=posterior_distribution,
       latent_dim=hidden_dim,
       embedding_network=network_input_embedding)
+  if inference_type == "factorized":
+    posterior_network = FactorizedInference(posterior_distribution,
+                                           network_input_embedding)
 
   z_initial_distribution = construct_initial_state_distribution(
       latent_dim=hidden_dim,

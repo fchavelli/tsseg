@@ -12,7 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Modified for tsseg (2026): imports made relative to this vendored package.
+# Modified for tsseg (2026): relative imports; optionally return the forward
+# normalizers for the exact collapsed log likelihood without another pass.
+# Dynamic sequence lengths support prediction graph reuse.
 # Upstream: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
 
 """Forward-backward algorithm for integrating out discrete states."""
@@ -54,7 +56,7 @@ def forward_pass(log_a, log_b, logprob_s0):
     normalizer: a float 2D `Tensor` of size [batch, num_steps] stores the
       normalizing probability, `log p(x_t | x_1:t-1)`.
   """
-  num_steps = log_a.get_shape().with_rank_at_least(3).dims[1].value
+  num_steps = tf.shape(log_a)[1]
 
   tas = [tf.TensorArray(tf.float32, num_steps, name=n)
          for n in ["forward_prob", "normalizer"]]
@@ -167,9 +169,9 @@ def backward_pass(log_a, log_b, logprob_s0):
   return backward_prob, normalizer
 
 
-def forward_backward(log_a, log_b, log_init):
+def forward_backward(log_a, log_b, log_init, return_log_likelihood=False):
   """Forward backward algorithm."""
-  fwd, _ = forward_pass(log_a, log_b, log_init)
+  fwd, normalizers = forward_pass(log_a, log_b, log_init)
   bwd, _ = backward_pass(log_a, log_b, log_init)
 
   m_fwd = fwd[:, 0:-1, tf.newaxis, :]
@@ -190,4 +192,7 @@ def forward_backward(log_a, log_b, log_init):
                                   tf.shape(log_a)[2], tf.shape(log_a)[3]]),
                         gamma_ij], axis=1, name="concat_f_b")
 
-  return fwd, bwd, posterior, gamma_ij
+  result = (fwd, bwd, posterior, gamma_ij)
+  if return_log_likelihood:
+    return result + (tf.reduce_sum(normalizers, axis=1),)
+  return result

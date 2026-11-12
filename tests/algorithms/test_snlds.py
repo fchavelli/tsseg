@@ -25,7 +25,7 @@ def test_import_does_not_load_tensorflow():
         "import sys\n"
         "from tsseg.algorithms import SNLDSDetector\n"
         "try:\n"
-        "    SNLDSDetector(n_states=2)\n"
+        "    SNLDSDetector(init_steps=0, n_states=2)\n"
         "except ModuleNotFoundError as error:\n"
         "    print(error)\n"
         "else:\n"
@@ -65,7 +65,7 @@ def test_labels_follow_n_states(n_states):
     rng = np.random.default_rng(0)
     X = np.concatenate([rng.normal(0, 1, (100, 2)), rng.normal(4, 1, (100, 2))])
     labels = SNLDSDetector(
-        n_states=n_states, n_train_steps=3, random_state=0
+        init_steps=0, n_states=n_states, n_train_steps=3, random_state=0
     ).fit_predict(X)
     assert labels.shape == (200,)
     assert labels.dtype == np.int64
@@ -83,7 +83,12 @@ def test_schedules_follow_the_paper_scaled():
     _tf_stack()
     from tsseg.algorithms import SNLDSDetector
 
-    temperature, xent = SNLDSDetector(n_train_steps=600)._get_schedules()
+    temperature, xent = SNLDSDetector(
+        init_steps=0,
+        n_train_steps=600,
+        use_cross_entropy_reg=True,
+        temperature_init=1000.0,
+    )._get_schedules()
     # weight: constant until 600 / 6 = 100, then x0.975 per 600 / 600 = 1 step
     assert float(xent(0)) == pytest.approx(1000.0)
     assert float(xent(100)) == pytest.approx(1000.0)
@@ -100,7 +105,10 @@ def test_schedules_switched_off():
     from tsseg.algorithms import SNLDSDetector
 
     temperature, xent = SNLDSDetector(
-        n_train_steps=600, use_temperature_annealing=False, use_cross_entropy_reg=False
+        init_steps=0,
+        n_train_steps=600,
+        use_temperature_annealing=False,
+        use_cross_entropy_reg=False,
     )._get_schedules()
     assert float(temperature(0)) == 1.0 and float(xent(0)) == 0.0
 
@@ -112,7 +120,12 @@ def test_window_training_and_seeded_predict():
     rng = np.random.default_rng(1)
     X = np.concatenate([rng.normal(0, 1, (300, 2)), rng.normal(4, 1, (300, 2))])
     det = SNLDSDetector(
-        n_states=2, n_train_steps=3, train_window=64, batch_size=4, random_state=0
+        init_steps=0,
+        n_states=2,
+        n_train_steps=3,
+        train_window=64,
+        batch_size=4,
+        random_state=0,
     ).fit(X)
     a, b = det.predict(X), det.predict(X)
     assert a.shape == (600,)
@@ -137,6 +150,7 @@ def _fit_weights(seed_of_python_random):
     X = np.concatenate([rng.normal(0, 1, (100, 1)), rng.normal(3, 1, (100, 1))])
     random.seed(seed_of_python_random)
     det = SNLDSDetector(
+        init_steps=0,
         n_states=2,
         n_train_steps=1,
         learning_rate=1e-10,
@@ -172,6 +186,11 @@ def test_fit_leaves_the_python_random_stream_alone():
     random.seed(3)
     X = np.random.default_rng(2).normal(0, 1, (100, 1))
     SNLDSDetector(
-        n_states=2, n_train_steps=1, train_window=64, batch_size=2, random_state=0
+        init_steps=0,
+        n_states=2,
+        n_train_steps=1,
+        train_window=64,
+        batch_size=2,
+        random_state=0,
     ).fit(X)
     assert random.random() == expected

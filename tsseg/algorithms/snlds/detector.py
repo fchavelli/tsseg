@@ -19,100 +19,100 @@ from typing import Any
 import numpy as np
 
 from ..base import BaseSegmenter
-from ..param_schema import Closed, Interval, ParamDef, StrOptions
+from ..param_schema import Closed, HasType, Interval, ParamDef, StrOptions
 
 logger = logging.getLogger(__name__)
 
 
 class SNLDSDetector(BaseSegmenter):
-    """State detector based on Switching Non-Linear Dynamical Systems (CAVI-SNLDS).
+    """State detection by collapsed variational switching nonlinear dynamics.
 
-    Uses collapsed amortized variational inference to learn discrete regimes
-    in time series data.  After training, the discrete state posterior
-    ``p(s_t | x_{1:T}, z_{1:T})`` is used to assign a regime label to each
-    time-step.
+    The observation encoder is bidirectional. The discrete regimes are
+    marginalized exactly during training, conditional on continuous states.
 
     .. warning::
-        **Experimental.** On a sample of TSB-SEG, with the default parameters,
-        SNLDS scores below a random segmentation: its labels change far more
-        often than the true regimes. See the documentation page.
+        Experimental. The validation documents unsuccessful seeds and series
+        as well as gains. Current defaults are adaptations, not a reproduction
+        of the original paper's experiments.
 
     Parameters
     ----------
     n_states : int, default=3
-        Number of discrete regimes (K).
-    hidden_dim : int, default=8
-        Dimension of the continuous latent state z_t.
-    rnn_dim : int, default=4
-        Hidden dimension of the posterior inference RNN.
-    rnn_type : str, default="simplernn"
-        RNN cell type for inference network ("gru", "lstm", "simplernn").
-    n_train_steps : int, default=2000
-        Number of gradient steps for training.
-    learning_rate : float, default=1e-4
-        Learning rate for Adam optimiser.
+        Number of regimes. Reference labels are never used for fitting or
+        initialization, even when supplied as ``y``.
+    hidden_dim : int, default=4
+        Continuous latent dimension.
+    rnn_dim : int, default=16
+        Units per encoder direction and in the optional autoregressive RNN.
+    rnn_type : {"gru", "lstm", "simplernn"}, default="gru"
+        Recurrent cell type.
+    n_train_steps : int, default=1000
+        Variational updates, in addition to initialization.
+    learning_rate : float, default=1e-3
+        Adam learning rate.
     batch_size : int, default=8
-        Number of training windows per gradient step.
-    train_window : int or None, default=256
-        Length of the training windows, drawn at random positions of the series
-        at each step. ``None`` (or a value at least the length of the series)
-        trains on the whole series, with ``batch_size`` copies of it.
-    objective : str, default="elbo"
-        Training objective ("elbo" or "iwae").
+        Random windows per update.
+    train_window : int or None, default=64
+        Window length after preprocessing and downsampling. None uses the
+        full sequence, repeated ``batch_size`` times.
+    objective : {"elbo", "iwae"}, default="elbo"
+        Collapsed objective, using one latent draw per training window.
+    inference_type : {"factorized", "autoregressive"}, default="factorized"
+        Independent latent noise conditional on bidirectional context, or the
+        paper's forward RNN additionally conditioned on past latent draws.
+    init_steps : int, default=200
+        Reconstruction updates followed by k-means on latent means. Cluster
+        centers and predicted transitions initialize the dynamics. Zero
+        disables initialization. Position-based clustering can be unsuitable
+        for modes distinguished by velocity rather than position.
+    decoding : {"viterbi", "marginal"}, default="viterbi"
+        Conditional joint MAP regime path or pointwise posterior modes.
+    posterior_mean : bool, default=True
+        Decode at continuous posterior means (propagated conditional means
+        for autoregressive inference), rather than one posterior draw. This
+        plug-in approximation does not integrate continuous uncertainty.
+    feature_window : int, default=1
+        One uses raw data. Larger values replace channels by their centered
+        local mean and standard deviation, with nearest padding, before
+        normalization. This representation is an optional tsseg adaptation.
+    downsample : int, default=1
+        Observation sampling interval after feature extraction. Labels are
+        expanded to the original length, including the final points.
     use_temperature_annealing : bool, default=True
-        Anneal the temperature of the discrete transitions from
-        ``temperature_init`` down to 1 (see Notes).
-    temperature_init : float, default=1000.0
-        Initial temperature.
-    use_cross_entropy_reg : bool, default=True
-        Add the cross-entropy regulariser on regime usage, with a weight that
-        decays from ``xent_init`` towards 0 (see Notes).
+        Anneal transition temperature down to one.
+    temperature_init : float, default=10.0
+        Initial transition temperature.
+    use_cross_entropy_reg : bool, default=False
+        Enable the original pointwise uniform-state regularizer. The exact
+        collapsed objective does not require it (Ansari et al., Appendix B.4.1).
     xent_init : float, default=1000.0
-        Initial weight of the cross-entropy regulariser.
+        Initial regularizer weight when enabled.
     random_state : int or None, default=42
-        Seed of the training windows, of the initial weights, and of
-        TensorFlow (global seed, set at the start of ``fit`` and ``predict``).
-        Training is still not reproducible from run to run, and two calls to
-        ``predict`` on one fitted model can differ on a few labels (see Notes).
+        Seed of weights, windows, clustering and stateless latent noise.
+        TensorFlow's global seed is set during initialization.
     verbose : int, default=0
-        Log the objective ten times during training when ``>= 1``.
+        Log the objective ten times during variational training when positive.
     axis : int, default=0
-        Time axis of the input array.
+        Time axis of the input.
 
     Notes
     -----
-    The schedules follow the paper's Reacher experiment (appendix), scaled to
-    ``n_train_steps``: there, the regulariser weight starts at 1,000 and
-    decays by a factor 0.975 every 500 steps after step 50,000, the temperature
-    does the same after step 100,000 (down to 1), and training lasts 300,000
-    steps. Here the weight decays after ``n_train_steps / 6`` steps and the
-    temperature after ``n_train_steps / 3``, by 0.975 every
-    ``n_train_steps / 600`` steps, so that both reach the same final values.
+    Gaussian scales use positive softplus parameters. Initial means and
+    normalized regime logits are tracked by Keras. Stateless noise folds in
+    update and time indices. Prediction reuses one graph across input lengths.
+    Bitwise equivalence across devices or TensorFlow versions is not promised.
 
-    Training on random windows bounds the cost of a step, which otherwise
-    runs a forward-backward pass over the whole series. The paper trains on
-    minibatches of 32 short sequences (50 to 100 steps) from many trajectories;
-    here the windows come from the single series to segment. Prediction uses
-    the whole series.
-
-    Two fits with the same ``random_state`` start from the same weights and draw
-    the same windows, but TensorFlow does not compute the training identically
-    in every run, even after ``tf.config.experimental.enable_op_determinism()``,
-    and over 2,000 steps the differences can lead to another model. On a series
-    of three segments with clear mean shifts (1,000 points), three runs with the
-    default parameters gave adjusted Rand indices of 0.54, 0.97 and 0.54, and
-    seeds 0 to 4 gave 0.50 to 0.97, two of them above 0.8: the other runs merged
-    two regimes. Prediction samples the continuous states once, so two calls to
-    ``predict`` on one fitted model can still differ on a few labels.
-
-    The vendored model code comes from Google Research (Apache License 2.0),
-    see ``tsseg/algorithms/snlds/vendor``.
+    Factorized inference, reconstruction initialization, Viterbi and local
+    moments are adaptations of SNLDS. The autoregressive posterior remains
+    available. None of these choices guarantees semantic activity segmentation
+    or that every requested state will be used.
 
     References
     ----------
-    .. [1] Dong, Z., Seybold, B., Murphy, K., & Bui, H. (2020). Collapsed
-       Amortized Variational Inference for Switching Nonlinear Dynamical
-       Systems. ICML.
+    .. [1] Dong et al. (2020). Collapsed Amortized Variational Inference for
+       Switching Nonlinear Dynamical Systems. ICML, PMLR 119:2638-2647.
+    .. [2] Ansari et al. (2021). Deep Explicit Duration Switching Models for
+       Time Series. NeurIPS, Appendix B.4.1.
     """
 
     _tags: dict[str, Any] = {
@@ -122,13 +122,12 @@ class SNLDSDetector(BaseSegmenter):
         "capability:univariate": True,
         "capability:multivariate": True,
         "detector_type": "state_detection",
-        # n_states is the number of regimes of the model, not an upper bound: the
-        # cross-entropy regulariser pushes the posterior to use all of them.
+        # The model requires a fixed K and does not perform model selection.
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
         "python_dependencies": ["tensorflow", "tensorflow_probability", "tf_keras"],
-        # The inference network samples z inside a TensorFlow while loop; even
-        # with a seed, a few labels can change from one call to the next.
+        # Conservative training tag: floating-point results may differ across
+        # devices even with stateless latent sampling.
         "non_deterministic": True,
     }
 
@@ -178,6 +177,32 @@ class SNLDSDetector(BaseSegmenter):
             description="Training objective.",
             group="training",
         ),
+        "inference_type": ParamDef(
+            constraint=StrOptions({"autoregressive", "factorized"}),
+            description="Variational posterior family after bidirectional encoding.",
+            group="architecture",
+        ),
+        "init_steps": ParamDef(
+            constraint=Interval(int, 0, None, Closed.LEFT),
+            description="Reconstruction updates before clustering latent means.",
+            group="training",
+        ),
+        "decoding": ParamDef(
+            constraint=StrOptions({"viterbi", "marginal"}),
+            description="Joint MAP regime path or pointwise posterior modes.",
+        ),
+        "posterior_mean": ParamDef(
+            constraint=HasType((bool,)),
+            description="Decode at posterior means instead of a sampled trajectory.",
+        ),
+        "feature_window": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Local mean/std window (1: raw observations).",
+        ),
+        "downsample": ParamDef(
+            constraint=Interval(int, 1, None, Closed.LEFT),
+            description="Observation sampling interval; output keeps its original length.",
+        ),
         "temperature_init": ParamDef(
             constraint=Interval(float, 1, None, Closed.LEFT),
             description="Initial temperature of the discrete transitions.",
@@ -194,17 +219,23 @@ class SNLDSDetector(BaseSegmenter):
         self,
         *,
         n_states: int = 3,
-        hidden_dim: int = 8,
-        rnn_dim: int = 4,
-        rnn_type: str = "simplernn",
-        n_train_steps: int = 2000,
-        learning_rate: float = 1e-4,
+        hidden_dim: int = 4,
+        rnn_dim: int = 16,
+        rnn_type: str = "gru",
+        n_train_steps: int = 1000,
+        learning_rate: float = 1e-3,
         batch_size: int = 8,
-        train_window: int | None = 256,
+        train_window: int | None = 64,
         objective: str = "elbo",
+        inference_type: str = "factorized",
+        init_steps: int = 200,
+        decoding: str = "viterbi",
+        posterior_mean: bool = True,
+        feature_window: int = 1,
+        downsample: int = 1,
         use_temperature_annealing: bool = True,
-        temperature_init: float = 1000.0,
-        use_cross_entropy_reg: bool = True,
+        temperature_init: float = 10.0,
+        use_cross_entropy_reg: bool = False,
         xent_init: float = 1000.0,
         random_state: int | None = 42,
         verbose: int = 0,
@@ -219,6 +250,12 @@ class SNLDSDetector(BaseSegmenter):
         self.batch_size = batch_size
         self.train_window = train_window
         self.objective = objective
+        self.inference_type = inference_type
+        self.init_steps = init_steps
+        self.decoding = decoding
+        self.posterior_mean = posterior_mean
+        self.feature_window = feature_window
+        self.downsample = downsample
         self.use_temperature_annealing = use_temperature_annealing
         self.temperature_init = temperature_init
         self.use_cross_entropy_reg = use_cross_entropy_reg
@@ -250,78 +287,56 @@ class SNLDSDetector(BaseSegmenter):
             random.setstate(state)
 
     def _construct_model(self, obs_dim: int, num_steps: int):
-        """Construct the SNLDS model and training utilities."""
+        """Build bidirectional inference and learned Gaussian noise models."""
         import tensorflow as tf
 
         from .vendor import config_utils, model_cavi_snlds, utils
 
         if self.random_state is not None:
             tf.random.set_seed(self.random_state)
-
-        K = self.n_states
-        H = self.hidden_dim
-
-        # --- Emission p(x_t | z_t) ---
-        config_emission = config_utils.get_distribution_config(
-            triangular_cov=False,
-            trainable_cov=False,
+        K, H, R = self.n_states, self.hidden_dim, self.rnn_dim
+        rnn_class = {
+            "gru": tf.keras.layers.GRU,
+            "lstm": tf.keras.layers.LSTM,
+            "simplernn": tf.keras.layers.SimpleRNN,
+        }[self.rnn_type]
+        embedding = tf.keras.layers.Bidirectional(rnn_class(R, return_sequences=True))
+        emission = config_utils.get_distribution_config(
+            triangular_cov=False, trainable_cov=True, sigma_scale=0.2
         )
-        emission_network = utils.build_dense_network(
-            [max(8, H), 32, obs_dim],
-            ["relu", "relu", None],
+        inference = config_utils.get_distribution_config(
+            triangular_cov=False, trainable_cov=True, sigma_scale=0.1
         )
-
-        # --- Inference q(z_t | x_{1:T}) ---
-        config_inference = config_utils.get_distribution_config(triangular_cov=True)
-        posterior_rnn = utils.build_rnn_cell(
-            rnn_type=self.rnn_type,
-            rnn_hidden_dim=self.rnn_dim,
+        initial = config_utils.get_distribution_config(
+            triangular_cov=False, trainable_cov=False, sigma_scale=1.0
         )
-        posterior_mlp = utils.build_dense_network(
-            [32, H],
-            ["relu", None],
+        transition = config_utils.get_distribution_config(
+            triangular_cov=False, trainable_cov=True, sigma_scale=0.2
         )
-
-        # --- Initial distribution p(z_0) ---
-        config_z_initial = config_utils.get_distribution_config(triangular_cov=True)
-
-        # --- Continuous transition p(z_t | z_{t-1}, s_t) ---
-        config_z_transition = config_utils.get_distribution_config(
-            triangular_cov=True,
-            trainable_cov=True,
-            sigma_scale=0.1,
-            raw_sigma_bias=1e-5,
-            sigma_min=1e-5,
-        )
-        z_transition_networks = [
-            utils.build_dense_network([256, H], ["relu", None]) for _ in range(K)
-        ]
-
-        # --- Discrete transition p(s_t | s_{t-1}, x_{t-1}) ---
-        num_categ_sq = K * K
-        network_s_transition = utils.build_dense_network(
-            [4 * num_categ_sq, num_categ_sq],
-            ["relu", None],
-        )
-
-        model = model_cavi_snlds.create_model(
+        discrete = utils.build_dense_network([max(16, 4 * K), K * K], ["relu", None])
+        if K > 1:
+            bias = np.eye(K) * np.log(0.98 * (K - 1) / 0.02)
+            discrete.layers[-1].bias_initializer = tf.keras.initializers.Constant(
+                bias.ravel()
+            )
+        return model_cavi_snlds.create_model(
             num_categ=K,
             hidden_dim=H,
             observation_dim=obs_dim,
-            config_emission=config_emission,
-            config_inference=config_inference,
-            config_z_initial=config_z_initial,
-            config_z_transition=config_z_transition,
-            network_emission=emission_network,
-            network_input_embedding=lambda x: x,
-            network_posterior_mlp=posterior_mlp,
-            network_posterior_rnn=posterior_rnn,
-            network_s_transition=network_s_transition,
-            networks_z_transition=z_transition_networks,
-            name="snlds",
+            config_emission=emission,
+            config_inference=inference,
+            config_z_initial=initial,
+            config_z_transition=transition,
+            network_emission=utils.build_dense_network([32, obs_dim], ["relu", None]),
+            network_input_embedding=embedding,
+            network_posterior_mlp=utils.build_dense_network([32, H], ["relu", None]),
+            network_posterior_rnn=utils.build_rnn_cell(self.rnn_type, R),
+            network_s_transition=discrete,
+            networks_z_transition=[
+                utils.build_dense_network([64, H], ["relu", None]) for _ in range(K)
+            ],
+            inference_type=self.inference_type,
         )
-        model.build(input_shape=(self.batch_size, num_steps, obs_dim))
-        return model
 
     def _get_schedules(self):
         """Temperature and cross-entropy weight as functions of the step.
@@ -368,122 +383,192 @@ class SNLDSDetector(BaseSegmenter):
     # BaseSegmenter interface
     # ------------------------------------------------------------------
 
-    def _fit(self, X: np.ndarray, y=None):
-        """Train the SNLDS model on the input time series.
+    def _features(self, X):
+        if self.feature_window == 1:
+            return X
+        from scipy.ndimage import uniform_filter1d
 
-        Parameters
-        ----------
-        X : np.ndarray, shape (n_timepoints, n_channels)
-        """
+        X = np.asarray(X, dtype=np.float64)
+        mean = uniform_filter1d(X, self.feature_window, axis=0, mode="nearest")
+        variance = (
+            uniform_filter1d(X * X, self.feature_window, axis=0, mode="nearest")
+            - mean * mean
+        )
+        return np.concatenate([mean, np.sqrt(np.maximum(variance, 0.0))], axis=1)
+
+    def _initialize(self, data, next_batch, seed):
+        """Initialize generative modes from an unlabeled latent encoding."""
+        import tensorflow as tf
+        from sklearn.cluster import KMeans
+
+        model = self._model
+        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
+
+        @tf.function(autograph=False)
+        def encode(batch):
+            return model.inference_network(batch, random_seed=seed, sample=False)[0][0]
+
+        @tf.function(autograph=False)
+        def pretrain(batch):
+            with tf.GradientTape() as tape:
+                z = encode(batch)
+                reconstructed = model.x_emit(z).mean()
+                loss = tf.reduce_mean(tf.square(reconstructed - batch))
+            variables = (
+                model.inference_network.trainable_variables
+                + model.x_emit.x_emission_net.trainable_variables
+            )
+            gradients = tape.gradient(loss, variables)
+            pairs = [
+                (g, v)
+                for g, v in zip(gradients, variables, strict=True)
+                if g is not None
+            ]
+            optimizer.apply_gradients(pairs)
+            return loss
+
+        for _ in range(self.init_steps):
+            pretrain(next_batch())
+        means = encode(tf.constant(data[None], tf.float32)).numpy()[0]
+        n_clusters = min(self.n_states, len(data))
+        clustering = KMeans(
+            n_clusters=n_clusters, n_init=10, random_state=self.random_state
+        ).fit(means)
+        centers = clustering.cluster_centers_[np.arange(self.n_states) % n_clusters]
+        model.z_tran(tf.constant(means[None], tf.float32))
+        model.s_tran(tf.constant(data[None], tf.float32))
+        for k, network in enumerate(model.z_tran.z_trans_networks):
+            network.layers[-1].kernel.assign(tf.zeros_like(network.layers[-1].kernel))
+            network.layers[-1].bias.assign(centers[k])
+        model.z0_dist.loc.assign(centers)
+        counts = np.ones((self.n_states, self.n_states)) * 0.01
+        counts += np.eye(self.n_states) * 10.0
+        labels = clustering.labels_
+        np.add.at(counts, (labels[1:], labels[:-1]), 1)
+        transition = counts / counts.sum(axis=0, keepdims=True)
+        last = model.s_tran.dense_net.layers[-1]
+        last.kernel.assign(tf.zeros_like(last.kernel))
+        last.bias.assign(np.log(transition).ravel())
+
+    def _fit(self, X: np.ndarray, y=None):
+        """Learn a switching model from observations; y is never used."""
         import tensorflow as tf
 
         if self.random_state is not None:
             tf.random.set_seed(self.random_state)
         rng = np.random.default_rng(self.random_state)
-
-        n_timepoints, obs_dim = X.shape
-        self._obs_dim = obs_dim
-
-        # Normalise input
+        fit_seed = (
+            int(self.random_state)
+            if self.random_state is not None
+            else int(rng.integers(0, 2**31 - 1))
+        )
+        X = self._features(X)[:: self.downsample]
         self._mean = X.mean(axis=0)
         self._std = X.std(axis=0) + 1e-8
-        X_norm = ((X - self._mean) / self._std).astype(np.float32)
-
-        # Training windows: random positions, fixed length
-        window = n_timepoints
-        if self.train_window is not None:
-            window = min(int(self.train_window), n_timepoints)
-        n_starts = n_timepoints - window + 1
+        data = ((X - self._mean) / self._std).astype(np.float32)
+        n_timepoints, obs_dim = data.shape
+        self._obs_dim = obs_dim
+        window = (
+            n_timepoints
+            if self.train_window is None
+            else min(self.train_window, n_timepoints)
+        )
+        offsets = np.arange(window)
 
         def next_batch():
-            starts = rng.integers(0, n_starts, size=self.batch_size)
-            return tf.constant(np.stack([X_norm[i : i + window] for i in starts]))
+            starts = rng.integers(0, n_timepoints - window + 1, self.batch_size)
+            return tf.constant(data[starts[:, None] + offsets[None, :]])
 
-        # Build model
         self._model = self._build_model(obs_dim, window)
-        optimizer = tf.keras.optimizers.Adam()
-
+        if self.init_steps:
+            self._initialize(data, next_batch, tf.constant([fit_seed, -1], tf.int32))
+        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
         get_temperature, get_xent_coef = self._get_schedules()
 
-        # Compiled training step for performance
-        objective_key = self.objective
-
-        @tf.function
-        def _train_step(data, temperature, xent_coef):
+        @tf.function(autograph=False)
+        def train_step(batch, temperature, xent_coef):
+            seed = tf.stack(
+                [
+                    tf.constant(fit_seed, tf.int32),
+                    tf.cast(optimizer.iterations, tf.int32),
+                ]
+            )
             with tf.GradientTape() as tape:
-                result = self._model(data, temperature, num_samples=1)
-                log_likelihood = result[objective_key]
-                cross_entropy = result["cross_entropy"]
-                loss = -1.0 * (log_likelihood + xent_coef * cross_entropy)
-
-            grads = tape.gradient(loss, self._model.trainable_variables)
-            clipped_grads = [
-                tf.clip_by_value(g, -5.0, 5.0) if g is not None else g for g in grads
-            ]
-            grads_and_vars = [
+                result = self._model(batch, temperature=temperature, random_seed=seed)
+                likelihood = result[self.objective]
+                loss = -likelihood
+                if self.use_cross_entropy_reg:
+                    loss -= xent_coef * result["cross_entropy"]
+                loss /= tf.cast(tf.shape(batch)[1], tf.float32)
+                tf.debugging.assert_all_finite(loss, "Non-finite SNLDS objective")
+            variables = self._model.trainable_variables
+            pairs = [
                 (g, v)
-                for g, v in zip(
-                    clipped_grads, self._model.trainable_variables, strict=True
-                )
+                for g, v in zip(tape.gradient(loss, variables), variables, strict=True)
                 if g is not None
             ]
-            optimizer.apply_gradients(grads_and_vars)
-            return log_likelihood, cross_entropy
-
-        # Training loop
-        for step in range(self.n_train_steps):
-            temperature = get_temperature(step)
-            xent_coef = get_xent_coef(step)
-            optimizer.learning_rate = self.learning_rate
-
-            log_likelihood, _ = _train_step(
-                next_batch(),
-                tf.constant(temperature, dtype=tf.float32),
-                tf.constant(xent_coef, dtype=tf.float32),
+            gradients, _ = tf.clip_by_global_norm([g for g, _ in pairs], 5.0)
+            optimizer.apply_gradients(
+                zip(gradients, [v for _, v in pairs], strict=True)
             )
+            return likelihood
 
-            if self.verbose >= 1 and (step % max(1, self.n_train_steps // 10)) == 0:
-                ll_val = tf.reduce_mean(log_likelihood).numpy()
+        for step in range(self.n_train_steps):
+            likelihood = train_step(
+                next_batch(),
+                tf.constant(get_temperature(step), tf.float32),
+                tf.constant(get_xent_coef(step), tf.float32),
+            )
+            if self.verbose >= 1 and step % max(1, self.n_train_steps // 10) == 0:
                 logger.info(
-                    "SNLDS step %d/%d — %s: %.4f",
+                    "SNLDS step %d/%d: %.4f",
                     step,
                     self.n_train_steps,
-                    self.objective,
-                    ll_val,
+                    float(likelihood),
                 )
-
+        self._make_inference(fit_seed)
         return self
 
-    def _predict(self, X: np.ndarray) -> np.ndarray:
-        """Predict discrete state labels for each time step.
-
-        Parameters
-        ----------
-        X : np.ndarray, shape (n_timepoints, n_channels)
-
-        Returns
-        -------
-        labels : np.ndarray, shape (n_timepoints,)
-            Integer state labels in {0, ..., n_states-1}.
-        """
+    def _make_inference(self, fit_seed):
         import tensorflow as tf
 
-        # Normalise with training stats
-        X_norm = (X - self._mean) / self._std
-        X_tensor = tf.constant(X_norm[np.newaxis, :, :], dtype=tf.float32)
+        from .vendor import forward_backward_algo
 
-        # The model samples z from its posterior: seed it for reproducibility
-        if self.random_state is not None:
-            tf.random.set_seed(self.random_state)
+        @tf.function(
+            input_signature=[tf.TensorSpec([1, None, self._obs_dim], tf.float32)],
+            autograph=False,
+        )
+        def infer(data):
+            seed = (
+                tf.constant([fit_seed, 0], tf.int32)
+                if self.random_state is not None
+                else None
+            )
+            z = self._model.inference_network(
+                data, random_seed=seed, sample=not self.posterior_mean
+            )[0][0]
+            log_b, log_a = self._model.calculate_likelihoods(data, z)
+            if self.decoding == "viterbi":
+                return log_a[0], log_b[0]
+            return forward_backward_algo.forward_backward(
+                log_a, log_b, self._model.log_init
+            )[2][0]
 
-        # Run model at temperature=1.0 (no annealing at inference), compiled: the
-        # forward-backward pass over a long series is very slow in eager mode
-        @tf.function(autograph=False)
-        def _infer(data):
-            return self._model(data, temperature=1.0, num_samples=1)["posterior_llk"]
+        self._infer = infer
 
-        # posterior_llk: [1, T, K] — log p(s_t = k | x, z)
-        log_posterior = _infer(X_tensor)
-        labels = tf.argmax(log_posterior, axis=-1).numpy()[0]  # [T]
+    def _predict(self, X: np.ndarray) -> np.ndarray:
+        import tensorflow as tf
 
-        return labels.astype(np.int64)
+        from .decoding import viterbi
+
+        n_timepoints = len(X)
+        data = self._features(X)[:: self.downsample]
+        data = ((data - self._mean) / self._std).astype(np.float32)
+        result = self._infer(tf.constant(data[None]))
+        if self.decoding == "viterbi":
+            labels = viterbi(
+                result[0].numpy(), result[1].numpy(), self._model.log_init.numpy()
+            )
+        else:
+            labels = np.argmax(result.numpy(), axis=-1).astype(np.int64)
+        return np.repeat(labels, self.downsample)[:n_timepoints]

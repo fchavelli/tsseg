@@ -9,6 +9,25 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Rework ``SNLDSDetector`` after its numerical audit. ELBO/IWAE now use
+  exact marginalization over discrete states; the complete-data score aligns
+  emissions with destination states. Gaussian scales use positive softplus
+  parameters with live gradients, including in one dimension. Initial means
+  and normalized regime logits are Keras-tracked; LSTM states work on Keras 3,
+  and latent sampling uses stateless seeds per update and timestep. Defaults
+  now use a bidirectional 16-unit GRU, four latent dimensions, a factorized
+  posterior, 1,000 updates at ``1e-3`` on 64-point windows, temperature 10 and
+  no cross-entropy term. ``inference_type="autoregressive"`` retains the
+  paper's posterior family. New ``init_steps=200`` pretrains reconstruction
+  and initializes dynamics from unlabeled latent clusters (zero disables it).
+  ``decoding="viterbi"`` and ``posterior_mean=True`` select a conditional MAP
+  regime path at continuous posterior means. ``feature_window=1`` and
+  ``downsample=1`` retain raw observations and expose optional local moments
+  and sampling. Prediction reuses its graph across calls and input lengths,
+  and labels cover the original series, including the final points. Outputs
+  and defaults change. The detector remains experimental. Fixed validation
+  records successful and unsuccessful seeds, source/input hashes and actual
+  parameters, and distinguishes adaptations from a paper reproduction.
 * ``BeastDetector`` with ``multivariate_strategy="native"`` (the default for
   multivariate series) no longer returns the union of the candidates of its
   channels. Each channel gives up to the maximum of ``tcp_minmax`` (10 by

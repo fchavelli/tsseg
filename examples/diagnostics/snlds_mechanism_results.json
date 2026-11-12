@@ -1,0 +1,1778 @@
+{
+  "purpose": "Post-validation mechanistic failure inspection; selected cases, not another benchmark.",
+  "base_commit": "76a3da6c733e71077371f1d99fcefde0355a27f7",
+  "fit_count": 10,
+  "scoring": "ARI on the model observation grid. Labels provide only the guided state count during fitting.",
+  "objective_probe": "ELBO per point from 16 fixed training-context windows, 4 posterior samples, seed [441,7]. Compare stages of the same representation only.",
+  "provenance_note": "Initial nine probes preceded addition of the controlled cluster-assignment flag and derivative-sign score. Neither addition changes their training. Derivative scores were subsequently computed from saved arrays. The tenth fit uses that controlled flag. All ten have the identical recorded detector implementation fingerprint. The replay scripts verify fitted sources and weight paths/shapes.",
+  "paired_bounce_initialization_max_abs_differences": {
+    "z": 0.0,
+    "reconstruction": 0.0,
+    "data": 0.0
+  },
+  "limitations": [
+    "Selected failures and a small number of seeds; these diagnostics do not establish population effects.",
+    "No full reproduction of the original multi-trajectory corpus, architectures or training schedule.",
+    "Objective probes evaluate training observations, not held-out likelihood.",
+    "Latent/observed k-means are diagnostic alternatives; their reference scores do not enter fitting or checkpoint selection.",
+    "Probe overhead makes fit timings unsuitable for speed comparisons.",
+    "The conditional mean decoder is a plug-in approximation. Monte Carlo replay averages probabilities under q(z|x), not exact p(z|x)."
+  ],
+  "runs": [
+    {
+      "case": "bounce",
+      "trial": 1,
+      "input": null,
+      "input_sha256": "26b8eb814537f1d7fac848b4136e3e18c4a14b0bca6cc59caf1b3af0c0583393",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 1,
+        "feature_window": 1,
+        "hidden_dim": 4,
+        "inference_type": "factorized",
+        "init_steps": 0,
+        "learning_rate": 0.001,
+        "n_states": 2,
+        "n_train_steps": 1000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 0,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 24.84947833399997,
+      "true_changes": 25,
+      "snapshots": {
+        "trained": {
+          "ari": 0.9652845393356384,
+          "latent_kmeans_ari": -0.0006181912719940131,
+          "observed_kmeans_ari": -0.0006240264856192852,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.9000640733226539,
+          "sampled_z_ari": 0.9311819700162138,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 25,
+          "occupancy": [
+            799,
+            801
+          ],
+          "mean_posterior_occupancy": [
+            0.49385106563568115,
+            0.5061487555503845
+          ],
+          "posterior_entropy": 0.06044895946979523,
+          "reconstruction_mse": 0.0006762488046661019,
+          "window_elbo_per_point": 0.361652135848999,
+          "mean_log_emission": 1.0277317762374878,
+          "continuous_entropy": -2.484678030014038,
+          "dynamics_spread_over_noise": 0.33628273010253906,
+          "latent_std": [
+            1.4754513502120972,
+            0.9385503530502319,
+            0.7259865999221802,
+            0.36568939685821533
+          ],
+          "dynamics_scale": [
+            0.15694288909435272,
+            0.145506352186203,
+            0.14443589746952057,
+            0.14026622474193573
+          ],
+          "emission_scale": [
+            0.14031808078289032
+          ],
+          "confusion": [
+            [
+              793,
+              8
+            ],
+            [
+              6,
+              793
+            ]
+          ],
+          "velocity_sign_ari": 0.8811772538087002,
+          "state_velocity_correlation": -0.8911037444386853
+        }
+      },
+      "case_id": "bounce-noinit-0",
+      "skip_cluster_assignment": false
+    },
+    {
+      "case": "bounce",
+      "trial": 1,
+      "input": null,
+      "input_sha256": "26b8eb814537f1d7fac848b4136e3e18c4a14b0bca6cc59caf1b3af0c0583393",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 1,
+        "feature_window": 1,
+        "hidden_dim": 4,
+        "inference_type": "factorized",
+        "init_steps": 200,
+        "learning_rate": 0.001,
+        "n_states": 2,
+        "n_train_steps": 1000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 0,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 31.582139589999997,
+      "true_changes": 25,
+      "snapshots": {
+        "initialized": {
+          "ari": -0.0005878591470891482,
+          "latent_kmeans_ari": -0.0005878591470891482,
+          "observed_kmeans_ari": -0.0006240264856192852,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": -0.0005878591470891482,
+          "sampled_z_ari": -0.0005883041581625858,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 24,
+          "occupancy": [
+            685,
+            915
+          ],
+          "mean_posterior_occupancy": [
+            0.428497850894928,
+            0.5715023279190063
+          ],
+          "posterior_entropy": 0.005147344898432493,
+          "reconstruction_mse": 0.001845237915404141,
+          "window_elbo_per_point": -8.174102783203125,
+          "mean_log_emission": 0.6673861742019653,
+          "continuous_entropy": -3.5341861248016357,
+          "dynamics_spread_over_noise": 3.7426059246063232,
+          "latent_std": [
+            1.420243501663208,
+            0.2574598491191864,
+            0.8076838850975037,
+            0.2284974306821823
+          ],
+          "dynamics_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "emission_scale": [
+            0.2000100016593933
+          ],
+          "confusion": [
+            [
+              341,
+              460
+            ],
+            [
+              344,
+              455
+            ]
+          ],
+          "velocity_sign_ari": -0.00034912054323730287,
+          "state_velocity_correlation": 0.0040149237466069925
+        },
+        "trained": {
+          "ari": 0.0,
+          "latent_kmeans_ari": -0.0006190110638716152,
+          "observed_kmeans_ari": -0.0006240264856192852,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.11870881661710973,
+          "sampled_z_ari": 0.0,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 1,
+          "changes": 0,
+          "occupancy": [
+            0,
+            1600
+          ],
+          "mean_posterior_occupancy": [
+            4.992292360839201e-06,
+            0.9999983906745911
+          ],
+          "posterior_entropy": 6.125839718151838e-05,
+          "reconstruction_mse": 0.00041203098953701556,
+          "window_elbo_per_point": 0.6194629669189453,
+          "mean_log_emission": 1.4525586366653442,
+          "continuous_entropy": -2.4457013607025146,
+          "dynamics_spread_over_noise": 0.7046877145767212,
+          "latent_std": [
+            1.8986339569091797,
+            0.13234853744506836,
+            0.4239009916782379,
+            0.09723357111215591
+          ],
+          "dynamics_scale": [
+            0.1945572793483734,
+            0.1375517100095749,
+            0.14465783536434174,
+            0.13761332631111145
+          ],
+          "emission_scale": [
+            0.09104986488819122
+          ],
+          "confusion": [
+            [
+              0,
+              801
+            ],
+            [
+              0,
+              799
+            ]
+          ],
+          "velocity_sign_ari": 0.0,
+          "state_velocity_correlation": null
+        }
+      },
+      "case_id": "bounce-raw-0",
+      "skip_cluster_assignment": false
+    },
+    {
+      "case": "bounce",
+      "trial": 1,
+      "input": null,
+      "input_sha256": "26b8eb814537f1d7fac848b4136e3e18c4a14b0bca6cc59caf1b3af0c0583393",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 1,
+        "feature_window": 1,
+        "hidden_dim": 4,
+        "inference_type": "factorized",
+        "init_steps": 200,
+        "learning_rate": 0.001,
+        "n_states": 2,
+        "n_train_steps": 1000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 1,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 31.79243024599998,
+      "true_changes": 25,
+      "snapshots": {
+        "initialized": {
+          "ari": -0.0005484083630139882,
+          "latent_kmeans_ari": -0.0005484083630139882,
+          "observed_kmeans_ari": -0.0006240264856192852,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": -0.0005484083630139882,
+          "sampled_z_ari": -0.00020558210346512752,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 24,
+          "occupancy": [
+            947,
+            653
+          ],
+          "mean_posterior_occupancy": [
+            0.5899242758750916,
+            0.4100757837295532
+          ],
+          "posterior_entropy": 0.008678820915520191,
+          "reconstruction_mse": 0.0010695122182369232,
+          "window_elbo_per_point": -6.75738000869751,
+          "mean_log_emission": 0.6770817637443542,
+          "continuous_entropy": -3.5341861248016357,
+          "dynamics_spread_over_noise": 2.940920829772949,
+          "latent_std": [
+            1.1043204069137573,
+            0.5394523739814758,
+            0.2924920618534088,
+            0.46209609508514404
+          ],
+          "dynamics_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "emission_scale": [
+            0.2000100016593933
+          ],
+          "confusion": [
+            [
+              471,
+              330
+            ],
+            [
+              476,
+              323
+            ]
+          ],
+          "velocity_sign_ari": -0.0005913994858496735,
+          "state_velocity_correlation": 0.004452476873599137
+        },
+        "trained": {
+          "ari": 0.9215509394386787,
+          "latent_kmeans_ari": -0.0006249604755918129,
+          "observed_kmeans_ari": -0.0006240264856192852,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.8671434758907169,
+          "sampled_z_ari": 0.8509130126503845,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 25,
+          "occupancy": [
+            797,
+            803
+          ],
+          "mean_posterior_occupancy": [
+            0.49919024109840393,
+            0.5008094310760498
+          ],
+          "posterior_entropy": 0.059655677527189255,
+          "reconstruction_mse": 0.0004078804631717503,
+          "window_elbo_per_point": 0.7557041645050049,
+          "mean_log_emission": 1.4829562902450562,
+          "continuous_entropy": -2.453012704849243,
+          "dynamics_spread_over_noise": 0.36332079768180847,
+          "latent_std": [
+            2.333381175994873,
+            0.11071472615003586,
+            0.30811744928359985,
+            0.6489341259002686
+          ],
+          "dynamics_scale": [
+            0.17888332903385162,
+            0.13848945498466492,
+            0.13839301466941833,
+            0.14303286373615265
+          ],
+          "emission_scale": [
+            0.08820349723100662
+          ],
+          "confusion": [
+            [
+              15,
+              786
+            ],
+            [
+              782,
+              17
+            ]
+          ],
+          "velocity_sign_ari": 0.8394136371214487,
+          "state_velocity_correlation": 0.8772197328794245
+        }
+      },
+      "case_id": "bounce-raw-1",
+      "skip_cluster_assignment": false
+    },
+    {
+      "case": "bounce",
+      "trial": 1,
+      "input": null,
+      "skip_cluster_assignment": true,
+      "input_sha256": "26b8eb814537f1d7fac848b4136e3e18c4a14b0bca6cc59caf1b3af0c0583393",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 1,
+        "feature_window": 1,
+        "hidden_dim": 4,
+        "inference_type": "factorized",
+        "init_steps": 200,
+        "learning_rate": 0.001,
+        "n_states": 2,
+        "n_train_steps": 1000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 0,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 24.936341721999952,
+      "true_changes": 25,
+      "snapshots": {
+        "initialized": {
+          "ari": 0.001183236675012188,
+          "latent_kmeans_ari": -0.0005878591470891482,
+          "observed_kmeans_ari": -0.0006240264856192852,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.0009773724214882742,
+          "sampled_z_ari": 0.0018767187466807948,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 24,
+          "occupancy": [
+            759,
+            841
+          ],
+          "mean_posterior_occupancy": [
+            0.47014111280441284,
+            0.5298588275909424
+          ],
+          "posterior_entropy": 0.05479252710938454,
+          "reconstruction_mse": 0.001845237915404141,
+          "window_elbo_per_point": -51.946197509765625,
+          "mean_log_emission": 0.6673861742019653,
+          "continuous_entropy": -3.5341861248016357,
+          "dynamics_spread_over_noise": 0.7877416014671326,
+          "latent_std": [
+            1.420243501663208,
+            0.2574598491191864,
+            0.8076838850975037,
+            0.2284974306821823
+          ],
+          "dynamics_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "emission_scale": [
+            0.2000100016593933
+          ],
+          "confusion": [
+            [
+              397,
+              404
+            ],
+            [
+              362,
+              437
+            ]
+          ],
+          "velocity_sign_ari": 0.0028295292441200123,
+          "state_velocity_correlation": -0.04335805010494575
+        },
+        "trained": {
+          "ari": 0.960375219410353,
+          "latent_kmeans_ari": -0.0006181912719940131,
+          "observed_kmeans_ari": -0.0006240264856192852,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.9239540043995126,
+          "sampled_z_ari": 0.9384380644479926,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 25,
+          "occupancy": [
+            803,
+            797
+          ],
+          "mean_posterior_occupancy": [
+            0.49952325224876404,
+            0.500476598739624
+          ],
+          "posterior_entropy": 0.04912484809756279,
+          "reconstruction_mse": 0.0005250659305602312,
+          "window_elbo_per_point": 0.6729941368103027,
+          "mean_log_emission": 1.3793777227401733,
+          "continuous_entropy": -2.410642385482788,
+          "dynamics_spread_over_noise": 0.37571829557418823,
+          "latent_std": [
+            2.131850004196167,
+            0.7729873657226562,
+            0.5207068920135498,
+            0.3597302734851837
+          ],
+          "dynamics_scale": [
+            0.16829732060432434,
+            0.14694622159004211,
+            0.14495065808296204,
+            0.14051392674446106
+          ],
+          "emission_scale": [
+            0.0977034941315651
+          ],
+          "confusion": [
+            [
+              794,
+              7
+            ],
+            [
+              9,
+              790
+            ]
+          ],
+          "velocity_sign_ari": 0.8764868214597981,
+          "state_velocity_correlation": -0.889600300081015
+        }
+      },
+      "case_id": "bounce-reconstruction-only-0"
+    },
+    {
+      "case": "mocap",
+      "trial": 1,
+      "input": null,
+      "input_sha256": "761b128457b3c05d244cee894add5c349e111c972b2efdb8aa88f5435adbcd50",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 6,
+        "feature_window": 128,
+        "hidden_dim": 4,
+        "inference_type": "factorized",
+        "init_steps": 200,
+        "learning_rate": 0.001,
+        "n_states": 8,
+        "n_train_steps": 1000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 0,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 36.892065591000005,
+      "true_changes": 9,
+      "snapshots": {
+        "initialized": {
+          "ari": 0.599396377797564,
+          "latent_kmeans_ari": 0.6059253712889052,
+          "observed_kmeans_ari": 0.6113544908885274,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.6059253712889052,
+          "sampled_z_ari": 0.6066342817626549,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 8,
+          "changes": 57,
+          "occupancy": [
+            676,
+            88,
+            119,
+            381,
+            119,
+            182,
+            93,
+            112
+          ],
+          "mean_posterior_occupancy": [
+            0.3822135329246521,
+            0.04970462992787361,
+            0.06731950491666794,
+            0.21511557698249817,
+            0.06725187599658966,
+            0.10266971588134766,
+            0.05243384465575218,
+            0.06329131126403809
+          ],
+          "posterior_entropy": 0.0028150808066129684,
+          "reconstruction_mse": 0.09817438572645187,
+          "window_elbo_per_point": -29.373836517333984,
+          "mean_log_emission": -4.292860507965088,
+          "continuous_entropy": -3.534186363220215,
+          "dynamics_spread_over_noise": 9.098371505737305,
+          "latent_std": [
+            2.059687376022339,
+            1.6710705757141113,
+            1.6231930255889893,
+            1.4643290042877197
+          ],
+          "dynamics_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "emission_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "confusion": [
+            [
+              526,
+              0,
+              0,
+              14,
+              0,
+              5,
+              0,
+              0
+            ],
+            [
+              0,
+              7,
+              96,
+              0,
+              8,
+              5,
+              29,
+              0
+            ],
+            [
+              127,
+              0,
+              0,
+              0,
+              6,
+              0,
+              0,
+              0
+            ],
+            [
+              4,
+              0,
+              0,
+              75,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              74,
+              0,
+              8,
+              0,
+              67,
+              0,
+              106
+            ],
+            [
+              11,
+              7,
+              23,
+              0,
+              105,
+              12,
+              64,
+              6
+            ],
+            [
+              4,
+              0,
+              0,
+              252,
+              0,
+              4,
+              0,
+              0
+            ],
+            [
+              4,
+              0,
+              0,
+              32,
+              0,
+              88,
+              0,
+              0
+            ]
+          ]
+        },
+        "trained": {
+          "ari": 0.3210312537723247,
+          "latent_kmeans_ari": 0.6204961005685367,
+          "observed_kmeans_ari": 0.6113544908885274,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.32604978844970717,
+          "sampled_z_ari": 0.3279593309686495,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 7,
+          "changes": 40,
+          "occupancy": [
+            1088,
+            125,
+            33,
+            343,
+            3,
+            138,
+            40,
+            0
+          ],
+          "mean_posterior_occupancy": [
+            0.621058464050293,
+            0.0699080228805542,
+            0.018552981317043304,
+            0.1900397390127182,
+            0.0016368052456527948,
+            0.07673745602369308,
+            0.022066406905651093,
+            7.128769891561436e-15
+          ],
+          "posterior_entropy": 0.05089178308844566,
+          "reconstruction_mse": 0.013187993317842484,
+          "window_elbo_per_point": 1.7847676277160645,
+          "mean_log_emission": 5.100229740142822,
+          "continuous_entropy": -2.7778420448303223,
+          "dynamics_spread_over_noise": 8.824331283569336,
+          "latent_std": [
+            1.894936442375183,
+            1.920742392539978,
+            1.731934666633606,
+            1.4598090648651123
+          ],
+          "dynamics_scale": [
+            0.19367393851280212,
+            0.1872190237045288,
+            0.17657938599586487,
+            0.17516428232192993
+          ],
+          "emission_scale": [
+            0.12405473738908768,
+            0.15668365359306335,
+            0.1664038449525833,
+            0.17601536214351654,
+            0.17488548159599304,
+            0.20063863694667816,
+            0.1809019148349762,
+            0.20668528974056244
+          ],
+          "confusion": [
+            [
+              543,
+              0,
+              0,
+              0,
+              0,
+              2,
+              0,
+              0
+            ],
+            [
+              62,
+              5,
+              33,
+              0,
+              3,
+              2,
+              40,
+              0
+            ],
+            [
+              133,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              15,
+              0,
+              0,
+              57,
+              0,
+              8,
+              0,
+              0
+            ],
+            [
+              59,
+              120,
+              0,
+              0,
+              0,
+              76,
+              0,
+              0
+            ],
+            [
+              228,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              25,
+              0,
+              0,
+              235,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              23,
+              0,
+              0,
+              51,
+              0,
+              50,
+              0,
+              0
+            ]
+          ]
+        }
+      },
+      "case_id": "mocap1-moments-0",
+      "skip_cluster_assignment": false,
+      "replay": {
+        "mc_samples": 16,
+        "mc_ari": 0.3253577392559958,
+        "sample_ari_mean": 0.32614423318243363,
+        "sample_ari_std": 0.005099126359702734,
+        "window_encoded_ari": 0.32210837311197943,
+        "window_latent_mse_vs_full": 0.0009268305147998035,
+        "weights_verified_by_path_and_shape": true
+      }
+    },
+    {
+      "case": "mocap",
+      "trial": 1,
+      "input": null,
+      "input_sha256": "761b128457b3c05d244cee894add5c349e111c972b2efdb8aa88f5435adbcd50",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 1,
+        "feature_window": 1,
+        "hidden_dim": 4,
+        "inference_type": "factorized",
+        "init_steps": 200,
+        "learning_rate": 0.001,
+        "n_states": 8,
+        "n_train_steps": 1000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 0,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 41.45181124099997,
+      "true_changes": 9,
+      "snapshots": {
+        "initialized": {
+          "ari": 0.3116663022456165,
+          "latent_kmeans_ari": 0.3117703087381719,
+          "observed_kmeans_ari": 0.3021118579968507,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.3117703087381719,
+          "sampled_z_ari": 0.3136329453154947,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 8,
+          "changes": 125,
+          "occupancy": [
+            539,
+            561,
+            3622,
+            1409,
+            348,
+            2075,
+            669,
+            1394
+          ],
+          "mean_posterior_occupancy": [
+            0.05062549188733101,
+            0.052855681627988815,
+            0.3411403000354767,
+            0.13282012939453125,
+            0.03279208019375801,
+            0.19553010165691376,
+            0.06300951540470123,
+            0.13122688233852386
+          ],
+          "posterior_entropy": 0.011646569706499577,
+          "reconstruction_mse": 0.036672063171863556,
+          "window_elbo_per_point": -11.229219436645508,
+          "mean_log_emission": 0.9283775687217712,
+          "continuous_entropy": -3.5341861248016357,
+          "dynamics_spread_over_noise": 7.388763904571533,
+          "latent_std": [
+            0.6582024693489075,
+            1.4041595458984375,
+            1.7100026607513428,
+            1.3987914323806763
+          ],
+          "dynamics_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "emission_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "confusion": [
+            [
+              0,
+              0,
+              1821,
+              0,
+              0,
+              1448,
+              0,
+              0
+            ],
+            [
+              26,
+              389,
+              0,
+              243,
+              10,
+              19,
+              186,
+              0
+            ],
+            [
+              0,
+              0,
+              330,
+              0,
+              0,
+              465,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              481,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              249,
+              0,
+              302,
+              956,
+              0,
+              23,
+              0,
+              0
+            ],
+            [
+              47,
+              172,
+              58,
+              210,
+              338,
+              56,
+              483,
+              0
+            ],
+            [
+              0,
+              0,
+              544,
+              0,
+              0,
+              4,
+              0,
+              1012
+            ],
+            [
+              217,
+              0,
+              86,
+              0,
+              0,
+              60,
+              0,
+              382
+            ]
+          ]
+        },
+        "trained": {
+          "ari": 0.09931986237752416,
+          "latent_kmeans_ari": 0.2996210829638002,
+          "observed_kmeans_ari": 0.3021118579968507,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.0685584992231594,
+          "sampled_z_ari": 0.23761886916474984,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 5,
+          "changes": 25,
+          "occupancy": [
+            7598,
+            0,
+            333,
+            212,
+            0,
+            829,
+            0,
+            1645
+          ],
+          "mean_posterior_occupancy": [
+            0.715851366519928,
+            1.772505777635779e-18,
+            0.03115871734917164,
+            0.020124094560742378,
+            1.3222305008834612e-15,
+            0.07720145583152771,
+            1.8340995389110049e-09,
+            0.15566889941692352
+          ],
+          "posterior_entropy": 0.027943508699536324,
+          "reconstruction_mse": 0.003522601444274187,
+          "window_elbo_per_point": 2.3667569160461426,
+          "mean_log_emission": 4.45314359664917,
+          "continuous_entropy": -2.8787386417388916,
+          "dynamics_spread_over_noise": 8.834324836730957,
+          "latent_std": [
+            0.8175173997879028,
+            1.5685079097747803,
+            1.6127244234085083,
+            1.6613867282867432
+          ],
+          "dynamics_scale": [
+            0.15391339361667633,
+            0.1685170978307724,
+            0.16385400295257568,
+            0.16314348578453064
+          ],
+          "emission_scale": [
+            0.11618270725011826,
+            0.12331883609294891,
+            0.11583352833986282,
+            0.10495676845312119
+          ],
+          "confusion": [
+            [
+              2466,
+              0,
+              333,
+              0,
+              0,
+              470,
+              0,
+              0
+            ],
+            [
+              873,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              795,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              122,
+              0,
+              0,
+              0,
+              0,
+              359,
+              0,
+              0
+            ],
+            [
+              1318,
+              0,
+              0,
+              212,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              1364,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              292,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1268
+            ],
+            [
+              368,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              377
+            ]
+          ]
+        }
+      },
+      "case_id": "mocap1-raw-0",
+      "skip_cluster_assignment": false,
+      "replay": {
+        "mc_samples": 16,
+        "mc_ari": 0.25584820826033333,
+        "sample_ari_mean": 0.2446000608231719,
+        "sample_ari_std": 0.0172238636246131,
+        "window_encoded_ari": 0.09950762640605408,
+        "window_latent_mse_vs_full": 0.0006075327401049435,
+        "weights_verified_by_path_and_shape": true
+      }
+    },
+    {
+      "case": "npz",
+      "trial": 1,
+      "input": "tssb3.npz",
+      "input_sha256": "048b41d3f253b8501dc396946792c886ca19afbeb74991d772529e7a1f859bed",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 1,
+        "feature_window": 1,
+        "hidden_dim": 4,
+        "inference_type": "autoregressive",
+        "init_steps": 200,
+        "learning_rate": 0.001,
+        "n_states": 2,
+        "n_train_steps": 1000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 0,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 50.54249622900005,
+      "true_changes": 1,
+      "snapshots": {
+        "initialized": {
+          "ari": -0.00022449161710850658,
+          "latent_kmeans_ari": -0.0002435178101836292,
+          "observed_kmeans_ari": -0.0003668400812576549,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": -0.0002435178101836292,
+          "sampled_z_ari": -0.0001614329445326158,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 314,
+          "occupancy": [
+            1486,
+            1074
+          ],
+          "mean_posterior_occupancy": [
+            0.5808302760124207,
+            0.41916942596435547
+          ],
+          "posterior_entropy": 0.015707453712821007,
+          "reconstruction_mse": 0.0021739923395216465,
+          "window_elbo_per_point": -6.179723739624023,
+          "mean_log_emission": 0.6632771492004395,
+          "continuous_entropy": -3.5341858863830566,
+          "dynamics_spread_over_noise": 2.3895936012268066,
+          "latent_std": [
+            0.17634542286396027,
+            0.7816236615180969,
+            0.47159066796302795,
+            0.6481120586395264
+          ],
+          "dynamics_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "emission_scale": [
+            0.2000100016593933
+          ],
+          "confusion": [
+            [
+              751,
+              529
+            ],
+            [
+              735,
+              545
+            ]
+          ],
+          "velocity_sign_ari": -0.00037109412560928944,
+          "state_velocity_correlation": -0.001634232349880329
+        },
+        "trained": {
+          "ari": -0.00017049567028477224,
+          "latent_kmeans_ari": -0.0003898364607562478,
+          "observed_kmeans_ari": -0.0003668400812576549,
+          "transition_only_ari": 0.00899788233380787,
+          "uniform_transition_ari": 0.00012266204230767166,
+          "sampled_z_ari": 0.0004009439681577579,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 378,
+          "occupancy": [
+            1273,
+            1287
+          ],
+          "mean_posterior_occupancy": [
+            0.49362921714782715,
+            0.5063709020614624
+          ],
+          "posterior_entropy": 0.09847311675548553,
+          "reconstruction_mse": 0.0018426446476951241,
+          "window_elbo_per_point": -0.28820228576660156,
+          "mean_log_emission": 1.157625436782837,
+          "continuous_entropy": -2.550995111465454,
+          "dynamics_spread_over_noise": 0.7460349798202515,
+          "latent_std": [
+            0.34129422903060913,
+            0.925373911857605,
+            0.7035808563232422,
+            0.6157176494598389
+          ],
+          "dynamics_scale": [
+            0.13944154977798462,
+            0.18332119286060333,
+            0.14126071333885193,
+            0.1428884118795395
+          ],
+          "emission_scale": [
+            0.1172318309545517
+          ],
+          "confusion": [
+            [
+              627,
+              653
+            ],
+            [
+              646,
+              634
+            ]
+          ],
+          "velocity_sign_ari": 0.7532733388132038,
+          "state_velocity_correlation": -0.8695249488197094
+        }
+      },
+      "case_id": "tssb3-autoregressive-0",
+      "skip_cluster_assignment": false
+    },
+    {
+      "case": "npz",
+      "trial": 1,
+      "input": "tssb3.npz",
+      "input_sha256": "048b41d3f253b8501dc396946792c886ca19afbeb74991d772529e7a1f859bed",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 1,
+        "feature_window": 1,
+        "hidden_dim": 4,
+        "inference_type": "factorized",
+        "init_steps": 200,
+        "learning_rate": 0.001,
+        "n_states": 2,
+        "n_train_steps": 5000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 0,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 95.52521121900003,
+      "true_changes": 1,
+      "snapshots": {
+        "initialized": {
+          "ari": -0.00036522241435243616,
+          "latent_kmeans_ari": -0.00037065888505765287,
+          "observed_kmeans_ari": -0.0003668400812576549,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": -0.00037065888505765287,
+          "sampled_z_ari": -0.0003619090827807129,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 284,
+          "occupancy": [
+            989,
+            1571
+          ],
+          "mean_posterior_occupancy": [
+            0.3870907127857208,
+            0.6129091382026672
+          ],
+          "posterior_entropy": 0.009231713600456715,
+          "reconstruction_mse": 0.002221290487796068,
+          "window_elbo_per_point": -8.229991912841797,
+          "mean_log_emission": 0.6626859903335571,
+          "continuous_entropy": -3.5341858863830566,
+          "dynamics_spread_over_noise": 2.9496941566467285,
+          "latent_std": [
+            1.0123106241226196,
+            0.4698546230792999,
+            0.7391915917396545,
+            0.32578566670417786
+          ],
+          "dynamics_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "emission_scale": [
+            0.2000100016593933
+          ],
+          "confusion": [
+            [
+              496,
+              784
+            ],
+            [
+              493,
+              787
+            ]
+          ],
+          "velocity_sign_ari": 0.00021592238118650696,
+          "state_velocity_correlation": 0.038120795944462785
+        },
+        "trained": {
+          "ari": 0.0010164652376479222,
+          "latent_kmeans_ari": -0.00035180586063627824,
+          "observed_kmeans_ari": -0.0003668400812576549,
+          "transition_only_ari": 0.0062137145881038264,
+          "uniform_transition_ari": 0.002351980088139941,
+          "sampled_z_ari": 0.00040108993576127287,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 390,
+          "occupancy": [
+            1230,
+            1330
+          ],
+          "mean_posterior_occupancy": [
+            0.47429361939430237,
+            0.5257067084312439
+          ],
+          "posterior_entropy": 0.07679186016321182,
+          "reconstruction_mse": 9.196117025567219e-05,
+          "window_elbo_per_point": -0.013006925582885742,
+          "mean_log_emission": 2.498070240020752,
+          "continuous_entropy": -3.185875177383423,
+          "dynamics_spread_over_noise": 0.8340332508087158,
+          "latent_std": [
+            1.511987328529358,
+            0.500206470489502,
+            0.576224148273468,
+            0.04169248044490814
+          ],
+          "dynamics_scale": [
+            0.20791853964328766,
+            0.14665701985359192,
+            0.1451995074748993,
+            0.15411385893821716
+          ],
+          "emission_scale": [
+            0.03130672499537468
+          ],
+          "confusion": [
+            [
+              591,
+              689
+            ],
+            [
+              639,
+              641
+            ]
+          ],
+          "velocity_sign_ari": 0.6908559393903126,
+          "state_velocity_correlation": -0.8497260624395122
+        }
+      },
+      "case_id": "tssb3-long-0",
+      "skip_cluster_assignment": false
+    },
+    {
+      "case": "npz",
+      "trial": 1,
+      "input": "tssb3.npz",
+      "input_sha256": "048b41d3f253b8501dc396946792c886ca19afbeb74991d772529e7a1f859bed",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 6,
+        "feature_window": 128,
+        "hidden_dim": 4,
+        "inference_type": "factorized",
+        "init_steps": 200,
+        "learning_rate": 0.001,
+        "n_states": 2,
+        "n_train_steps": 1000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 0,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 33.53676074599997,
+      "true_changes": 1,
+      "snapshots": {
+        "initialized": {
+          "ari": 0.027903525183831303,
+          "latent_kmeans_ari": 0.026335734752892775,
+          "observed_kmeans_ari": 0.0006713632226423349,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.026335734752892775,
+          "sampled_z_ari": 0.023304155207653374,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 22,
+          "occupancy": [
+            352,
+            75
+          ],
+          "mean_posterior_occupancy": [
+            0.8254947066307068,
+            0.17450527846813202
+          ],
+          "posterior_entropy": 0.004868826828896999,
+          "reconstruction_mse": 0.01955012045800686,
+          "window_elbo_per_point": -15.851823806762695,
+          "mean_log_emission": 0.8921946287155151,
+          "continuous_entropy": -3.5341858863830566,
+          "dynamics_spread_over_noise": 3.386932373046875,
+          "latent_std": [
+            1.0511881113052368,
+            0.6543359160423279,
+            0.40842488408088684,
+            0.84657222032547
+          ],
+          "dynamics_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "emission_scale": [
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "confusion": [
+            [
+              158,
+              56
+            ],
+            [
+              194,
+              19
+            ]
+          ],
+          "velocity_sign_ari": -0.0016351278510504707,
+          "state_velocity_correlation": -0.034163536705381206
+        },
+        "trained": {
+          "ari": -0.00022655616537037616,
+          "latent_kmeans_ari": 0.012648070903384967,
+          "observed_kmeans_ari": 0.0006713632226423349,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": 0.0006932575434810144,
+          "sampled_z_ari": -0.00037838931357032983,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 11,
+          "occupancy": [
+            410,
+            17
+          ],
+          "mean_posterior_occupancy": [
+            0.9600667953491211,
+            0.03993392735719681
+          ],
+          "posterior_entropy": 0.023261236026883125,
+          "reconstruction_mse": 0.01147890742868185,
+          "window_elbo_per_point": -1.6386265754699707,
+          "mean_log_emission": 1.0196353197097778,
+          "continuous_entropy": -2.956495523452759,
+          "dynamics_spread_over_noise": 0.8708149194717407,
+          "latent_std": [
+            0.6235134601593018,
+            0.21069738268852234,
+            0.0402473621070385,
+            0.42668813467025757
+          ],
+          "dynamics_scale": [
+            0.2259785234928131,
+            0.15275070071220398,
+            0.1371305286884308,
+            0.22240129113197327
+          ],
+          "emission_scale": [
+            0.1926911175251007,
+            0.22908619046211243
+          ],
+          "confusion": [
+            [
+              204,
+              10
+            ],
+            [
+              206,
+              7
+            ]
+          ],
+          "velocity_sign_ari": -0.000477052560105997,
+          "state_velocity_correlation": -0.037702022180991654
+        }
+      },
+      "case_id": "tssb3-moments-0",
+      "skip_cluster_assignment": false
+    },
+    {
+      "case": "npz",
+      "trial": 1,
+      "input": "tssb3.npz",
+      "input_sha256": "048b41d3f253b8501dc396946792c886ca19afbeb74991d772529e7a1f859bed",
+      "implementation_sha256": "9e48ced2431166ec45c942a20ea2b1a9692a455689fefd8239c2de741a2ba9cb",
+      "parameters": {
+        "axis": 0,
+        "batch_size": 8,
+        "decoding": "viterbi",
+        "downsample": 1,
+        "feature_window": 1,
+        "hidden_dim": 4,
+        "inference_type": "factorized",
+        "init_steps": 200,
+        "learning_rate": 0.001,
+        "n_states": 2,
+        "n_train_steps": 1000,
+        "objective": "elbo",
+        "posterior_mean": true,
+        "random_state": 0,
+        "rnn_dim": 16,
+        "rnn_type": "gru",
+        "temperature_init": 10.0,
+        "train_window": 64,
+        "use_cross_entropy_reg": false,
+        "use_temperature_annealing": true,
+        "verbose": 0,
+        "xent_init": 1000.0
+      },
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "fit_seconds_including_initial_probe": 26.779912665995653,
+      "true_changes": 1,
+      "snapshots": {
+        "initialized": {
+          "ari": -0.00036522241435243616,
+          "latent_kmeans_ari": -0.00037065888505765287,
+          "observed_kmeans_ari": -0.0003668400812576549,
+          "transition_only_ari": 0.0,
+          "uniform_transition_ari": -0.00037065888505765287,
+          "sampled_z_ari": -0.0003619090827807129,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 284,
+          "occupancy": [
+            989,
+            1571
+          ],
+          "mean_posterior_occupancy": [
+            0.3870907127857208,
+            0.6129091382026672
+          ],
+          "posterior_entropy": 0.009231713600456715,
+          "reconstruction_mse": 0.002221290487796068,
+          "window_elbo_per_point": -8.229991912841797,
+          "mean_log_emission": 0.6626859903335571,
+          "continuous_entropy": -3.5341858863830566,
+          "dynamics_spread_over_noise": 2.9496941566467285,
+          "latent_std": [
+            1.0123106241226196,
+            0.4698546230792999,
+            0.7391915917396545,
+            0.32578566670417786
+          ],
+          "dynamics_scale": [
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933,
+            0.2000100016593933
+          ],
+          "emission_scale": [
+            0.2000100016593933
+          ],
+          "confusion": [
+            [
+              496,
+              784
+            ],
+            [
+              493,
+              787
+            ]
+          ],
+          "velocity_sign_ari": 0.00021592238118650696,
+          "state_velocity_correlation": 0.038120795944462785
+        },
+        "trained": {
+          "ari": -0.00012153391314390896,
+          "latent_kmeans_ari": -0.0003754916518476868,
+          "observed_kmeans_ari": -0.0003668400812576549,
+          "transition_only_ari": 0.00899774613400456,
+          "uniform_transition_ari": -6.766835736813133e-05,
+          "sampled_z_ari": -0.00017002410666797487,
+          "emission_removal_disagreement": 0.0,
+          "used_states": 2,
+          "changes": 383,
+          "occupancy": [
+            1257,
+            1303
+          ],
+          "mean_posterior_occupancy": [
+            0.4893956184387207,
+            0.5106045603752136
+          ],
+          "posterior_entropy": 0.0767994076013565,
+          "reconstruction_mse": 0.00042778271017596126,
+          "window_elbo_per_point": -0.18094134330749512,
+          "mean_log_emission": 1.3991549015045166,
+          "continuous_entropy": -2.619753122329712,
+          "dynamics_spread_over_noise": 0.8787043690681458,
+          "latent_std": [
+            1.1316235065460205,
+            0.20381611585617065,
+            0.20765648782253265,
+            0.05800369754433632
+          ],
+          "dynamics_scale": [
+            0.20406168699264526,
+            0.14022457599639893,
+            0.14183594286441803,
+            0.1377718597650528
+          ],
+          "emission_scale": [
+            0.09621213376522064
+          ],
+          "confusion": [
+            [
+              618,
+              662
+            ],
+            [
+              639,
+              641
+            ]
+          ],
+          "velocity_sign_ari": 0.6638390151851967,
+          "state_velocity_correlation": -0.8458853383504202
+        }
+      },
+      "case_id": "tssb3-raw-0",
+      "skip_cluster_assignment": false,
+      "replay": {
+        "mc_samples": 16,
+        "mc_ari": -0.0002142099594880592,
+        "sample_ari_mean": -0.00020253002859303593,
+        "sample_ari_std": 0.00022710863184081584,
+        "window_encoded_ari": -6.780198518700854e-05,
+        "window_latent_mse_vs_full": 0.00024343773839063942,
+        "weights_verified_by_path_and_shape": true
+      }
+    }
+  ]
+}
