@@ -25,8 +25,9 @@ class EAggloDetector(BaseSegmenter):
     E-Agglo [1]_ starts from an initial partition of the series into contiguous
     clusters and repeatedly merges the pair of adjacent clusters that most
     increases a goodness-of-fit statistic, until a single cluster remains. The
-    statistic is the sum, over pairs of adjacent clusters, of their scaled energy
-    divergence :math:`\\hat Q(C_i, C_{i+1}; \\alpha)` (equation (13) in [1]_).
+    statistic is based on the sum, over pairs of adjacent clusters, of their
+    scaled energy divergence :math:`\\hat Q(C_i, C_{i+1}; \\alpha)` (equation
+    (13) in [1]_; see Notes for the conventions inherited from ``ecp``).
     The segmentation with the largest statistic along this merging sequence,
     optionally penalised, gives both the number and the locations of the change
     points. Unlike general purpose agglomerative clustering, only adjacent
@@ -85,6 +86,13 @@ class EAggloDetector(BaseSegmenter):
     Also as in ``ecp``, the first and last clusters count as adjacent: their
     divergence enters the statistic and they may be merged, giving a cluster that
     wraps around the end of the series (``cluster_`` then labels both ends alike).
+
+    Initial block distances are not multiplied by the sample-size factor
+    :math:`|C_i||C_j|/(|C_i|+|C_j|)` of the paper's scaled statistic, although
+    later merges use its size-weighted recurrence. Equal-sized initial blocks
+    make this a common scale factor; unequal initial blocks do not. This
+    implementation retains that ``ecp`` convention. See the detector guide for
+    diagnostic examples and limitations.
 
     E-Agglo segments the series given to ``fit``: ``predict(X)`` returns those
     change points when ``X`` has the same values, and otherwise segments ``X``
@@ -207,18 +215,15 @@ class EAggloDetector(BaseSegmenter):
             )
 
         def filter_na(i):
-            return list(
-                filter(
-                    lambda v: v == v,
-                    self.progression[i,],
-                )
-            )
+            row = self.progression[i]
+            return list(row[~np.isnan(row)])
 
         # penalize the gof_ statistic
         if self.penalty is not None:
             penalty_func = self._get_penalty_func()
-            cps = [filter_na(i) for i in range(len(self.progression))]
-            self.gof_ += list(map(penalty_func, cps))
+            self.gof_ += [
+                penalty_func(filter_na(i)) for i in range(len(self.progression))
+            ]
 
         # get the set of change points for the "best" clustering
         idx = np.argmax(self.gof_)
@@ -293,60 +298,41 @@ class EAggloDetector(BaseSegmenter):
 
     def _initialize_params(self, X: pd.DataFrame) -> None:
         """Initialize parameters and store to self."""
-        from ._kernels import get_distance_matrix, get_distance_single
+        from ._kernels import _initialize_distances
 
         self._member = np.array(
             self.member if self.member is not None else range(X.shape[0])
         )
 
-        unique_labels = np.sort(np.unique(self._member))
-        self.n_cluster = len(unique_labels)
-
-        # relabel clusters to be consecutive numbers (when user specified)
-        for i in range(self.n_cluster):
-            self._member[np.where(self._member == unique_labels[i])[0]] = i
-
-        # check if sorted
-        if not all(sorted(self._member) == self._member):
-            raise ValueError("'_member' should be sorted")
+        if self.member is None:
+            self.n_cluster = len(X)
+        else:
+            # Relabel user-specified clusters as before. With singleton defaults,
+            # the labels already are consecutive: avoid n scans of n labels.
+            unique_labels = np.sort(np.unique(self._member))
+            self.n_cluster = len(unique_labels)
+            for i in range(self.n_cluster):
+                self._member[np.where(self._member == unique_labels[i])[0]] = i
+            if not all(sorted(self._member) == self._member):
+                raise ValueError("'_member' should be sorted")
 
         self.sizes = np.zeros(2 * self.n_cluster)
-        self.sizes[: self.n_cluster] = [
-            sum(self._member == i) for i in range(self.n_cluster)
-        ]  # calculate initial cluster sizes
+        if self.member is None:
+            self.sizes[: self.n_cluster] = 1
+        else:
+            self.sizes[: self.n_cluster] = [
+                np.count_nonzero(self._member == i) for i in range(self.n_cluster)
+            ]
 
         # array of between-within distances
         self.distances = np.empty((2 * self.n_cluster, 2 * self.n_cluster))
 
-        # if there is an initial grouping...
+        # Keep pandas' validation of the user-supplied membership length before
+        # passing block boundaries to numba, which does not check array bounds.
         if self.member is not None:
-            grouped = X.copy().set_index(self._member).groupby(level=0)
-            within = grouped.apply(
-                lambda x: get_distance_matrix(x.to_numpy(), x.to_numpy(), self.alpha)
-            )
-
-            for i, xi in grouped:
-                xi_np = xi.to_numpy()
-                self.distances[: self.n_cluster, i] = (
-                    2
-                    * grouped.apply(
-                        lambda xj, _xi_np=xi_np: get_distance_matrix(
-                            _xi_np,
-                            xj.to_numpy(),
-                            self.alpha,
-                        )
-                    )
-                    - within[i]
-                    - within
-                )
-        # else (no initial groupings)...
-        else:
-            X_num = X.to_numpy()
-            for i in range(len(X)):
-                for j in range(len(X)):
-                    self.distances[i, j] = 2 * get_distance_single(
-                        X_num[i], X_num[j], self.alpha
-                    )
+            X.set_index(self._member)
+        boundaries = np.r_[0, np.cumsum(self.sizes[: self.n_cluster]).astype(int)]
+        _initialize_distances(X.to_numpy(), boundaries, self.alpha, self.distances)
 
         np.fill_diagonal(self.distances, 0)
 
@@ -380,9 +366,7 @@ class EAggloDetector(BaseSegmenter):
 
         # change point progression
         self.progression = np.empty((self.n_cluster, self.n_cluster + 1))
-        self.progression[0, :] = [
-            sum(self.sizes[:i]) if i > 0 else 0 for i in range(self.n_cluster + 1)
-        ]  # N + 1 for cyclic mergers
+        self.progression[0, :] = boundaries  # N + 1 for cyclic mergers
 
         # array to specify the starting point of a cluster
         self.lm = np.zeros(2 * self.n_cluster - 1, dtype=int)
@@ -404,22 +388,11 @@ class EAggloDetector(BaseSegmenter):
         result : Tuple[int, int]
             Tuple of left cluster and right cluster index values
         """
-        from ._kernels import _gof_update
+        from ._kernels import _find_closest
 
-        best_fit = -1e10
-        result = (0, 0)
-
-        # iterate through each cluster to see how the gof_ value changes if merged_
-        for i in range(K + 1):
-            if self.open[i]:
-                gof_ = _gof_update(
-                    i, self.gof_, self.left, self.right, self.distances, self.sizes
-                )
-
-                if gof_ > best_fit:
-                    best_fit = gof_
-                    result = (i, self.right[i])
-
+        result, best_fit = _find_closest(
+            K, self.gof_, self.left, self.right, self.distances, self.sizes, self.open
+        )
         self.gof_ = np.append(self.gof_, best_fit)
         return result
 
