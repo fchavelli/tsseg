@@ -223,7 +223,7 @@ homogeneous, with filters and search.
 | [AMOC](https://fchavelli.github.io/tsseg/detectors/amoc.html)<br>`AmocDetector` | single best split | ✓ | | Killick et al. (2012) |
 | [BEAST](https://fchavelli.github.io/tsseg/detectors/beast.html) 📦<br>`BeastDetector` | Bayesian model averaging of trend and seasonality | ✓ | ✓ | Zhao et al. (2019), RSE |
 | [BinSeg](https://fchavelli.github.io/tsseg/detectors/binseg.html)<br>`BinSegDetector` | greedy top-down splitting | ✓ | ✓ | Bai (1997); Fryzlewicz (2014) |
-| [BOCD](https://fchavelli.github.io/tsseg/detectors/bocd.html)<br>`BOCDDetector` | Bayesian run-length posterior | ✓ | ✓ | Adams & MacKay (2007) |
+| [BOCD](https://fchavelli.github.io/tsseg/detectors/bocd.html)<br>`BOCDDetector` | Offline Gaussian MAP partition, full covariance | ✓ | ✓ | Fearnhead (2006); Fearnhead & Liu (2007) |
 | [BottomUp](https://fchavelli.github.io/tsseg/detectors/bottomup.html)<br>`BottomUpDetector` | greedy bottom-up merging | ✓ | ✓ | Keogh et al. (2001), ICDM |
 | [changeforest](https://fchavelli.github.io/tsseg/detectors/changeforest.html) 📦<br>`ChangeForestDetector` | random forest classifier between segments | ✓ | ✓ | Londschien et al. (2023), JMLR |
 | [ChangeFinder](https://fchavelli.github.io/tsseg/detectors/changefinder.html)<br>`ChangeFinderDetector` | two-stage autoregressive outlier scores | ✓ | ✓ | Takeuchi & Yamanishi (2006), TKDE |

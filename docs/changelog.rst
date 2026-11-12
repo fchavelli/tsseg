@@ -9,6 +9,38 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``BOCDDetector`` now defaults to a native multivariate Gaussian likelihood
+  with full covariance and joint maximum a posteriori (MAP) decoding. The
+  likelihood reduces exactly to Normal-Gamma in one dimension. Channels are
+  standardised by default (``standardize=False`` keeps physical prior units);
+  ``beta=10`` and ``hazard_lambda=1000`` were selected on a 15-series pilot
+  with synthetic sanity checks. ``max_cps`` constrains the MAP partition to
+  at most that many changes, and ``min_distance`` constrains all segment
+  lengths during inference. A regular grid of at most 2,000 interior
+  candidates bounds the search (``max_candidates=None`` uses every position),
+  while every observation still contributes to segment likelihoods.
+  Unconstrained inference uses linear working memory in the series length
+  and candidate count; a count-constrained MAP also stores scores by candidate
+  and change count. Native covariance evaluation uses stable block moments and
+  Cholesky with an eigenvalue fallback for a very small prior ridge. The L2
+  and per-channel strategies remain available; the final ensemble also respects
+  the minimum spacing. ``decoding="marginal"`` retains a probability-based alternative
+  with a default threshold of 0.5 and no truncation (``truncate=None``).
+  These parameters do not affect MAP decoding. Detection outputs and defaults
+  change; earlier BOCD benchmark results need to be recomputed.
+* Fix ``BOCDDetector`` inference: a constant hazard now defines a geometric
+  segment-duration prior, with right censoring of the final segment. Boundary
+  probabilities are marginal events rather than scores normalised to sum to
+  one; the latter imposed an artificial limit of 20 candidates at the default
+  threshold of 0.05. A forward-backward recursion with stable running moments
+  replaces the cubic-time, quadratic-memory ordinal change-point calculation:
+  the detector now uses quadratic worst-case time and linear inference memory,
+  without new dependencies. The Normal-Gamma evidence also includes its missing
+  factor ``2**(-n/2)``, which cancels between full-series segmentations.
+  ``truncate`` uses natural logs (``exp(truncate)``), as the original comparison
+  did; documentation incorrectly said ``10**truncate``. ``max_cps=0`` skips
+  inference. Detection outputs change; earlier BOCD benchmark scores need to be
+  recomputed.
 * ``BeastDetector`` with ``multivariate_strategy="native"`` (the default for
   multivariate series) no longer returns the union of the candidates of its
   channels. Each channel gives up to the maximum of ``tcp_minmax`` (10 by
