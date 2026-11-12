@@ -24,6 +24,38 @@ Unreleased
   defaults; leave-one-trial-out parameter selection gives 0.688. The
   constructor defaults are unchanged, and the profile limits boundary
   resolution to 200 observations.
+* ``BOCDDetector`` now defaults to a native multivariate Gaussian likelihood
+  with full covariance and joint maximum a posteriori (MAP) decoding. The
+  likelihood reduces exactly to Normal-Gamma in one dimension. Channels are
+  standardised by default (``standardize=False`` keeps physical prior units);
+  ``beta=10`` and ``hazard_lambda=1000`` were selected on a 15-series pilot
+  with synthetic sanity checks. ``max_cps`` constrains the MAP partition to
+  at most that many changes, and ``min_distance`` constrains all segment
+  lengths during inference. A regular grid of at most 2,000 interior
+  candidates bounds the search (``max_candidates=None`` uses every position),
+  while every observation still contributes to segment likelihoods.
+  Unconstrained inference uses linear working memory in the series length
+  and candidate count; a count-constrained MAP also stores scores by candidate
+  and change count. Native covariance evaluation uses stable block moments and
+  Cholesky with an eigenvalue fallback for a very small prior ridge. The L2
+  and per-channel strategies remain available; the final ensemble also respects
+  the minimum spacing. ``decoding="marginal"`` retains a probability-based alternative
+  with a default threshold of 0.5 and no truncation (``truncate=None``).
+  These parameters do not affect MAP decoding. Detection outputs and defaults
+  change; earlier BOCD benchmark results need to be recomputed.
+* Fix ``BOCDDetector`` inference: a constant hazard now defines a geometric
+  segment-duration prior, with right censoring of the final segment. Boundary
+  probabilities are marginal events rather than scores normalised to sum to
+  one; the latter imposed an artificial limit of 20 candidates at the default
+  threshold of 0.05. A forward-backward recursion with stable running moments
+  replaces the cubic-time, quadratic-memory ordinal change-point calculation:
+  the detector now uses quadratic worst-case time and linear inference memory,
+  without new dependencies. The Normal-Gamma evidence also includes its missing
+  factor ``2**(-n/2)``, which cancels between full-series segmentations.
+  ``truncate`` uses natural logs (``exp(truncate)``), as the original comparison
+  did; documentation incorrectly said ``10**truncate``. ``max_cps=0`` skips
+  inference. Detection outputs change; earlier BOCD benchmark scores need to be
+  recomputed.
 * ``BeastDetector`` with ``multivariate_strategy="native"`` (the default for
   multivariate series) no longer returns the union of the candidates of its
   channels. Each channel gives up to the maximum of ``tcp_minmax`` (10 by
@@ -110,6 +142,15 @@ Unreleased
   optimal one, and they differ noticeably only where several change points lie
   within a few widths of each other. Gaussian F1 scores computed with 0.3.2 or
   earlier may be slightly lower than with this version.
+* New ``CachalotDetector``: Lasso-path candidates refined by
+  reduced dynamic programming and selected by relative residual improvement
+  (Harchaoui and Lévy-Leduc, 2007). Multivariate input is handled channel by
+  channel, with the returned change points formed by their union. The
+  structured path costs ``O(n K)`` per channel without dense matrices;
+  reduced DP costs ``O(K^3)``. Endpoint decisions are invariant to signal
+  units, constant decimal-valued signals produce no candidates, and ``nu``
+  must be finite. Documentation records the limits of the channel union and
+  the unresolved gap with the paper's Monte Carlo precision.
 * Documentation: new design (PyData Sphinx theme, light and dark modes, copy
   buttons on code blocks) and a new home page; installation instructions move
   to their own page. The ``docs`` extra now installs ``pydata-sphinx-theme``

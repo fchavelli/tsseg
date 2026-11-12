@@ -61,6 +61,7 @@ Change point detection
    tglad
    tire
    tscp2
+   cachalot
    window
 
 State detection

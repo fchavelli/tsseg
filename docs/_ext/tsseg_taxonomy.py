@@ -284,6 +284,9 @@ METHODS = [
     # ---- convex relaxation
     _m("Prophet", "ProphetDetector", "prophet", "convex", "model",
        "trend change points of Prophet", "Taylor & Letham (2018)", "dn"),
+    _m("Cachalot", "CachalotDetector", "cachalot", "convex", "model",
+       "Lasso candidates, then reduced dynamic programming",
+       "Harchaoui & Lévy-Leduc (2007; 2010)", "d(n K + K^3)"),
     # ---- optimal (DP)
     _m("AMOC", "AmocDetector", "amoc", "optimal", "model",
        "single best split", "Killick et al. (2012)", "dn"),
@@ -296,8 +299,8 @@ METHODS = [
        "Arlot, Celisse & Harchaoui (2019), JMLR", status="deprecated"),
     # ---- Bayesian (DP)
     _m("BOCD", "BOCDDetector", "bocd", "bayes", "model",
-       "Bayesian run-length posterior (offline run of an online method)",
-       "Adams & MacKay (2007)", "dn + n^3"),
+       "offline Gaussian MAP partition with full covariance; m candidate vertices",
+       "Fearnhead (2006); Fearnhead & Liu (2007)", "nd^2 + m^2 d^3"),
     _m("BEAST", "BeastDetector", "beast", "bayes", "model",
        "Bayesian model averaging of trend and seasonality", "Zhao et al. (2019), RSE",
        "dn"),
@@ -350,7 +353,6 @@ LITERATURE = [
     ("Inspect", "binseg", "model", "Wang & Samworth (2018)"),
     ("E-Divisive", "binseg", "distrib", "Matteson & James (2014)"),
     ("gSeg", "binseg", "distrib", "Chen & Zhang (2015)"),
-    ("TV Lasso", "convex", "model", "Harchaoui & Lévy-Leduc (2010)"),
     ("fast group LARS", "convex", "model", "Vert & Bleakley (2010)"),
     ("ℓ₁ trend filtering", "convex", "model", "Kim et al. (2009)"),
     ("FPOP / SNIP", "optimal", "model", "Maidstone et al. (2017)"),

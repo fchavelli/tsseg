@@ -3,6 +3,7 @@ from .autoplait.detector import AutoPlaitDetector
 from .binseg.detector import BinSegDetector
 from .bocd.detector import BOCDDetector
 from .bottomup.detector import BottomUpDetector
+from .cachalot.detector import CachalotDetector
 from .changefinder.detector import ChangeFinderDetector
 from .dynp.detector import DynpDetector
 from .espresso.detector import EspressoDetector
@@ -99,5 +100,6 @@ __all__ = [
     "Time2StateDetector",
     "TireDetector",
     "TSCP2Detector",
+    "CachalotDetector",
     "WindowDetector",
 ]
