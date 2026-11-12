@@ -18,7 +18,10 @@ detection with uncertainty quantification.
 
 Three strategies handle multivariate inputs:
 
-- ``"native"`` – uses ``beast123`` which handles multi-dimensional data natively.
+- ``"native"`` – runs ``beast123`` on each channel (Rbeast fits the channels
+  independently) and pools their candidates: a change seen by several
+  channels comes first, and without ``max_cps`` as many are returned as a
+  channel that changes has (see below).
 - ``"l2"`` – reduces channels via L2 norm before inference.
 - ``"ensembling"`` – runs BEAST per channel and aggregates change points.
 
@@ -47,7 +50,8 @@ Parameters
    * - ``tcp_minmax``
      - tuple
      - ``(0, 10)``
-     - (min, max) number of trend change points.
+     - (min, max) number of trend change points, per channel. A larger
+       ``max_cps`` raises the max.
    * - ``torder_minmax``
      - tuple
      - ``(0, 1)``
@@ -105,7 +109,10 @@ Parameters
      - int / None
      - ``None``
      - Optional upper bound on the number of change points (the most
-       probable ones are kept).
+       probable ones are kept). Above the max of ``tcp_minmax`` (or of
+       ``scp_minmax``, for a seasonal component returned), it raises that
+       max: Rbeast never returns more change points per component and
+       channel.
    * - ``component``
      - str
      - ``"trend"``
@@ -113,13 +120,13 @@ Parameters
    * - ``multivariate_strategy``
      - str
      - ``"native"``
-     - ``"native"`` (beast123), ``"l2"`` (L2 norm), or ``"ensembling"`` (per-channel).
+     - ``"native"`` (beast123 per channel), ``"l2"`` (L2 norm), or ``"ensembling"`` (per-channel).
    * - ``tolerance``
      - float
      - ``0``
      - Distance (time steps; a float below 1 is a fraction of the length)
        within which close change points count as one, with ``"native"``
-       (the most probable is kept) and ``"ensembling"`` (median of the
+       (the most supported is kept) and ``"ensembling"`` (median of the
        group). ``0``: no merge beyond identical time steps and, with
        ``"native"``, candidates of different channels closer than Rbeast's
        minimum distance between two change points of one channel.
@@ -166,6 +173,33 @@ detector returns no change point. Other runs are unchanged. In the
 continuous integration of tsseg, the first run returned NaN on that series in
 10 of 177 test jobs (27 October to 6 November 2026), all on CPUs with
 AVX-512, and the rerun found the change point every time.
+
+**Pooling of the channels (``"native"``):** each channel gives its own
+candidates, up to the max of ``tcp_minmax`` (10 by default). On real
+multivariate series, the trend model of BEAST fits most channels with that
+many: on the first 2,000 points of 435 real series from 47 datasets
+(z-normalised channels), 74 % of the channels had a median number of change
+points of 10. Their union, returned until tsseg 0.3.2, thus grew
+with the number of channels: 15 times the true number of change points in the
+median multivariate series, scores near those of a random segmentation.
+Candidates are now taken by support, the sum over the channels of the
+probability (``cpPr``) of the candidate of each channel at the same step
+(closer than Rbeast's minimum distance, or within ``tolerance``), and without
+``max_cps`` their number is the median number of candidates of the channels
+that have any. The count assumes changes shared by the channels: when
+channels change at different times, some of their changes are left out.
+
+**Cluster jobs and containers:** given a 2D array, Rbeast 0.1.25 fits its
+columns independently, in threads pinned to CPUs 0, 1, ... whatever CPUs the
+process may use. In a process that may not use these CPUs (a job of a cluster
+scheduler that allots it other CPUs, a container limited to some CPUs), the
+threads are not created: Rbeast returns unset outputs and corrupts the
+memory, so that the process is killed later. The ``"native"`` strategy
+therefore runs ``beast123`` on one channel at a time, which Rbeast computes
+in the calling thread; the channels are fitted one after the other, not in
+parallel. Where the threads could be created, its outputs can differ from
+those of the run on the whole array, which goes through other routines of
+Rbeast.
 
 **Crashes with seasonal models:** with ``season`` set to ``"harmonic"``,
 ``"dummy"`` or ``"svd"``, Rbeast 0.1.25 can kill the Python process (abort on
