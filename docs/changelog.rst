@@ -76,7 +76,12 @@ Unreleased
 * New ``CachalotDetector``: Lasso-path candidates refined by
   reduced dynamic programming and selected by relative residual improvement
   (Harchaoui and Lévy-Leduc, 2007). Multivariate input is handled channel by
-  channel, with the returned change points formed by their union.
+  channel, with the returned change points formed by their union. The
+  structured path costs ``O(n K)`` per channel without dense matrices;
+  reduced DP costs ``O(K^3)``. Endpoint decisions are invariant to signal
+  units, constant decimal-valued signals produce no candidates, and ``nu``
+  must be finite. Documentation records the limits of the channel union and
+  the unresolved gap with the paper's Monte Carlo precision.
 * Documentation: new design (PyData Sphinx theme, light and dark modes, copy
   buttons on code blocks) and a new home page; installation instructions move
   to their own page. The ``docs`` extra now installs ``pydata-sphinx-theme``

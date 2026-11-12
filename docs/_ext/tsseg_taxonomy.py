@@ -286,7 +286,7 @@ METHODS = [
        "trend change points of Prophet", "Taylor & Letham (2018)", "dn"),
     _m("Cachalot", "CachalotDetector", "cachalot", "convex", "model",
        "Lasso candidates, then reduced dynamic programming",
-       "Harchaoui & Lévy-Leduc (2007; 2010)", "n K^2 + K^3"),
+       "Harchaoui & Lévy-Leduc (2007; 2010)", "d(n K + K^3)"),
     # ---- optimal (DP)
     _m("AMOC", "AmocDetector", "amoc", "optimal", "model",
        "single best split", "Killick et al. (2012)", "dn"),

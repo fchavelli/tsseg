@@ -57,10 +57,11 @@ class CachalotDetector(BaseSegmenter):
     -----
     The step-function columns are centered to leave the signal level
     unpenalized, matching the total-variation formulation in the paper. Their
-    Gram matrix is computed from the tail lengths, so the Lasso path does not
-    materialize a dense ``n_timepoints x n_timepoints`` design matrix. The
-    reduced dynamic program costs ``O(K^3)`` after selecting ``K`` candidates;
-    the active-set path costs ``O(n K^2)`` in its usual regime.
+    active-set direction is obtained by linear interpolation between active
+    step positions, so the Lasso path costs ``O(n K)`` time and ``O(n + K)``
+    working memory without a dense design or Gram matrix. The reduced dynamic
+    program costs ``O(K^3)`` time and ``O(K^2)`` memory after selecting ``K``
+    candidates. Costs are per channel; channels are processed sequentially.
 
     The 2007 paper's toy example prints the Lasso candidate set and objective
     table, but not the sampled noise vector or a random seed. Its published
@@ -103,6 +104,9 @@ class CachalotDetector(BaseSegmenter):
         super().__init__(axis=axis)
 
     def _predict(self, X):
+        if not np.isfinite(self.nu):
+            raise ValueError("nu must be finite and strictly between 0 and 1.")
+
         if X.shape[0] < 2:
             empty = np.empty(0, dtype=np.int64)
             self.candidate_points_ = tuple(empty.copy() for _ in range(X.shape[1]))

@@ -5,6 +5,7 @@ from __future__ import annotations
 from itertools import combinations
 
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 from sklearn.linear_model import lars_path
 
@@ -55,6 +56,14 @@ def test_reduced_dynamic_programming_matches_exhaustive_search():
             expected = min(expected, cost)
         assert_allclose(objective_path[n_change_points], expected)
         assert len(selected) == n_change_points
+        selected_boundaries = (0, *selected, y.size)
+        reconstructed_cost = sum(
+            float(np.sum((y[start:end] - y[start:end].mean()) ** 2))
+            for start, end in zip(
+                selected_boundaries[:-1], selected_boundaries[1:], strict=True
+            )
+        )
+        assert_allclose(reconstructed_cost, expected)
 
 
 def test_selection_rule_matches_published_toy_objectives():
@@ -121,3 +130,77 @@ def test_multivariate_channel_first_axis_returns_same_union():
     actual = CachalotDetector(max_candidates=20, axis=1).fit_predict(x.T)
 
     assert_array_equal(actual, [30, 70])
+
+
+def test_lasso_candidates_are_invariant_to_signal_units():
+    """A small physical unit must not trigger an absolute endpoint tolerance."""
+    y = np.repeat([0.0, 2.0, -1.0, 3.0], 30)
+    expected = lasso_candidate_points(y, 20)
+    for scale in (1e-14, 1e-8, 1e8, 1e14):
+        assert_array_equal(lasso_candidate_points(y * scale, 20), expected)
+        assert_array_equal(CachalotDetector().fit_predict(y * scale), [30, 60, 90])
+
+
+def test_non_binary_constant_has_no_candidates():
+    """Mean-rounding error must not turn a constant into a Lasso candidate."""
+    assert_array_equal(lasso_candidate_points(np.full(120, 0.1), 20), [])
+
+
+def test_exact_symmetric_steps_preserve_tied_entries():
+    y = np.repeat([0.0, 1.0, 0.0], 40)
+    assert_array_equal(np.sort(lasso_candidate_points(y, 20)), [40, 80])
+    assert_array_equal(CachalotDetector().fit_predict(y), [40, 80])
+
+
+@pytest.mark.parametrize("seed", range(10))
+@pytest.mark.parametrize("limit", [1, 5, 20, 31])
+def test_structured_lars_matches_dense_reference_across_paths(seed, limit):
+    y = np.random.default_rng(seed).normal(size=32)
+    assert_array_equal(
+        lasso_candidate_points(y, limit), _dense_lars_candidates(y, limit)
+    )
+
+
+@pytest.mark.parametrize(
+    "seed, expected",
+    [
+        (0, [29, 49, 66, 70, 90]),
+        (1, [29, 49, 69, 89]),
+    ],
+)
+def test_seeded_published_toy_design(seed, expected):
+    """Section 3's design, with our own noise seed and zero-based indices.
+
+    This is a synthetic regression, not a reproduction of Table 1's
+    unpublished noise realization. Paper variable beta_30 starts sample
+    30 (one-based), hence tsseg split index 29.
+    """
+    beta = np.zeros(100)
+    beta[[29, 49, 69, 89]] = [5, -3, 4, -2]
+    y = np.cumsum(beta) + np.random.default_rng(seed).normal(size=100)
+    detector = CachalotDetector(max_candidates=9, nu=0.05)
+    assert_array_equal(detector.fit_predict(y), expected)
+
+
+@pytest.mark.parametrize("length", [2, 3, 8])
+def test_candidate_budget_is_capped_by_series_length(length):
+    y = np.arange(length, dtype=float)
+    detector = CachalotDetector(max_candidates=50)
+    result = detector.fit_predict(y)
+    assert len(detector.candidate_points_[0]) <= length - 1
+    assert np.all((result > 0) & (result < length))
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"max_candidates": 0},
+        {"max_candidates": 1.5},
+        {"nu": 0.0},
+        {"nu": 1.0},
+        {"nu": np.nan},
+    ],
+)
+def test_invalid_parameters_are_rejected(params):
+    with pytest.raises((ValueError, TypeError)):
+        CachalotDetector(**params).fit_predict(np.arange(12.0))

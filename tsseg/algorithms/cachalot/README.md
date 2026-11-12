@@ -20,6 +20,15 @@ from the published inputs.
 The implementation is original tsseg code under the repository's
 AGPL-3.0-only license. It contains no copied third-party code.
 
+## Audit and reproducibility
+
+See [AUDIT.md](AUDIT.md) for the paper-to-code mapping, numerical fixes,
+performance measurements, and limitations. The path uses an unpenalized
+intercept and unstandardized centered step columns (the TV formulation in
+Eq. 4). Multivariate input is an independent channel union; it does not
+estimate shared ruptures. A seeded study does not reproduce the paper's
+Monte Carlo precision, and this discrepancy is explicitly retained.
+
 ## References
 
 ```bibtex
