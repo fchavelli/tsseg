@@ -15,6 +15,8 @@
 # Modified for tsseg (2026): relative imports; align log_b with the destination
 # state in the expected complete-data likelihood; use the forward normalizers
 # for the collapsed ELBO/IWAE instead of the expected complete-data score.
+# Further tsseg changes: tracked normalized initial logits, explicit sampling
+# seeds and dynamic sequence lengths.
 # Upstream: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
 
 """Switching non-linear dynamical systems (SwitchingNLDS)."""
@@ -117,13 +119,15 @@ class SwitchingNLDS(tf.keras.Model):
     else:
       self.discrete_prior = discrete_state_prior
 
-    self.log_init = tf.Variable(
-        utils.normalize_logprob(
-            tf.ones(shape=[self.num_categ], dtype=tf.float32),
-            axis=-1)[0],
-        name="snlds_logprob_s0")
+    self.initial_logits = self.add_weight(
+        name="initial_logits", shape=[self.num_categ], initializer="zeros")
 
-  def call(self, inputs, temperature=1.0, num_samples=1, dtype=tf.float32):
+  @property
+  def log_init(self):
+    return tf.nn.log_softmax(self.initial_logits)
+
+  def call(self, inputs, temperature=1.0, num_samples=1, dtype=tf.float32,
+           random_seed=None):
 
     """Inference call of SNLDS.
 
@@ -164,7 +168,7 @@ class SwitchingNLDS(tf.keras.Model):
                                   name="SNLDS_Input_Tensor")
     # Sample continuous hidden variable from `q(z[1:T] | x[1:T])'
     z_sampled, z_entropy, log_prob_q = self.inference_network(
-        inputs, num_samples=num_samples)
+        inputs, num_samples=num_samples, random_seed=random_seed)
 
     _, batch_size, num_steps, z_dim = tf.unstack(
         tf.shape(z_sampled))
@@ -367,7 +371,6 @@ class SwitchingNLDS(tf.keras.Model):
         obs_dim] for reconstructed inputs.
     """
     batch_size, num_steps = tf.unstack(tf.shape(inputs)[:2])
-    num_steps = inputs.get_shape().with_rank_at_least(3).dims[1].value
 
     ########################################
     ## getting log p(z[t] | z[t-1], s[t])

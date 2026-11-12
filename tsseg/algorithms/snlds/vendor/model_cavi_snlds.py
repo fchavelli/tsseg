@@ -15,6 +15,8 @@
 # Modified for tsseg (2026): relative imports; Keras 3 posterior RNN initial
 # states and positional calls; track covariance weights and evaluate their
 # transforms inside call so trainable scales receive gradients.
+# Further tsseg changes: positive scales and tracked priors from components;
+# stateless sampling per timestep, posterior means and optional factorization.
 # Upstream: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
 
 """Collapsed Amortized Variational Inference for SNLDS.
@@ -40,6 +42,8 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from . import model_base
 from . import utils
+from ..components import (GaussianScale as _GaussianScale, InitialStatePrior,
+                          FactorizedInference, stateless_seed)
 
 namedtuple = collections.namedtuple
 
@@ -48,32 +52,6 @@ tfd = tfp.distributions
 tfpl = tfp.layers
 
 RANDOM_SEED = 131
-
-
-class _GaussianScale(layers.Layer):
-  """Tracked covariance parameter, transformed at call time rather than init."""
-
-  def __init__(self, dimension, triangular, trainable, raw_sigma_bias,
-               sigma_min, sigma_scale, dtype, name):
-    super().__init__(dtype=dtype, name=name)
-    self.triangular = triangular
-    self.raw_sigma_bias = raw_sigma_bias
-    self.sigma_min = sigma_min
-    self.sigma_scale = sigma_scale
-    size = dimension * (dimension + 1) // 2 if triangular else dimension
-    self.raw_cov = self.add_weight(
-        name="raw_cov", shape=[size], dtype=dtype, trainable=trainable,
-        initializer=lambda shape, dtype=None: tf.random.uniform(
-            shape, minval=0., maxval=1., dtype=dtype))
-    # This parameter-only layer has no input-dependent state to build later.
-    self.built = True
-
-  @property
-  def value(self):
-    raw = (tfp.math.fill_triangular(self.raw_cov) if self.triangular
-           else self.raw_cov)
-    return (tf.maximum(tf.nn.softmax(raw + self.raw_sigma_bias), self.sigma_min)
-            * self.sigma_scale)
 
 
 def construct_initial_state_distribution(
@@ -112,44 +90,11 @@ def construct_initial_state_distribution(
       distribution, `p(z[0])`.
   """
 
-  glorot_initializer = tf.keras.initializers.GlorotUniform()
-  z0_mean = tf.Variable(
-      initial_value=glorot_initializer(shape=[num_categ, latent_dim],
-                                       dtype=dtype),
-      name="{}_mean".format(name))
-
-  if use_triangular_cov:
-    z0_scale = tfp.math.fill_triangular(
-        tf.Variable(
-            initial_value=glorot_initializer(
-                shape=[int(latent_dim * (latent_dim + 1) / 2)],
-                dtype=dtype),
-            name="{}_scale".format(name),
-            trainable=use_trainable_cov))
-    z0_scale = (tf.maximum(tf.nn.softmax(z0_scale + raw_sigma_bias),
-                           sigma_min)
-                * sigma_scale)
-    return_dist = tfd.Independent(
-        distribution=tfd.MultivariateNormalTriL(
-            loc=z0_mean, scale_tril=z0_scale),
-        reinterpreted_batch_ndims=0)
-
-  else:
-    z0_scale = tf.Variable(
-        initial_value=glorot_initializer(
-            shape=[latent_dim],
-            dtype=dtype),
-        name="{}_scale".format(name),
-        trainable=use_trainable_cov)
-    z0_scale = (tf.maximum(tf.nn.softmax(z0_scale + raw_sigma_bias),
-                           sigma_min)
-                * sigma_scale)
-    return_dist = tfd.Independent(
-        distribution=tfd.MultivariateNormalDiag(
-            loc=z0_mean, scale_diag=z0_scale),
-        reinterpreted_batch_ndims=0)
-
-  return return_dist
+  return InitialStatePrior(
+      latent_dim=latent_dim, num_categ=num_categ,
+      use_trainable_cov=use_trainable_cov,
+      use_triangular_cov=use_triangular_cov, raw_sigma_bias=raw_sigma_bias,
+      sigma_min=sigma_min, sigma_scale=sigma_scale, dtype=dtype, name=name)
 
 
 class ContinuousStateTransition(tf.keras.Model):
@@ -384,16 +329,16 @@ class RnnInferenceNetwork(tf.keras.Model):
     self.posterior_rnn = posterior_rnn
     self.posterior_dist = posterior_dist
 
-    if embedding_network is None:
-      self.embedding_network = lambda x: x
-    self.embedding_network = embedding_network
+    self.embedding_network = (embedding_network if embedding_network is not None
+                              else lambda x: x)
 
   def call(self,
            inputs,
            num_samples=1,
            dtype=tf.float32,
            random_seed=RANDOM_SEED,
-           parallel_iterations=10):
+           parallel_iterations=10,
+           sample=True):
     """Recursively sample z[t] ~ q(z[t]|h[t]=f_RNN(h[t-1], z[t-1], h[t]^b)).
 
     Args:
@@ -421,6 +366,7 @@ class RnnInferenceNetwork(tf.keras.Model):
 
     ## passing through embedding_network, e.g. bidirectional RNN
     inputs = self.embedding_network(inputs)
+    random_seed = stateless_seed(random_seed)
 
     ## passing through forward RNN
     ta_names = ["rnn_states", "latent_states", "entropies", "log_probs"]
@@ -471,7 +417,8 @@ class RnnInferenceNetwork(tf.keras.Model):
           rnn_input,
           prev_rnn_state)
       dist = self.posterior_dist(rnn_out)
-      latent_state = dist.sample(seed=random_seed)
+      step_seed = tf.random.experimental.stateless_fold_in(random_seed, t)
+      latent_state = dist.sample(seed=step_seed) if sample else dist.mean()
 
       ## rnn_state is a list of [batch_size, rnn_hidden_dim],
       ## after TA.stack(), the dimension will be
@@ -515,7 +462,8 @@ def create_model(num_categ,
                  network_s_transition,
                  networks_z_transition,
                  network_posterior_mlp=lambda x: x,
-                 name="snlds"):
+                 name="snlds",
+                 inference_type="autoregressive"):
   """Construct SNLDS model.
 
   Args:
@@ -598,6 +546,9 @@ def create_model(num_categ,
       posterior_dist=posterior_distribution,
       latent_dim=hidden_dim,
       embedding_network=network_input_embedding)
+  if inference_type == "factorized":
+    posterior_network = FactorizedInference(posterior_distribution,
+                                           network_input_embedding)
 
   z_initial_distribution = construct_initial_state_distribution(
       latent_dim=hidden_dim,
