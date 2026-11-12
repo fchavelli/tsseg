@@ -71,3 +71,59 @@ The report rejects incomplete, duplicated or mixed-source runs and inconsistent
 inputs. It aggregates seeds within each series before averaging series. The
 earlier correction-only record, `snlds_audit_results.json`, remains separate
 from the validation of the subsequent architecture/training adaptations.
+
+## Inspecting failure mechanisms
+
+The post-validation inspection deliberately selects failures. It diagnoses
+optimization, representation and decoding; it is not a new benchmark or a
+paper reproduction. `snlds_mechanism_results.json` preserves all ten selected
+fits, including unsuccessful controls. Seed 0 is used except where stated.
+Only the guided state count comes from labels during fitting. ARIs are scored
+on the observation grid, including the sampling interval for moments.
+
+```sh
+python -m examples.diagnostics.snlds_mechanism \
+  --case npz --input /path/to/prepared-validation/tssb3.npz \
+  --output /path/to/mechanism/tssb3-raw-0
+python -m examples.diagnostics.snlds_mechanism \
+  --case mocap --trial 1 --params '{"feature_window":128,"downsample":6}' \
+  --output /path/to/mechanism/mocap1-moments-0
+python -m examples.diagnostics.snlds_mechanism \
+  --case bounce --seed 0 --output /path/to/mechanism/bounce-raw-0
+python -m examples.diagnostics.snlds_mechanism \
+  --case bounce --seed 0 --skip-cluster-assignment \
+  --output /path/to/mechanism/bounce-reconstruction-only-0
+```
+
+The other six fits are raw bouncing-ball seed 1, bouncing-ball seed 0 with
+`{"init_steps":0}`, raw MoCap 1, TSSB 3 with moments, TSSB 3 with
+`{"inference_type":"autoregressive"}` and TSSB 3 with
+`{"n_train_steps":5000}`. All synthetic data use data seed 1, as in validation.
+
+The script saves arrays and weights after reconstruction/cluster initialization
+and after variational training. It reports reconstruction, regime occupancy,
+latent/observed k-means, controlled removal of emission or transition factors,
+and an ELBO estimate on 16 fixed training-context windows with four samples.
+These ELBO estimates are comparable between stages of the same representation,
+not across different representations or against held-out performance. Timings
+include probe overhead and are not performance measurements.
+
+`--skip-cluster-assignment` retains the same reconstruction training and its
+random-window consumption, then restores the original regime dynamics, initial
+means and transition network weights. Thus this control isolates the cluster
+assignments. Merely setting `init_steps=0` also changes the training-window
+sequence. The controlled pair in the saved report has exactly equal initial
+encoder outputs and reconstructions.
+
+```sh
+python -m examples.diagnostics.snlds_mechanism_replay \
+  --run-dir /path/to/mechanism/mocap1-moments-0 --samples 16
+```
+
+Replay verifies the implementation fingerprint and every saved weight path and
+shape. It compares mean-trajectory Viterbi decoding with an average of smoothed
+state probabilities under 16 continuous posterior draws and with encoding in
+training-length windows. The latter concatenates the encoded windows before
+global decoding; it is a context probe, not a proposed prediction algorithm.
+Replay was run for raw TSSB 3 and raw/moments MoCap 1. None of these diagnostics
+selects a production configuration from reference scores.

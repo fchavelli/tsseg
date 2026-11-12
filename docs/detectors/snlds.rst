@@ -102,6 +102,112 @@ For the paper's posterior family and sampling/decoding policy, use
 Other differences remain. In particular, windows of one series replace
 training on many independent trajectories.
 
+Why a well-fitted model can segment poorly
+---------------------------------------------
+
+The regime posterior conditional on a continuous trajectory satisfies
+
+.. math::
+
+   p(s_{1:T}\mid x_{1:T},z_{1:T}) \propto
+   p(s_1)p(z_1\mid s_1)
+   \prod_{t=2}^{T}p(s_t\mid s_{t-1},x_{t-1})p(z_t\mid z_{t-1},s_t).
+
+The shared emission factors :math:`p(x_t\mid z_t)` cancel from this posterior.
+Reconstruction trains the continuous representation, but does not directly
+specify the discrete partition. Two regimes can describe rising and falling
+parts of each oscillation, while the reference labels describe two long
+intervals with different oscillatory statistics. Supplying the reference
+number of states cannot resolve this choice of temporal scale.
+
+There is a second failure: a flexible transition can absorb the dynamics into
+one state, which then receives nearly all responsibility and gradients.
+Dong et al. explicitly discuss this collapse and use annealed regularization
+to train and then specialize all transitions. Ansari et al., Appendix B.4.1,
+also report collapse and sensitivity to the original objective/regularizer.
+Exact marginalization fixes that objective error; it does not guarantee useful
+regimes for every series.
+
+Post-validation inspection saved latent trajectories, probabilities and model
+weights before and after variational training. The selected failures below
+diagnose mechanisms; they are **not** another representative benchmark.
+Scores use the model's observation grid, including downsampling for moments.
+
+.. list-table:: Selected failure inspection, seed 0
+   :header-rows: 1
+   :widths: 27 18 18 18 19
+
+   * - Case
+     - Initial state ARI
+     - Trained state ARI
+     - Initial ELBO/point
+     - Trained ELBO/point
+   * - TSSB 3, raw
+     - -0.0004
+     - -0.0001
+     - -8.23
+     - -0.18
+   * - MoCap 1, raw
+     - 0.312
+     - 0.099
+     - -11.23
+     - 2.37
+   * - MoCap 1, moments
+     - 0.599
+     - 0.321
+     - -29.37
+     - 1.78
+
+ELBO estimates use the same 16 training-context windows and four continuous
+samples at each stage, with fixed evaluation seeds. They are training-data
+diagnostics, not held-out likelihood estimates, and cannot be compared across
+representations. In these cases the objective improves while label agreement
+does not. In particular:
+
+* **Wrong temporal scale:** TSSB 3 has one annotated change but 383 predicted
+  changes. The two states have almost equal occupancy and track the sign of
+  the observed derivative (ARI 0.66), rather than the reference (ARI about 0).
+  This is not a one-state collapse. Raising the budget to 5,000 updates gives
+  ARI 0.001; the autoregressive posterior at 1,000 updates also stays near 0.
+  Neither experiment is a full reproduction of the paper's training protocol.
+* **Representation versus regime assignment:** on MoCap 1 with moments,
+  k-means on the final latent means scores 0.620, while SNLDS regimes score
+  0.321. Averaging smoothed probabilities over 16 continuous samples gives
+  0.325, and encoding in training-length windows gives 0.322. These controls
+  do not recover the latent clustering's label agreement.
+* **A lossy decoding approximation:** on raw MoCap 1, averaging the same 16
+  sampled posteriors raises ARI from 0.099 at continuous means to 0.256.
+  The default plug-in decoder contributes to this failure. It is not the
+  explanation for the moments case above or for TSSB 3 (ARI remains about 0
+  with the same sampling control).
+* **An unsuitable initialization:** on bouncing-ball seed 0, the default
+  position-cluster assignments lead to one used state and ARI 0. Removing
+  only the assignments to regime dynamics, initial means and transition
+  logits gives ARI 0.960. Reconstruction pretraining, its resulting encoder
+  outputs and the training-window random sequence are identical. Disabling
+  initialization entirely gives 0.965, but also changes those windows and is
+  a less controlled comparison. Seed 1 succeeds with the default (ARI 0.922).
+  Initialization sensitivity is established here; a universal replacement is
+  not established by this selected example.
+
+These results support both optimization failures and a mismatch between
+learned dynamical modes and annotated states. They do not establish that the
+data cannot be modeled by SNLDS. A minimum-duration constraint, local spectral
+representation or different dynamics initialization would impose additional
+assumptions and needs its own validation.
+
+The published evaluation also differs materially: it trains across multiple
+trajectories; the bouncing-ball appendix uses 100,000 trajectories and 10,000
+updates. Its real MoCap experiment trains on 29 salsa trials with 93 observed
+coordinates and evaluates a held-out trial qualitatively, without reference
+segmentation. That experiment is not evidence of activity-label accuracy on
+the four-channel MoCap series bundled here. See the
+`paper <https://proceedings.mlr.press/v119/dong20e/dong20e.pdf>`_ and
+`experimental appendix <https://proceedings.mlr.press/v119/dong20e/dong20e-supp.pdf>`_.
+
+The reproducible commands, saved summaries and qualifications are in
+``examples/diagnostics/README.md`` and ``snlds_mechanism_results.json``.
+
 Runtime
 -------
 
