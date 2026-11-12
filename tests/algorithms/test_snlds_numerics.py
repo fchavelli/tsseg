@@ -316,3 +316,12 @@ def test_training_repeats_with_seed_and_does_not_use_labels():
     for a, b in zip(first._model.weights, second._model.weights, strict=True):
         np.testing.assert_array_equal(a.numpy(), b.numpy())
     np.testing.assert_array_equal(first.predict(X), second.predict(X))
+
+
+def test_new_parameters_expose_valid_ui_hints():
+    from tsseg.algorithms import SNLDSDetector
+    from tsseg.algorithms.param_schema import get_ui_hints
+
+    hints = get_ui_hints(SNLDSDetector)
+    assert hints["posterior_mean"]["type"] == "bool"
+    assert set(hints["inference_type"]["choices"]) == {"factorized", "autoregressive"}

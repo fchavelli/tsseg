@@ -1,331 +1,216 @@
 SNLDS
 =====
 
-Switching non-linear dynamical system trained with collapsed amortized
-variational inference (CAVI-SNLDS).
+Switching nonlinear dynamical systems fitted by collapsed variational inference.
+A continuous latent trajectory is governed by a discrete regime sequence;
+each regime has its own nonlinear continuous transition.
 
 .. warning::
-   **Experimental.** In a historical pilot on 54 series of TSB-SEG (TSSB,
-   UTSA, SKAB, MoCap), SNLDS scored below a random segmentation
-   (bidirectional covering 0.074 against 0.377, ARI 0.066 against 0.208): its
-   labels change about 200 times more often than the true regimes. Training five
-   times longer did not help on the two series tried. It is kept for further
-   study, not as a recommended detector. These measurements predate the
-   numerical corrections described below and do not evaluate the corrected
-   implementation.
 
-Description
------------
-
-SNLDS models a time series with a discrete regime :math:`s_t \in \{1, \dots,
-K\}`, a continuous latent state :math:`z_t` and an observation :math:`x_t`.
-Each regime has its own non-linear transition :math:`p(z_t \mid z_{t-1}, s_t)`,
-an MLP; the regime switches follow :math:`p(s_t \mid s_{t-1}, x_{t-1})`, and
-:math:`x_t` is emitted from :math:`z_t` by a shared network.
-
-Training maximises an evidence lower bound. An RNN infers the continuous states
-:math:`q(z_{1:T} \mid x_{1:T})`, and the discrete states are integrated out
-exactly with the forward-backward algorithm.
-
-After training, each time step receives the regime of highest posterior
-probability :math:`p(s_t \mid x_{1:T}, z_{1:T})`.
-
-Two devices from the paper prevent the collapse onto a single regime: a
-cross-entropy regulariser between the regime posterior and a uniform prior,
-with weight :math:`\beta`, and a temperature :math:`\tau` on the discrete
-transitions. Both start large and decay, :math:`\beta` first, then
-:math:`\tau` down to 1. tsseg follows the schedule of the paper's Reacher
-experiment (:math:`\beta_0 = \tau_0 = 1000`, decay by 0.975 every 500 steps
-after steps 50,000 and 100,000, out of 300,000), scaled to ``n_train_steps``:
-the decays start after ``n_train_steps / 6`` and ``n_train_steps / 3`` steps,
-with a factor 0.975 every ``n_train_steps / 600`` steps.
-
-Each gradient step uses ``batch_size`` windows of ``train_window`` points drawn
-at random positions of the series, which bounds the cost of a step; prediction
-runs on the whole series. The paper trains on minibatches of 32 short
-sequences (50 to 100 steps) from many trajectories; tsseg draws its windows from
-the single series it segments.
+   **Experimental.** Numerical correctness and improved diagnostic scores do
+   not establish reliable accuracy across datasets. The validation includes
+   unsuccessful seeds and series. Current defaults are adaptations of SNLDS,
+   not a reproduction of its published experiments.
 
 | **Type:** state detection
-| **Supervision:** semi-supervised (``n_states`` is the number of regimes)
-| **Scope:** univariate and multivariate
-| **Complexity:** :math:`O(S\,B\,L)` time steps for training, independent of
-  *n* (*S* is ``n_train_steps``, *B* ``batch_size``, *L* ``train_window``, or
-  *n* if smaller), then :math:`O(n)` time steps for the prediction pass. Each
-  time step evaluates the *K* continuous transition networks (*K* is
-  ``n_states``), the discrete transition network, :math:`O(d\,K^{2} + K^{4})`,
-  and the forward-backward recursion, :math:`O(K^{2})`
+| **Supervision:** semi-supervised (requires ``n_states``)
+| **Scope:** univariate and multivariate, offline
 | **Requires:** TensorFlow, TensorFlow Probability and ``tf-keras``
   (``pip install tsseg[snlds]``)
 
-.. note::
+Model and training
+------------------
 
-   Training is slow. A step processes :math:`B\,L` time steps for ``batch_size``
-   :math:`B` windows of :math:`L` points, independent of the length of the
-   series: about
-   0.1 s on one CPU thread with the defaults, so about 3 minutes for the 2,000
-   default steps. The first call also spends a few seconds compiling the training
-   graph.
+The continuous state :math:`z_t` evolves under one of :math:`K` nonlinear
+transitions, selected by :math:`s_t`. A shared network emits observations.
+A bidirectional RNN embeds observations before inferring continuous states.
+Discrete states are marginalized exactly by the forward recursion. The
+collapsed ELBO uses its log normalizers, rather than an expected complete-data
+score missing the discrete posterior entropy.
 
-.. note::
+Gaussian scales are positive and learnable. Initial Gaussian means and
+normalized initial regime logits are tracked by Keras. Gradients are clipped
+by global norm. The pointwise uniform-state cross-entropy regularizer is
+disabled by default: Appendix B.4.1 of
+`Ansari et al., NeurIPS 2021 <https://arxiv.org/html/2110.13878v1>`_
+describes the same exact-likelihood SNLDS correction without that regularizer.
+No RED-SDS source code is copied.
 
-   Training is not reproducible from run to run. Two fits with the same
-   ``random_state`` start from the same weights and draw the same windows, but
-   TensorFlow does not compute the training identically in every run, even after
-   ``tf.config.experimental.enable_op_determinism()``, and over 2,000 steps the
-   differences can lead to another model. On a series of three segments with
-   clear mean shifts (1,000 points), historical runs before the numerical fixes gave
-   adjusted Rand indices of 0.54, 0.97 and 0.54, and seeds 0 to 4 gave 0.50 to
-   0.97, two of them above 0.8: the other runs merged two regimes. Prediction
-   samples the continuous states once, so two calls to ``predict`` on one fitted
-   model can still differ on a few labels.
+The default continuous posterior is **factorized conditional on a bidirectional
+observation embedding**. Its mean is temporal, but its variational noise is
+independent over time, allowing latent draws to be evaluated at once.
+``inference_type="autoregressive"`` retains a forward RNN additionally
+conditioned on past latent draws, as in the SNLDS paper. Both are variational
+families for the same generative model; their approximation quality can differ.
 
-Implementation audit
---------------------
+Initialization performs ``init_steps=200`` reconstruction updates, then k-means
+on continuous posterior means. Cluster centers initialize regime dynamics and
+initial means; predicted cluster transitions initialize the regime network.
+Reference labels are not read. ``init_steps=0`` disables this data-only
+initialization. Clustering latent positions can be unsuitable for regimes
+identified by velocity or another dynamical property instead of position.
 
-The November 2026 audit found four reproducible implementation errors:
+Training then uses 1,000 variational updates, batches of eight windows of 64
+observations, Adam at ``1e-3``, a four-dimensional latent state and a 16-unit
+GRU encoder. These are choices for the single-series setting, not the original
+paper's budgets or experimental architecture.
 
-* The pairwise posterior uses axes ``[destination, source]``, but the expected
-  complete-data likelihood broadcast the current emission over the source
-  state. A two-state, three-point example with eight enumerated paths gives
-  an expected complete-data log likelihood of -2.692044; the old code gave
-  -7.117615.
-* The objectives called ``elbo`` and ``iwae`` used the expected complete-data
-  score instead of the log likelihood with discrete paths marginalized out.
-  This omits the entropy of the discrete posterior. Differentiating through
-  that posterior also changes the gradient. Even after fixing the state axis,
-  the example above gave -2.692044 instead of the exact marginal log likelihood
-  -1.907844. Both objectives now use the sum of the forward normalizers, with
-  the continuous posterior entropy or importance weights as appropriate.
-  ``initial_likelihood`` and ``sequence_likelihood`` remain diagnostics of the
-  expected complete-data score.
-* Gaussian scales were transformed into eager tensors in the constructors,
-  outside the training gradient tape. Their raw parameters were also absent
-  from Keras 3's tracked weights. ``trainable_cov=True`` therefore did not
-  train the continuous transition covariance. Raw scales are now Keras
-  weights, transformed when used. Covariances configured as fixed stay fixed.
-* The Keras 3 fallback for ``lstm`` created one initial state instead of the
-  hidden and cell states, so fitting failed. The cell now supplies its own
-  initial state structure.
-
-These errors originate in the vendored calculations or their Keras port.
-They prevent attributing the historical pilot's poor scores entirely to the
-method or the data. The regression tests check values and gradients against
-enumerated paths, covariance updates under ``tf.function``, and all three RNN
-types. They do not establish segmentation quality on a benchmark.
-
-Small before/after diagnostic
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-With 2,000 updates, seed 42, the true state count and otherwise default
-parameters, a diagnostic on Python 3.12 / TensorFlow 2.21 / Keras 3.14 gave:
-
-.. list-table::
-   :header-rows: 1
-
-   * - Series
-     - Implementation
-     - ARI
-     - BiC
-     - Predicted changes
-     - Fit (s)
-   * - Mean shifts (1,000 points, 2 true changes)
-     - Before
-     - 0.813
-     - 0.710
-     - 99
-     - 239
-   * - Mean shifts
-     - Corrected
-     - 0.095
-     - 0.009
-     - 653
-     - 242
-   * - MoCap trial 0 (4,579 points, 6 true changes)
-     - Before
-     - 0.118
-     - 0.090
-     - 506
-     - 267
-   * - MoCap trial 0
-     - Corrected
-     - 0.033
-     - 0.037
-     - 2,141
-     - 269
-
-Numerical correctness did **not** improve these two segmentations: both
-accuracy and oversegmentation became worse in these runs. Prediction took
-about one second. Two predictions of each fitted model disagreed on at most
-0.4% of labels, much less than the amount of oversegmentation. The fit used
-one CPU thread per process; runs were concurrent, so these times are not an
-isolated performance benchmark. There is one run per case and implementation,
-and training is nondeterministic: this is not an estimate of mean performance
-or an ablation separating the individual corrections.
-
-The correction is a candidate for further evaluation, not evidence that this
-detector is now a useful baseline. In particular, increasing training time or
-changing defaults is not justified by this diagnostic alone.
-
-``examples/diagnostics/snlds_audit.py`` regenerates these measurements;
-``snlds_audit_results.json`` beside it records the raw results and source hashes.
-Run the same script on the baseline commit (``e0b09b3``) and on the corrected
-checkout, for example:
-
-.. code-block:: console
-
-   python -m examples.diagnostics.snlds_audit --case mean-shifts
-   python -m examples.diagnostics.snlds_audit --case mocap
-
-Why training is slow
-~~~~~~~~~~~~~~~~~~~~
-
-The defaults process :math:`2000 \times 8 \times 256 = 4\,096\,000` latent time
-steps for each series. Each window requires an autoregressive RNN with
-sampling, forward and backward recursions over discrete states, and reverse
-mode differentiation. These time recursions limit parallel execution even
-for small networks. The discrete transition MLP has a hidden layer of
-:math:`4K^2` units and :math:`K^2` outputs, hence :math:`4K^4` weights in that
-layer alone: supplying many states can be expensive. Compilation is an
-additional cost for each newly fitted detector; prediction also creates a
-new compiled function on each call.
-
-Windows already bound training cost independently of series length. More
-training steps increase cost linearly and do not repair a wrong objective.
-The corrections above address correctness; no general speedup is promised.
-
-Method and data limitations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The wrapper is an adaptation of the authors' example, not a reproduction of
-the architectures and training regimes in their experiments. In particular,
-``network_input_embedding`` is the identity: the continuous posterior sees
-past observations through a forward RNN, without the paper's bidirectional
-encoder. The discrete posterior still uses forward-backward smoothing.
-The default inference RNN has four units, and training compresses the Reacher
-annealing schedule into 2,000 updates at a fixed learning rate.
-
-The paper's MoCap experiment trained on 29 salsa trajectories, using 93
-coordinates per frame, and evaluated a held-out trajectory qualitatively,
-without ground-truth segmentation. Its states describe primitive directions
-of motion. Fitting windows from a single four-channel MoCap series and
-scoring activity labels is a different experiment. This makes data diversity
-and the meaning of the target states plausible limitations; it does not
-prove that switching dynamics cannot describe the benchmark signals.
-
-There is no explicit segment-duration prior or minimum dwell time. Pointwise
-posterior argmax on one continuous-state sample can produce rapid switching;
-learning good reconstruction or dynamics does not guarantee matching semantic
-activity labels. The default emission standard deviation is fixed at 0.05
-for standardized univariate input, and the latent dimension is eight even
-for one observed channel. The suitability of these assumptions needs an
-ablation, rather than increasing training time alone.
-
-Known residual issues include stateful sampling in a parallel loop (run-to-run
-variation), and initial-state prior parameters that are not tracked as Keras
-3 weights. This correction does not validate the entire model as a faithful
-reproduction of the paper. Defaults, decoding policy and estimator tags are
-unchanged.
-
-The mathematical reference is
-`Dong et al., ICML 2020 <https://proceedings.mlr.press/v119/dong20e.html>`_,
-especially Eq. (12) and the experimental details in the
-`supplement <https://proceedings.mlr.press/v119/dong20e/dong20e-supp.pdf>`_.
-
-Parameters
+Prediction
 ----------
 
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 10 55
+The default decoder finds the Viterbi regime path conditional on continuous
+posterior means. This is a deterministic plug-in approximation, **not** exact
+integration over continuous uncertainty. For the autoregressive posterior,
+conditional means are propagated through the forward RNN. Set
+``posterior_mean=False`` to use one continuous posterior draw, and
+``decoding="marginal"`` to choose pointwise posterior modes.
 
-   * - Name
-     - Type
-     - Default
-     - Description
-   * - ``n_states``
-     - int
-     - ``3``
-     - Number of discrete regimes :math:`K`.
-   * - ``hidden_dim``
-     - int
-     - ``8``
-     - Dimension of the continuous latent state :math:`z_t`.
-   * - ``rnn_dim``
-     - int
-     - ``4``
-     - Hidden size of the inference RNN.
-   * - ``rnn_type``
-     - str
-     - ``"simplernn"``
-     - Inference RNN cell (``"gru"``, ``"lstm"``, ``"simplernn"``).
-   * - ``n_train_steps``
-     - int
-     - ``2000``
-     - Number of gradient steps; the schedules scale with it.
-   * - ``learning_rate``
-     - float
-     - ``1e-4``
-     - Adam learning rate.
-   * - ``batch_size``
-     - int
-     - ``8``
-     - Training windows per gradient step.
-   * - ``train_window``
-     - int / None
-     - ``256``
-     - Length of the training windows (``None``: the whole series).
-   * - ``objective``
-     - str
-     - ``"elbo"``
-     - Training objective (``"elbo"`` or ``"iwae"``).
-   * - ``use_temperature_annealing``
-     - bool
-     - ``True``
-     - Anneal the temperature of the discrete transitions down to 1.
-   * - ``temperature_init``
-     - float
-     - ``1000.0``
-     - Initial temperature.
-   * - ``use_cross_entropy_reg``
-     - bool
-     - ``True``
-     - Add the cross-entropy regulariser on regime usage.
-   * - ``xent_init``
-     - float
-     - ``1000.0``
-     - Initial weight of the regulariser.
-   * - ``random_state``
-     - int / None
-     - ``42``
-     - Seed of the training windows, of the initial weights and of TensorFlow
-       (training still differs from run to run, see the note above).
-   * - ``verbose``
-     - int
-     - ``0``
-     - Log the objective every tenth of training when ``>= 1``.
-   * - ``axis``
-     - int
-     - ``0``
-     - Time axis.
+Stateless noise incorporates the training update and, for autoregressive
+sampling, the time index. This avoids parallel-loop random-number ordering
+and repeated identical stateless noise at every point. One prediction graph
+is reused across calls and sequence lengths. Bitwise equivalence across
+devices and TensorFlow versions is not promised.
 
-Usage
------
+Representations
+---------------
+
+The default uses raw observations. ``feature_window > 1`` replaces each
+channel by its centered local mean and standard deviation, with nearest
+padding, before normalization. This changes the model's observations: it is
+an optional tsseg adaptation for statistical activity regimes, not a
+procedure from the paper. Likelihood values of different representations
+are not directly comparable.
+
+``downsample`` takes one observation at each specified sampling interval after
+feature extraction. Labels are expanded back to the full input length,
+including its final points. It trades temporal resolution for a longer
+physical context per training window; it is never inferred from labels.
 
 .. code-block:: python
 
    from tsseg.algorithms import SNLDSDetector
 
-   detector = SNLDSDetector(n_states=3)
-   labels = detector.fit_predict(X)
+   raw_labels = SNLDSDetector(n_states=4, random_state=0).fit_predict(X)
 
-**Implementation:** wrapper around the authors' TensorFlow code (Google
-Research, Apache License 2.0), vendored in
-``tsseg/algorithms/snlds/vendor`` with relative imports, Keras 3 compatibility
-fixes, corrected collapsed objectives and trainable Gaussian scales.
+   # A separate, explicitly selected activity-statistics profile.
+   activity_labels = SNLDSDetector(
+       n_states=4, feature_window=128, downsample=6, random_state=0
+   ).fit_predict(X)
 
-**Reference:** Dong, Seybold, Murphy & Bui (2020), *Collapsed Amortized
-Variational Inference for Switching Nonlinear Dynamical Systems*, ICML.
+For the paper's posterior family and sampling/decoding policy, use
+``inference_type="autoregressive", posterior_mean=False, decoding="marginal"``.
+Other differences remain. In particular, windows of one series replace
+training on many independent trajectories.
+
+Runtime
+-------
+
+For fixed architectures, training costs :math:`O((I+S)BL)` temporal evaluations,
+with initialization updates :math:`I`, variational updates :math:`S`, batch
+size :math:`B` and window length :math:`L` (or the series length, if smaller).
+Initialization and prediction also encode the full preprocessed series in
+:math:`O(n)` temporal evaluations. Discrete forward recursion and Viterbi cost
+:math:`O(nK^2)`; the discrete transition MLP costs :math:`O(dK+K^3)` per point.
+Local moments use an :math:`O(nd)` uniform filter, without a window matrix.
+
+Defaults process 614,400 window points including initialization, compared
+with 4,096,000 for the old defaults. Factorized sampling, narrower transition
+networks and removal of unused backward calculations from the training graph
+further reduce cost. Timings therefore compare budgets as well as
+implementations, not just backends. Prediction reuses its graph.
+
+Fixed validation
+----------------
+
+Development used MoCap 0, TSSB 0 and data-seed-0 synthetic mean shifts and a
+bouncing ball. Validation uses eight other cases: MoCap 1/2, TSSB 3/6, SKAB 3/6
+and the two synthetic tasks with data seed 1. Each series is fitted separately
+without labels. The cases were reserved from design choices; they are not
+held out from the unsupervised fit on that same series.
+
+Two candidate profiles were fixed before validation: raw defaults, and
+``feature_window=128, downsample=6`` on the six real series, both with model
+seeds 0/1/2. The pre-audit baseline uses its old defaults with seed 0 on every
+case and additionally seeds 1/2 on MoCap 1 and TSSB 3. Only the reference state
+count is supplied. This is eight cases and 54 fits, not a full benchmark.
+
+.. include:: ../_includes/snlds_validation.txt
+
+On the six real series, the macro-mean ARI is 0.092 for the old baseline,
+0.061 for the new raw defaults and 0.227 for the fixed moment profile. Mean
+fit time is 269 s, 46 s and 45 s respectively. BiC is 0.071, 0.252 and 0.502;
+SMS is 0.440, 0.436 and 0.578. Thus the raw defaults reduce cost and excessive
+boundary switching but do not improve state identification on these real
+cases. The moment profile improves every case's mean ARI here, yet TSSB 3
+remains near zero and several seeds remain weak. The synthetic bounce has
+one collapsed seed. These results do not justify recommending this draft
+as a general segmentation-quality improvement.
+
+All seeds, including unsuccessful ones, are retained. Aggregates do not
+choose the best profile or seed per case. Single-run baseline cells cannot
+estimate seed variance. Four jobs ran concurrently, with one thread per
+process; these are diagnostic wall times, not isolated hardware benchmarks.
+The numerical implementation was frozen during evaluation. An interrupted
+first run lost its temporary artifacts, so only the complete persistent rerun
+is used in the table and raw validation record.
+
+``examples/diagnostics/snlds_validate.py`` reruns the protocol. Its companion
+README explains preparing the external arrays and comparing checkouts.
+``snlds_validation_results.json`` records actual parameters, input and code
+hashes, and every run. The bouncing ball is inspired by the published task,
+not a reproduction of its training corpus.
+
+Numerical audit and history
+---------------------------
+
+The audit reproduced these defects before correcting them:
+
+* The pairwise posterior uses destination/source axes, but the complete-data
+  score attached emissions to source states. Enumerating eight paths of a
+  two-state, three-point model gives -2.692044; the old code gave -7.117615.
+* Even with the axis fixed, omitting discrete posterior entropy gave
+  -2.692044 instead of the marginal log likelihood -1.907844. Both objective
+  values and gradients now match independent path enumeration.
+* Covariances were transformed outside the gradient tape and were not
+  Keras-tracked. Scalar softmax also forced variances to be constant even
+  when trainable. Softplus parameters now have live gradients in one dimension.
+* Initial Gaussian means and discrete logits were not optimized on Keras 3.
+  They are now tracked; initial probabilities are normalized on every use.
+* The LSTM compatibility fallback supplied only one state instead of hidden
+  and cell states. The cell now creates its own state structure.
+* Stateful sampling inside parallel loops made runs differ despite a seed.
+  Latent draws now use explicit stateless per-update and per-time seeds.
+
+A historical 54-series pilot scored below random segmentation (BiC 0.074
+against 0.377, ARI 0.066 against 0.208), with about 200 times too many changes.
+It predates the numerical fixes. The first correction-only candidate
+(``f0d9654``) also deteriorated in two single-seed diagnostics: mean-shift ARI
+0.813 to 0.095 and MoCap 0 ARI 0.118 to 0.033. Those raw measurements remain in
+``snlds_audit_results.json`` and do not evaluate the current architecture.
+
+Limitations
+-----------
+
+The likelihood objective does not generally identify semantic activity
+labels. One continuous model can explain multiple activities with one regime,
+or an activity can split into primitive dynamical phases. Initialization,
+latent dimension and temporal context matter. A requested state count does
+not guarantee that all states will be used after training.
+
+There is no explicit duration model or minimum dwell time. The original
+MoCap experiment trained on 29 salsa trajectories with 93 coordinates and
+qualitatively assessed a held-out trajectory without reference segmentation.
+This differs from fitting one four-channel series and evaluating semantic
+activity labels. Neither numerical fixes nor this pilot establish suitability
+for every such dataset. Explicit hyperparameter configurations in external
+benchmark repositories also need reevaluation; constructor defaults do not
+override values supplied by the caller.
+
+**Source:** modified Google Research TensorFlow code (Apache-2.0), with
+Gaussian parameters, factorized inference, decoding and initialization
+implemented in tsseg. The reference is
+`Dong et al., ICML 2020 <https://proceedings.mlr.press/v119/dong20e.html>`_
+and its `supplement <https://proceedings.mlr.press/v119/dong20e/dong20e-supp.pdf>`_.
 
 API reference
 -------------

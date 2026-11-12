@@ -17,6 +17,8 @@
 # for the collapsed ELBO/IWAE instead of the expected complete-data score.
 # Further tsseg changes: tracked normalized initial logits, explicit sampling
 # seeds and dynamic sequence lengths.
+# Initial logits are tracked and normalized. Sampling seeds are explicit;
+# sequence lengths may be dynamic for graph reuse.
 # Upstream: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
 
 """Switching non-linear dynamical systems (SwitchingNLDS)."""

@@ -17,6 +17,9 @@
 # transforms inside call so trainable scales receive gradients.
 # Further tsseg changes: positive scales and tracked priors from components;
 # stateless sampling per timestep, posterior means and optional factorization.
+# Positive scales and initial priors come from tsseg components. Stateless
+# seeds vary by time; optional mean propagation and factorized inference are
+# tsseg adaptations. The autoregressive posterior is retained.
 # Upstream: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
 
 """Collapsed Amortized Variational Inference for SNLDS.
@@ -81,13 +84,12 @@ def construct_initial_state_distribution(
       underflow. Default to `1e-5`.
     sigma_scale: a `float` scalar for scaling the sigma. Default to `0.05`.
       The above three arguments are used as
-      `sigma_scale * max(softmax(raw_sigma + raw_sigma_bias), sigma_min))`.
+      `sigma_scale * softplus(raw_sigma + raw_sigma_bias) + sigma_min`.
     dtype: data type for variables within the scope. Default to `tf.float32`.
     name: a `str` to construct names of variables.
 
   Returns:
-    return_dist: a `tfp.distributions` instance for the initial state
-      distribution, `p(z[0])`.
+    return_dist: a tracked Keras layer exposing log_prob for p(z[0]).
   """
 
   return InitialStatePrior(
@@ -137,7 +139,7 @@ class ContinuousStateTransition(tf.keras.Model):
         underflow. Default to `1e-5`.
       sigma_scale: a `float` scalar for scaling the sigma. Default to `0.05`.
         The above three arguments are used as
-        `sigma_scale * max(softmax(raw_sigma + raw_sigma_bias), sigma_min))`.
+        `sigma_scale * softplus(raw_sigma + raw_sigma_bias) + sigma_min`.
       dtype: data type for variables within the scope. Default to `tf.float32`.
       name: a `str` to construct names of variables.
     """
@@ -261,7 +263,7 @@ class GaussianDistributionFromMean(tf.keras.Model):
         underflow. Default to `1e-5`.
       sigma_scale: a `float` scalar for scaling the sigma. Default to `0.05`.
         The above three arguments are used as
-        `sigma_scale * max(softmax(raw_sigma + raw_sigma_bias), sigma_min))`.
+        `sigma_scale * softplus(raw_sigma + raw_sigma_bias) + sigma_min`.
       dtype: data type for variables within the scope. Default to `tf.float32`.
       name: a `str` to construct names of variables.
     """

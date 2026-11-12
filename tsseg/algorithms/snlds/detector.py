@@ -25,95 +25,94 @@ logger = logging.getLogger(__name__)
 
 
 class SNLDSDetector(BaseSegmenter):
-    """State detector based on Switching Non-Linear Dynamical Systems (CAVI-SNLDS).
+    """State detection by collapsed variational switching nonlinear dynamics.
 
-    Uses collapsed amortized variational inference to learn discrete regimes
-    in time series data.  After training, the discrete state posterior
-    ``p(s_t | x_{1:T}, z_{1:T})`` is used to assign a regime label to each
-    time-step.
+    The observation encoder is bidirectional. The discrete regimes are
+    marginalized exactly during training, conditional on continuous states.
 
     .. warning::
-        **Experimental.** A historical TSB-SEG pilot, before the numerical
-        corrections to the objectives and covariances, scored below a random
-        segmentation and switched labels far too often. Benchmark quality of
-        the corrected model has not been established. See the documentation page.
+        Experimental. The validation documents unsuccessful seeds and series
+        as well as gains. Current defaults are adaptations, not a reproduction
+        of the original paper's experiments.
 
     Parameters
     ----------
     n_states : int, default=3
-        Number of discrete regimes (K).
-    hidden_dim : int, default=8
-        Dimension of the continuous latent state z_t.
-    rnn_dim : int, default=4
-        Hidden dimension of the posterior inference RNN.
-    rnn_type : str, default="simplernn"
-        RNN cell type for inference network ("gru", "lstm", "simplernn").
-    n_train_steps : int, default=2000
-        Number of gradient steps for training.
-    learning_rate : float, default=1e-4
-        Learning rate for Adam optimiser.
+        Number of regimes. Reference labels are never used for fitting or
+        initialization, even when supplied as ``y``.
+    hidden_dim : int, default=4
+        Continuous latent dimension.
+    rnn_dim : int, default=16
+        Units per encoder direction and in the optional autoregressive RNN.
+    rnn_type : {"gru", "lstm", "simplernn"}, default="gru"
+        Recurrent cell type.
+    n_train_steps : int, default=1000
+        Variational updates, in addition to initialization.
+    learning_rate : float, default=1e-3
+        Adam learning rate.
     batch_size : int, default=8
-        Number of training windows per gradient step.
-    train_window : int or None, default=256
-        Length of the training windows, drawn at random positions of the series
-        at each step. ``None`` (or a value at least the length of the series)
-        trains on the whole series, with ``batch_size`` copies of it.
-    objective : str, default="elbo"
-        Training objective ("elbo" or "iwae").
+        Random windows per update.
+    train_window : int or None, default=64
+        Window length after preprocessing and downsampling. None uses the
+        full sequence, repeated ``batch_size`` times.
+    objective : {"elbo", "iwae"}, default="elbo"
+        Collapsed objective, using one latent draw per training window.
+    inference_type : {"factorized", "autoregressive"}, default="factorized"
+        Independent latent noise conditional on bidirectional context, or the
+        paper's forward RNN additionally conditioned on past latent draws.
+    init_steps : int, default=200
+        Reconstruction updates followed by k-means on latent means. Cluster
+        centers and predicted transitions initialize the dynamics. Zero
+        disables initialization. Position-based clustering can be unsuitable
+        for modes distinguished by velocity rather than position.
+    decoding : {"viterbi", "marginal"}, default="viterbi"
+        Conditional joint MAP regime path or pointwise posterior modes.
+    posterior_mean : bool, default=True
+        Decode at continuous posterior means (propagated conditional means
+        for autoregressive inference), rather than one posterior draw. This
+        plug-in approximation does not integrate continuous uncertainty.
+    feature_window : int, default=1
+        One uses raw data. Larger values replace channels by their centered
+        local mean and standard deviation, with nearest padding, before
+        normalization. This representation is an optional tsseg adaptation.
+    downsample : int, default=1
+        Observation sampling interval after feature extraction. Labels are
+        expanded to the original length, including the final points.
     use_temperature_annealing : bool, default=True
-        Anneal the temperature of the discrete transitions from
-        ``temperature_init`` down to 1 (see Notes).
-    temperature_init : float, default=1000.0
-        Initial temperature.
-    use_cross_entropy_reg : bool, default=True
-        Add the cross-entropy regulariser on regime usage, with a weight that
-        decays from ``xent_init`` towards 0 (see Notes).
+        Anneal transition temperature down to one.
+    temperature_init : float, default=10.0
+        Initial transition temperature.
+    use_cross_entropy_reg : bool, default=False
+        Enable the original pointwise uniform-state regularizer. The exact
+        collapsed objective does not require it (Ansari et al., Appendix B.4.1).
     xent_init : float, default=1000.0
-        Initial weight of the cross-entropy regulariser.
+        Initial regularizer weight when enabled.
     random_state : int or None, default=42
-        Seed of the training windows, of the initial weights, and of
-        TensorFlow (global seed, set at the start of ``fit`` and ``predict``).
-        Training is still not reproducible from run to run, and two calls to
-        ``predict`` on one fitted model can differ on a few labels (see Notes).
+        Seed of weights, windows, clustering and stateless latent noise.
+        TensorFlow's global seed is set during initialization.
     verbose : int, default=0
-        Log the objective ten times during training when ``>= 1``.
+        Log the objective ten times during variational training when positive.
     axis : int, default=0
-        Time axis of the input array.
+        Time axis of the input.
 
     Notes
     -----
-    The schedules follow the paper's Reacher experiment (appendix), scaled to
-    ``n_train_steps``: there, the regulariser weight starts at 1,000 and
-    decays by a factor 0.975 every 500 steps after step 50,000, the temperature
-    does the same after step 100,000 (down to 1), and training lasts 300,000
-    steps. Here the weight decays after ``n_train_steps / 6`` steps and the
-    temperature after ``n_train_steps / 3``, by 0.975 every
-    ``n_train_steps / 600`` steps, so that both reach the same final values.
+    Gaussian scales use positive softplus parameters. Initial means and
+    normalized regime logits are tracked by Keras. Stateless noise folds in
+    update and time indices. Prediction reuses one graph across input lengths.
+    Bitwise equivalence across devices or TensorFlow versions is not promised.
 
-    Training on random windows bounds the cost of a step, which otherwise
-    runs a forward-backward pass over the whole series. The paper trains on
-    minibatches of 32 short sequences (50 to 100 steps) from many trajectories;
-    here the windows come from the single series to segment. Prediction uses
-    the whole series.
-
-    Two fits with the same ``random_state`` start from the same weights and draw
-    the same windows, but TensorFlow does not compute the training identically
-    in every run, even after ``tf.config.experimental.enable_op_determinism()``,
-    and over 2,000 steps the differences can lead to another model. On a series
-    of three segments with clear mean shifts (1,000 points), historical runs
-    before the numerical corrections gave adjusted Rand indices of 0.54, 0.97
-    and 0.54. Seeds 0 to 4 gave 0.50 to 0.97, two of them above 0.8: the other
-    runs merged two regimes. Prediction samples the continuous states once, so two calls to
-    ``predict`` on one fitted model can still differ on a few labels.
-
-    The vendored model code comes from Google Research (Apache License 2.0),
-    see ``tsseg/algorithms/snlds/vendor``.
+    Factorized inference, reconstruction initialization, Viterbi and local
+    moments are adaptations of SNLDS. The autoregressive posterior remains
+    available. None of these choices guarantees semantic activity segmentation
+    or that every requested state will be used.
 
     References
     ----------
-    .. [1] Dong, Z., Seybold, B., Murphy, K., & Bui, H. (2020). Collapsed
-       Amortized Variational Inference for Switching Nonlinear Dynamical
-       Systems. ICML.
+    .. [1] Dong et al. (2020). Collapsed Amortized Variational Inference for
+       Switching Nonlinear Dynamical Systems. ICML, PMLR 119:2638-2647.
+    .. [2] Ansari et al. (2021). Deep Explicit Duration Switching Models for
+       Time Series. NeurIPS, Appendix B.4.1.
     """
 
     _tags: dict[str, Any] = {
@@ -123,13 +122,12 @@ class SNLDSDetector(BaseSegmenter):
         "capability:univariate": True,
         "capability:multivariate": True,
         "detector_type": "state_detection",
-        # n_states is the number of regimes of the model, not an upper bound: the
-        # cross-entropy regulariser pushes the posterior to use all of them.
+        # The model requires a fixed K and does not perform model selection.
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
         "python_dependencies": ["tensorflow", "tensorflow_probability", "tf_keras"],
-        # The inference network samples z inside a TensorFlow while loop; even
-        # with a seed, a few labels can change from one call to the next.
+        # Conservative training tag: floating-point results may differ across
+        # devices even with stateless latent sampling.
         "non_deterministic": True,
     }
 
@@ -194,7 +192,7 @@ class SNLDSDetector(BaseSegmenter):
             description="Joint MAP regime path or pointwise posterior modes.",
         ),
         "posterior_mean": ParamDef(
-            constraint=HasType(bool),
+            constraint=HasType((bool,)),
             description="Decode at posterior means instead of a sampled trajectory.",
         ),
         "feature_window": ParamDef(

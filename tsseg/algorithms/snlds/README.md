@@ -1,52 +1,66 @@
 # SNLDS (Switching Non-Linear Dynamical System)
 
-Learns discrete regimes with a switching non-linear dynamical system trained by
-collapsed amortized variational inference (CAVI-SNLDS). Each regime has its own
-MLP transition on a continuous latent state; the discrete states are integrated
-out with the forward-backward algorithm, and each time step gets the regime of
-highest posterior probability.
+Learns discrete regimes through a switching nonlinear latent dynamical system.
+Discrete states are marginalized exactly during training; observation encoding
+is bidirectional. The detector remains experimental: improved diagnostics do
+not establish reliable accuracy across datasets.
 
-## Key properties
+## Current implementation
 
-- **Experimental**: a historical pilot, before the objective and covariance
-  corrections, scored below a random segmentation on 54 series of TSB-SEG
-  (labels changed about 200 times too often). Benchmark quality of the corrected
-  implementation has not been established.
+- Guided state detection: `n_states` is supplied; reference labels are never
+  used for fitting or initialization.
+- The fast default posterior is factorized conditional on bidirectional
+  observations. The paper's autoregressive posterior is available through
+  `inference_type="autoregressive"`.
+- Learned positive Gaussian noise, tracked initial priors and stateless seeds.
+- Reconstruction initialization and latent k-means use observations only;
+  `init_steps=0` disables them. Position-based initialization can be unsuitable
+  for dynamical states distinguished by velocity rather than position.
+- Conditional Viterbi at continuous posterior means is the default. This is a
+  plug-in approximation, not integration over continuous uncertainty.
+- Raw observations by default. `feature_window > 1` and `downsample > 1` expose
+  a separate local-moment profile for activity statistics. These are explicit
+  adaptations, not preprocessing from the paper.
+- Requires TensorFlow, TensorFlow Probability and tf-keras (`tsseg[snlds]`).
 
-- Type: state detection
-- Semi-supervised (`n_states` is the number of regimes)
-- Univariate and multivariate
-- Requires TensorFlow, TensorFlow Probability and `tf-keras` (`pip install tsseg[snlds]`)
-- Slow: about 0.1 s per gradient step on one CPU thread with the defaults
-- Not reproducible from run to run: `random_state` fixes the initial weights
-  and the training windows, but TensorFlow does not compute the training
-  identically from run to run (see the class docstring)
+```python
+from tsseg.algorithms import SNLDSDetector
 
-## Implementation
+raw = SNLDSDetector(n_states=4, random_state=0).fit_predict(X)
+activity = SNLDSDetector(
+    n_states=4, feature_window=128, downsample=6, random_state=0
+).fit_predict(X)
+```
 
-`detector.py` is a tsseg wrapper. The model code in `vendor/` is the authors'
-TensorFlow code.
+The documentation records all seeds of the fixed validation, including
+failures. Profiles are not selected using the reference labels of each case.
+Explicit configurations in external benchmarks override constructor defaults
+and need separate reevaluation.
 
-- Origin: https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
-  (`forward_backward_algo.py`, `model_base.py`, `model_cavi_snlds.py`, `utils.py`,
-  `examples/config_utils.py`)
-- Changes: relative imports; Keras 3 compatible initial states (including LSTM)
-  and calls of the posterior RNN; destination-state indexing of the expected
-  complete-data score; exact collapsed objectives using forward normalizers;
-  tracked Gaussian scale parameters transformed inside the training graph.
-  Each modified file says so in its header.
-- Licence: Apache License 2.0 (Copyright The Google Research Authors)
-- Licence file: `vendor/LICENSE`
+## Source and modifications
 
-Training follows the annealing schedule of the paper's Reacher experiment,
-scaled to `n_train_steps`, on random windows of the series (see the class
-docstring).
+The authors' Apache-2.0 TensorFlow code is vendored from Google Research:
+https://github.com/google-research/google-research/tree/5b09c22d73a9d35eb6c5d2a99b95677a45053466/snlds
+(`forward_backward_algo.py`, `model_base.py`, `model_cavi_snlds.py`, `utils.py`,
+`examples/config_utils.py`). Its license is `vendor/LICENSE`.
 
-The wrapper uses a forward inference RNN without the paper's bidirectional
-encoder, and fits one series rather than a collection of trajectories. The
-documentation page records the numerical audit, runtime costs and remaining
-limitations. These differences prevent treating this wrapper as a reproduction
-of the paper's reported performance.
+Modified files identify the changes: relative imports, Keras 3 recurrent
+states, destination/source indexing, exact collapsed likelihood, tracked
+initial priors, dynamic sequence lengths and stateless noise. `components.py`,
+`decoding.py` and `detector.py` are tsseg's implementation of positive Gaussian
+parameters, factorized inference, Viterbi, initialization and the estimator.
+
+The exact likelihood without the sensitive pointwise cross-entropy term
+follows Appendix B.4.1 of [Ansari et al. (2021)](https://arxiv.org/html/2110.13878v1).
+No RED-SDS source is copied. There is no explicit duration model. Initialization,
+factorization, decoding, local features and new budgets are adaptations,
+not a reproduction of the original experimental protocol.
+
+## Diagnostics
+
+See `examples/diagnostics/README.md`, `snlds_audit.py`, `snlds_validate.py` and
+`snlds_report.py`. Historical measurements in `snlds_audit_results.json`
+predate the current model; the new fixed validation has a separate raw record.
 
 ## Citation
 
