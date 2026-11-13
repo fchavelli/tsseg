@@ -89,6 +89,26 @@ class _GaussianSegments:
                 projections = np.einsum("nji,nj->ni", vectors, deviation)
                 quadratic = np.sum(projections**2 / values, axis=1)
                 logdet = np.sum(np.log(values), axis=1) + np.log1p(weight * quadratic)
+                # Welford may leave roundoff-level correlations in an otherwise
+                # diagonal scatter. Evaluate these rows directly: a spectral
+                # cutoff would erase resolved variances in smaller channels.
+                diagonal = np.diagonal(scatter, axis1=1, axis2=2)
+                scales = np.sqrt(np.maximum(diagonal, 0.0))
+                tolerance = (
+                    np.finfo(float).eps
+                    * self.d
+                    * scales[:, :, None]
+                    * scales[:, None, :]
+                )
+                is_diagonal = np.all(
+                    (np.abs(scatter) <= tolerance) | np.eye(self.d, dtype=bool),
+                    axis=(1, 2),
+                )
+                scale = diagonal[is_diagonal] + 2 * self.beta
+                quadratic = np.sum(deviation[is_diagonal] ** 2 / scale, axis=1)
+                logdet[is_diagonal] = np.sum(np.log(scale), axis=1) + np.log1p(
+                    weight[is_diagonal] * quadratic
+                )
         return self._normalisers[counts] - 0.5 * (self.nu + counts) * logdet
 
     def rows(self, min_size: int, *, reverse: bool = False):

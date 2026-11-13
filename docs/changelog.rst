@@ -24,6 +24,10 @@ Unreleased
   defaults; leave-one-trial-out parameter selection gives 0.688. The
   constructor defaults are unchanged, and the profile limits boundary
   resolution to 200 observations.
+* Fix native BOCD Gaussian evidence for scatter matrices that are diagonal to
+  rounding precision, with channel variances at very different scales. Direct
+  diagonal evaluation preserves their resolved small variances, including when
+  ``standardize=False``.
 * ``BOCDDetector`` now defaults to a native multivariate Gaussian likelihood
   with full covariance and joint maximum a posteriori (MAP) decoding. The
   likelihood reduces exactly to Normal-Gamma in one dimension. Channels are
