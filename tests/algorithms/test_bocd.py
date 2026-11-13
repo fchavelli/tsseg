@@ -264,19 +264,64 @@ def test_candidate_grid_keeps_all_observations():
     assert last[2][0] == pytest.approx(_niw_evidence(x), abs=1e-11)
 
 
-def test_native_retains_tiny_prior_on_rank_one_scatter():
+@pytest.mark.parametrize(
+    "direction",
+    [
+        [2, 2, 2],
+        [1, 2, 3],
+        [1e8, 0.5, 1],
+        [0.0019950548214469916, -5.195293158831837e-9, -14518340.54296929],
+    ],
+)
+def test_native_retains_tiny_prior_on_rank_one_scatter(direction):
     beta = 1e-30
+    direction = np.asarray(direction)
     obj = _GaussianSegments(
         np.zeros((8, 3)), mu0=0, kappa0=1, alpha0=1, beta0=beta, max_candidates=None
     )
     actual = obj._log_marginals(
-        np.zeros((1, 3)), np.full((1, 3, 3), 4.0), np.array([8])
+        np.zeros((1, 3)), np.outer(direction, direction)[None], np.array([8])
     )[0]
-    # Scatter eigenvalues are exactly (0, 0, 12); the prior supplies both
+    # Scatter eigenvalues are (0, 0, ||direction||^2); the prior supplies both
     # zero directions, even below the scale at which matrix addition resolves it.
-    logdet = 2 * np.log(2 * beta) + np.log(12 + 2 * beta)
+    logdet = 2 * np.log(2 * beta) + np.log(direction @ direction + 2 * beta)
     expected = obj._normalisers[8] - 0.5 * (obj.nu + 8) * logdet
     assert np.isfinite(actual)
+    assert actual == pytest.approx(expected, abs=1e-10)
+
+
+@pytest.mark.parametrize("reverse_channels", [False, True])
+@pytest.mark.parametrize("beta", [1.0, 1e-30])
+def test_native_preserves_resolved_variance_at_different_channel_scales(
+    reverse_channels, beta
+):
+    # The unrotated scatter eigenvalues are exact; the smaller one must not be
+    # discarded merely because it is below a global numerical-rank cutoff.
+    x = np.array([[5e7, 0.5], [5e7, -0.5], [-5e7, 0.5], [-5e7, -0.5]])
+    if reverse_channels:
+        x = x[:, ::-1]
+    obj = _GaussianSegments(
+        x, mu0=0, kappa0=1, alpha0=1, beta0=beta, max_candidates=None
+    )
+    actual = list(obj.rows(1))[-1][2][0]
+    # The scatter is diag(1e16, 1), up to the channel permutation.
+    logdet = np.log(1e16 + 2 * beta) + np.log(1 + 2 * beta)
+    expected = obj._normalisers[4] - 0.5 * (obj.nu + 4) * logdet
+    assert actual == pytest.approx(expected, abs=1e-11)
+
+
+def test_native_nearly_diagonal_scatter_preserves_three_channel_scales():
+    beta = 1e-30
+    obj = _GaussianSegments(
+        np.zeros((8, 3)), mu0=0, kappa0=1, alpha0=1, beta0=beta, max_candidates=None
+    )
+    scatter = np.array([[1e16, 1e-9, 0], [1e-9, 1, 1e-25], [0, 1e-25, 1e-16]])
+    means = np.array([[0, 0, 1e-8]])
+    actual = obj._log_marginals(means, scatter[None], np.array([8]))[0]
+    # These correlations affect the determinant below rounding precision.
+    logdet = np.log(1e16 + 2 * beta) + np.log(1 + 2 * beta) + np.log(1e-16 + 2 * beta)
+    logdet += np.log1p((8 / 9) * 1e-16 / (1e-16 + 2 * beta))
+    expected = obj._normalisers[8] - 0.5 * (obj.nu + 8) * logdet
     assert actual == pytest.approx(expected, abs=1e-10)
 
 
