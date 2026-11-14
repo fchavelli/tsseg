@@ -1,5 +1,90 @@
+from __future__ import annotations
+
 import numpy as np
 from scipy.special import logsumexp
+
+
+def _offline_changepoint_probabilities(
+    data: np.ndarray, hazard: float, likelihood, truncate: float = -40
+) -> np.ndarray:
+    """Boundary marginals for the Gaussian product-partition model.
+
+    A completed segment of length ``l`` has prior mass
+    ``hazard * (1 - hazard)**(l - 1)``. The last segment is right censored
+    and contributes only ``(1 - hazard)**(l - 1)``. Forward and backward
+    messages sum over segment positions, without tracking the ordinal
+    number of each boundary. Time is O(n**2) and working memory O(n).
+
+    As in Fearnhead (2006), equation (3), a backward sum stops after a
+    term whose fraction of the accumulated sum is below ``exp(truncate)``.
+    The final, censored segment is always included. The forward pass uses
+    exactly the same retained edges, so both passes describe one model.
+    ``truncate=-np.inf`` disables truncation for numerical comparisons.
+    """
+    n = len(data)
+    if n < 2:
+        return np.empty(0, dtype=float)
+
+    log_hazard = np.log(hazard)
+    log_survival = np.arange(n) * np.log1p(-hazard)
+    lengths = np.arange(1, n + 1)
+    likelihood._prepare(n)
+
+    # Center before accumulating moments: unlike differences of squared
+    # prefix sums, Welford updates also work for a large observation offset.
+    centered = np.asarray(data, dtype=float) - data[0]
+    prior_offset = data[0] - likelihood.mu0
+    means = np.zeros(n)
+    sums_of_squares = np.zeros(n)
+    backward = np.zeros(n + 1)
+    last_end = np.full(n, n - 1, dtype=int)
+
+    for start in range(n - 1, -1, -1):
+        count = n - start
+        delta = centered[start] - means[start:]
+        means[start:] += delta / lengths[:count]
+        sums_of_squares[start:] += delta * (centered[start] - means[start:])
+        terms = (
+            likelihood._log_marginals(
+                means[start:] + prior_offset, sums_of_squares[start:], lengths[:count]
+            )
+            + log_survival[:count]
+        )
+        terms[:-1] += log_hazard + backward[start + 1 : n]
+
+        # Remember the retained edges in O(n) space; the forward pass must
+        # not reintroduce segments excluded by the backward truncation.
+        keep = count - 1
+        if keep:
+            cumulative = np.logaddexp.accumulate(terms[:-1])
+            small = np.flatnonzero(terms[:-1] - cumulative < truncate)
+            if small.size:
+                keep = int(small[0]) + 1
+                last_end[start] = start + keep
+        backward[start] = np.logaddexp(logsumexp(terms[:keep]), terms[-1])
+
+    means.fill(0)
+    sums_of_squares.fill(0)
+    forward = np.full(n, -np.inf)
+    forward[0] = 0.0
+    for end in range(1, n):
+        counts = lengths[:end][::-1]
+        delta = centered[end - 1] - means[:end]
+        means[:end] += delta / counts
+        sums_of_squares[:end] += delta * (centered[end - 1] - means[:end])
+        terms = (
+            forward[:end]
+            + likelihood._log_marginals(
+                means[:end] + prior_offset, sums_of_squares[:end], counts
+            )
+            + log_survival[counts - 1]
+            + log_hazard
+        )
+        forward[end] = logsumexp(terms[end <= last_end[:end]])
+
+    # Each entry is P(boundary at t | all data). Their sum is the posterior
+    # expected count, not one. Clip only floating-point overshoots of one.
+    return np.exp(np.minimum(forward[1:] + backward[1:n] - backward[0], 0.0))
 
 
 def _log1mexp(a: float) -> float:

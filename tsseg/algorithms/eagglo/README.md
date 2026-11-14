@@ -16,6 +16,23 @@ keeps the segmentation with the largest statistic along the merging sequence.
 - O(n^2) time; O(m^2) memory for m initial clusters (O(n^2) by default)
 - Uses numba for acceleration
 
+The quadratic distance initialisation and candidate-merge scans run inside
+Numba, including the initial block distances. Compilation adds a cost to the
+first fit. Initial blocks reduce the clustering matrices and number of merge
+candidates, but the exact initialisation still compares all observations and
+therefore remains quadratic in the series length.
+
+See the [detector guide](../../../docs/detectors/eagglo.rst) for the differences
+between the paper and the inherited `ecp` statistic, and a reproducible
+diagnostic on motion-capture data.
+
+For a calibrated profile on the nine bundled MoCap trials, see
+[`examples/eagglo_mocap_calibration.py`](../../../examples/eagglo_mocap_calibration.py):
+per-channel z-normalisation, `alpha=0.5`, initial blocks of 200 and no penalty.
+Mean BiCovering is 0.718, against 0.272 with the defaults; leave-one-trial-out
+selection of the hyperparameters gives 0.688. This is a MoCap profile with
+coarse boundary resolution, not a change to the constructor defaults.
+
 ## Implementation
 
 Adapted from the aeon toolkit, which itself is a Python port of the R `ecp`

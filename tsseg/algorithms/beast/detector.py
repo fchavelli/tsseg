@@ -58,11 +58,12 @@ def _all_nan_output(o) -> bool:
     """Whether every ``ncp_median`` of a Rbeast output is NaN: a failed run.
 
     ``ncp_median`` is the median number of change points of each component
-    (``trend``, ``season``) and, for ``beast123``, of each channel. Rbeast
-    returns NaN for all of them, and for every other output, on an all-NaN
-    series (which tsseg refuses) and, in CI, on a 6,000-point series in which
-    it finds the change point on other machines (Rbeast issues #53, #56).
-    An output without ``ncp_median`` is not counted as failed.
+    (``trend``, ``season``). Rbeast returns NaN for all of them, and for
+    every other output, on an all-NaN series (which tsseg refuses) and, in
+    CI, on a 6,000-point series in which it finds the change point on other
+    machines (Rbeast issues #53, #56). An output without ``ncp_median`` is
+    not counted as failed. With ``"native"``, each channel has its own run,
+    and only the failure of every channel triggers the SSE rerun.
     """
     values = []
     for name in ("trend", "season"):
@@ -139,7 +140,9 @@ class BeastDetector(BaseSegmenter):
         ``concurrent.futures.ProcessPoolExecutor``, which raises
         ``BrokenProcessPool`` when the child dies.
     tcp_minmax : tuple of int, default=(0, 10)
-        Minimum and maximum number of trend change points.
+        Minimum and maximum number of trend change points. Rbeast returns at
+        most the maximum per channel; a larger ``max_cps`` raises it (see
+        ``max_cps``).
     torder_minmax : tuple of int, default=(0, 1)
         Minimum and maximum polynomial orders for the trend.
     tseg_minlength : int or None, default=None
@@ -175,8 +178,12 @@ class BeastDetector(BaseSegmenter):
         step to be selected.
     max_cps : int or None, default=None
         Maximum number of change points to return (by decreasing probability).
-        ``None`` returns all candidates above ``cp_prob_threshold``; ``0``
-        returns none. On a univariate series, with ``"l2"``, and on each
+        ``None`` returns all candidates above ``cp_prob_threshold`` (with
+        ``"native"``, as many as a channel has, see Notes); ``0`` returns none.
+        A ``max_cps`` above the maximum of ``tcp_minmax`` (and, with a
+        seasonal component returned, of ``scp_minmax``) raises that maximum to
+        ``max_cps``, since Rbeast never returns more change points per
+        component and channel. On a univariate series, with ``"l2"``, and on each
         channel with ``"ensembling"``, the candidates kept are those with the
         largest occurrence probability (Rbeast's ``cpOccPr``) of ``component``
         at their time step; with ``"both"``, the larger of the trend and
@@ -185,15 +192,15 @@ class BeastDetector(BaseSegmenter):
         Which component's change points to return: ``"trend"`` or
         ``"season"`` or ``"both"``.
     multivariate_strategy : str, default="native"
-        Strategy for multivariate inputs: ``"native"`` uses ``beast123``
-        which handles multi-dimensional data natively; ``"l2"`` reduces
-        channels via L2 norm; ``"ensembling"`` runs BEAST per channel and
-        aggregates.
+        Strategy for multivariate inputs: ``"native"`` runs ``beast123`` on
+        each channel, as Rbeast fits the columns of a 2D array (independently),
+        and pools their candidates (see Notes); ``"l2"`` reduces channels via
+        L2 norm; ``"ensembling"`` runs BEAST per channel and aggregates.
     tolerance : int or float, default=0
         Distance, in time steps, within which change points of a multivariate
         series count as one (a float below 1 is a fraction of the series
         length). With ``"native"``, candidates are taken by decreasing
-        probability (``cpPr``), and a candidate within ``tolerance`` of one
+        support (see Notes), and a candidate within ``tolerance`` of one
         already taken is dropped, on top of the merge of close candidates of
         different channels described in the Notes; ``0`` adds none. With
         ``"ensembling"``,
@@ -220,10 +227,30 @@ class BeastDetector(BaseSegmenter):
     steps (half the period with a seasonal component), at least the largest
     trend order plus one and at most ``n / 2 - 1``. Two candidates of
     different channels closer than this distance are taken as the same
-    change, found by both channels: only the more probable one is returned.
-    The same change found a few more time steps apart is returned twice,
-    unless ``tolerance`` merges them. ``max_cps`` keeps the most probable
-    candidates, after these merges.
+    change, found by both channels: only one of them is returned. The same
+    change found a few more time steps apart is returned twice, unless
+    ``tolerance`` merges them.
+
+    The pooled candidates are taken by decreasing support, the sum over the
+    channels of the ``cpPr`` of the candidate of each channel at the same
+    step, closer than this distance or within ``tolerance`` (a change seen
+    by several channels comes first), then by decreasing ``cpPr``. Without
+    ``max_cps``, as many are returned as a channel that changes has: the
+    median number of candidates of the channels that have any, rounded half
+    up. Their union would grow with the number of channels, each giving up to
+    the maximum of ``tcp_minmax``. ``max_cps`` keeps that many, after the
+    merges. A change seen by one channel only is returned, but the count
+    assumes changes shared by the channels: when they change at different
+    times, some of their changes are left out.
+
+    With ``"native"``, each channel goes to ``beast123`` on its own. Given a
+    2D array, Rbeast 0.1.25 fits its columns independently too, but in threads
+    pinned to CPUs 0, 1, ... (``glue_code.c``), whatever CPUs the process may
+    use. Where it may not use them (a job of a cluster scheduler, a
+    container limited to some CPUs), the threads are not created: Rbeast
+    returned unset outputs (no change point, or wrong ones) and corrupted the
+    memory, so that the process was killed later. A single series runs in
+    the calling thread, on any CPU.
 
     On some machines, Rbeast 0.1.25 returned NaN for every output on a
     6,000-point series in which it finds the change point elsewhere; Rbeast
@@ -234,10 +261,9 @@ class BeastDetector(BaseSegmenter):
     routines on an AVX2 CPU). If the rerun returns NaN too, the detector
     returns no change point. Other runs are left as they are.
 
-    Rbeast refuses an input of fewer than three values. A univariate series of
-    two points (or, with ``"l2"`` and ``"ensembling"``, a multivariate one) is
-    therefore not passed to Rbeast and gets no change point, like any series
-    of fewer than two points.
+    Rbeast refuses an input of fewer than three values. A series of two
+    points, univariate or multivariate, is therefore not passed to Rbeast and
+    gets no change point, like any series of fewer than two points.
     """
 
     _tags = {
@@ -424,10 +450,10 @@ class BeastDetector(BaseSegmenter):
             season=self.season,
             deltat=self.deltat,
             period=self.period,
-            tcp_minmax=list(self.tcp_minmax),
+            tcp_minmax=list(self._tcp_minmax()),
             torder_minmax=list(self.torder_minmax),
             tseg_minlength=self.tseg_minlength,
-            scp_minmax=list(self.scp_minmax),
+            scp_minmax=list(self._scp_minmax()),
             sorder_minmax=list(self.sorder_minmax),
             sseg_minlength=self.sseg_minlength,
             mcmc_samples=self.mcmc_samples,
@@ -437,6 +463,25 @@ class BeastDetector(BaseSegmenter):
             mcmc_seed=self.mcmc_seed,
             quiet=True,
         )
+
+    def _raised(self, minmax, used: bool) -> tuple[int, int]:
+        """``(min, max)`` number of change points, the max raised to ``max_cps``.
+
+        Rbeast returns at most ``max`` change points per component and
+        channel, so a larger ``max_cps`` could never be reached. Only for a
+        component whose change points are returned (``used``).
+        """
+        low, high = int(minmax[0]), int(minmax[1])
+        if used and self.max_cps is not None and self.max_cps > high:
+            high = self.max_cps
+        return low, high
+
+    def _tcp_minmax(self) -> tuple[int, int]:
+        return self._raised(self.tcp_minmax, self.component in ("trend", "both"))
+
+    def _scp_minmax(self) -> tuple[int, int]:
+        used = self.season != "none" and self.component in ("season", "both")
+        return self._raised(self.scp_minmax, used)
 
     def _run_beast_univariate(self, signal: np.ndarray) -> np.ndarray:
         """Run BEAST on a univariate signal and extract change points."""
@@ -453,9 +498,11 @@ class BeastDetector(BaseSegmenter):
         return self._postprocess(o, len(signal))
 
     def _run_beast_multivariate(self, data: np.ndarray) -> np.ndarray:
-        """Run BEAST natively on multivariate data via beast123."""
-        rb = _import_rbeast()
+        """Run beast123 on each channel and merge their change points."""
         n_samples, n_channels = data.shape
+        if n_samples < _MIN_RBEAST_VALUES:
+            return np.empty(0, dtype=np.int64)
+        rb = _import_rbeast()
 
         md = rb.args()
         md.whichDimIsTime = 1  # rows = time
@@ -469,14 +516,12 @@ class BeastDetector(BaseSegmenter):
         # Rbeast.beast fills from the same arguments (seasonal ones only with
         # a seasonal component), so that "native" honours them too.
         prior = rb.args()
-        prior.trendMinKnotNum = self.tcp_minmax[0]
-        prior.trendMaxKnotNum = self.tcp_minmax[1]
+        prior.trendMinKnotNum, prior.trendMaxKnotNum = self._tcp_minmax()
         prior.trendMinOrder = self.torder_minmax[0]
         prior.trendMaxOrder = self.torder_minmax[1]
         prior.trendMinSepDist = self.tseg_minlength
         if self.season != "none":
-            prior.seasonMinKnotNum = self.scp_minmax[0]
-            prior.seasonMaxKnotNum = self.scp_minmax[1]
+            prior.seasonMinKnotNum, prior.seasonMaxKnotNum = self._scp_minmax()
             prior.seasonMinOrder = self.sorder_minmax[0]
             prior.seasonMaxOrder = self.sorder_minmax[1]
             prior.seasonMinSepDist = self.sseg_minlength
@@ -491,22 +536,43 @@ class BeastDetector(BaseSegmenter):
         extra = rb.args()
         extra.quiet = True
 
-        o = rb.beast123(data, metadata=md, prior=prior, mcmc=mcmc, extra=extra)
-        if _all_nan_output(o):
+        def run_each_channel() -> list:
+            # One series per call: a 2D array would go to threads pinned to
+            # CPUs 0, 1, ..., which can fail (see the Notes of the class).
+            return [
+                rb.beast123(
+                    np.ascontiguousarray(data[:, ch]),
+                    metadata=md,
+                    prior=prior,
+                    mcmc=mcmc,
+                    extra=extra,
+                )
+                for ch in range(n_channels)
+            ]
+
+        outputs = run_each_channel()
+        if all(_all_nan_output(o) for o in outputs):
             _warn_sse_rerun()
             extra.cputype = "sse"
-            o = rb.beast123(data, metadata=md, prior=prior, mcmc=mcmc, extra=extra)
+            outputs = run_each_channel()
 
-        # beast123 returns a single object with per-channel arrays
-        # e.g. o.trend.cp has shape (max_cps, n_channels). A time step found
-        # on several channels (or components) keeps its largest probability.
+        # Candidates of each channel (and component), with their cpPr.
+        per_channel = [
+            [
+                (cp, pr)
+                for cp, pr in self._extract_cps_channel(o, ch)
+                if 0 < cp < n_samples
+            ]
+            for ch, o in enumerate(outputs)
+        ]
+        # A time step found on several channels (or components) keeps its
+        # largest probability.
         probs: dict[int, float] = {}
         channels: dict[int, set[int]] = {}
-        for ch in range(n_channels):
-            for cp, prob in self._extract_cps_channel(o, ch):
-                if 0 < cp < n_samples:
-                    probs[cp] = max(prob, probs.get(cp, prob))
-                    channels.setdefault(cp, set()).add(ch)
+        for ch, cands in enumerate(per_channel):
+            for cp, prob in cands:
+                probs[cp] = max(prob, probs.get(cp, prob))
+                channels.setdefault(cp, set()).add(ch)
 
         # Rbeast keeps the change points of one channel at least `separation`
         # apart: closer candidates of different channels are taken as the
@@ -520,13 +586,35 @@ class BeastDetector(BaseSegmenter):
                 gap < separation and channels[cp].isdisjoint(channels[other])
             )
 
+        # Support: the cpPr of the change at `cp` summed over the channels,
+        # each giving its most probable candidate at that step, closer than
+        # `separation` or within `tolerance`.
+        steps = np.array(sorted(probs), dtype=np.int64)
+        support = np.zeros(len(steps))
+        for cands in per_channel:
+            if not cands:
+                continue
+            cps = np.array([cp for cp, _ in cands], dtype=np.int64)
+            prs = np.array([prob for _, prob in cands], dtype=float)
+            gap = np.abs(steps[:, None] - cps[None, :])
+            near = (gap < separation) | (gap <= tolerance)
+            support += np.where(near, prs[None, :], 0.0).max(axis=1)
+        supports = dict(zip(steps.tolist(), support.tolist(), strict=True))
+
         kept: list[int] = []
-        # By decreasing probability, ties by position.
-        for cp in sorted(probs, key=lambda cp: (-probs[cp], cp)):
+        # By decreasing support, then probability, ties by position.
+        for cp in sorted(probs, key=lambda cp: (-supports[cp], -probs[cp], cp)):
             if not any(same_change(cp, other) for other in kept):
                 kept.append(cp)
         if self.max_cps is not None:
-            kept = kept[: self.max_cps]
+            count = self.max_cps
+        else:
+            # As many as a channel that changes has (the median over the
+            # channels with candidates): the union of the channels grows with
+            # their number.
+            counts = [len(cands) for cands in per_channel if cands]
+            count = int(np.floor(np.median(counts) + 0.5)) if counts else 0
+        kept = kept[:count]
 
         return np.array(sorted(kept), dtype=np.int64)
 
@@ -555,7 +643,7 @@ class BeastDetector(BaseSegmenter):
         return int(self.tolerance)
 
     def _extract_cps_channel(self, o, ch: int) -> list[tuple[int, float]]:
-        """Extract ``(cp, cpPr)`` pairs for one channel of a beast123 output."""
+        """Extract ``(cp, cpPr)`` pairs from the beast123 output of channel ``ch``."""
         cps: list[tuple[int, float]] = []
 
         for comp_name in ("trend", "season"):
@@ -572,19 +660,10 @@ class BeastDetector(BaseSegmenter):
             if cp_arr is None:
                 continue
 
-            cp_arr = np.asarray(cp_arr)
-            # beast123 returns (max_cp_slots, n_channels)
-            if cp_arr.ndim == 2:
-                cp_col = cp_arr[:, ch]
-            else:
-                cp_col = cp_arr.ravel()
+            cp_col = np.asarray(cp_arr).ravel()
+            pr_col = None if cp_pr is None else np.asarray(cp_pr).ravel()
 
-            pr_col = None
-            if cp_pr is not None:
-                cp_pr = np.asarray(cp_pr)
-                pr_col = cp_pr[:, ch] if cp_pr.ndim == 2 else cp_pr.ravel()
-
-            n_expected = _median_ncp(ncp_med, ch, f"{comp_name}, channel {ch}")
+            n_expected = _median_ncp(ncp_med, 0, f"{comp_name}, channel {ch}")
 
             comp_cps: list[tuple[int, float]] = []
             for i, cp in enumerate(cp_col):

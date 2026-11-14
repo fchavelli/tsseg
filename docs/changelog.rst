@@ -19,6 +19,152 @@ Unreleased
   affine fit. Multivariate series use the "sum of l1 norms" extension
   (section 7.5); the group-penalty variant needs a conic solver and is not
   implemented. Optional dependency: ``tsseg[l1tf]`` (OSQP, Apache-2.0).
+* ``EAggloDetector`` computes the quadratic initial distance loops and
+  candidate-merge scans inside Numba, skips repeated membership scans for
+  default singleton clusters, and evaluates penalties without retaining a
+  Python list for every partition. The statistic and returned segmentation
+  are unchanged. A local 4,000-point, four-channel example took 1.67 s instead
+  of 18.06 s after initial compilation; time and memory remain quadratic.
+  The detector guide and ``examples/eagglo_diagnostics.py`` explain and
+  illustrate the distinct causes of over-segmentation: the inherited ``ecp``
+  statistic, penalty scale, initial partition and serial dependence.
+  A separate MoCap calibration example recommends per-channel
+  z-normalisation, ``alpha=0.5``, blocks of 200 and no penalty: mean
+  BiCovering 0.718 on the nine original trials, against 0.272 with the
+  defaults; leave-one-trial-out parameter selection gives 0.688. The
+  constructor defaults are unchanged, and the profile limits boundary
+  resolution to 200 observations.
+* Fix native BOCD Gaussian evidence for scatter matrices that are diagonal to
+  rounding precision, with channel variances at very different scales. Direct
+  diagonal evaluation preserves their resolved small variances, including when
+  ``standardize=False``.
+* ``BOCDDetector`` now defaults to a native multivariate Gaussian likelihood
+  with full covariance and joint maximum a posteriori (MAP) decoding. The
+  likelihood reduces exactly to Normal-Gamma in one dimension. Channels are
+  standardised by default (``standardize=False`` keeps physical prior units);
+  ``beta=10`` and ``hazard_lambda=1000`` were selected on a 15-series pilot
+  with synthetic sanity checks. ``max_cps`` constrains the MAP partition to
+  at most that many changes, and ``min_distance`` constrains all segment
+  lengths during inference. A regular grid of at most 2,000 interior
+  candidates bounds the search (``max_candidates=None`` uses every position),
+  while every observation still contributes to segment likelihoods.
+  Unconstrained inference uses linear working memory in the series length
+  and candidate count; a count-constrained MAP also stores scores by candidate
+  and change count. Native covariance evaluation uses stable block moments and
+  Cholesky with an eigenvalue fallback for a very small prior ridge. The L2
+  and per-channel strategies remain available; the final ensemble also respects
+  the minimum spacing. ``decoding="marginal"`` retains a probability-based alternative
+  with a default threshold of 0.5 and no truncation (``truncate=None``).
+  These parameters do not affect MAP decoding. Detection outputs and defaults
+  change; earlier BOCD benchmark results need to be recomputed.
+* Fix ``BOCDDetector`` inference: a constant hazard now defines a geometric
+  segment-duration prior, with right censoring of the final segment. Boundary
+  probabilities are marginal events rather than scores normalised to sum to
+  one; the latter imposed an artificial limit of 20 candidates at the default
+  threshold of 0.05. A forward-backward recursion with stable running moments
+  replaces the cubic-time, quadratic-memory ordinal change-point calculation:
+  the detector now uses quadratic worst-case time and linear inference memory,
+  without new dependencies. The Normal-Gamma evidence also includes its missing
+  factor ``2**(-n/2)``, which cancels between full-series segmentations.
+  ``truncate`` uses natural logs (``exp(truncate)``), as the original comparison
+  did; documentation incorrectly said ``10**truncate``. ``max_cps=0`` skips
+  inference. Detection outputs change; earlier BOCD benchmark scores need to be
+  recomputed.
+* ``BeastDetector`` with ``multivariate_strategy="native"`` (the default for
+  multivariate series) no longer returns the union of the candidates of its
+  channels. Each channel gives up to the maximum of ``tcp_minmax`` (10 by
+  default) and, on real series, most channels give that many, so the number
+  of change points grew with the number of channels. Candidates are now
+  ranked by their support, the probability (``cpPr``) of the same change
+  summed over the channels, then by their own probability; without
+  ``max_cps``, as many are returned as the median number of candidates of
+  the channels that have any. With ``max_cps``, the most supported are kept.
+  Outputs change on most multivariate series.
+* ``BeastDetector``: a ``max_cps`` above the maximum of ``tcp_minmax`` (or of
+  ``scp_minmax``, when the seasonal change points are returned) raises that
+  maximum to ``max_cps``. Rbeast never returns more change points per
+  component and channel, so ``max_cps`` could not be reached on a univariate
+  series, with ``"l2"``, or on any channel. With both changes, on the first
+  2,000 points of 435 real series from 47 datasets (z-normalised channels,
+  default parameters), ``"native"`` without ``max_cps`` rises from F1
+  0.140 to 0.186 and bidirectional covering 0.326 to 0.511 (15 times the
+  true number of change points in the median multivariate series, now 3),
+  and with ``max_cps`` set to the true number from 0.384 to 0.403 and 0.681
+  to 0.698; ``"l2"`` with ``max_cps`` returned fewer change points than asked
+  on 29 % of the series, now 5 %.
+* ``BeastDetector`` with ``multivariate_strategy="native"`` (the default)
+  runs ``beast123`` on one channel at a time. Given the whole array, Rbeast
+  0.1.25 fits its columns independently, in threads pinned to CPUs 0, 1, ...
+  whatever CPUs the process may use. In a process that may not use these CPUs
+  (a job of a cluster scheduler that allots it other CPUs, a container limited
+  to some CPUs), the threads were not created: Rbeast returned unset outputs,
+  hence no change point or wrong ones on every multivariate series, and
+  corrupted the memory, which killed the process later (segmentation fault).
+  Where the threads were created, the change points can differ from before:
+  Rbeast fits a column of a 2D array and a single series with different
+  routines (``beastv2_COREV4_mthrd.c`` and ``beastv2_COREV4.c``), whose
+  outputs differ at the same seed; ``"native"`` now uses the routine of
+  univariate series and of ``"ensembling"`` everywhere. The channels are now
+  fitted one after the other, not in parallel, and a
+  multivariate series of two points gets no change point without a call to
+  Rbeast.
+* Metrics on partially annotated references: ``F1Score``, ``Covering``,
+  ``BidirectionalCovering`` and the six state detection metrics take a
+  keyword-only ``scored_intervals``, the half-open intervals of the points to
+  score, and the new ``tsseg.metrics.scored_islands`` derives them from a
+  label sequence (for example the runs that are not ``-1``). The series keeps
+  its length: ARI, AMI and NMI score the scored points; WARI and WNMI measure
+  their distance weights inside each interval, its edges included, before
+  leaving out the other points; SMS fits one mapping on the scored points,
+  stops error segments at the edges of the intervals and divides its losses
+  by the number of scored points (masked SMS); F1 judges only the change
+  points inside an interval and never matches across a gap; Covering and BiC
+  clip segments to the intervals. Without the argument, or with one interval
+  covering the series, the scores are unchanged. The boundary distances of
+  WARI and WNMI are now computed without a loop over the points (same
+  values), which makes them usable on series of a million points.
+* New ``LaplacianDetector`` (state detection, unsupervised or guided): the
+  Laplacian structural decomposition of McFee & Ellis (ISMIR 2014) applied to
+  windows of a series. Frames are linked to their mutual nearest neighbours
+  (recurrence) and to their neighbours in time (path), and k-means on the
+  smallest eigenvectors of the normalised Laplacian gives the states. Unlike
+  the librosa example and msaf, the filtered recurrence matrix is symmetrised,
+  so that the matrix decomposed is a graph Laplacian. Without ``n_states``,
+  the number of states is the geometric mean of the number of Louvain
+  communities of the recurrence graph and of the best silhouette. The
+  recurrence, the diagonal median filter and Louvain are ported from librosa
+  (ISC) and NetworkX (BSD-3), which are not dependencies. With the true number
+  of states, mean SMS 0.717 on the 592 series of TSB-SEG, against 0.692 for
+  CLaP.
+* ``WeightedAdjustedRandIndex`` uses the weighted pair counts as real numbers,
+  as its definition does, instead of truncating them to integers (a step
+  inherited from the scikit-learn ARI, whose counts are integers). The
+  truncation shifted scores on short series (``0.2005`` instead of ``0.2012``
+  on 20 points, up to about ``5e-4`` on 50 points) and is invisible at three
+  decimals beyond about 200 points. Labelings that agree up to a renaming of
+  the states score exactly ``1.0`` at any length, a case now read from the
+  contingency table: on series of a few hundred thousand points, the
+  truncated counts could give ``1 ± 2e-16``. WARI scores of short series
+  computed with 0.3.2 or earlier may differ slightly from this version.
+* ``GaussianF1Score`` pairs predicted and true change points by an optimal
+  assignment, which maximises the total reward
+  (``scipy.optimize.linear_sum_assignment``), instead of taking the largest
+  rewards first. The greedy pairing could fall short of the best total when
+  change points are less than a few widths apart: with ``sigma = 4``, true
+  ``[100, 104]`` and predicted ``[103, 107]`` earned ``1.19`` instead of
+  ``1.51``. Scores can only increase, since a greedy total never exceeds the
+  optimal one, and they differ noticeably only where several change points lie
+  within a few widths of each other. Gaussian F1 scores computed with 0.3.2 or
+  earlier may be slightly lower than with this version.
+* New ``CachalotDetector``: Lasso-path candidates refined by
+  reduced dynamic programming and selected by relative residual improvement
+  (Harchaoui and Lévy-Leduc, 2007). Multivariate input is handled channel by
+  channel, with the returned change points formed by their union. The
+  structured path costs ``O(n K)`` per channel without dense matrices;
+  reduced DP costs ``O(K^3)``. Endpoint decisions are invariant to signal
+  units, constant decimal-valued signals produce no candidates, and ``nu``
+  must be finite. Documentation records the limits of the channel union and
+  the unresolved gap with the paper's Monte Carlo precision.
 * Documentation: new design (PyData Sphinx theme, light and dark modes, copy
   buttons on code blocks) and a new home page; installation instructions move
   to their own page. The ``docs`` extra now installs ``pydata-sphinx-theme``
@@ -52,9 +198,48 @@ Unreleased
   (``assets/demo.svg``) replaces the screenshot ``assets/demo.png``: the
   sample dataset of the demo, its ground truth, the change points of BottomUp
   and the states of Time2State, each scored against the truth.
+* Fix ``axis=1`` given to a detector's constructor: ``Foo(axis=1).fit(X)`` on
+  a series of shape ``(n_channels, n_timepoints)`` now segments it as
+  ``Foo().fit(X.T)`` does. The base class handed such a detector its series in
+  that layout, which almost every detector reads as ``(n_timepoints,
+  n_channels)``: BOCD, BottomUp, ChangeFinder, ChangeForest, ClaSP, CLaP, Dynp,
+  GaussianHMM, ICID, PELT, Prophet, SeededBinSeg, SNLDS and SST returned wrong
+  change points or labels without an error, while FLUSS, RuLSIF, TGLAD, TICC,
+  TS-CP2 and Window raised one; a 1D series became a single time point with
+  ``n`` channels. The default ``axis=0`` and ``fit(X, axis=1)`` are unchanged.
+  ``_fit`` and ``_predict`` now always receive ``(n_timepoints, n_channels)``:
+  a detector that subclasses ``BaseSegmenter`` must not transpose its input
+  itself, and AMOC, BinSeg, E2USD, ESPRESSO, HDP-HSMM, Hidalgo, Time2State and
+  TIRE no longer do.
+* The test of ``BeastDetector`` on a 6,000-point series no longer expects a
+  failure on CPUs that support AVX-512: in continuous integration, Rbeast
+  returned NaN for every output on that series in 10 of 177 test jobs, all on
+  such CPUs, and the rerun with its SSE routines found the change point every
+  time. The :doc:`BEAST page <detectors/beast>` says so.
 * Fix the affiliation of John Paparrizos (The Ohio State University and
   Aristotle University of Thessaloniki) in the README, ``CITATION.cff`` and the
   home page.
+* Helpers that nothing in the package calls are removed, without deprecation
+  (none is part of ``tsseg.algorithms``): ``parameters_to_cps``,
+  ``cp_to_timestamps``, ``tpr_fpr`` and ``minmaxscale`` of
+  ``tsseg.algorithms.tire.utils``, with commented-out plotting code;
+  ``roll_array``, ``normalize_time_series``, ``create_sliding_window``,
+  ``expand_label_sequence``, ``collapse_label_sequence`` and ``extract_cps`` of
+  ``tsseg.algorithms.clap.utils``; and ``E2USD.online_threshold_cluster`` of
+  ``tsseg.algorithms.e2usd.e2usd``. Three of them did not work:
+  ``roll_array`` returned uninitialised memory, ``normalize_time_series``
+  raised ``NameError`` and ``online_threshold_cluster`` raised
+  ``AttributeError``. Use ``tsseg.algorithms.utils.extract_cps`` instead of
+  the removed ``extract_cps`` of CLaP; it gives the same change points. The
+  detectors are unchanged.
+* ``TSCP2Detector`` stores the similarity threshold it learns in the new
+  fitted attribute ``threshold_`` instead of writing it into the
+  ``similarity_threshold`` parameter. With ``similarity_threshold=None`` (the
+  default) and no ``n_cps``, a second ``fit`` on another series, a clone of a
+  fitted detector and a refit by ``refit_on_predict`` after two fits reused
+  the threshold learned on the first series, so they could return other
+  change points than a new detector. A single fit followed by ``predict`` is
+  unchanged.
 
 0.3.2 (2026-11-05)
 ------------------

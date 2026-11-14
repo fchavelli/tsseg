@@ -400,14 +400,11 @@ class E2USDDetector(BaseSegmenter):
         return e2usd_model.state_seq
 
     def _validate_data(self, X):
-        """Validate and reshape input data according to axis."""
+        """Return ``X`` as a 2D array of shape (n_timepoints, n_channels)."""
         X = np.asarray(X)
         if X.ndim == 1:
             X = X.reshape(-1, 1)
-        elif X.ndim == 2:
-            if self.axis == 1:
-                X = X.T
-        else:
+        elif X.ndim != 2:
             raise ValueError(f"Input X must be 1D or 2D, got {X.ndim}D")
 
         return X

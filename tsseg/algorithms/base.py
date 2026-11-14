@@ -411,6 +411,12 @@ class BaseSeriesEstimator(BaseAeonEstimator):
         return metadata
 
     def _convert_X(self, X: Any, axis: int) -> Any:
+        """Convert ``X`` to the inner type, with the time points along the rows.
+
+        ``axis`` is the time axis of the input. Whatever ``self.axis``, the
+        result has shape ``(n_timepoints, n_channels)``, a univariate series
+        included: this is the layout ``_fit`` and ``_predict`` receive.
+        """
         if axis not in (0, 1):
             raise ValueError(f"Input axis should be 0 or 1, saw {axis}")
 
@@ -437,11 +443,11 @@ class BaseSeriesEstimator(BaseAeonEstimator):
 
         if isinstance(X, np.ndarray):
             if X.ndim == 1:
-                X = X[np.newaxis, :] if self.axis == 1 else X[:, np.newaxis]
-            elif X.ndim == 2 and self.axis != axis:
+                X = X[:, np.newaxis]
+            elif X.ndim == 2 and axis == 1:
                 X = X.T
         elif isinstance(X, pd.DataFrame):
-            if X.ndim == 2 and self.axis != axis:
+            if axis == 1:
                 X = X.transpose()
 
         return X

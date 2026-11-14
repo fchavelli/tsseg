@@ -11,6 +11,42 @@ __all__ = [
 ]
 
 
+@njit(cache=True)
+def _initialize_distances(X, boundaries, alpha, distances):
+    """Fill the initial distances without a Python call for every pair."""
+    n_cluster = len(boundaries) - 1
+    if n_cluster == len(X):
+        for i in range(n_cluster):
+            for j in range(n_cluster):
+                distances[i, j] = 2 * get_distance_single(X[i], X[j], alpha)
+    else:
+        within = np.empty(n_cluster)
+        for i in range(n_cluster):
+            xi = X[boundaries[i] : boundaries[i + 1]]
+            within[i] = get_distance_matrix(xi, xi, alpha)
+        for i in range(n_cluster):
+            xi = X[boundaries[i] : boundaries[i + 1]]
+            for j in range(n_cluster):
+                xj = X[boundaries[j] : boundaries[j + 1]]
+                distances[j, i] = (
+                    2 * get_distance_matrix(xi, xj, alpha) - within[i] - within[j]
+                )
+
+
+@njit(cache=True)
+def _find_closest(K, gof_, left, right, distances, sizes, open):
+    """Scan candidate merges in cluster order, preserving the tie rule."""
+    best_fit = -1e10
+    result = (0, 0)
+    for i in range(K + 1):
+        if open[i]:
+            fit = _gof_update(i, gof_, left, right, distances, sizes)
+            if fit > best_fit:
+                best_fit = fit
+                result = (i, right[i])
+    return result, best_fit
+
+
 @njit(fastmath=True, cache=True)
 def _update_distances(
     i, j, K, merged_, n_cluster, distances, left, right, open, sizes, progression, lm

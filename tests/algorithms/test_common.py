@@ -10,7 +10,7 @@ The checks mirror the principles behind ``sklearn.utils.estimator_checks``:
 
 * ``get_params`` / ``set_params`` round-trip
 * ``clone`` produces an equivalent estimator
-* ``fit`` returns ``self``
+* ``fit`` returns ``self`` and leaves ``get_params`` unchanged
 * ``is_fitted`` lifecycle, and ``get_fitted_params`` along it
 * ``NotFittedError`` raised before ``fit`` (when applicable)
 * ``reset`` clears fitted state
@@ -143,23 +143,34 @@ class TestBaseSegmenterContract:
         assert isinstance(r, str)
         assert len(r) > 0
 
-    def test_fit_returns_self(self, algorithm, synthetic_data):
-        """``fit()`` must return ``self`` for method chaining."""
+    def test_fit_returns_self_and_keeps_params(self, algorithm, synthetic_data):
+        """``fit()`` must return ``self`` and leave ``get_params()`` unchanged.
+
+        What ``fit`` learns goes to fitted attributes (``name_``): a learned
+        value written into a parameter would be reused by the next ``fit``,
+        by ``reset`` and by ``clone``. Both checks share one fit, to keep the
+        suite fast.
+        """
         _name, cls, ovr, _instance = algorithm
         instance = make_instance(cls, ovr)
-        if instance.get_tag("capability:univariate"):
-            X, y = synthetic_data["univariate"]["X"], synthetic_data["univariate"]["y"]
-        else:
-            X, y = (
-                synthetic_data["multivariate"]["X"],
-                synthetic_data["multivariate"]["y"],
-            )
+        univariate = instance.get_tag("capability:univariate")
+        data = synthetic_data["univariate" if univariate else "multivariate"]
+        X, y = data["X"], data["y"]
         if ovr.semi_supervised:
             apply_supervision(instance, y)
+        # Hash of each parameter's content, as scikit-learn's
+        # ``check_estimators_overwrite_params`` does: an in-place change counts.
+        before = {k: joblib.hash(v) for k, v in instance.get_params(deep=False).items()}
+        if ovr.semi_supervised:
             result = instance.fit(X, y)
         else:
             result = instance.fit(X)
         assert result is instance
+        after = {k: joblib.hash(v) for k, v in instance.get_params(deep=False).items()}
+        changed = sorted(
+            k for k in before.keys() | after.keys() if before.get(k) != after.get(k)
+        )
+        assert not changed, f"fit changed the parameters {changed}"
 
     def test_is_fitted_lifecycle(self, algorithm, synthetic_data):
         """``is_fitted`` must be ``False`` before ``fit`` and ``True`` after.

@@ -64,6 +64,8 @@ ALGORITHM_OVERRIDES: dict[str, AlgorithmOverride] = {
     "SSTDetector": AlgorithmOverride(
         semi_supervised=True, init_kwargs={"window_size": 50, "random_state": 0}
     ),
+    # seeded, so that the determinism tests of the suite apply
+    "LaplacianDetector": AlgorithmOverride(init_kwargs={"random_state": 0}),
     # 100 Gibbs iterations instead of 1000: with the 3 states of the
     # synthetic series, a fit took 90 s (8 s with 100).
     "HidalgoDetector": AlgorithmOverride(

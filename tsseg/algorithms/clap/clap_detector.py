@@ -325,4 +325,5 @@ class ClapDetector(BaseSegmenter):
             UserWarning,
             stacklevel=3,
         )
-        return self.clone().fit(X).states_
+        # X is already time-major, whatever self.axis
+        return self.clone().fit(X, axis=0).states_

@@ -62,6 +62,7 @@ Change point detection
    tglad
    tire
    tscp2
+   cachalot
    window
 
 State detection
@@ -78,6 +79,7 @@ State detection
    hdp_hsmm
    hidalgo
    hmm
+   laplacian
    patss
    snlds
    ticc

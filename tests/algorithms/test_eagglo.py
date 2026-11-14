@@ -3,6 +3,7 @@
 import warnings
 
 import numpy as np
+import pandas as pd
 import pytest
 
 pytest.importorskip("numba")
@@ -151,3 +152,106 @@ def test_predict_with_initial_blocks_on_a_series_of_another_length(n_timepoints)
     detector = EAggloDetector(member=np.repeat(np.arange(12), 10)).fit(x1)
     with pytest.raises(ValueError, match="member has 120 labels"):
         detector.predict(np.resize(x1, n_timepoints))
+
+
+@pytest.mark.parametrize("alpha", [0.5, 1.0, 2.0])
+@pytest.mark.parametrize("block_sizes", [None, [4, 4, 4], [2, 3, 7]])
+def test_initial_distances_match_direct_energy_calculation(alpha, block_sizes):
+    """The compiled initialisation retains ecp's unscaled V-distances."""
+    x = np.random.default_rng(3).normal(size=(12, 3))
+    sizes = np.ones(len(x), dtype=int) if block_sizes is None else block_sizes
+    member = None if block_sizes is None else np.repeat([2, 5, 9], sizes)
+    detector = EAggloDetector(member=member, alpha=alpha)
+    detector._initialize_params(pd.DataFrame(x))
+
+    blocks = np.split(x, np.cumsum(sizes)[:-1])
+    within = [(cdist(b, b) ** alpha).mean() for b in blocks]
+    expected = np.array(
+        [
+            [
+                2 * (cdist(a, b) ** alpha).mean() - within[i] - within[j]
+                for j, b in enumerate(blocks)
+            ]
+            for i, a in enumerate(blocks)
+        ]
+    )
+    np.fill_diagonal(expected, 0)
+    np.testing.assert_allclose(
+        detector.distances[: len(blocks), : len(blocks)], expected, atol=1e-14
+    )
+    np.testing.assert_array_equal(detector.progression[0], np.r_[0, np.cumsum(sizes)])
+
+
+@pytest.mark.parametrize("alpha", [0.5, 1.0, 2.0])
+def test_merges_maximise_the_direct_circular_energy_statistic(alpha):
+    """Compare the merge scan with a fresh two-sample calculation at every step.
+
+    For singleton initial clusters, ecp's stored distance is twice the scaled
+    V-statistic Q; the circular goodness of fit counts each edge twice again.
+    The last (two-to-one) merge is excluded: ecp's recurrence counts overlapping
+    neighbours at that step and does not equal the empty sum (zero).
+    """
+    from tsseg.algorithms.eagglo._kernels import _update_distances
+
+    x = np.random.default_rng(8).normal(size=(9, 2))
+    detector = EAggloDetector(alpha=alpha)
+    detector._initialize_params(pd.DataFrame(x))
+    clusters = {i: x[i : i + 1] for i in range(len(x))}
+    order = list(clusters)
+
+    def goodness(partition):
+        total = 0.0
+        for a, b in zip(partition, partition[1:] + partition[:1], strict=True):
+            energy = (
+                2 * (cdist(a, b) ** alpha).mean()
+                - (cdist(a, a) ** alpha).mean()
+                - (cdist(b, b) ** alpha).mean()
+            )
+            total += 4 * len(a) * len(b) / (len(a) + len(b)) * energy
+        return total
+
+    for K in range(len(x) - 1, 2 * len(x) - 3):
+        candidates = []
+        for i in sorted(clusters):
+            position = order.index(i)
+            rotated = order[position:] + order[:position]
+            j = rotated[1]
+            merged = np.concatenate([clusters[i], clusters[j]])
+            partition = [merged] + [clusters[k] for k in rotated[2:]]
+            candidates.append((goodness(partition), i, j))
+        expected_fit, expected_i, expected_j = max(candidates)
+        i, j = detector._find_closest(K)
+        assert (i, j) == (expected_i, expected_j)
+        assert detector.gof_[-1] == pytest.approx(expected_fit)
+        _update_distances(
+            i,
+            j,
+            K,
+            detector.merged_,
+            detector.n_cluster,
+            detector.distances,
+            detector.left,
+            detector.right,
+            detector.open,
+            detector.sizes,
+            detector.progression,
+            detector.lm,
+        )
+        position = order.index(i)
+        rotated = order[position:] + order[:position]
+        clusters[K + 1] = np.concatenate([clusters.pop(i), clusters.pop(j)])
+        order = [K + 1, *rotated[2:]]
+
+
+def test_equal_merge_scores_keep_the_first_open_cluster():
+    """The compiled scan uses a strict comparison, as the Python scan did."""
+    detector = EAggloDetector().fit(np.zeros((5, 2)))
+    np.testing.assert_array_equal(detector.merged_[0], [0, -1])
+    assert detector.gof_.tolist() == [0] * 5
+    assert detector.predict(np.zeros((5, 2))).tolist() == [1, 2, 3, 4]
+
+
+@pytest.mark.parametrize("length", [5, 15])
+def test_initial_membership_length_is_checked_before_the_compiled_kernel(length):
+    with pytest.raises(ValueError, match="Length mismatch"):
+        EAggloDetector(member=np.arange(length)).fit(np.zeros((10, 2)))

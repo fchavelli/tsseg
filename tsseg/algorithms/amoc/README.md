@@ -2,7 +2,7 @@
 
 Single change point detector that searches for the breakpoint minimising the
 total sum of squared errors (SSE) on either side of the split. Foundational
-building block for multi-change detectors such as Binary Segmentation and PELT.
+building block for multi-change detectors such as Binary Segmentation.
 
 ## Key properties
 

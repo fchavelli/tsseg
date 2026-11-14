@@ -237,10 +237,7 @@ class ClaspDetector(BaseSegmenter):
             n_jobs=self.n_jobs,
         )
         self.model.fit(X)
-        if X.ndim == 1:
-            self.ts_len_ = X.shape[0]
-        else:
-            self.ts_len_ = X.shape[0] if self.axis == 0 else X.shape[1]
+        self.ts_len_ = X.shape[0]
         self.change_points_ = self.model.predict()
         # Ensure change points are integers
         self.change_points_ = np.array(self.change_points_, dtype=int)
@@ -274,4 +271,5 @@ class ClaspDetector(BaseSegmenter):
             UserWarning,
             stacklevel=3,
         )
-        return self.clone().fit(X).change_points_
+        # X is already time-major, whatever self.axis
+        return self.clone().fit(X, axis=0).change_points_

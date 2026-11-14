@@ -27,14 +27,12 @@ __all__ = ["BinSegDetector"]
 _DEFAULT_PENALTY = 10.0
 
 
-def _ensure_time_major(X: Any, *, axis: int) -> np.ndarray:
-    """Coerce input into a 2D time-major array."""
+def _ensure_time_major(X: Any) -> np.ndarray:
+    """Coerce input into a 2D float array, time along the rows."""
 
     data = np.asarray(X, dtype=float)
     if data.ndim == 1:
         data = data[:, np.newaxis]
-    elif axis != 0:
-        data = np.moveaxis(data, axis, 0)
     if data.ndim != 2:
         raise ValueError("BinSegDetector expects 1D or 2D inputs")
     return data
@@ -255,7 +253,7 @@ class BinSegDetector(BaseSegmenter):
         return estimator
 
     def _fit(self, X, y=None):
-        signal = _ensure_time_major(X, axis=self.axis)
+        signal = _ensure_time_major(X)
         self._estimator = self._make_estimator(signal)
 
         return self
@@ -267,9 +265,8 @@ class BinSegDetector(BaseSegmenter):
             return self.penalty
         return bic_penalty(self.penalty, self._estimator.cost)
 
-    def _predict(self, X, axis=None):
-        axis = self.axis if axis is None else axis
-        signal = _ensure_time_major(X, axis=axis)
+    def _predict(self, X):
+        signal = _ensure_time_major(X)
 
         if self._estimator is None or not np.array_equal(
             signal, getattr(self._estimator, "signal", None)

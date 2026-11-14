@@ -313,10 +313,8 @@ class ProphetDetector(BaseSegmenter):
     def _fit(self, X, y=None):
         return self
 
-    def _predict(self, X, axis=None):
+    def _predict(self, X):
         signal = np.asarray(X, dtype=float)
-        if axis is not None and axis != self.axis:
-            signal = np.moveaxis(signal, axis, self.axis)
         if signal.ndim == 1:
             signal = signal[:, None]
         n_timepoints, n_channels = signal.shape

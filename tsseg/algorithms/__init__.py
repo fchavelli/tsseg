@@ -3,6 +3,7 @@ from .autoplait.detector import AutoPlaitDetector
 from .binseg.detector import BinSegDetector
 from .bocd.detector import BOCDDetector
 from .bottomup.detector import BottomUpDetector
+from .cachalot.detector import CachalotDetector
 from .changefinder.detector import ChangeFinderDetector
 from .dynp.detector import DynpDetector
 from .espresso.detector import EspressoDetector
@@ -16,6 +17,7 @@ from .icid.detector import ICIDDetector
 from .igts.detector import InformationGainDetector
 from .kcpd.detector import KCPDDetector
 from .l1tf.detector import TrendFilteringDetector
+from .laplacian.detector import LaplacianDetector
 from .patss.detector import PatssDetector
 from .pelt.detector import PeltDetector
 from .random.detector import RandomDetector
@@ -86,6 +88,7 @@ __all__ = [
     "InformationGainDetector",
     "KCPDDetector",
     "TrendFilteringDetector",
+    "LaplacianDetector",
     "PatssDetector",
     "PeltDetector",
     "ProphetDetector",
@@ -99,5 +102,6 @@ __all__ = [
     "Time2StateDetector",
     "TireDetector",
     "TSCP2Detector",
+    "CachalotDetector",
     "WindowDetector",
 ]

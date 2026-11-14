@@ -335,4 +335,5 @@ class TiccDetector(BaseSegmenter):
             UserWarning,
             stacklevel=3,
         )
-        return self.clone().fit(X)._state_labels
+        # X is already time-major, whatever self.axis
+        return self.clone().fit(X, axis=0)._state_labels

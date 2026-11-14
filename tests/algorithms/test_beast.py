@@ -42,10 +42,24 @@ def test_tcp_minmax_applies_to_every_multivariate_strategy(strategy):
     assert detector.fit_predict(X).tolist() == []
 
 
+@pytest.mark.parametrize("strategy", ["native", "l2"])
+def test_max_cps_above_the_maximum_of_tcp_minmax(strategy):
+    """Fourteen steps: Rbeast returned at most ``tcp_minmax[1] = 10`` of them."""
+    rng = np.random.default_rng(0)
+    truth = np.arange(100, 1500, 100)
+    x = np.repeat(np.arange(15.0) % 2 * 3, 100) + rng.normal(0, 0.3, 1500)
+    X = x if strategy == "l2" else np.c_[x, x + rng.normal(0, 0.3, 1500)]
+    cps = BeastDetector(max_cps=14, multivariate_strategy=strategy).fit_predict(X)
+    assert len(cps) == 14, cps
+    assert np.abs(cps - truth).max() <= 2, cps
+
+
 @pytest.mark.parametrize("n_channels", [1, 2])
 def test_sse_rerun_finds_the_change_point(monkeypatch, n_channels):
     """Rbeast accepts the SSE rerun of a failed run (the failure is forced here)."""
-    failed = iter([True])  # the first run counts as failed, the rerun does not
+    # The first run (of each channel, with "native") counts as failed, the
+    # rerun does not.
+    failed = iter([True] * n_channels)
     monkeypatch.setattr(beast_module, "_all_nan_output", lambda o: next(failed, False))
     x = _step()
     if n_channels == 2:
@@ -69,12 +83,14 @@ def test_long_univariate_series_returns():
 
     Rbeast picks its numerical routines by CPU instruction set (SSE, AVX2,
     AVX-512), so a fixed seed gives the same output on one machine only
-    (zhaokg/Rbeast#53). On some CI machines, Rbeast 0.1.25 returned NaN for
-    every output on this series; the detector then reruns Rbeast with its SSE
-    routines. If the rerun returns NaN too, the test marks the case as an
-    expected failure on AVX-512 CPUs, where Rbeast is reported to compute
-    wrong outputs (zhaokg/Rbeast#56), and fails anywhere else. If the rerun
-    finds the change point, the test passes and says so in a warning.
+    (zhaokg/Rbeast#53). On some CI machines with AVX-512 CPUs, Rbeast 0.1.25
+    returned NaN for every output on this series (zhaokg/Rbeast#56); the
+    detector then reruns Rbeast with its SSE routines. This test long marked
+    the case as an expected failure when the rerun returned NaN too, but the
+    rerun found the change point in all 10 CI jobs (out of 177, 27 October to
+    6 November 2026) in which the first run returned NaN, so the change point
+    is now required on every CPU. When the rerun was needed, the test says so
+    in a warning.
     """
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
@@ -85,11 +101,6 @@ def test_long_univariate_series_returns():
         "returned nan for ncp_median" in m for m in messages
     )
     avx512 = _cpu_has_avx512()
-    if nan_output and avx512:
-        pytest.xfail(
-            "Rbeast returned NaN for every output on this AVX-512 CPU, also "
-            f"when rerun with cputype='sse' ({sse_rerun=}; zhaokg/Rbeast#53, #56)"
-        )
     assert 3000 in cps, f"{cps=}, {nan_output=}, {sse_rerun=}, {avx512=}"
     if sse_rerun:
         # Visible in the warnings summary: the record that the rerun works.

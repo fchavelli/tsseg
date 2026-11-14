@@ -264,7 +264,8 @@ class TGLADDetector(BaseSegmenter):
             UserWarning,
             stacklevel=3,
         )
-        return self.clone().fit(X)._change_points.copy()
+        # X is already time-major, whatever self.axis
+        return self.clone().fit(X, axis=0)._change_points.copy()
 
     # ------------------------------------------------------------------
     # Internal helpers

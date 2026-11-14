@@ -547,13 +547,11 @@ def test_two_dimensional_inputs_reach_fit_as_an_array(X, make_X):
 
 
 @pytest.mark.parametrize("make_x", [np.asarray, pd.Series], ids=["ndarray", "series"])
-@pytest.mark.parametrize(
-    "axis, shape", [(0, (N_TIMEPOINTS, 1)), (1, (1, N_TIMEPOINTS))]
-)
-def test_univariate_inputs_get_a_channel_dimension(make_x, axis, shape):
+@pytest.mark.parametrize("axis", [0, 1])
+def test_univariate_inputs_get_a_channel_dimension(make_x, axis):
     x = np.arange(N_TIMEPOINTS, dtype=float)
     est = _Segmenter(axis=axis).fit(make_x(x))
-    assert est.X_fit_.shape == shape
+    assert est.X_fit_.shape == (N_TIMEPOINTS, 1)
     np.testing.assert_array_equal(est.X_fit_.ravel(), x)
 
 
@@ -565,6 +563,28 @@ def test_fit_transposes_an_input_given_along_the_other_axis(X, make_X):
     est = _Segmenter(window=10).fit(make_X(X.T), axis=1)
     np.testing.assert_array_equal(np.asarray(est.X_fit_), X)
     assert est._data_context["n_samples"] == N_TIMEPOINTS
+
+
+@pytest.mark.parametrize("cls", [_Segmenter, _DataFrameSegmenter])
+@pytest.mark.parametrize(
+    "make_X", [np.asarray, pd.DataFrame], ids=["ndarray", "dataframe"]
+)
+@pytest.mark.parametrize("fit_axis", [None, 1])
+def test_axis_one_detector_gets_time_along_the_rows(X, make_X, fit_axis, cls):
+    # The detector's axis only says how the input is laid out: _fit and
+    # _predict always receive (n_timepoints, n_channels).
+    est = cls(window=10, axis=1).fit(make_X(X.T), axis=fit_axis)
+    np.testing.assert_array_equal(np.asarray(est.X_fit_), X)
+    assert est._data_context == {"n_samples": N_TIMEPOINTS, "n_channels": 3}
+    result = est.predict(make_X(X.T), axis=fit_axis)
+    np.testing.assert_array_equal(result, [N_TIMEPOINTS // 2])
+    np.testing.assert_array_equal(np.asarray(est.X_predict_), X)
+
+
+def test_axis_one_detector_reads_an_input_given_with_axis_zero(X):
+    est = _Segmenter(axis=1).fit(X, axis=0)
+    np.testing.assert_array_equal(est.X_fit_, X)
+    np.testing.assert_array_equal(est.predict(X, axis=0), [N_TIMEPOINTS // 2])
 
 
 @pytest.mark.parametrize(

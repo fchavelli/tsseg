@@ -18,14 +18,12 @@ from .python.ESPRESSO_Script import espresso as _run_espresso
 __all__ = ["EspressoDetector"]
 
 
-def _ensure_time_major(X: Any, axis: int) -> np.ndarray:
-    """Return a 2D time-major view of ``X`` while preserving numeric type."""
+def _ensure_time_major(X: Any) -> np.ndarray:
+    """Return ``X`` as a 2D float array, time along the rows."""
 
     data = np.asarray(X, dtype=float)
     if data.ndim == 1:
         data = data[:, np.newaxis]
-    if axis != 0:
-        data = np.moveaxis(data, axis, 0)
     if data.ndim != 2:
         raise ValueError("EspressoDetector expects 1D or 2D inputs")
     return data
@@ -137,9 +135,8 @@ class EspressoDetector(BaseSegmenter):
             return self
         return self
 
-    def _predict(self, X, axis=None):
-        axis = self.axis if axis is None else axis
-        signal = _ensure_time_major(X, axis=axis)
+    def _predict(self, X):
+        signal = _ensure_time_major(X)
 
         if self.n_segments is None:
             raise ValueError("n_segments must be provided for prediction")

@@ -246,20 +246,18 @@ def fig_gaussian_f1() -> str:
             g = math.exp(-((u - t) ** 2) / (2 * sigma**2))
             pts.append(f"{f.x(u)},{round(base - amp * g, 2)}")
         f.add(f'<polyline class="tm-gauss" points="{" ".join(pts)}"/>')
-    # reward of each prediction: greedy matching on the highest reward first
-    pairs = sorted(
-        (
-            (math.exp(-((p - t) ** 2) / (2 * sigma**2)), t, p)
+    # reward of each prediction: one-to-one pairing of maximum total reward
+    from scipy.optimize import linear_sum_assignment
+
+    gains = np.array(
+        [
+            [math.exp(-((p - t) ** 2) / (2 * sigma**2)) for p in PRED_CPS]
             for t in TRUE_CPS
-            for p in PRED_CPS
-        ),
-        reverse=True,
+        ]
     )
-    used_t, reward = set(), {p: 0.0 for p in PRED_CPS}
-    for r, t, p in pairs:
-        if r > 0 and t not in used_t and reward[p] == 0.0:
-            used_t.add(t)
-            reward[p] = r
+    reward = {p: 0.0 for p in PRED_CPS}
+    for i, j in zip(*linear_sum_assignment(gains, maximize=True), strict=True):
+        reward[PRED_CPS[j]] = float(gains[i, j])
     total = sum(reward.values())
     _check("Gaussian F1 matched weight", total, res["matched_weight"])
     for p in PRED_CPS:
@@ -302,7 +300,8 @@ def fig_gaussian_f1() -> str:
     )
     return f.svg(
         f"GaussianF1Score with sigma = {sigma:g} points: each prediction earns the "
-        f"height of the Gaussian around the nearest free true change point; "
+        f"height of the Gaussian around the true change point it is paired with "
+        f"(one to one, maximum total reward); "
         f"Gaussian F1 {_fmt(res['score'])}"
     )
 
