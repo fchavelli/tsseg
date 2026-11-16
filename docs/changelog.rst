@@ -12,7 +12,9 @@ Unreleased
 * Standardise the Cachalot README and detector guide: clarify the distinction
   between its total-variation Lasso candidates and the complete algorithm,
   document time and memory costs, verify references, and remove benchmark
-  scores and implementation history from the overview.
+  scores and implementation history from the overview. The taxonomy's convex
+  relaxation category also covers candidate generation followed by
+  post-selection, with Cachalot identified as a Lasso / reduced-DP hybrid.
 * ``EAggloDetector`` computes the quadratic initial distance loops and
   candidate-merge scans inside Numba, skips repeated membership scans for
   default singleton clusters, and evaluates penalties without retaining a
