@@ -60,13 +60,13 @@ class CachalotDetector(BaseSegmenter):
     active-set direction is obtained by linear interpolation between active
     step positions, so the Lasso path costs ``O(n K)`` time and ``O(n + K)``
     working memory without a dense design or Gram matrix. The reduced dynamic
-    program costs ``O(K^3)`` time and ``O(K^2)`` memory after selecting ``K``
-    candidates. Costs are per channel; channels are processed sequentially.
-
-    The 2007 paper's toy example prints the Lasso candidate set and objective
-    table, but not the sampled noise vector or a random seed. Its published
-    Monte Carlo tables likewise do not give seeds, so those individual
-    numerical realizations cannot be regenerated exactly.
+    program, including prefix sums, costs ``O(n + K^3)`` time and
+    ``O(n + K^2)`` memory, where ``K = min(max_candidates, n - 1)`` for
+    ``n >= 2``. Costs are per channel; channels are processed sequentially.
+    For ``d`` channels, objective arrays retain their dynamic-programming
+    tables, giving ``O(n + d K^2)`` total auxiliary memory, excluding the
+    input array. Sorting the final union adds an ``O(d K log(d K))`` time
+    bound.
 
     References
     ----------
