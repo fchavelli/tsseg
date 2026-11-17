@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,8 +19,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install ruff==0.16.7  # keep in sync with the dev extra
@@ -41,7 +39,7 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -89,8 +87,8 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -112,8 +110,8 @@ jobs:
       ${{ !cancelled() && needs.lint.result == 'success' &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -129,15 +127,29 @@ jobs:
         with:
           path: docs/_build/html
 
-  # ── Deploy docs to GitHub Pages ───────────────────────────────────
+  # ── Check docs deployment readiness ───────────────────────────────
   deploy-docs:
-    # Explicit result check: the implicit one would skip this job after
-    # skipped tests.
+    # Documentation pull requests run this gate too, but never publish to Pages.
     if: >-
       ${{ !cancelled() && needs.docs.result == 'success' &&
-      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/tags/v')) }}
     needs: docs
     runs-on: ubuntu-latest
+    steps:
+      - name: Confirm documentation build is ready
+        run: echo "Documentation build succeeded; deployment gate passed."
+
+  # ── Deploy docs to GitHub Pages ───────────────────────────────────
+  deploy-pages:
+    if: >-
+      ${{ !cancelled() && needs.deploy-docs.result == 'success' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
+    needs: deploy-docs
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -155,8 +167,8 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
