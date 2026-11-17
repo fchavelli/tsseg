@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<h1>tsseg: Time Series Segmentation in Python</h1>
+<h1 align="center">tsseg: Time Series Segmentation in Python</h1>
 
 <p align="center">
   Change point detection and state detection: 30+ algorithms, one scikit-learn-style API
