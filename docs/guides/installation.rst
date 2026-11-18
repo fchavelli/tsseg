@@ -51,6 +51,9 @@ Optional extras
    * - ``tsseg[fluss]``
      - stumpy
      - ``FLUSSDetector``
+   * - ``tsseg[l1tf]``
+     - OSQP
+     - ``TrendFilteringDetector``
    * - ``tsseg[docs]``
      - Sphinx toolchain
      - building the documentation

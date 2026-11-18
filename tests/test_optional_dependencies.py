@@ -34,6 +34,7 @@ OPTIONAL_MODULES = sorted(
         "networkx",
         "npbad",
         "numba",
+        "osqp",
         "prophet",
         "stumpy",
         "tcn",

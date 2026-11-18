@@ -286,6 +286,9 @@ METHODS = [
     # ---- convex relaxation
     _m("Prophet", "ProphetDetector", "prophet", "convex", "model",
        "trend change points of Prophet", "Taylor & Letham (2018)", "dn"),
+    _m("l1 TF", "TrendFilteringDetector", "l1tf", "convex", "model",
+       "kinks of the l1-penalised piecewise-linear trend",
+       "Kim et al. (2009), SIAM Rev.", "n per OSQP iteration"),
     _m("Cachalot", "CachalotDetector", "cachalot", "convex", "model",
        "hybrid: Lasso candidates + reduced DP, optimal over candidate subsets",
        "Harchaoui & Lévy-Leduc (2007; 2010)", "d(n K + K^3)"),
@@ -356,7 +359,6 @@ LITERATURE = [
     ("E-Divisive", "binseg", "distrib", "Matteson & James (2014)"),
     ("gSeg", "binseg", "distrib", "Chen & Zhang (2015)"),
     ("fast group LARS", "convex", "model", "Vert & Bleakley (2010)"),
-    ("ℓ₁ trend filtering", "convex", "model", "Kim et al. (2009)"),
     ("FPOP / SNIP", "optimal", "model", "Maidstone et al. (2017)"),
     ("SMUCE", "optimal", "model", "Frick et al. (2014)"),
     ("BOCPDMS", "bayes", "model", "Knoblauch & Damoulas (2018)"),
