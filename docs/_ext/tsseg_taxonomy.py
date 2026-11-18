@@ -286,7 +286,7 @@ METHODS = [
     # ---- convex relaxation
     _m("Prophet", "ProphetDetector", "prophet", "convex", "model",
        "trend change points of Prophet", "Taylor & Letham (2018)", "dn"),
-    _m("l1 TF", "TrendFilteringDetector", "l1tf", "convex", BAR,
+    _m("l1 TF", "TrendFilteringDetector", "l1tf", "convex", "model",
        "kinks of the l1-penalised piecewise-linear trend",
        "Kim et al. (2009), SIAM Rev.", "n per OSQP iteration"),
     _m("Cachalot", "CachalotDetector", "cachalot", "convex", "model",
