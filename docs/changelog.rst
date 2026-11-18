@@ -9,6 +9,15 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* Fix numerical errors in ``SNLDSDetector``: the complete-data score now
+  associates each emission with the destination state, and ELBO/IWAE use the
+  exact log likelihood marginalized over discrete paths instead of omitting
+  their posterior entropy. Gaussian covariance parameters configured as
+  trainable are now tracked by Keras and receive gradients; ``rnn_type="lstm"``
+  now constructs both initial states on Keras 3. Segmentation outputs change.
+  The detector remains experimental. Its documentation separates historical
+  scores from the corrected implementation and explains computational and
+  modelling limitations; a diagnostic script supports small before/after runs.
 * New ``TrendFilteringDetector``: l1 trend filtering (Kim, Koh, Boyd and
   Gorinevsky, SIAM Review 2009) as a convex-relaxation baseline. On every
   channel it estimates the piecewise-linear trend that minimises

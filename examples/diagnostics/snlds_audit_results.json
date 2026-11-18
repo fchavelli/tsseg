@@ -1,0 +1,107 @@
+{
+  "baseline_commit": "e0b09b3",
+  "corrected_source_sha256": {
+    "tsseg/algorithms/snlds/vendor/model_base.py": "4040b46a6468810a7963fbb23d749880c0c9344363a6fa895ef8f91d600a869d",
+    "tsseg/algorithms/snlds/vendor/forward_backward_algo.py": "1294806d3220fd52401246712378b83fd6c343147a852d9b33820de78ae14713",
+    "tsseg/algorithms/snlds/vendor/model_cavi_snlds.py": "b7acb1faccd7110ea0c0d94911bee8abe9709350d720587876318864e28c677f"
+  },
+  "limitations": [
+    "One seed per case and variant; training remains nondeterministic.",
+    "Processes ran concurrently on the same machine; timings are diagnostic, not an isolated speed benchmark.",
+    "These two series do not establish benchmark accuracy or the effect of each correction separately."
+  ],
+  "results": [
+    {
+      "variant": "baseline",
+      "case": "mean-shifts",
+      "steps": 2000,
+      "seed": 42,
+      "threads": 1,
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "n": 1000,
+      "d": 1,
+      "n_states": 3,
+      "fit_seconds": 239.2776322869995,
+      "predict_seconds": [
+        0.937659908000569,
+        1.3777606019993982
+      ],
+      "ari": 0.8132551961423709,
+      "bic": 0.7103668373068567,
+      "true_changes": 2,
+      "predicted_changes": 99,
+      "used_states": 3,
+      "prediction_disagreement": 0.004
+    },
+    {
+      "variant": "baseline",
+      "case": "mocap",
+      "steps": 2000,
+      "seed": 42,
+      "threads": 1,
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "n": 4579,
+      "d": 4,
+      "n_states": 4,
+      "fit_seconds": 267.31268127099975,
+      "predict_seconds": [
+        0.9591393909995531,
+        0.8902699159989425
+      ],
+      "ari": 0.11757877531261864,
+      "bic": 0.08954796039009931,
+      "true_changes": 6,
+      "predicted_changes": 506,
+      "used_states": 4,
+      "prediction_disagreement": 0.0
+    },
+    {
+      "variant": "fixed",
+      "case": "mean-shifts",
+      "steps": 2000,
+      "seed": 42,
+      "threads": 1,
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "n": 1000,
+      "d": 1,
+      "n_states": 3,
+      "fit_seconds": 242.122458980999,
+      "predict_seconds": [
+        1.0328947699999844,
+        0.9213364829993225
+      ],
+      "ari": 0.09506180765296623,
+      "bic": 0.009369003986526113,
+      "true_changes": 2,
+      "predicted_changes": 653,
+      "used_states": 3,
+      "prediction_disagreement": 0.002
+    },
+    {
+      "variant": "fixed",
+      "case": "mocap",
+      "steps": 2000,
+      "seed": 42,
+      "threads": 1,
+      "tensorflow": "2.21.0",
+      "keras": "3.14.0",
+      "n": 4579,
+      "d": 4,
+      "n_states": 4,
+      "fit_seconds": 269.3817383879996,
+      "predict_seconds": [
+        1.2423235650003335,
+        1.1652777799990872
+      ],
+      "ari": 0.033094207313181176,
+      "bic": 0.03698061798377067,
+      "true_changes": 6,
+      "predicted_changes": 2141,
+      "used_states": 4,
+      "prediction_disagreement": 0.0
+    }
+  ]
+}
