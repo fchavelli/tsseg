@@ -72,11 +72,13 @@ SEARCHES = [
         "key": "convex",
         "task": "cpd",
         "name": "Convex relaxation",
-        "short": "ℓ₁ penalty on the jumps of a piecewise fit.",
+        "short": "ℓ₁ penalty selects change points or candidates for post-selection.",
         "long": (
             "Fit a piecewise model (level, trend) with an ℓ₁ penalty on its "
-            "jumps, as in the fused lasso: most jumps are exactly zero, and the "
-            "others are the change points."
+            "jumps, as in the fused lasso: most jumps are exactly zero. Nonzero "
+            "jumps identify change points directly or provide candidates for "
+            "post-selection. Cachalot combines Lasso candidates with reduced "
+            "dynamic programming, optimal over subsets of those candidates."
         ),
     },
     {
@@ -288,7 +290,7 @@ METHODS = [
        "kinks of the l1-penalised piecewise-linear trend",
        "Kim et al. (2009), SIAM Rev.", "n per OSQP iteration"),
     _m("Cachalot", "CachalotDetector", "cachalot", "convex", "model",
-       "Lasso candidates, then reduced dynamic programming",
+       "hybrid: Lasso candidates + reduced DP, optimal over candidate subsets",
        "Harchaoui & Lévy-Leduc (2007; 2010)", "d(n K + K^3)"),
     # ---- optimal (DP)
     _m("AMOC", "AmocDetector", "amoc", "optimal", "model",

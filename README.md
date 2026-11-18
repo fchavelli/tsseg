@@ -5,8 +5,9 @@
   </picture>
 </p>
 
+<h1 align="center">tsseg: Time Series Segmentation in Python</h1>
+
 <p align="center">
-  <b>Time series segmentation in Python</b><br>
   Change point detection and state detection: 30+ algorithms, one scikit-learn-style API
 </p>
 
@@ -39,9 +40,8 @@
 
 ## What is tsseg?
 
-**tsseg** gathers classic and recent algorithms for **time series segmentation**
-behind a single API, with the metrics to evaluate them and an interactive demo to
-compare them. It covers the two faces of the problem:
+**tsseg** unifies algorithms for **time series segmentation**
+behind a single API, with evaluation metrics and an exploratory interactive demo. It covers the two faces of the problem:
 
 | | Change point detection | State detection |
 | --- | --- | --- |
@@ -60,8 +60,8 @@ compare them. It covers the two faces of the problem:
   `fit`, `predict`, `fit_predict`, `get_params`, `clone`.
 - **Unsupervised or guided.** Run a detector without knowing how many segments
   to expect, or pass the number of change points or states to its constructor
-  when you know it. Tags tell which modes each detector supports.
-- **Metrics for both tasks.** F1, covering, Hausdorff distance and Gaussian F1
+  when you know it.
+- **Metrics for both tasks.** F1 score, covering score, and their soft and bidirectionnal variants
   for change points; ARI, AMI, NMI, their time sensitive counterparts, and the interpretable SMS for states.
 - **Light core, opt-in extras.** The core needs NumPy, pandas, SciPy,
   scikit-learn and statsmodels. PyTorch, TensorFlow, Prophet or numba are
@@ -70,8 +70,8 @@ compare them. It covers the two faces of the problem:
   copy of [ruptures](https://github.com/deepcharles/ruptures) with an optional
   numba backend.
 - **Benchmarked.** [TSB-SEG](https://github.com/fchavelli/TSB-SEG) (NeurIPS
-  2026) evaluates 26 tsseg detectors on 592 series from 8 datasets, for both
-  tasks, and publishes every run.
+  1)    evaluates 26 tsseg detectors on 592 series from 8 datasets, for both
+  tasks.
 - **Try it in the browser.** The
   [interactive demo](https://huggingface.co/spaces/fchavelli/tsseg) loads a custom
   series, runs the detectors and compares their results, with nothing to
