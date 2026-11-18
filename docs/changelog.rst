@@ -9,6 +9,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* New ``TrendFilteringDetector``: l1 trend filtering (Kim, Koh, Boyd and
+  Gorinevsky, SIAM Review 2009) as a convex-relaxation baseline. On every
+  channel it estimates the piecewise-linear trend that minimises
+  ``1/2||y - x||^2 + lambda ||D x||_1`` through the dual box-QP of the
+  paper (section 5.2), by OSQP with an exact active-set polish, and reports
+  the kinks of the trend as change points; ``lambda_max_`` (paper, eq. 7)
+  gives the scale of the penalty, above which the estimate is the best
+  affine fit. Multivariate series use the "sum of l1 norms" extension
+  (section 7.5); the group-penalty variant needs a conic solver and is not
+  implemented. Optional dependency: ``tsseg[l1tf]`` (OSQP, Apache-2.0).
 * Standardise the Cachalot README and detector guide: clarify the distinction
   between its total-variation Lasso candidates and the complete algorithm,
   document time and memory costs, verify references, and remove benchmark

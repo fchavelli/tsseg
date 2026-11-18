@@ -64,6 +64,12 @@ KNOWN_FAILURES: dict[str, str] = {
         "the default: z-normalised windows miss mean shifts in noise "
         "([273, 679] with distance='euclidean_distance')"
     ),
+    "TrendFilteringDetector": (
+        "unsupervised, default penalty=1.0: 83 kinks of the fitted slope, "
+        "F1 0.05: a mean shift between two flat segments reads as a ramp of "
+        "noise kinks that the l1 trend filter does not isolate (10 to 300 "
+        "scattered kinks from penalty 10 to 300 on the easy series)"
+    ),
     "FLUSSDetector": (
         "[485, 739] guided; none unsupervised (threshold 0.5): on z-normalized "
         "windows of white noise the mean shifts do not show, the corrected arc "

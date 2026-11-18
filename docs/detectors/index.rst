@@ -52,6 +52,7 @@ Change point detection
    icid
    igts
    kcpd
+   l1tf
    pelt
    prophet
    ruptures
