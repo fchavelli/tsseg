@@ -9,6 +9,23 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+0.4.0 (2026-11-18)
+------------------
+
+Upgrading from 0.3.2: outputs change for ``BOCDDetector`` (new defaults: native
+multivariate Gaussian likelihood and MAP decoding), for ``BeastDetector`` on
+multivariate series, for ``SNLDSDetector``, and for any detector constructed
+with ``axis=1``; earlier scores of these detectors need to be recomputed. With
+the default ``axis=0``, the other detectors keep their outputs, except a refit
+of ``TSCP2Detector``, which no longer reuses the threshold learned on its first
+series (now in ``threshold_``). ``GaussianF1Score`` pairs change points
+optimally (scores can only increase) and ``WeightedAdjustedRandIndex`` may
+differ slightly on short series; the metrics accept ``scored_intervals`` for
+partially annotated references. Unused helpers of the TIRE, CLaP and E2USD
+modules are removed without deprecation. New:
+``LaplacianDetector``, ``CachalotDetector`` and ``TrendFilteringDetector``
+(extra ``tsseg[l1tf]``).
+
 * Fix numerical errors in ``SNLDSDetector``: the complete-data score now
   associates each emission with the destination state, and ELBO/IWAE use the
   exact log likelihood marginalized over discrete paths instead of omitting
