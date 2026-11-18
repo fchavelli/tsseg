@@ -22,6 +22,7 @@ EXTRAS: dict[str, frozenset[str]] = {
     "beast": frozenset({"Rbeast"}),
     "changeforest": frozenset({"changeforest"}),
     "fluss": frozenset({"stumpy"}),
+    "l1tf": frozenset({"osqp"}),
     "prophet": frozenset({"prophet"}),
     "snlds": frozenset({"tensorflow", "tensorflow_probability", "tf_keras"}),
     "tglad": frozenset({"torch", "networkx"}),

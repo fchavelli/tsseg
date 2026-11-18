@@ -99,6 +99,7 @@ extra, for instance `pip install "tsseg[torch]"`, or all of them at once with
 | `tsseg[beast]` | Rbeast | `BeastDetector` |
 | `tsseg[changeforest]` | changeforest | `ChangeForestDetector` |
 | `tsseg[fluss]` | stumpy | `FLUSSDetector` |
+| `tsseg[l1tf]` | OSQP | `TrendFilteringDetector` |
 | `tsseg[docs]` | Sphinx toolchain | building the documentation |
 | `tsseg[all]` | everything above | |
 

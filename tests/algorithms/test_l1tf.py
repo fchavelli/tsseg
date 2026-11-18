@@ -15,7 +15,9 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from tsseg.algorithms import TrendFilteringDetector
+pytest.importorskip("osqp")
+
+from tsseg.algorithms import TrendFilteringDetector  # noqa: E402
 from tsseg.algorithms.l1tf import detector as l1tf
 
 
