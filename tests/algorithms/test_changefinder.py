@@ -94,3 +94,48 @@ def test_guided_output_does_not_depend_on_the_threshold():
         unreachable = ChangeFinderDetector(n_cps=k, threshold=1e9).fit_predict(x)
         assert len(default) == k
         np.testing.assert_array_equal(unreachable, default)
+
+
+def _fixed_channel_peaks(monkeypatch, per_channel):
+    """Make each channel of the ensembling strategy return the given peaks."""
+    peaks = iter([np.asarray(p, dtype=np.int64) for p in per_channel])
+    monkeypatch.setattr(
+        ChangeFinderDetector, "_select_peaks", lambda self, scores: next(peaks)
+    )
+
+
+def test_default_tolerance_is_a_fraction_of_the_length():
+    assert ChangeFinderDetector().get_params()["tolerance"] == 0.01
+
+
+def test_guided_ensembling_groups_nearby_channel_peaks_by_default(monkeypatch):
+    # Two channels see the same two changes a few samples apart, a third one
+    # sees another change alone. Exact matching (tolerance 0) gives every peak
+    # one vote and returns the two earliest ones, 100 and 104.
+    _fixed_channel_peaks(monkeypatch, [[100, 600], [104, 603], [350]])
+    X = np.random.default_rng(0).normal(size=(1000, 3))
+    pred = ChangeFinderDetector(
+        multivariate_strategy="ensembling", n_cps=2
+    ).fit_predict(X)
+    assert len(pred) == 2
+    assert abs(pred[0] - 102) <= 2
+    assert abs(pred[1] - 601) <= 2
+
+
+def test_ensembling_without_k_merges_within_the_default_tolerance(monkeypatch):
+    # 0.01 of 2000 samples = 20 samples, more than ``min_distance`` (10).
+    _fixed_channel_peaks(monkeypatch, [[100], [118], [400]])
+    X = np.random.default_rng(0).normal(size=(2000, 3))
+    pred = ChangeFinderDetector(multivariate_strategy="ensembling").fit_predict(X)
+    assert len(pred) == 2
+    assert 100 <= pred[0] <= 118
+    assert pred[1] == 400
+
+
+def test_ensembling_without_k_zero_tolerance_means_min_distance(monkeypatch):
+    _fixed_channel_peaks(monkeypatch, [[100], [118], [400]])
+    X = np.random.default_rng(0).normal(size=(2000, 3))
+    pred = ChangeFinderDetector(
+        multivariate_strategy="ensembling", tolerance=0
+    ).fit_predict(X)
+    np.testing.assert_array_equal(pred, [100, 118, 400])

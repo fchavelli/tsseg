@@ -351,3 +351,21 @@ def test_ensembling_spaces_the_final_union(monkeypatch):
     x = np.random.default_rng(0).normal(size=(160, 2))
     result = bocd.BOCDDetector(multivariate_strategy="ensembling").fit_predict(x)
     np.testing.assert_array_equal(result, [40, 100])
+
+
+def test_default_tolerance_is_a_fraction_of_the_length():
+    assert bocd.BOCDDetector().get_params()["tolerance"] == 0.01
+
+
+def test_guided_ensembling_groups_nearby_channel_boundaries_by_default(monkeypatch):
+    # Exact matching (tolerance 0) gives every boundary one vote, keeps the two
+    # earliest ones (100 and 104) and the spacing then leaves only 100.
+    locations = iter([np.array([100, 600]), np.array([104, 603]), np.array([350])])
+    monkeypatch.setattr(bocd.BOCDDetector, "_run_bocd", lambda *args: next(locations))
+    x = np.random.default_rng(0).normal(size=(1000, 3))
+    result = bocd.BOCDDetector(
+        multivariate_strategy="ensembling", max_cps=2
+    ).fit_predict(x)
+    assert len(result) == 2
+    assert abs(result[0] - 102) <= 2
+    assert abs(result[1] - 601) <= 2

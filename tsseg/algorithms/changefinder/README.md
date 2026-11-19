@@ -62,7 +62,7 @@ changes.
 | `threshold`              | float / None | `None`         | Minimum score for a peak (without `n_cps`). If `None`, uses `mean + threshold_factor*std` of the non-zero scores. |
 | `min_distance`           | int        | `10`             | Minimum number of samples between successive change points.                                      |
 | `multivariate_strategy`  | str        | `"l2"`           | Strategy for multivariate data: `"l2"` (L2 norm reduction) or `"ensembling"` (per-channel).      |
-| `tolerance`              | float      | `0`              | Tolerance for aggregating change points across channels (ensembling only).                       |
+| `tolerance`              | float      | `0.01`           | Tolerance for aggregating change points across channels (ensembling only).                       |
 | `axis`                   | int        | `0`              | Time axis.                                                                                       |
 
 ## Implementation
@@ -92,7 +92,8 @@ The implementation consists of two modules:
 - **Multivariate support:** For `"l2"`, the multivariate series is
   reduced to a univariate signal via L2 norm before the pipeline. For
   `"ensembling"`, the pipeline runs independently per channel and
-  change points are aggregated by temporal proximity.
+  change points are fused by the number of channels that detect one
+  within `tolerance` (see the `tolerance` docstring).
 
 ## Usage
 
