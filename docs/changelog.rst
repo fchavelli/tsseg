@@ -9,6 +9,13 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``TireDetector(domain="FD")`` no longer trains the time domain autoencoder,
+  whose features it discarded. Its outputs change at equal ``random_state``
+  (that training drew from the torch random stream before the frequency
+  domain autoencoder was initialised, so the time domain settings changed the
+  result) and it runs faster. ``domain="TD"`` and the default
+  ``domain="both"`` are unchanged.
+
 0.4.0 (2026-11-18)
 ------------------
 
