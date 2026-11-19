@@ -45,8 +45,14 @@ class _TireConfig:
 class TireDetector(BaseSegmenter):
     """TIRE (Time-Invariant Representation) change point detector.
 
-    The change score of every time step is the prominence of the dissimilarity
-    between consecutive learned representations, relative to the highest one.
+    Each channel is first rescaled to [-1, 1] on the whole series given to
+    ``predict`` (a constant channel is set to 0). Autoencoders learn the
+    representation of sliding windows in the time domain and, from the
+    modulus of the discrete Fourier transform of the window of each channel,
+    in the frequency domain; their shared features are smoothed by a
+    triangular moving average. The change score of every time step is the
+    prominence of the dissimilarity between consecutive learned
+    representations, relative to the highest one.
     With ``n_segments`` the ``n_segments - 1`` most prominent peaks are
     returned; otherwise every peak whose relative prominence reaches
     ``prominence_threshold``. Two returned peaks are at least
@@ -57,7 +63,8 @@ class TireDetector(BaseSegmenter):
     window_size : int, default=20
         Length of the sliding windows (at least 4, below the series length);
         also the lag between the two representations compared by the
-        dissimilarity and the half-width of the matched filter that smooths it.
+        dissimilarity and the half-width of the triangular filters that smooth
+        the representations and the dissimilarity.
     stride : int, default=1
         Step between consecutive windows, at most ``window_size``. The
         dissimilarity compares the windows starting at ``i * stride`` and
@@ -95,10 +102,14 @@ class TireDetector(BaseSegmenter):
     loss_weight_fd : float, default=1.0
         As ``loss_weight_td``, for the frequency domain.
     nfft : int, default=30
-        Number of points of the discrete Fourier transform of each window.
+        Number of points of the discrete Fourier transform of the window of
+        each channel, whose ``nfft // 2 + 1`` first bins are kept (``nfft //
+        2`` with ``norm_mode="window"``, which drops bin 0) and rescaled to
+        [-1, 1] channel by channel. A window longer than ``nfft`` is cut to
+        its first ``nfft`` points.
     norm_mode : {"window", "timeseries"}, default="timeseries"
-        Mean removed before the Fourier transform: that of each window, or
-        that of the whole series.
+        Mean removed before the Fourier transform, channel by channel: that
+        of each window, or that of the whole series.
     peak_distance_fraction : float, default=0.0
         Minimum distance between two returned peaks, as a fraction of the
         series length (``0``: no constraint).
@@ -126,7 +137,14 @@ class TireDetector(BaseSegmenter):
     -----
     ``fit`` only stores the series: the autoencoders are trained on ``X`` by
     ``predict``. ``change_scores_`` holds the change score of each time point
-    after ``predict``.
+    after ``predict``. A constant series (every channel constant) gives zero
+    scores and no change point, even with ``n_segments``.
+
+    The rescaling (§III-B of the paper), the Fourier transform of each channel
+    (eq. 3) and the smoothing of the representations in every domain (eq. 11)
+    follow the paper. The original code transforms the concatenated windows of
+    the channels, cut to ``nfft`` points, and leaves the rescaling to the
+    caller.
     """
 
     _tags = {
@@ -362,6 +380,26 @@ class TireDetector(BaseSegmenter):
         stacked = np.stack(windows_per_channel)
         return utils.combine_ts(stacked)
 
+    def _frequency_windows(self, windows_td: np.ndarray, n_channels: int) -> np.ndarray:
+        """DFT modulus of the window of each channel, concatenated (paper eq. 3).
+
+        ``windows_td`` holds the windows of the channels one after the other
+        (``_prepare_windows``); each channel is transformed, cut to
+        ``nfft // 2 + 1`` bins and rescaled on its own.
+        """
+        per_channel = windows_td.reshape(windows_td.shape[0], n_channels, -1)
+        return np.concatenate(
+            [
+                utils.calc_fft(
+                    per_channel[:, c, :],
+                    nfft=self.config.nfft,
+                    norm_mode=self.config.norm_mode,
+                )
+                for c in range(n_channels)
+            ],
+            axis=1,
+        )
+
     @staticmethod
     def _prepare_input_paes(windows: np.ndarray, nr_ae: int) -> np.ndarray:
         nr_windows = windows.shape[0]
@@ -467,9 +505,7 @@ class TireDetector(BaseSegmenter):
 
         features_fd = None
         if self.config.domain in {"FD", "both"}:
-            windows_fd = utils.calc_fft(
-                windows_td, nfft=self.config.nfft, norm_mode=self.config.norm_mode
-            )
+            windows_fd = self._frequency_windows(windows_td, X.shape[1])
             features_fd = self._train_autoencoder(
                 windows_fd,
                 self.config.intermediate_dim_fd,
@@ -484,9 +520,9 @@ class TireDetector(BaseSegmenter):
         features_td, features_fd = self._compute_latent_features(X)
 
         if self.config.domain == "TD":
-            distances = utils.distance(features_td, self.config.window_size)
+            features = features_td
         elif self.config.domain == "FD":
-            distances = utils.distance(features_fd, self.config.window_size)
+            features = features_fd
         else:
             beta = np.quantile(
                 utils.distance(features_td, self.config.window_size), 0.95
@@ -494,9 +530,11 @@ class TireDetector(BaseSegmenter):
             alpha = np.quantile(
                 utils.distance(features_fd, self.config.window_size), 0.95
             )
-            combined = np.concatenate((features_td * alpha, features_fd * beta), axis=1)
-            combined = utils.matched_filter(combined, self.config.window_size)
-            distances = utils.distance(combined, self.config.window_size)
+            features = np.concatenate((features_td * alpha, features_fd * beta), axis=1)
+        # Paper eq. 11 and the original code: the shared features are smoothed
+        # in every domain; the dissimilarity is smoothed below (eq. 14).
+        features = utils.matched_filter(features, self.config.window_size)
+        distances = utils.distance(features, self.config.window_size)
 
         distances = utils.matched_filter(distances, self.config.window_size)
         scores = utils.new_peak_prominences(distances)[0]
@@ -523,10 +561,27 @@ class TireDetector(BaseSegmenter):
         self._fit_data = np.asarray(X, dtype=float)
         return self
 
+    @staticmethod
+    def _rescale_channels(X: np.ndarray) -> np.ndarray:
+        """Map each channel to [-1, 1] on the whole series (paper §III-B).
+
+        A constant channel is set to 0.
+        """
+        low = X.min(axis=0)
+        span = X.max(axis=0) - low
+        varies = span > 0
+        scaled = 2 * (X - low) / np.where(varies, span, 1.0) - 1
+        return np.where(varies, scaled, 0.0)
+
     def _predict(self, X):
         X = np.asarray(X, dtype=float)
         if X.ndim == 1:
             X = X[:, np.newaxis]
+        if not np.any(np.ptp(X, axis=0) > 0):
+            # A constant series has nothing to detect, whatever ``n_segments``.
+            self.change_scores_ = np.zeros(X.shape[0])
+            return np.empty(0, dtype=int)
+        X = self._rescale_channels(X)
         scores = self._run_pipeline(X)
         self.change_scores_ = scores
         distance = max(1, int(round(self.peak_distance_fraction * X.shape[0])))
