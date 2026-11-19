@@ -15,6 +15,13 @@ this curve indicate change points: the ``n_segments - 1`` most prominent ones
 when ``n_segments`` is given, otherwise every peak whose prominence, relative
 to the highest one, reaches ``prominence_threshold``.
 
+Each channel is rescaled to :math:`[-1, 1]` on the whole series before the
+windows are cut (a constant channel is set to 0; a constant series has no
+change point). The frequency domain input of a window is the modulus of the
+discrete Fourier transform of each channel, rescaled channel by channel and
+concatenated. The shared features are smoothed by a triangular moving average
+in every domain before the dissimilarity is computed.
+
 By tuning the loss weights and latent dimensions for each domain you can
 control whether the detector focuses on amplitude changes (TD) or spectral
 changes (FD) or both.
@@ -92,11 +99,12 @@ Parameters
    * - ``nfft``
      - int
      - ``30``
-     - FFT size for frequency-domain windows.
+     - DFT size of the window of each channel (longer windows are cut).
    * - ``norm_mode``
      - str
      - ``"timeseries"``
-     - Normalisation scope (``"window"`` or ``"timeseries"``).
+     - Mean removed before the DFT, per channel: of each window (``"window"``)
+       or of the series (``"timeseries"``).
    * - ``peak_distance_fraction``
      - float
      - ``0.0``
@@ -148,12 +156,17 @@ autoencoders and their training follow ``TIRE.py``, and the helpers of
 ``tsseg.algorithms.tire.utils`` are copied from its ``utils.py``.  No licence
 found in the original repository.  The original code returns a change score
 per time step; picking change points from it (``n_segments``,
-``prominence_threshold``) is specific to tsseg.  *Origin: reimplemented from
+``prominence_threshold``) is specific to tsseg.  On multivariate series tsseg
+follows the paper where the original code does not: it transforms the window
+of each channel (eq. 3) instead of the concatenated windows cut to ``nfft``
+points, and it rescales each channel (§III-B) instead of leaving this to the
+caller.  *Origin: reimplemented from
 the original code.*
 
-**Reference:** De Ryck, De Vos, Bertrand & Verhoest (2021), *Change Point
-Detection in Time Series Data Using Autoencoders with a Time-Invariant
-Representation*, IEEE TSIPN.
+**Reference:** De Ryck, De Vos & Bertrand (2021), *Change Point Detection in
+Time Series Data Using Autoencoders with a Time-Invariant Representation*,
+IEEE Transactions on Signal Processing, doi:10.1109/TSP.2021.3087031
+(`arXiv:2008.09524 <https://arxiv.org/abs/2008.09524>`_).
 
 API reference
 -------------

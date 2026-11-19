@@ -9,6 +9,26 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``TireDetector`` now follows the paper (De Ryck et al. 2021) on three
+  points, so its outputs change in every domain, including the default
+  ``domain="both"``, and earlier TIRE scores need to be recomputed:
+
+  - each channel is rescaled to [-1, 1] on the whole series before the
+    windows are cut (§III-B). The time domain autoencoders received the raw
+    values, out of reach of their ``tanh`` output on unnormalised data, and
+    channels of larger amplitude weighed more. A constant channel is set to
+    0. A constant series still gives zero scores and no change point, even
+    with ``n_segments``, now without training the autoencoders (its frequency
+    features were NaN);
+  - on multivariate series the frequency domain input is the Fourier
+    transform of the window of each channel, rescaled channel by channel and
+    concatenated (eq. 3). The concatenated windows were transformed with
+    ``nfft`` points, which cut them: with the defaults (``window_size=20``,
+    ``nfft=30``) only the first channel and ten points of the second were
+    seen. Univariate frequency features are unchanged;
+  - the shared features are smoothed by the triangular moving average in the
+    ``"TD"`` and ``"FD"`` domains too, not only in ``"both"`` (eq. 11, as in
+    the original code).
 * Change the default ``tolerance`` of ``ChangeFinderDetector`` and
   ``BOCDDetector`` from ``0`` to ``0.01`` (1% of the series length), as
   ``FLUSSDetector`` and the default margin of ``F1Score``. The tolerance only
