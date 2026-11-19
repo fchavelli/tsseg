@@ -163,9 +163,10 @@ points, and it rescales each channel (§III-B) instead of leaving this to the
 caller.  *Origin: reimplemented from
 the original code.*
 
-**Reference:** De Ryck, De Vos, Bertrand & Verhoest (2021), *Change Point
-Detection in Time Series Data Using Autoencoders with a Time-Invariant
-Representation*, IEEE TSIPN.
+**Reference:** De Ryck, De Vos & Bertrand (2021), *Change Point Detection in
+Time Series Data Using Autoencoders with a Time-Invariant Representation*,
+IEEE Transactions on Signal Processing, doi:10.1109/TSP.2021.3087031
+(`arXiv:2008.09524 <https://arxiv.org/abs/2008.09524>`_).
 
 API reference
 -------------
