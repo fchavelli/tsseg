@@ -16,7 +16,7 @@ from ..param_schema import (
     StrOptions,
 )
 from ..utils import (
-    aggregate_change_points,
+    _fuse_channel_change_points,
     consensus_change_points,
     multivariate_l2_norm,
 )
@@ -50,7 +50,11 @@ class FLUSSDetector(BaseSegmenter):
     multivariate_strategy : str, default="ensembling"
         Strategy for handling multivariate data: "ensembling" or "l2".
     tolerance : int or float, default=0.01
-        Tolerance for aggregating change points in ensembling strategy; a float
+        Ensembling strategy only: a change point of a channel is supported by
+        every channel with a change point within ``tolerance`` samples; change
+        points are taken by decreasing support, then by closeness of the
+        supporting channels, and one within ``tolerance`` of a change point
+        already taken is dropped (at most ``n_segments - 1`` of them). A float
         below 1 is a fraction of the series length.
     threshold : float, default=0.5
         Used when ``n_segments`` is ``None``: the regime extraction of FLUSS
@@ -59,10 +63,8 @@ class FLUSSDetector(BaseSegmenter):
         ``threshold`` (the online variant FLOSS flags a regime change the same
         way, when the CAC drops below a threshold).
     consensus : float, default=0.0
-        Ensembling with ``n_segments=None``: the change points of the channels
-        that lie within ``tolerance`` of each other are merged into one,
-        returned if at least ``consensus`` of the channels (one at least)
-        detected it.
+        Ensembling with ``n_segments=None``: a change point is returned only if
+        at least ``consensus`` of the channels (one at least) support it.
     normalize : bool, default=True
         ``True``: the matrix profile compares z-normalized subsequences, as in
         the FLUSS paper, so only the shape of a window counts and a change in
@@ -205,26 +207,18 @@ class FLUSSDetector(BaseSegmenter):
         signal_len, dim = X.shape
 
         if dim > 1 and self.multivariate_strategy == "ensembling":
-            all_detected_indices = []
-            per_channel = []
-            # Ensembling: run FLUSS on each dimension
-            for d in range(dim):
-                dim_values = X[:, d]
-                cps, _, _ = self._run_fluss(dim_values)
-                all_detected_indices.extend(cps)
-                per_channel.append(cps)
-
-            # Aggregate results
-            # Note: n_segments = n_changepoints + 1 (roughly), but FLUSS returns indices.
-            # We want n_segments - 1 change points.
+            # Ensembling: run FLUSS on each dimension, then fuse the change
+            # points channel by channel (at most n_segments - 1 when guided).
+            per_channel = [self._run_fluss(X[:, d])[0] for d in range(dim)]
             if self.n_segments is None:
                 self.found_cps = consensus_change_points(
                     per_channel, self._tolerance_samples(signal_len), self.consensus
                 )
             else:
-                n_cp = self.n_segments - 1
-                self.found_cps = aggregate_change_points(
-                    all_detected_indices, n_cp, self.tolerance, signal_len=signal_len
+                self.found_cps = _fuse_channel_change_points(
+                    per_channel,
+                    self._tolerance_samples(signal_len),
+                    n_cp=self.n_segments - 1,
                 )
 
             # For profiles/scores in multivariate case, it's ambiguous.
