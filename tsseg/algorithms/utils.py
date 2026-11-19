@@ -1,4 +1,5 @@
 import math
+from bisect import bisect_left, insort
 from collections import Counter
 
 import numpy as np
@@ -21,6 +22,94 @@ def multivariate_l2_norm(signal: np.ndarray) -> np.ndarray:
     if signal.ndim == 1:
         return signal
     return np.linalg.norm(signal, axis=1)
+
+
+def _tolerance_samples(tolerance: int | float, signal_len: int | None) -> int:
+    """Tolerance in samples: a float below 1 is a fraction of ``signal_len``."""
+    if isinstance(tolerance, float) and tolerance < 1.0:
+        if signal_len is None:
+            raise ValueError(
+                "signal_len must be provided when tolerance is a fraction."
+            )
+        return int(tolerance * signal_len)
+    return int(tolerance)
+
+
+def _fuse_channel_change_points(
+    per_channel: list,
+    tolerance: int,
+    n_cp: int | None = None,
+    consensus: float = 0.0,
+) -> np.ndarray:
+    """Fuse the change points detected on each channel.
+
+    Every observed change point is a candidate. A channel supports a candidate
+    ``x`` if one of its change points lies at most ``tolerance`` samples from
+    ``x``; the support of ``x`` is the number of supporting channels, so
+    several points of one channel are a single vote. Candidates are ranked by
+    support, then by strength ``sum over supporting channels of
+    (tolerance + 1 - distance to the nearest point)``, then by position, and
+    elected greedily: a candidate at most ``tolerance`` samples from an
+    elected one is discarded. Elected indices are observed ones; points are
+    never chained into clusters nor replaced by a median.
+
+    Parameters
+    ----------
+    per_channel : list of array-like
+        Change points detected on each channel, one entry per channel (empty
+        channels included).
+    tolerance : int
+        Distance, in samples, at which a channel supports a candidate and two
+        elected change points exclude each other. ``0`` is an exact vote.
+    n_cp : int, optional
+        Maximum number of change points returned. ``None`` keeps every
+        elected candidate. The greedy election may return fewer than
+        ``n_cp`` change points even when ``n_cp`` compatible candidates exist.
+    consensus : float, default=0.0
+        Fraction of the channels, in [0, 1], that must support a candidate:
+        at least ``max(1, ceil(consensus * n_channels))`` channels.
+
+    Returns
+    -------
+    np.ndarray
+        Sorted array of change point indices (``int64``).
+    """
+    tolerance = int(tolerance)
+    if tolerance < 0:
+        raise ValueError(f"tolerance must be non-negative, got {tolerance}.")
+    channels = [np.unique(np.asarray(cps, dtype=np.int64)) for cps in per_channel]
+    channels_with_points = [cps for cps in channels if cps.size]
+    if not channels_with_points or (n_cp is not None and n_cp <= 0):
+        return np.empty(0, dtype=np.int64)
+
+    candidates = np.unique(np.concatenate(channels_with_points))
+    support = np.zeros(candidates.size, dtype=np.int64)
+    strength = np.zeros(candidates.size, dtype=np.int64)
+    for cps in channels_with_points:
+        right = np.searchsorted(cps, candidates)
+        after = cps[np.minimum(right, cps.size - 1)]
+        before = cps[np.maximum(right - 1, 0)]
+        distance = np.minimum(np.abs(after - candidates), np.abs(candidates - before))
+        near = distance <= tolerance
+        support += near
+        strength += np.where(near, tolerance + 1 - distance, 0)
+
+    needed = max(1, math.ceil(consensus * len(channels) - 1e-9))
+    keep = support >= needed
+    candidates, support, strength = candidates[keep], support[keep], strength[keep]
+
+    selected: list[int] = []
+    for idx in np.lexsort((candidates, -strength, -support)):
+        if n_cp is not None and len(selected) >= n_cp:
+            break
+        x = int(candidates[idx])
+        pos = bisect_left(selected, x)
+        if pos < len(selected) and selected[pos] - x <= tolerance:
+            continue
+        if pos > 0 and x - selected[pos - 1] <= tolerance:
+            continue
+        insort(selected, x)
+    return np.asarray(selected, dtype=np.int64)
 
 
 def aggregate_change_points(
@@ -54,16 +143,7 @@ def aggregate_change_points(
 
     all_cps = sorted(all_cps)
 
-    # Resolve tolerance
-    tol_val = 0
-    if isinstance(tolerance, float) and tolerance < 1.0:
-        if signal_len is None:
-            raise ValueError(
-                "signal_len must be provided when tolerance is a fraction."
-            )
-        tol_val = int(tolerance * signal_len)
-    else:
-        tol_val = int(tolerance)
+    tol_val = _tolerance_samples(tolerance, signal_len)
 
     if tol_val == 0:
         # Exact matching
@@ -109,17 +189,20 @@ def consensus_change_points(
 ) -> np.ndarray:
     """Change points detected by enough channels, without a target count.
 
-    The change points of all channels are chained into clusters (two
-    successive points at most ``tolerance`` samples apart). A cluster is kept
-    if it holds change points of at least ``ceil(consensus * n_channels)``
-    distinct channels (one at least) and is returned as its median.
+    Every observed change point is a candidate, supported by each channel
+    with a change point at most ``tolerance`` samples away. A candidate is
+    kept if at least ``ceil(consensus * n_channels)`` distinct channels (one
+    at least) support it, then candidates are elected greedily by support,
+    strength and position, an elected change point discarding the candidates
+    at most ``tolerance`` samples away. The returned indices are observed
+    ones (see ``_fuse_channel_change_points``).
 
     Parameters
     ----------
     per_channel : list of array-like
         Change points detected on each channel, one entry per channel.
     tolerance : int
-        Maximum gap, in samples, between two successive points of a cluster.
+        Distance, in samples, at which a channel supports a candidate.
     consensus : float
         Fraction of the channels, in [0, 1], that must support a change point.
 
@@ -128,20 +211,7 @@ def consensus_change_points(
     np.ndarray
         Sorted array of change point indices.
     """
-    points = sorted((int(cp), ch) for ch, cps in enumerate(per_channel) for cp in cps)
-    if not points:
-        return np.empty(0, dtype=np.int64)
-    needed = max(1, math.ceil(consensus * len(per_channel) - 1e-9))
-    selected: list[int] = []
-    cluster = [points[0]]
-    for point in points[1:] + [None]:
-        if point is not None and point[0] - cluster[-1][0] <= tolerance:
-            cluster.append(point)
-            continue
-        if len({ch for _, ch in cluster}) >= needed:
-            selected.append(int(np.median([cp for cp, _ in cluster])))
-        cluster = [point] if point is not None else []
-    return np.asarray(sorted(set(selected)), dtype=np.int64)
+    return _fuse_channel_change_points(per_channel, tolerance, consensus=consensus)
 
 
 def create_state_labels(changepoints, n_timepoints):

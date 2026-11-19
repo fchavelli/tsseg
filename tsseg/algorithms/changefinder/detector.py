@@ -28,7 +28,8 @@ from ..param_schema import (
     StrOptions,
 )
 from ..utils import (
-    aggregate_change_points,
+    _fuse_channel_change_points,
+    _tolerance_samples,
     consensus_change_points,
     multivariate_l2_norm,
 )
@@ -81,15 +82,18 @@ class ChangeFinderDetector(BaseSegmenter):
         via L2 norm; ``"ensembling"`` runs independently per channel and
         aggregates.
     tolerance : int or float, default=0
-        Tolerance for aggregating change points across channels (ensembling
-        strategy only); a float below 1 is a fraction of the series length.
-        Without ``n_cps``, 0 means the minimum distance between change points.
+        Ensembling strategy only: a change point of a channel is supported by
+        every channel with a change point within ``tolerance`` samples; change
+        points are taken by decreasing support, then by closeness of the
+        supporting channels, and one within ``tolerance`` of a change point
+        already taken is dropped. A float below 1 is a fraction of the series
+        length. With ``n_cps``, 0 counts identical indices only; without
+        ``n_cps``, 0 means the minimum distance between change points.
     consensus : float, default=0.0
-        Ensembling without ``n_cps``: the change points of the channels that
-        lie within ``tolerance`` of each other are merged into one, returned if
-        at least ``consensus`` of the channels (one at least) detected it.
-        With ``n_cps``, the ``n_cps`` change points detected by the most
-        channels are returned instead.
+        Ensembling without ``n_cps``: a change point is returned only if at
+        least ``consensus`` of the channels (one at least) support it. With
+        ``n_cps``, at most ``n_cps`` change points, the best supported ones,
+        are returned instead (fewer if the dropped ones leave too few).
     axis : int, default=0
         Time axis.
 
@@ -372,14 +376,10 @@ class ChangeFinderDetector(BaseSegmenter):
         if self.n_cps is None:
             return self._consensus_change_points(per_channel, n_samples)
 
-        all_cps = [int(cp) for cps in per_channel for cp in cps]
-        if not all_cps:
-            return np.empty(0, dtype=np.int64)
-        return aggregate_change_points(
-            all_cps,
+        return _fuse_channel_change_points(
+            per_channel,
+            _tolerance_samples(self.tolerance, n_samples),
             n_cp=self.n_cps,
-            tolerance=self.tolerance,
-            signal_len=n_samples,
         )
 
     def _consensus_change_points(
