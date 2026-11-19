@@ -19,7 +19,11 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
-from ..utils import aggregate_change_points, multivariate_l2_norm
+from ..utils import (
+    _fuse_channel_change_points,
+    _tolerance_samples,
+    multivariate_l2_norm,
+)
 
 
 class BOCDDetector(BaseSegmenter):
@@ -64,7 +68,7 @@ class BOCDDetector(BaseSegmenter):
         - ``"l2"`` – reduce to univariate via L2 norm across channels.
         - ``"ensembling"`` – run BOCD independently on each channel and
           aggregate the detected change points.
-    tolerance : int | float, default=0
+    tolerance : int | float, default=0.01
         Tolerance for aggregating change points in the ensembling strategy.
         If a float in ``(0, 1)`` it is interpreted as a fraction of the
         signal length.
@@ -172,7 +176,7 @@ class BOCDDetector(BaseSegmenter):
         min_distance: int = 25,
         max_cps: int | None = None,
         multivariate_strategy: str = "native",
-        tolerance: int | float = 0,
+        tolerance: int | float = 0.01,
         axis: int = 0,
         *,
         decoding: str = "map",
@@ -230,21 +234,11 @@ class BOCDDetector(BaseSegmenter):
     def _predict_ensembling(self, data: np.ndarray) -> np.ndarray:
         """Run BOCD independently on each channel and aggregate results."""
         n_samples, n_channels = data.shape
-        all_cps: list[int] = []
-
-        for d in range(n_channels):
-            cps = self._run_bocd(data[:, d], n_samples)
-            all_cps.extend(cps.tolist())
-
-        if not all_cps:
-            return np.empty(0, dtype=np.int64)
-
-        n_cp = self.max_cps if self.max_cps is not None else len(all_cps)
-        candidates = aggregate_change_points(
-            all_cps,
-            n_cp=n_cp,
-            tolerance=self.tolerance,
-            signal_len=n_samples,
+        per_channel = [self._run_bocd(data[:, d], n_samples) for d in range(n_channels)]
+        candidates = _fuse_channel_change_points(
+            per_channel,
+            _tolerance_samples(self.tolerance, n_samples),
+            n_cp=self.max_cps,
         )
         # Per-channel spacing does not by itself space the union of channels.
         selected: list[int] = []

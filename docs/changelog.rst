@@ -18,6 +18,42 @@ Unreleased
   and ``consensus`` are not used. Opt-in: the default (``"ensembling"``) and
   the other strategies keep their outputs, and univariate series ignore the
   strategy.
+* Change the default ``tolerance`` of ``ChangeFinderDetector`` and
+  ``BOCDDetector`` from ``0`` to ``0.01`` (1% of the series length), as
+  ``FLUSSDetector`` and the default margin of ``F1Score``. The tolerance only
+  acts with ``multivariate_strategy="ensembling"``: with ``0``, only identical
+  indices of different channels were grouped, so a change seen a few samples
+  apart by several channels got one vote per channel and a guided run
+  (``n_cps`` or ``max_cps``) kept the earliest change points
+  (channel change points ``[100, 600]``, ``[104, 603]`` and ``[350]`` on 1000
+  samples with two change points asked for gave ``[100, 104]``, now one change
+  point near 100 and one near 600). Without ``n_cps``, ChangeFinder ensembling
+  used ``min_distance`` as the tolerance and now uses 1% of the length.
+  Ensembling outputs change and earlier ensembling scores need to be
+  recomputed; the default strategies (``"l2"`` for ChangeFinder, ``"native"``
+  for BOCD) are not affected. An explicit ``tolerance=0`` keeps the previous
+  outputs, and so does a series shorter than 100 samples, where 1% rounds down
+  to 0 samples.
+* Fix the fusion of the per-channel change points of
+  ``multivariate_strategy="ensembling"`` (``BOCDDetector``, ``BeastDetector``,
+  ``FLUSSDetector``, ``ChangeFinderDetector``). The change points of all
+  channels were pooled into one list, so several points of a single channel
+  outvoted channels that agree, and points closer than ``tolerance`` to the
+  previous one were chained into one cluster returned as its median, possibly
+  an index detected by no channel (``[10, 14, 18, 22]`` on four channels with
+  ``tolerance=4`` gave ``[16]``). Each observed change point is now supported
+  by the channels with a change point within ``tolerance``; change points are
+  taken by decreasing support, then by closeness of the supporting channels,
+  and one within ``tolerance`` of a change point already taken is dropped. The
+  number of change points asked for is an upper bound: fewer are returned
+  when the dropped candidates leave too few. ``consensus_change_points``
+  applies the same rule. With ``tolerance=0`` (the default of BOCD, BEAST and
+  ChangeFinder with ``n_cps``) outputs are unchanged; otherwise ensembling
+  outputs change and earlier scores need to be recomputed. The default
+  strategies (``"native"``, ``"l2"``) are not affected, except FLUSS, whose
+  default is ``"ensembling"`` with ``tolerance=0.01``.
+  ``aggregate_change_points`` is unchanged and no longer used by the
+  detectors.
 
 0.4.0 (2026-11-18)
 ------------------

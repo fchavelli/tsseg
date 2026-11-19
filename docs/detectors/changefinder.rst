@@ -91,7 +91,7 @@ Parameters
      - ``"l2"`` (reduce via L2 norm) or ``"ensembling"`` (per-channel).
    * - ``tolerance``
      - float
-     - ``0``
+     - ``0.01``
      - Tolerance for aggregating change points in ensembling mode (a float
        below 1 is a fraction of the length; without ``n_cps``, 0 means the
        minimum distance).
