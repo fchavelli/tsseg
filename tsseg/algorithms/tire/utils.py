@@ -127,7 +127,8 @@ def calc_fft(windows, nfft=30, norm_mode="timeseries"):
         norm_mode: ensure that the timeseries / each window has zero mean
 
     Returns:
-        frequency domain windows, each window having size nfft//2 (+1 for timeseries normalization)
+        frequency domain windows, each window having size nfft//2 (+1 for timeseries normalization),
+        rescaled to [-1, 1] (all zero when the spectrum is constant)
     """
     mean_per_segment = np.mean(windows, axis=-1)
     mean_all = np.mean(mean_per_segment, axis=0)
@@ -141,6 +142,9 @@ def calc_fft(windows, nfft=30, norm_mode="timeseries"):
 
     fft_max = np.amax(windows_fft)
     fft_min = np.amin(windows_fft)
+    if fft_max == fft_min:
+        # constant spectrum (a constant channel): no information, mapped to 0
+        return np.zeros_like(windows_fft)
 
     windows_fft = 2 * (windows_fft - fft_min) / (fft_max - fft_min) - 1
 
