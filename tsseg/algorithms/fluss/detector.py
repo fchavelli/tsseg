@@ -48,7 +48,12 @@ class FLUSSDetector(BaseSegmenter):
     axis : int, default=0
         The time axis of ``X``: ``0`` if time points are rows.
     multivariate_strategy : str, default="ensembling"
-        Strategy for handling multivariate data: "ensembling" or "l2".
+        Strategy for handling multivariate data. ``"ensembling"``: FLUSS on
+        each channel, then a vote on the change points of the channels.
+        ``"l2"``: FLUSS on the L2 norm of the channels. ``"cac_mean"``: the
+        mean of the corrected arc curves of the channels (the multivariate
+        FLUSS of [2]_), then one regime extraction on that curve; ``tolerance``
+        and ``consensus`` are not used. Univariate series ignore it.
     tolerance : int or float, default=0.01
         Ensembling strategy only: a change point of a channel is supported by
         every channel with a change point within ``tolerance`` samples; change
@@ -74,12 +79,29 @@ class FLUSSDetector(BaseSegmenter):
         ``n_segments=None`` needs a lower ``threshold``. Passed to
         ``stumpy.stump``.
 
+    Notes
+    -----
+    With ``multivariate_strategy="cac_mean"``, each channel gets its matrix
+    profile (same ``window_size`` and ``normalize``) and its corrected arc
+    curve, of length ``n - window_size + 1``; the curve of the series is
+    their arithmetic mean, without rescaling (each is already in [0, 1], at 1
+    in the masked margins). Change points are read off it as from a
+    univariate curve: at most ``n_segments - 1`` minima below 1, or the minima
+    below ``threshold`` with ``n_segments=None``. ``profile`` holds the mean
+    curve and ``scores`` its values at the change points. A change seen by a
+    few channels only is diluted by the others; ``threshold`` keeps its
+    univariate default, not tuned for the mean curve.
+
     References
     ----------
     .. [1] Gharghabi S, Ding Y, Yeh C-CM, Kamgar K, Ulanova L, Keogh E. Matrix
        Profile VIII: Domain Agnostic Online Semantic Segmentation at Superhuman
        Performance Levels. In: 2017 IEEE International Conference on Data Mining
        (ICDM). IEEE; 2017. p. 117-26.
+    .. [2] Gharghabi S, Yeh C-CM, Ding Y, Ding W, Hibbing P, LaMunion S, Kaplan
+       A, Crouter SE, Keogh E. Domain agnostic online semantic segmentation for
+       multi-dimensional time series. Data Mining and Knowledge Discovery,
+       33(1):96-130, 2019 (section 3.4).
 
     Examples
     --------
@@ -119,7 +141,7 @@ class FLUSSDetector(BaseSegmenter):
             description="Multiplier for segment exclusion zone.",
         ),
         "multivariate_strategy": ParamDef(
-            constraint=StrOptions({"ensembling", "l2"}),
+            constraint=StrOptions({"ensembling", "l2", "cac_mean"}),
             description="Strategy for multivariate data.",
         ),
         "tolerance": ParamDef(
@@ -206,7 +228,22 @@ class FLUSSDetector(BaseSegmenter):
 
         signal_len, dim = X.shape
 
-        if dim > 1 and self.multivariate_strategy == "ensembling":
+        if dim > 1 and self.multivariate_strategy == "cac_mean":
+            # Mean of the corrected arc curves of the channels (Gharghabi et
+            # al. 2019, section 3.4), summed one channel at a time.
+            cac = self._corrected_arc_curve(X[:, 0])
+            for d in range(1, dim):
+                cac += self._corrected_arc_curve(X[:, d])
+            cac /= dim
+            if self.n_segments is None:
+                self.found_cps = self._threshold_regimes(cac)
+            else:
+                self.found_cps = self._threshold_regimes(cac, self.n_segments - 1)
+            self.profile = cac
+            self.profiles = cac
+            self.scores = cac[self.found_cps]
+
+        elif dim > 1 and self.multivariate_strategy == "ensembling":
             # Ensembling: run FLUSS on each dimension, then fuse the change
             # points channel by channel (at most n_segments - 1 when guided).
             per_channel = [self._run_fluss(X[:, d])[0] for d in range(dim)]
@@ -260,6 +297,19 @@ class FLUSSDetector(BaseSegmenter):
             return int(self.tolerance * signal_len)
         return int(self.tolerance)
 
+    def _corrected_arc_curve(self, x):
+        """Corrected arc curve of one channel, as computed by ``_run_fluss``."""
+        import stumpy  # optional: checked at construction
+
+        mp = stumpy.stump(x, m=self.window_size, normalize=self.normalize)
+        cac, _ = stumpy.fluss(
+            mp[:, 1],
+            L=self.window_size,
+            excl_factor=self.exclusion_factor,
+            n_regimes=1,
+        )
+        return cac
+
     def _run_fluss(self, X):
         import stumpy  # optional: checked at construction
 
@@ -291,20 +341,26 @@ class FLUSSDetector(BaseSegmenter):
 
         return self.found_cps, self.profile, self.scores
 
-    def _threshold_regimes(self, cac: np.ndarray) -> np.ndarray:
+    def _threshold_regimes(
+        self, cac: np.ndarray, n_cps: int | None = None
+    ) -> np.ndarray:
         """Regime extraction (REA) of FLUSS, stopped by ``threshold``.
 
         As ``stumpy.fluss`` with a known number of regimes: take the lowest
         point of the corrected arc curve, mask ``exclusion_factor *
         window_size`` samples on each side, repeat; here, while the lowest
         point is below ``threshold`` instead of a fixed number of times.
+        With ``n_cps``: at most ``n_cps`` points, while the lowest point is
+        below 1, which is ``stumpy.fluss`` with ``n_cps + 1`` regimes once
+        the points it takes on a flat curve are dropped (as ``_run_fluss``).
         """
         cac = np.array(cac, dtype=float, copy=True)
         zone = self.exclusion_factor * self.window_size
+        stop = self.threshold if n_cps is None else 1.0
         locs = []
-        while cac.size:
+        while cac.size and (n_cps is None or len(locs) < n_cps):
             loc = int(np.argmin(cac))
-            if cac[loc] >= self.threshold:
+            if cac[loc] >= stop:
                 break
             locs.append(loc)
             cac[max(loc - zone, 0) : min(loc + zone, cac.shape[0])] = 1.0

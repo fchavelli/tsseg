@@ -14,7 +14,11 @@ boundaries at the valleys of this curve.
 ## Implementation
 
 Wrapper around the `stumpy` library's FLUSS implementation. The detector
-handles multivariate input by applying FLUSS per channel and aggregating.
+handles multivariate input by applying FLUSS per channel and aggregating the
+change points (`multivariate_strategy="ensembling"`, default), by applying it
+to the L2 norm of the channels (`"l2"`), or by averaging the corrected arc
+curves of the channels before extracting the change points (`"cac_mean"`,
+the multivariate FLUSS of Gharghabi et al. 2019, section 3.4).
 
 - Origin: wrapper around stumpy
 - Licence: BSD 3-Clause (stumpy, https://github.com/TDAmeritrade/stumpy)
@@ -30,5 +34,19 @@ handles multivariate input by applying FLUSS per channel and aggregating.
   booktitle = {IEEE International Conference on Data Mining (ICDM)},
   pages     = {117--126},
   year      = {2017}
+}
+
+@article{gharghabi2019domain,
+  title   = {Domain Agnostic Online Semantic Segmentation for
+             Multi-Dimensional Time Series},
+  author  = {Gharghabi, Shaghayegh and Yeh, Chin-Chia Michael and Ding, Yifei
+             and Ding, Wei and Hibbing, Paul and LaMunion, Samuel and Kaplan,
+             Andrew and Crouter, Scott E. and Keogh, Eamonn},
+  journal = {Data Mining and Knowledge Discovery},
+  volume  = {33},
+  number  = {1},
+  pages   = {96--130},
+  year    = {2019},
+  doi     = {10.1007/s10618-018-0589-3}
 }
 ```

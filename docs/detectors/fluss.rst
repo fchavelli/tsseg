@@ -30,9 +30,21 @@ the corrected arc curve is low over whole segments, not only at the change
 points: without ``n_segments``, the default ``threshold=0.5`` returns twelve
 change points there, ``threshold=0.1`` the two true ones.
 
+On a multivariate series, ``multivariate_strategy`` chooses how the channels
+are combined: ``"ensembling"`` (default) runs FLUSS on each channel and votes
+on their change points, ``"l2"`` runs it on the L2 norm of the channels, and
+``"cac_mean"`` averages the corrected arc curves of the channels, then
+extracts the change points from that mean curve as from a univariate one.
+The mean is the multivariate FLUSS of Gharghabi et al. (2019, section 3.4).
+Each curve is already in [0, 1], so no rescaling is applied; ``profile``
+holds the mean curve. A change seen by a few channels only is diluted by the
+others, and ``threshold`` keeps its univariate default, not tuned for the
+mean curve.
+
 | **Type:** change point detection
 | **Supervision:** semi-supervised or unsupervised
-| **Scope:** univariate (multivariate via ensembling)
+| **Scope:** univariate (multivariate via ensembling, the L2 norm or the
+  mean corrected arc curve)
 | **Complexity:** :math:`O(d\,n^{2})`: one matrix profile per channel
   (``stumpy.stump``)
 | **Requires:** stumpy (``pip install tsseg[fluss]``)
@@ -65,11 +77,14 @@ Parameters
    * - ``multivariate_strategy``
      - str
      - ``"ensembling"``
-     - Strategy for multivariate inputs (``"ensembling"``).
+     - Strategy for multivariate inputs: ``"ensembling"`` (vote on the
+       change points of the channels), ``"l2"`` (L2 norm of the channels) or
+       ``"cac_mean"`` (mean of the corrected arc curves of the channels).
    * - ``tolerance``
      - float
      - ``0.01``
-     - Tolerance for aggregating change points.
+     - Ensembling: tolerance for aggregating change points (a float below 1
+       is a fraction of the series length).
    * - ``threshold``
      - float
      - ``0.5``
