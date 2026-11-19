@@ -75,7 +75,10 @@ class TireDetector(BaseSegmenter):
     domain : {"TD", "FD", "both"}, default="both"
         Representations learned in the time domain (``"TD"``), the frequency
         domain (``"FD"``) or both, concatenated with weights that equalise
-        the 95th percentiles of their dissimilarities.
+        the 95th percentiles of their dissimilarities. Only the autoencoders
+        of the chosen domain are trained: the ``*_td`` parameters are unused
+        with ``"FD"``, the ``*_fd`` ones, ``nfft`` and ``norm_mode`` with
+        ``"TD"``.
     intermediate_dim_td : int, default=0
         Width of the hidden layer of each time domain autoencoder; ``0``
         means no hidden layer.
@@ -492,16 +495,27 @@ class TireDetector(BaseSegmenter):
             combined = np.concatenate((combined, pad), axis=0)
         return combined
 
-    def _compute_latent_features(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def _compute_latent_features(
+        self, X: np.ndarray
+    ) -> tuple[np.ndarray | None, np.ndarray | None]:
+        """Shared features of the domains in use, ``None`` for the other one.
+
+        Only the autoencoders of ``domain`` are trained: with ``"FD"``, a time
+        domain autoencoder would be discarded after drawing from the torch
+        random stream before the frequency domain one is initialised.
+        """
         windows_td = self._prepare_windows(X)
-        features_td = self._train_autoencoder(
-            windows_td,
-            self.config.intermediate_dim_td,
-            self.config.latent_dim_td,
-            self.config.nr_shared_td,
-            self.config.nr_ae_td,
-            self.config.loss_weight_td,
-        )
+
+        features_td = None
+        if self.config.domain in {"TD", "both"}:
+            features_td = self._train_autoencoder(
+                windows_td,
+                self.config.intermediate_dim_td,
+                self.config.latent_dim_td,
+                self.config.nr_shared_td,
+                self.config.nr_ae_td,
+                self.config.loss_weight_td,
+            )
 
         features_fd = None
         if self.config.domain in {"FD", "both"}:

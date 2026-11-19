@@ -181,11 +181,12 @@ def test_frequency_windows_are_the_dft_of_each_channel(monkeypatch):
     """Eq. 3: one DFT per channel, then concatenation (defaults w=20, nfft=30).
 
     The DFT of the concatenated windows, cut to ``nfft`` points, saw channel 0
-    and ten points of channel 1 only.
+    and ten points of channel 1 only. ``"both"`` exposes the time domain windows
+    to the recorder; the frequency domain inputs are the same as with ``"FD"``.
     """
     seen = _record_training(monkeypatch)
     x = _multichannel()
-    det = TireDetector(domain="FD", random_state=0)
+    det = TireDetector(domain="both", random_state=0)
     det.fit_predict(x)
     td, fd = seen
     w, nfft = det.window_size, det.nfft
@@ -210,7 +211,8 @@ def test_the_last_channel_reaches_the_frequency_features(monkeypatch):
     det.fit_predict(x)
     det.fit_predict(changed)
     n_bins = det.nfft // 2 + 1
-    before, after = seen[1], seen[3]
+    # "FD" trains the frequency domain autoencoder only: one input per fit
+    before, after = seen
     # only the features of the last channel change
     np.testing.assert_array_equal(after[:, : 3 * n_bins], before[:, : 3 * n_bins])
     assert not np.allclose(after[:, 3 * n_bins :], before[:, 3 * n_bins :])
@@ -221,7 +223,9 @@ def test_univariate_frequency_windows_are_the_dft_of_the_windows(
     monkeypatch, norm_mode
 ):
     seen = _record_training(monkeypatch)
-    TireDetector(domain="FD", norm_mode=norm_mode, random_state=0).fit_predict(_steps())
+    # "both" exposes the time domain windows, as above
+    det = TireDetector(domain="both", norm_mode=norm_mode, random_state=0)
+    det.fit_predict(_steps())
     td, fd = seen
     np.testing.assert_array_equal(
         fd, tire_utils.calc_fft(td, nfft=30, norm_mode=norm_mode)
