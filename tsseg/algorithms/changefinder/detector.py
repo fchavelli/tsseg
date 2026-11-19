@@ -81,14 +81,10 @@ class ChangeFinderDetector(BaseSegmenter):
         Strategy for multivariate inputs: ``"l2"`` reduces to univariate
         via L2 norm; ``"ensembling"`` runs independently per channel and
         aggregates.
-    tolerance : int or float, default=0
-        Ensembling strategy only: a change point of a channel is supported by
-        every channel with a change point within ``tolerance`` samples; change
-        points are taken by decreasing support, then by closeness of the
-        supporting channels, and one within ``tolerance`` of a change point
-        already taken is dropped. A float below 1 is a fraction of the series
-        length. With ``n_cps``, 0 counts identical indices only; without
-        ``n_cps``, 0 means the minimum distance between change points.
+    tolerance : int or float, default=0.01
+        Tolerance for aggregating change points across channels (ensembling
+        strategy only); a float below 1 is a fraction of the series length.
+        Without ``n_cps``, 0 means the minimum distance between change points.
     consensus : float, default=0.0
         Ensembling without ``n_cps``: a change point is returned only if at
         least ``consensus`` of the channels (one at least) support it. With
@@ -187,7 +183,7 @@ class ChangeFinderDetector(BaseSegmenter):
         threshold: float | None = None,
         min_distance: int = 10,
         multivariate_strategy: str = "l2",
-        tolerance: int | float = 0,
+        tolerance: int | float = 0.01,
         threshold_factor: float = 2.0,
         min_distance_fraction: float = 0.0,
         consensus: float = 0.0,
