@@ -9,6 +9,16 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``FLUSSDetector`` accepts ``multivariate_strategy="cac_mean"``: the
+  corrected arc curves of the channels are averaged, then the change points
+  are extracted from that mean curve as on a univariate series (at most
+  ``n_segments - 1`` minima below 1, or the minima below ``threshold`` with
+  ``n_segments=None``). This is the multivariate FLUSS of Gharghabi et al.
+  (DMKD 2019, section 3.4). ``profile`` holds the mean curve; ``tolerance``
+  and ``consensus`` are not used. Opt-in: the default (``"ensembling"``) and
+  the other strategies keep their outputs, and univariate series ignore the
+  strategy.
+
 0.4.0 (2026-11-18)
 ------------------
 
