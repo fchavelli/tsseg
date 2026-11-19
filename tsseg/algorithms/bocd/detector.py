@@ -64,7 +64,7 @@ class BOCDDetector(BaseSegmenter):
         - ``"l2"`` – reduce to univariate via L2 norm across channels.
         - ``"ensembling"`` – run BOCD independently on each channel and
           aggregate the detected change points.
-    tolerance : int | float, default=0
+    tolerance : int | float, default=0.01
         Tolerance for aggregating change points in the ensembling strategy.
         If a float in ``(0, 1)`` it is interpreted as a fraction of the
         signal length.
@@ -172,7 +172,7 @@ class BOCDDetector(BaseSegmenter):
         min_distance: int = 25,
         max_cps: int | None = None,
         multivariate_strategy: str = "native",
-        tolerance: int | float = 0,
+        tolerance: int | float = 0.01,
         axis: int = 0,
         *,
         decoding: str = "map",
