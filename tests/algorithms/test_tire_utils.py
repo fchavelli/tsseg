@@ -134,3 +134,12 @@ class TestCalcFFT:
         np.testing.assert_allclose(out, 2 * (magnitudes - lo) / (hi - lo) - 1)
         assert out.min() == pytest.approx(-1.0)
         assert out.max() == pytest.approx(1.0)
+
+
+def test_calc_fft_maps_a_constant_spectrum_to_zero():
+    """Zero windows (a constant channel once rescaled) give 0, not NaN."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        for norm_mode in ("timeseries", "window"):
+            out = utils.calc_fft(np.zeros((5, 8)), nfft=8, norm_mode=norm_mode)
+            np.testing.assert_array_equal(out, 0.0)
