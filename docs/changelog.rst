@@ -13,8 +13,7 @@ Unreleased
   whose features it discarded. Its outputs change at equal ``random_state``
   (that training drew from the torch random stream before the frequency
   domain autoencoder was initialised, so the time domain settings changed the
-  result) and it runs faster. ``domain="TD"`` and the default
-  ``domain="both"`` are unchanged.
+  result) and it runs faster. This fix affects ``domain="FD"`` only.
 
 0.4.0 (2026-11-18)
 ------------------
