@@ -14,7 +14,7 @@ from ..param_schema import (
     ParamDef,
     StrOptions,
 )
-from ..utils import aggregate_change_points, multivariate_l2_norm
+from ..utils import _fuse_channel_change_points, multivariate_l2_norm
 
 __all__ = ["BeastDetector"]
 
@@ -203,11 +203,13 @@ class BeastDetector(BaseSegmenter):
         support (see Notes), and a candidate within ``tolerance`` of one
         already taken is dropped, on top of the merge of close candidates of
         different channels described in the Notes; ``0`` adds none. With
-        ``"ensembling"``,
-        the change points of all channels are grouped when within
-        ``tolerance`` of the previous one, and each group gives its median
-        (``max_cps`` keeps the largest groups); ``0`` groups identical time
-        steps only. Not used with ``"l2"`` nor on a univariate series.
+        ``"ensembling"``, a change point of a channel is supported by every
+        channel with a change point within ``tolerance``; change points are
+        taken by decreasing support, then by closeness of the supporting
+        channels, and a change point within ``tolerance`` of one already
+        taken is dropped (``max_cps`` caps their number); ``0`` counts
+        identical time steps only. Not used with ``"l2"`` nor on a univariate
+        series.
     axis : int, default=0
         Time axis of the input array.
 
@@ -426,21 +428,11 @@ class BeastDetector(BaseSegmenter):
     def _predict_ensembling(self, data: np.ndarray) -> np.ndarray:
         """Run BEAST independently on each channel and aggregate results."""
         n_samples, n_channels = data.shape
-        all_cps: list[int] = []
-
-        for d in range(n_channels):
-            cps = self._run_beast_univariate(data[:, d])
-            all_cps.extend(cps.tolist())
-
-        if not all_cps:
-            return np.empty(0, dtype=np.int64)
-
-        n_cp = self.max_cps if self.max_cps is not None else len(all_cps)
-        return aggregate_change_points(
-            all_cps,
-            n_cp=n_cp,
-            tolerance=self.tolerance,
-            signal_len=n_samples,
+        per_channel = [
+            self._run_beast_univariate(data[:, d]) for d in range(n_channels)
+        ]
+        return _fuse_channel_change_points(
+            per_channel, self._tolerance_steps(n_samples), n_cp=self.max_cps
         )
 
     def _get_mcmc_kwargs(self) -> dict:

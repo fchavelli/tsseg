@@ -25,6 +25,26 @@ Unreleased
   for BOCD) are not affected. An explicit ``tolerance=0`` keeps the previous
   outputs, and so does a series shorter than 100 samples, where 1% rounds down
   to 0 samples.
+* Fix the fusion of the per-channel change points of
+  ``multivariate_strategy="ensembling"`` (``BOCDDetector``, ``BeastDetector``,
+  ``FLUSSDetector``, ``ChangeFinderDetector``). The change points of all
+  channels were pooled into one list, so several points of a single channel
+  outvoted channels that agree, and points closer than ``tolerance`` to the
+  previous one were chained into one cluster returned as its median, possibly
+  an index detected by no channel (``[10, 14, 18, 22]`` on four channels with
+  ``tolerance=4`` gave ``[16]``). Each observed change point is now supported
+  by the channels with a change point within ``tolerance``; change points are
+  taken by decreasing support, then by closeness of the supporting channels,
+  and one within ``tolerance`` of a change point already taken is dropped. The
+  number of change points asked for is an upper bound: fewer are returned
+  when the dropped candidates leave too few. ``consensus_change_points``
+  applies the same rule. With ``tolerance=0`` (the default of BOCD, BEAST and
+  ChangeFinder with ``n_cps``) outputs are unchanged; otherwise ensembling
+  outputs change and earlier scores need to be recomputed. The default
+  strategies (``"native"``, ``"l2"``) are not affected, except FLUSS, whose
+  default is ``"ensembling"`` with ``tolerance=0.01``.
+  ``aggregate_change_points`` is unchanged and no longer used by the
+  detectors.
 
 0.4.0 (2026-11-18)
 ------------------

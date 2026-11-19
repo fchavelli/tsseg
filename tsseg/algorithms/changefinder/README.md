@@ -92,7 +92,8 @@ The implementation consists of two modules:
 - **Multivariate support:** For `"l2"`, the multivariate series is
   reduced to a univariate signal via L2 norm before the pipeline. For
   `"ensembling"`, the pipeline runs independently per channel and
-  change points are aggregated by temporal proximity.
+  change points are fused by the number of channels that detect one
+  within `tolerance` (see the `tolerance` docstring).
 
 ## Usage
 
