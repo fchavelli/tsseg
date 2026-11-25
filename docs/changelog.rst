@@ -9,6 +9,23 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* The Gaussian likelihood cost (``model="normal"`` of ``PeltDetector``,
+  ``DynpDetector``, ``BinSegDetector``, ``BottomUpDetector`` and
+  ``WindowDetector``) no longer depends on the scale of the series, and its
+  ``pen_scale="bic"`` is the BIC penalty. Three defects are fixed:
+  ``pen_scale="bic"`` scaled the penalty by the absolute log-determinant of the
+  whole series, which moves with its scale and is close to 0 on z-normalised
+  channels, so white noise was cut at every admissible point; it is now
+  ``penalty * log(n) * d(d+3)/2``, the d means and d(d+1)/2 covariances of one
+  more segment. The covariance ridge was an absolute ``1e-6``, so on a series
+  of small amplitude it masked the changes; it is now ``1e-6`` times the mean
+  channel variance of the series. Segments of at most d samples, whose
+  covariance is singular, were admissible and only the ridge set their cost;
+  the cost's ``min_size`` is now ``max(2, d + 1)``, which the searches apply at
+  fit (``WindowDetector`` raises ``NotEnoughPoints`` when ``width // 2`` is
+  smaller). The segment covariance is the maximum likelihood one (``ddof=0``)
+  for every dimension, as it already was for one channel. Outputs change for
+  ``model="normal"`` only.
 * ``FLUSSDetector`` accepts ``multivariate_strategy="cac_mean"``: the
   corrected arc curves of the channels are averaged, then the change points
   are extracted from that mean curve as on a univariate series (at most

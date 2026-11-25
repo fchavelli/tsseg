@@ -47,7 +47,7 @@ class WindowDetector(BaseSegmenter):
         ``None``: ``pen`` is used as is. ``"bic"``: ``pen`` is a coefficient on
         ``log(n) * u``, u the cost of one sample of the whole signal (d for
         ``"l2"`` on unit-variance channels, where it is the BIC penalty; 1 for
-        the kernel costs).
+        the kernel costs; d(d+3)/2, the BIC parameter count, for ``"normal"``).
     epsilon : float or None, default=None
         Reconstruction budget: peaks are added while the total cost of the
         segmentation exceeds ``epsilon``.
@@ -113,7 +113,7 @@ class WindowDetector(BaseSegmenter):
                 "How ``pen`` is scaled. ``None``: it is the penalty. ``'bic'``: "
                 "a coefficient on ``log(n) * u``, u the cost of one sample of the "
                 "whole signal (d for l2 on unit-variance channels, where it is the "
-                "BIC penalty; 1 for the kernel costs), so that one value applies "
+                "BIC penalty; 1 for the kernel costs; d(d+3)/2 for normal), so that one value applies "
                 "across lengths, dimensions and costs."
             ),
             nullable=True,

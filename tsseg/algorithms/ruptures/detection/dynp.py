@@ -36,6 +36,7 @@ class Dynp(BaseEstimator):
                 self.cost = cost_factory(model=model)
             else:
                 self.cost = cost_factory(model=model, **params)
+        self._min_size = min_size  # as given; the cost's minimum applies at fit
         self.min_size = max(min_size, self.cost.min_size)
         self.jump = jump
         self.backend = backend
@@ -75,6 +76,7 @@ class Dynp(BaseEstimator):
 
     def fit(self, signal) -> "Dynp":
         self.cost.fit(signal)
+        self.min_size = max(self._min_size, self.cost.min_size)
         self.n_samples = signal.shape[0]
         self._unit = tie_unit(self.cost)
         self.seg.cache_clear()
