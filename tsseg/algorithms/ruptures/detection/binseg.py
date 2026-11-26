@@ -44,6 +44,7 @@ class Binseg(BaseEstimator):
                 self.cost = cost_factory(model=model)
             else:
                 self.cost = cost_factory(model=model, **params)
+        self._min_size = min_size  # as given; the cost's minimum applies at fit
         self.min_size = max(min_size, self.cost.min_size)
         self.jump = jump
         self.backend = backend
@@ -119,6 +120,7 @@ class Binseg(BaseEstimator):
             self.signal = signal
         self.n_samples = self.signal.shape[0]
         self.cost.fit(signal)
+        self.min_size = max(self._min_size, self.cost.min_size)
         self._unit = tie_unit(self.cost)
         self._fast = accel.Signal(self.cost) if accel.use_numba(self.cost, self.backend) else None
         self.single_bkp.cache_clear()

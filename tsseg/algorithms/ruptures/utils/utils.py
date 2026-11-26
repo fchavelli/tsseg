@@ -68,10 +68,18 @@ def bic_penalty(coefficient: float, cost) -> float:
     bounded by 1 per sample, 1. One coefficient then applies across lengths,
     dimensions, scales and costs. A cost of 0 (a constant signal) gives the
     unit 1: any positive penalty then returns the signal whole.
+
+    The Gaussian likelihood cost (``"normal"``) is -2 log-likelihood, whose
+    value per sample moves with the scale of the signal: its unit is instead
+    the d(d+3)/2 parameters of one more segment (d means, d(d+1)/2
+    covariances), and ``log(n) * d(d+3)/2`` is its BIC penalty.
     """
 
-    unit = tie_unit(cost)
     n = cost.signal.shape[0]
+    if cost.model == "normal":
+        d = cost.signal.shape[1] if cost.signal.ndim > 1 else 1
+        return float(coefficient) * log(max(n, 2)) * d * (d + 3) / 2
+    unit = tie_unit(cost)
     return float(coefficient) * log(max(n, 2)) * (unit if unit > 0 else 1.0)
 
 
