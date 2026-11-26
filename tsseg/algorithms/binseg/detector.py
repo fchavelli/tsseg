@@ -66,7 +66,8 @@ class BinSegDetector(BaseSegmenter):
     pen_scale : {None, "bic"}, default=None
         ``"bic"``: ``penalty`` is a coefficient on ``log(n) * u``, u the cost of
         one sample of the whole signal (d for ``"l2"`` on unit-variance
-        channels, where it is the BIC penalty; 1 for the kernel costs).
+        channels, where it is the BIC penalty; 1 for the kernel costs; d(d+3)/2, the BIC parameter count, for
+        ``"normal"``).
     epsilon : float or None, default=None
         Reconstruction budget, used when ``n_cps`` and ``penalty`` are
         ``None``: splitting continues while the total cost of the
@@ -131,7 +132,7 @@ class BinSegDetector(BaseSegmenter):
                 "How ``penalty`` is scaled. ``None``: it is the penalty. ``'bic'``: "
                 "a coefficient on ``log(n) * u``, u the cost of one sample of the "
                 "whole signal (d for l2 on unit-variance channels, where it is the "
-                "BIC penalty; 1 for the kernel costs), so that one value applies "
+                "BIC penalty; 1 for the kernel costs; d(d+3)/2 for normal), so that one value applies "
                 "across lengths, dimensions and costs."
             ),
             nullable=True,

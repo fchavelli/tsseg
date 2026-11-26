@@ -59,7 +59,8 @@ Parameters
      - ``"bic"``: ``penalty`` is a coefficient on :math:`\log(n)\,u`, *u* the cost
        of one sample of the whole signal: *d* for ``"l2"`` on unit-variance
        channels (the BIC penalty of one more segment), the mean absolute
-       deviation for ``"l1"``, 1 for the kernel costs. One value then applies
+       deviation for ``"l1"``, 1 for the kernel costs,
+       :math:`d(d+3)/2` for ``"normal"`` (its BIC parameter count). One value then applies
        across lengths, dimensions and costs.
    * - ``cost_params``
      - dict / None

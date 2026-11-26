@@ -53,7 +53,8 @@ class PeltDetector(BaseSegmenter):
         ``None``: ``penalty`` is used as is. ``"bic"``: ``penalty`` is a
         coefficient on ``log(n) * u``, u the cost of one sample of the whole
         signal (d for ``"l2"`` on unit-variance channels, where it is the BIC
-        penalty; 1 for the kernel costs).
+        penalty; 1 for the kernel costs; d(d+3)/2, the BIC parameter count, for
+        ``"normal"``).
     cost_params : dict or None, default=None
         Extra keyword arguments forwarded to the cost (for instance
         ``{"gamma": 0.1}`` for ``"rbf"``).
@@ -105,7 +106,7 @@ class PeltDetector(BaseSegmenter):
                 "How ``penalty`` is scaled. ``None``: it is the penalty. ``'bic'``: "
                 "a coefficient on ``log(n) * u``, u the cost of one sample of the "
                 "whole signal (d for l2 on unit-variance channels, where it is the "
-                "BIC penalty; 1 for the kernel costs), so that one value applies "
+                "BIC penalty; 1 for the kernel costs; d(d+3)/2 for normal), so that one value applies "
                 "across lengths, dimensions and costs."
             ),
             nullable=True,
