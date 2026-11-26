@@ -4,6 +4,7 @@ import numpy as np
 from scipy.signal import find_peaks
 from scipy.special import gammaln
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
 from tsseg.algorithms.bocd._offline import (
     _boundary_marginals,
     _GaussianSegments,
@@ -164,8 +165,23 @@ class BOCDDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "hazard_lambda",
+        "mu",
+        "kappa",
+        "alpha",
+        "beta",
+        "truncate",
+        "cp_prob_threshold",
+        "min_distance",
+        "max_cps",
+        "multivariate_strategy",
+        "tolerance",
+        "axis",
+    )
     def __init__(
         self,
+        *,
         hazard_lambda: float = 1000,
         mu: float = 0.0,
         kappa: float = 1.0,
@@ -177,11 +193,10 @@ class BOCDDetector(BaseSegmenter):
         max_cps: int | None = None,
         multivariate_strategy: str = "native",
         tolerance: int | float = 0.01,
-        axis: int = 0,
-        *,
         decoding: str = "map",
         max_candidates: int | None = 2000,
         standardize: bool = True,
+        axis: int = 0,
     ):
         self.hazard_lambda = float(hazard_lambda)
         self.mu = float(mu)

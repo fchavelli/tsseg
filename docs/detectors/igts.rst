@@ -43,6 +43,11 @@ Parameters
      - ``5``
      - Stride for candidate locations.
 
+   * - ``axis``
+     - int
+     - ``0``
+     - Time axis (rows with ``0``, columns with ``1``).
+
 Usage
 -----
 

@@ -56,6 +56,11 @@ Parameters
      - ``None``
      - Random seed.
 
+   * - ``axis``
+     - int
+     - ``0``
+     - Time axis (rows with ``0``, columns with ``1``).
+
 Usage
 -----
 

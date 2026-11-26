@@ -4,6 +4,8 @@ import warnings
 
 import numpy as np
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -203,17 +205,29 @@ class TiccDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "window_size",
+        "n_states",
+        "lambda_parameter",
+        "beta",
+        "maxIters",
+        "threshold",
+        "num_proc",
+        "max_states",
+        "axis",
+    )
     def __init__(
         self,
+        *,
         window_size=10,
         n_states=None,
-        lambda_parameter=11e-2,
+        lambda_parameter=0.11,
         beta=400,
         maxIters=100,
-        threshold=2e-5,
+        threshold=2e-05,
         num_proc=1,
         max_states=8,
-        axis=0,
+        axis: int = 0,
     ):
         self.window_size = window_size
         self.n_states = n_states

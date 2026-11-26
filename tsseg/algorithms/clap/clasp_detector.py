@@ -7,6 +7,8 @@ import warnings
 
 import numpy as np
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -177,8 +179,24 @@ class ClaspDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "n_segments",
+        "n_change_points",
+        "n_estimators",
+        "window_size",
+        "k_neighbours",
+        "excl_radius",
+        "distance",
+        "score",
+        "early_stopping",
+        "validation",
+        "threshold",
+        "n_jobs",
+        "axis",
+    )
     def __init__(
         self,
+        *,
         n_segments="learn",
         n_change_points=None,
         n_estimators=10,
@@ -191,7 +209,7 @@ class ClaspDetector(BaseSegmenter):
         validation="significance_test",
         threshold="default",
         n_jobs=-1,
-        axis=0,
+        axis: int = 0,
     ):
         self.n_segments = n_segments
         self.n_change_points = n_change_points  # Injected by the supervision pipeline

@@ -16,6 +16,8 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import Closed, Interval, ParamDef
 
@@ -419,6 +421,8 @@ class InformationGainDetector(BaseSegmenter):
         Step size, or stride for selecting candidate locations of change points.
         For example a ``step=5`` would produce candidates [0, 5, 10, ...]. Has the
         same meaning as ``step`` in ``range`` function.
+    axis : int, default=0
+        Time axis: rows with ``0``, columns with ``1``.
 
     Attributes
     ----------
@@ -473,10 +477,16 @@ class InformationGainDetector(BaseSegmenter):
         ),
     }
 
+    @_deprecate_positional_args(
+        "k_max",
+        "step",
+    )
     def __init__(
         self,
+        *,
         k_max: int = 10,
         step: int = 5,
+        axis: int = 0,
     ):
         self.k_max = k_max
         self.step = step
@@ -485,7 +495,7 @@ class InformationGainDetector(BaseSegmenter):
             step=step,
         )
         self.n_segments = k_max + 1
-        super().__init__(axis=0)
+        super().__init__(axis=axis)
 
     def _fit(self, X, y=None):
         """Fit the IGTS model."""

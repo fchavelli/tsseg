@@ -38,6 +38,8 @@ import numpy as np
 import numpy.typing as npt
 from sklearn.utils.validation import check_random_state
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -426,6 +428,8 @@ class GreedyGaussianDetector(BaseSegmenter):
         If ``True`` verbose output is enabled.
     random_state : int or np.random.RandomState, default=None
         Either random seed or an instance of ``np.random.RandomState``.
+    axis : int, default=0
+        Time axis: rows with ``0``, columns with ``1``.
 
     Attributes
     ----------
@@ -513,13 +517,22 @@ class GreedyGaussianDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "k_max",
+        "lamb",
+        "max_shuffles",
+        "verbose",
+        "random_state",
+    )
     def __init__(
         self,
+        *,
         k_max: int = 10,
         lamb: float = 1.0,
         max_shuffles: int = 250,
         verbose: bool = False,
         random_state: int | None = None,
+        axis: int = 0,
     ):
         self.k_max = k_max
         self.lamb = lamb
@@ -533,7 +546,7 @@ class GreedyGaussianDetector(BaseSegmenter):
             verbose=verbose,
             random_state=random_state,
         )
-        super().__init__(axis=0)
+        super().__init__(axis=axis)
 
     def _fit(self, X: np.ndarray, y=None):
         """Fit method for compatibility with sklearn-type estimator interface.

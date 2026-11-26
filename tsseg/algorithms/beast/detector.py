@@ -7,6 +7,8 @@ from importlib import metadata
 
 import numpy as np
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -353,8 +355,31 @@ class BeastDetector(BaseSegmenter):
         ),
     }
 
+    @_deprecate_positional_args(
+        "season",
+        "tcp_minmax",
+        "torder_minmax",
+        "tseg_minlength",
+        "scp_minmax",
+        "sorder_minmax",
+        "sseg_minlength",
+        "period",
+        "deltat",
+        "mcmc_samples",
+        "mcmc_burnin",
+        "mcmc_chains",
+        "mcmc_thin",
+        "mcmc_seed",
+        "cp_prob_threshold",
+        "max_cps",
+        "component",
+        "multivariate_strategy",
+        "tolerance",
+        "axis",
+    )
     def __init__(
         self,
+        *,
         season: str = "none",
         tcp_minmax: tuple[int, int] = (0, 10),
         torder_minmax: tuple[int, int] = (0, 1),

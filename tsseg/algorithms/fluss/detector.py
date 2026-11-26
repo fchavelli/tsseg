@@ -6,6 +6,8 @@ __all__ = ["FLUSSDetector"]
 import numpy as np
 import pandas as pd
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -172,17 +174,29 @@ class FLUSSDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "window_size",
+        "n_segments",
+        "exclusion_factor",
+        "axis",
+        "multivariate_strategy",
+        "tolerance",
+        "threshold",
+        "consensus",
+        "normalize",
+    )
     def __init__(
         self,
+        *,
         window_size=10,
         n_segments=2,
         exclusion_factor=5,
-        axis=0,
         multivariate_strategy="ensembling",
         tolerance=0.01,
         threshold=0.5,
         consensus=0.0,
         normalize=True,
+        axis: int = 0,
     ):
         self.window_size = window_size
         self.n_segments = n_segments

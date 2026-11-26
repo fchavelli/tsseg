@@ -19,6 +19,8 @@ from __future__ import annotations
 import numpy as np
 from scipy.signal import argrelextrema
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -173,8 +175,24 @@ class ChangeFinderDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "order",
+        "discount",
+        "smooth_window",
+        "score",
+        "n_cps",
+        "threshold",
+        "min_distance",
+        "multivariate_strategy",
+        "tolerance",
+        "threshold_factor",
+        "min_distance_fraction",
+        "consensus",
+        "axis",
+    )
     def __init__(
         self,
+        *,
         order: int = 5,
         discount: float = 0.005,
         smooth_window: int = 7,

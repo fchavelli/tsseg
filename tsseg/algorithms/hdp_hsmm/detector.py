@@ -14,6 +14,8 @@ from typing import Any
 import numpy as np
 from scipy import stats
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 
 try:
@@ -206,16 +208,24 @@ class HdpHsmmDetector(BaseSegmenter):
         "capability:semi_supervised": True,
     }
 
+    @_deprecate_positional_args(
+        "axis",
+        "alpha",
+        "gamma",
+        "init_state_concentration",
+        "n_iter",
+        "n_max_states",
+        "trunc",
+    )
     def __init__(
         self,
-        axis: int = 0,
+        *,
         alpha: float = 6.0,
         gamma: float = 6.0,
         init_state_concentration: float = 6.0,
         n_iter: int = 20,
         n_max_states: int = 20,
         trunc: int | None = None,
-        *,
         kappa0: float = 0.25,
         nu0: float | None = None,
         prior_mean: Any = 0.0,
@@ -229,6 +239,7 @@ class HdpHsmmDetector(BaseSegmenter):
         block_features: str = "mean",
         normalize: bool = True,
         init: str = "states",
+        axis: int = 0,
     ) -> None:
         self.alpha = alpha
         self.gamma = gamma
