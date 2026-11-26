@@ -26,6 +26,15 @@ By tuning the loss weights and latent dimensions for each domain you can
 control whether the detector focuses on amplitude changes (TD) or spectral
 changes (FD) or both.
 
+With ``stride > 1``, the comparison lag and both triangular filter half-widths
+are ``ceil(window_size / stride)`` window rows. The compared windows are
+adjacent when the stride divides the window size; otherwise their gap is
+less than one stride. Scores are placed halfway between the end of the first
+window and the start of the second, including fractional centers, then
+interpolated onto time point indices. These time scales no longer grow by a
+factor of ``stride``. Strided training still differs from training every
+window; no equivalence of the learned features is implied.
+
 | **Type:** change point detection
 | **Supervision:** unsupervised or semi-supervised
 | **Scope:** univariate and multivariate
@@ -51,7 +60,7 @@ Parameters
    * - ``stride``
      - int
      - ``1``
-     - Stride between consecutive windows.
+     - Stride between consecutive windows (at most ``window_size``).
    * - ``domain``
      - str
      - ``"both"``

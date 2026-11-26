@@ -52,12 +52,7 @@ def test_guided_returns_n_segments_minus_one():
 
 @pytest.mark.parametrize("stride", [2, 4])
 def test_stride_returns_time_points(stride):
-    """With ``stride > 1`` the change points are time points, not windows.
-
-    The compared windows are ``window_size * stride`` points apart, so a step
-    change gives a plateau of ``window_size * (stride - 1)`` points in the
-    dissimilarity: the tolerance grows with the stride.
-    """
+    """With ``stride > 1`` the change points are time points, not windows."""
     x = _steps()
     det = TireDetector(**SMALL, stride=stride, n_segments=4)
     pred = det.fit_predict(x)
