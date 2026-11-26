@@ -121,7 +121,8 @@ def _extract_new_arc_set(
     temp_arc_cost = np.full(profile_len, threshold + 1.0, dtype=float)
     temp_arc_set = np.full(profile_len, dontcare, dtype=int)
 
-    quarter_win = max(int(round(m / 4.0)), 0)
+    # The upstream chain comparison uses m/4 directly, without rounding.
+    quarter_win = m / 4.0
 
     for i in range(profile_len):
         candidate = int(new_arcs[i])
