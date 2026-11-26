@@ -50,7 +50,7 @@ class SNLDSDetector(BaseSegmenter):
         RNN cell type for inference network ("gru", "lstm", "simplernn").
     n_train_steps : int, default=2000
         Number of gradient steps for training.
-    learning_rate : float, default=1e-4
+    learning_rate : float, default=1e-3
         Learning rate for Adam optimiser.
     batch_size : int, default=8
         Number of training windows per gradient step.
@@ -60,12 +60,12 @@ class SNLDSDetector(BaseSegmenter):
         trains on the whole series, with ``batch_size`` copies of it.
     objective : str, default="elbo"
         Training objective ("elbo" or "iwae").
-    use_temperature_annealing : bool, default=True
+    use_temperature_annealing : bool, default=False
         Anneal the temperature of the discrete transitions from
         ``temperature_init`` down to 1 (see Notes).
     temperature_init : float, default=1000.0
         Initial temperature.
-    use_cross_entropy_reg : bool, default=True
+    use_cross_entropy_reg : bool, default=False
         Add the cross-entropy regulariser on regime usage, with a weight that
         decays from ``xent_init`` towards 0 (see Notes).
     xent_init : float, default=1000.0
@@ -82,12 +82,19 @@ class SNLDSDetector(BaseSegmenter):
 
     Notes
     -----
-    The schedules follow the paper's Reacher experiment (appendix), scaled to
-    ``n_train_steps``: there, the regulariser weight starts at 1,000 and
-    decays by a factor 0.975 every 500 steps after step 50,000, the temperature
-    does the same after step 100,000 (down to 1), and training lasts 300,000
-    steps. Here the weight decays after ``n_train_steps / 6`` steps and the
-    temperature after ``n_train_steps / 3``, by 0.975 every
+    By default, training uses neither the temperature annealing nor the
+    cross-entropy regulariser, at a learning rate of 1e-3, as in the paper's
+    bouncing ball experiment (appendix), where they are not needed. Compressed
+    into a few thousand steps, the schedules keep the learned transitions
+    close to uniform, or even favour switching, so that the labels change
+    hundreds of times.
+
+    When switched on, the schedules follow the paper's Reacher experiment,
+    scaled to ``n_train_steps``: there, the regulariser weight starts at 1,000
+    and decays by a factor 0.975 every 500 steps after step 50,000, the
+    temperature does the same after step 100,000 (down to 1), and training
+    lasts 300,000 steps. Here the weight decays after ``n_train_steps / 6``
+    steps and the temperature after ``n_train_steps / 3``, by 0.975 every
     ``n_train_steps / 600`` steps, so that both reach the same final values.
 
     Training on random windows bounds the cost of a step, which otherwise
@@ -100,10 +107,10 @@ class SNLDSDetector(BaseSegmenter):
     the same windows, but TensorFlow does not compute the training identically
     in every run, even after ``tf.config.experimental.enable_op_determinism()``,
     and over 2,000 steps the differences can lead to another model. On a series
-    of three segments with clear mean shifts (1,000 points), historical runs
-    before the numerical corrections gave adjusted Rand indices of 0.54, 0.97
-    and 0.54. Seeds 0 to 4 gave 0.50 to 0.97, two of them above 0.8: the other
-    runs merged two regimes. Prediction samples the continuous states once, so two calls to
+    of three segments with clear mean shifts (1,000 points), three runs with
+    the default ``random_state`` gave adjusted Rand indices of 0.43, 0.43 and
+    0.40, and seeds 0 to 4 gave 0.03 to 0.57: the seed matters more than the
+    run. Prediction samples the continuous states once, so two calls to
     ``predict`` on one fitted model can still differ on a few labels.
 
     The vendored model code comes from Google Research (Apache License 2.0),
@@ -123,8 +130,9 @@ class SNLDSDetector(BaseSegmenter):
         "capability:univariate": True,
         "capability:multivariate": True,
         "detector_type": "state_detection",
-        # n_states is the number of regimes of the model, not an upper bound: the
-        # cross-entropy regulariser pushes the posterior to use all of them.
+        # n_states is the number of regimes of the model, not an upper bound (the
+        # optional cross-entropy regulariser pushes the posterior to use all of
+        # them).
         "capability:unsupervised": False,
         "capability:semi_supervised": True,
         "python_dependencies": ["tensorflow", "tensorflow_probability", "tf_keras"],
@@ -199,13 +207,13 @@ class SNLDSDetector(BaseSegmenter):
         rnn_dim: int = 4,
         rnn_type: str = "simplernn",
         n_train_steps: int = 2000,
-        learning_rate: float = 1e-4,
+        learning_rate: float = 1e-3,
         batch_size: int = 8,
         train_window: int | None = 256,
         objective: str = "elbo",
-        use_temperature_annealing: bool = True,
+        use_temperature_annealing: bool = False,
         temperature_init: float = 1000.0,
-        use_cross_entropy_reg: bool = True,
+        use_cross_entropy_reg: bool = False,
         xent_init: float = 1000.0,
         random_state: int | None = 42,
         verbose: int = 0,

@@ -20,6 +20,16 @@ def main():
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--threads", type=int, default=1)
+    parser.add_argument(
+        "--regime",
+        choices=["audit", "default"],
+        default="audit",
+        help=(
+            "audit: the training regime of the November 2026 audit (learning "
+            "rate 1e-4, temperature annealing and cross-entropy regulariser on); "
+            "default: the current defaults of SNLDSDetector"
+        ),
+    )
     args = parser.parse_args()
 
     import tensorflow as tf
@@ -37,8 +47,18 @@ def main():
         y = np.repeat([0, 1, 2], [300, 400, 300])
         X = (np.array([0.0, 4.0, -2.0])[y] + rng.normal(0, 0.5, len(y)))[:, None]
 
+    regime = {}
+    if args.regime == "audit":
+        regime = {
+            "learning_rate": 1e-4,
+            "use_temperature_annealing": True,
+            "use_cross_entropy_reg": True,
+        }
     detector = SNLDSDetector(
-        n_states=len(np.unique(y)), n_train_steps=args.steps, random_state=args.seed
+        n_states=len(np.unique(y)),
+        n_train_steps=args.steps,
+        random_state=args.seed,
+        **regime,
     )
     start = time.perf_counter()
     detector.fit(X)
