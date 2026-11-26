@@ -9,6 +9,21 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ``SNLDSDetector`` has new training defaults: ``learning_rate=1e-3``
+  (was ``1e-4``), ``use_temperature_annealing=False`` and
+  ``use_cross_entropy_reg=False`` (both were ``True``); ``n_train_steps``
+  stays 2,000. This is the regime of the paper's bouncing ball experiment.
+  Compressed into 2,000 steps, the Reacher schedules kept the learned
+  transitions near uniform, and the labels switched hundreds of times. On the
+  nine bundled MoCap trials (true number of states, three seeds each), the
+  mean ARI goes from 0.078 to 0.171 and the bidirectional covering from 0.035
+  to 0.203 (better on 26 of 27 fits), with three times fewer label changes and
+  the same fit time. Default outputs change, and earlier SNLDS scores need to
+  be recomputed; the former behaviour is
+  ``SNLDSDetector(learning_rate=1e-4, use_temperature_annealing=True,
+  use_cross_entropy_reg=True)``. SNLDS stays experimental: a single MoCap fit
+  of the 27 reaches an ARI of 0.7, and the labels still change about 1,100
+  times per trial for 5 to 10 true changes.
 * ``FLUSSDetector`` accepts ``multivariate_strategy="cac_mean"``: the
   corrected arc curves of the channels are averaged, then the change points
   are extracted from that mean curve as on a univariate series (at most

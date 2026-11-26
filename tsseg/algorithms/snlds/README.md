@@ -38,8 +38,10 @@ TensorFlow code.
 - Licence: Apache License 2.0 (Copyright The Google Research Authors)
 - Licence file: `vendor/LICENSE`
 
-Training follows the annealing schedule of the paper's Reacher experiment,
-scaled to `n_train_steps`, on random windows of the series (see the class
+Training runs on random windows of the series, by default at a learning rate
+of 1e-3 without temperature annealing or cross-entropy regulariser, as in the
+paper's bouncing ball experiment. When switched on, both follow the schedule
+of the paper's Reacher experiment, scaled to `n_train_steps` (see the class
 docstring).
 
 The wrapper uses a forward inference RNN without the paper's bidirectional

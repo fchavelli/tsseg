@@ -83,7 +83,9 @@ def test_schedules_follow_the_paper_scaled():
     _tf_stack()
     from tsseg.algorithms import SNLDSDetector
 
-    temperature, xent = SNLDSDetector(n_train_steps=600)._get_schedules()
+    temperature, xent = SNLDSDetector(
+        n_train_steps=600, use_temperature_annealing=True, use_cross_entropy_reg=True
+    )._get_schedules()
     # weight: constant until 600 / 6 = 100, then x0.975 per 600 / 600 = 1 step
     assert float(xent(0)) == pytest.approx(1000.0)
     assert float(xent(100)) == pytest.approx(1000.0)
@@ -103,6 +105,25 @@ def test_schedules_switched_off():
         n_train_steps=600, use_temperature_annealing=False, use_cross_entropy_reg=False
     )._get_schedules()
     assert float(temperature(0)) == 1.0 and float(xent(0)) == 0.0
+
+
+def test_default_training_regime_is_the_bouncing_ball_one():
+    """Defaults: learning rate 1e-3, no temperature annealing, no regulariser.
+
+    The paper trains its bouncing ball model this way; compressed into the
+    default 2,000 steps, the Reacher schedules keep the transitions near uniform
+    and the labels switch hundreds of times.
+    """
+    _tf_stack()
+    from tsseg.algorithms import SNLDSDetector
+
+    detector = SNLDSDetector()
+    assert detector.learning_rate == 1e-3
+    assert detector.n_train_steps == 2000
+    temperature, xent = detector._get_schedules()
+    for step in (0, 500, 1999):
+        assert float(temperature(step)) == 1.0
+        assert float(xent(step)) == 0.0
 
 
 def test_window_training_and_seeded_predict():

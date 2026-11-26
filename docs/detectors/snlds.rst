@@ -30,15 +30,20 @@ exactly with the forward-backward algorithm.
 After training, each time step receives the regime of highest posterior
 probability :math:`p(s_t \mid x_{1:T}, z_{1:T})`.
 
-Two devices from the paper prevent the collapse onto a single regime: a
+The paper offers two devices against the collapse onto a single regime: a
 cross-entropy regulariser between the regime posterior and a uniform prior,
 with weight :math:`\beta`, and a temperature :math:`\tau` on the discrete
 transitions. Both start large and decay, :math:`\beta` first, then
-:math:`\tau` down to 1. tsseg follows the schedule of the paper's Reacher
-experiment (:math:`\beta_0 = \tau_0 = 1000`, decay by 0.975 every 500 steps
-after steps 50,000 and 100,000, out of 300,000), scaled to ``n_train_steps``:
-the decays start after ``n_train_steps / 6`` and ``n_train_steps / 3`` steps,
-with a factor 0.975 every ``n_train_steps / 600`` steps.
+:math:`\tau` down to 1. The paper uses them on its Reacher experiment and not
+on the bouncing ball, where they are not needed. By default tsseg does not use
+them either, and trains at a learning rate of 1e-3, the paper's
+(``use_temperature_annealing=False``, ``use_cross_entropy_reg=False``): see
+`Default training regime`_. When switched on, they follow the schedule of the
+Reacher experiment (:math:`\beta_0 = \tau_0 = 1000`, decay by 0.975 every 500
+steps after steps 50,000 and 100,000, out of 300,000), scaled to
+``n_train_steps``: the decays start after ``n_train_steps / 6`` and
+``n_train_steps / 3`` steps, with a factor 0.975 every ``n_train_steps / 600``
+steps.
 
 Each gradient step uses ``batch_size`` windows of ``train_window`` points drawn
 at random positions of the series, which bounds the cost of a step; prediction
@@ -74,9 +79,9 @@ the single series it segments.
    TensorFlow does not compute the training identically in every run, even after
    ``tf.config.experimental.enable_op_determinism()``, and over 2,000 steps the
    differences can lead to another model. On a series of three segments with
-   clear mean shifts (1,000 points), historical runs before the numerical fixes gave
-   adjusted Rand indices of 0.54, 0.97 and 0.54, and seeds 0 to 4 gave 0.50 to
-   0.97, two of them above 0.8: the other runs merged two regimes. Prediction
+   clear mean shifts (1,000 points), three runs with the default
+   ``random_state`` gave adjusted Rand indices of 0.43, 0.43 and 0.40, and
+   seeds 0 to 4 gave 0.03 to 0.57: the seed matters more than the run. Prediction
    samples the continuous states once, so two calls to ``predict`` on one fitted
    model can still differ on a few labels.
 
@@ -117,8 +122,9 @@ types. They do not establish segmentation quality on a benchmark.
 Small before/after diagnostic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With 2,000 updates, seed 42, the true state count and otherwise default
-parameters, a diagnostic on Python 3.12 / TensorFlow 2.21 / Keras 3.14 gave:
+With 2,000 updates, seed 42, the true state count and the training regime
+of the time (learning rate 1e-4, temperature annealing and cross-entropy
+regulariser on, see `Default training regime`_), a diagnostic on Python 3.12 / TensorFlow 2.21 / Keras 3.14 gave:
 
 .. list-table::
    :header-rows: 1
@@ -170,12 +176,57 @@ changing defaults is not justified by this diagnostic alone.
 ``examples/diagnostics/snlds_audit.py`` regenerates these measurements;
 ``snlds_audit_results.json`` beside it records the raw results and source hashes.
 Run the same script on the baseline commit (``e0b09b3``) and on the corrected
-checkout, for example:
+checkout (``--regime audit``, the default of the script, keeps the training
+regime of the audit; ``--regime default`` uses the current defaults), for
+example:
 
 .. code-block:: console
 
    python -m examples.diagnostics.snlds_audit --case mean-shifts
    python -m examples.diagnostics.snlds_audit --case mocap
+
+Default training regime
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Until version 0.4.0, the defaults were a learning rate of 1e-4 with both
+schedules on, compressed into the 2,000 default steps. In that regime the
+learned transitions stay close to uniform (mean self-transition probability
+0.30 on MoCap, against 0.48 with the new defaults), or even favour switching, and the labels
+change hundreds of times. The defaults are now a learning rate of 1e-3
+without temperature annealing or regulariser, as for the paper's bouncing
+ball, at the same cost. On the nine bundled MoCap trials, with the true number
+of states and seeds 0 to 2 (27 fits per regime):
+
+.. list-table::
+   :header-rows: 1
+
+   * - Regime
+     - ARI
+     - BiC
+     - SMS
+     - Predicted changes
+   * - 1e-4, schedules on (former defaults)
+     - 0.078
+     - 0.035
+     - 0.323
+     - 3,393
+   * - 1e-3, schedules off (defaults)
+     - 0.171
+     - 0.203
+     - 0.429
+     - 1,119
+
+The new defaults score higher on 21 (ARI), 26 (BiC) and 24 (SMS) of the 27
+fits. On the cases of the diagnostic above (seed 42), they give ARI 0.546,
+BiC 0.046 and 340 changes on the mean shifts, and ARI 0.092, BiC 0.108 and 180
+changes on MoCap trial 0. This is still poor: a single MoCap fit of the 27
+reaches an ARI of 0.7, and the labels change about 1,100 times per trial for 5
+to 10 true changes. Training five times longer (10,000 steps, schedules off)
+on three trials cuts the changes from 697 to 117 per trial but does not raise
+the scores reliably (higher BiC on 5 of 9 fits, lower mean ARI), for 4.3 times
+the fit time. The former behaviour is
+``SNLDSDetector(learning_rate=1e-4, use_temperature_annealing=True,
+use_cross_entropy_reg=True)``.
 
 Why training is slow
 ~~~~~~~~~~~~~~~~~~~~
@@ -202,8 +253,8 @@ the architectures and training regimes in their experiments. In particular,
 ``network_input_embedding`` is the identity: the continuous posterior sees
 past observations through a forward RNN, without the paper's bidirectional
 encoder. The discrete posterior still uses forward-backward smoothing.
-The default inference RNN has four units, and training compresses the Reacher
-annealing schedule into 2,000 updates at a fixed learning rate.
+The default inference RNN has four units, and training lasts 2,000 updates
+at a fixed learning rate, against 10,000 for the paper's bouncing ball.
 
 The paper's MoCap experiment trained on 29 salsa trajectories, using 93
 coordinates per frame, and evaluated a held-out trajectory qualitatively,
@@ -224,8 +275,9 @@ ablation, rather than increasing training time alone.
 Known residual issues include stateful sampling in a parallel loop (run-to-run
 variation), and initial-state prior parameters that are not tracked as Keras
 3 weights. This correction does not validate the entire model as a faithful
-reproduction of the paper. Defaults, decoding policy and estimator tags are
-unchanged.
+reproduction of the paper. It left the defaults, the decoding policy and the
+estimator tags unchanged; the defaults changed afterwards (see
+`Default training regime`_).
 
 The mathematical reference is
 `Dong et al., ICML 2020 <https://proceedings.mlr.press/v119/dong20e.html>`_,
@@ -262,10 +314,10 @@ Parameters
    * - ``n_train_steps``
      - int
      - ``2000``
-     - Number of gradient steps; the schedules scale with it.
+     - Number of gradient steps; the schedules, when on, scale with it.
    * - ``learning_rate``
      - float
-     - ``1e-4``
+     - ``1e-3``
      - Adam learning rate.
    * - ``batch_size``
      - int
@@ -281,7 +333,7 @@ Parameters
      - Training objective (``"elbo"`` or ``"iwae"``).
    * - ``use_temperature_annealing``
      - bool
-     - ``True``
+     - ``False``
      - Anneal the temperature of the discrete transitions down to 1.
    * - ``temperature_init``
      - float
@@ -289,7 +341,7 @@ Parameters
      - Initial temperature.
    * - ``use_cross_entropy_reg``
      - bool
-     - ``True``
+     - ``False``
      - Add the cross-entropy regulariser on regime usage.
    * - ``xent_init``
      - float
