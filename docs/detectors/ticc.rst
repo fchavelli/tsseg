@@ -20,9 +20,14 @@ The algorithm alternates between:
    cluster subject to a sparsity penalty :math:`\lambda`.
 
 The label of time point *t* is that of the window of points *t* to
-*t* + ``window_size`` − 1. The last ``window_size - 1`` observations enter no
-window, and the labels of the last ``2 * (window_size - 1)`` points repeat an
-earlier one. ``predict`` on a series other than the one given to ``fit``
+*t* + ``window_size`` − 1. All ``n - window_size + 1`` complete windows enter
+training, assignment and likelihood calculations, so the final observations
+are included. The final ``window_size - 1`` point labels repeat the label of
+the last window. This corrects the reference solver's truncated, zero-padded
+windows and omitted tail costs; fitted outputs and BIC-selected state counts
+can change when ``window_size > 1``. Earlier TICC scores need to be recomputed.
+The start-aligned labeling convention differs from the paper's window ending
+at *t* and is retained. ``predict`` on a series other than the one given to ``fit``
 labels it with a new fit, with a warning (see the Notes of
 :class:`~tsseg.algorithms.ticc.detector.TiccDetector`).
 

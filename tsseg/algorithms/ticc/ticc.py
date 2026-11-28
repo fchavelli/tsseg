@@ -1,6 +1,10 @@
 # Adapted from https://github.com/davidhallac/TICC (BSD 2-Clause, see LICENSE).
 #
-# Changes from the original solver, none of which changes its output:
+# Changes from the original solver:
+# - every training row is a complete window of the input, including the final
+#   observations; all windows contribute assignment costs and likelihoods.
+#   This corrects truncated zero-padded windows and changes fitted outputs.
+# The following changes preserve successful outputs:
 # - the random draws use a local ``RandomState(102)`` instead of reseeding
 #   NumPy's global generator, and the global print options of NumPy and pandas
 #   are left untouched;
@@ -665,9 +669,8 @@ class TICC:
         clustered_points : np.ndarray
             State of each of the ``n_timepoints - window_size + 1`` windows,
             as floats. Window ``t`` holds the points ``t`` to
-            ``t + window_size - 1``; the last ``window_size - 1`` windows are
-            padded with zeros and keep the state of the last full window when
-            ``beta > 0``.
+            ``t + window_size - 1``. Every window is complete and contributes
+            to the model update and assignment steps.
         train_cluster_inverse : dict
             Precision matrix of each state, of shape
             ``(window_size * n_channels,) * 2``.
@@ -876,9 +879,7 @@ class TICC:
 
         Sum over the windows of Eq. (2) of the paper, each window under the
         precision matrix and the mean of the cluster it is assigned to after
-        the last iteration. The last ``window_size - 1`` windows, which the
-        solver pads with zeros and leaves out of the assignment step, are left
-        out.
+        the last iteration. Every complete training window contributes.
 
         Returns
         -------
@@ -887,15 +888,14 @@ class TICC:
         """
         D = self.trained_model["complete_D_train"]
         n_windows, dim = D.shape
-        valid = n_windows - (self.window_size - 1)
-        labels = np.asarray(self.clustered_points_[:valid], dtype=int)
+        labels = np.asarray(self.clustered_points_[:n_windows], dtype=int)
         total = 0.0
         for cluster in np.unique(labels):
             theta = self.train_cluster_inverse_[cluster]
             mean = self.trained_model["cluster_mean_stacked_info"][
                 self.number_of_clusters, cluster
             ]
-            xc = D[:valid][labels == cluster] - mean
+            xc = D[labels == cluster] - mean
             quad = np.einsum("ij,ij->i", xc @ theta, xc)
             _, logdet = np.linalg.slogdet(theta)
             total += float(
@@ -932,9 +932,8 @@ class TICC:
         np.ndarray
             Array of shape ``(n_windows, number_of_clusters)`` holding
             :math:`(X_t - \\mu)^\\top \\Sigma^{-1} (X_t - \\mu) + \\log\\det\\Sigma`,
-            twice the negative Gaussian log-likelihood of window
-            :math:`X_t` up to a constant; 0 for the last ``window_size - 1``
-            windows, which are padded with zeros.
+            twice the negative Gaussian log-likelihood of each complete
+            window :math:`X_t` up to a constant.
 
         Raises
         ------
@@ -943,8 +942,7 @@ class TICC:
             windows at the first iteration.
         """
         clustered_points_len = len(complete_D_train)
-        # For each point compute the LLE; the last window_size - 1 points keep 0
-        valid = max(clustered_points_len - (self.window_size - 1), 0)
+        # Every row is a complete window, including the final rows.
         LLE_all_points_clusters = np.zeros(
             [clustered_points_len, self.number_of_clusters]
         )
@@ -957,13 +955,10 @@ class TICC:
             cluster_mean_stacked = cluster_mean_stacked_info[
                 self.number_of_clusters, cluster
             ]
-            x = (
-                complete_D_train[:valid]
-                - cluster_mean_stacked[0 : (self.num_blocks - 1) * n]
-            )
+            x = complete_D_train - cluster_mean_stacked[0 : (self.num_blocks - 1) * n]
             # row t: x_t^T (inv_cov_matrix x_t)
             lle = np.einsum("ij,ij->i", x @ inv_cov_matrix.T, x) + log_det_cov
-            LLE_all_points_clusters[:valid, cluster] = lle
+            LLE_all_points_clusters[:, cluster] = lle
 
         return LLE_all_points_clusters
 
@@ -1117,16 +1112,14 @@ class TICC:
         -------
         np.ndarray
             Array of shape ``(num_train_points, window_size * n)``: row ``i``
-            concatenates the points ``training_indices[i + k]`` for
-            ``k = 0, ..., window_size - 1``, with zeros where ``i + k``
-            reaches ``num_train_points``.
+            concatenates the points ``training_indices[i] + k`` for
+            ``k = 0, ..., window_size - 1``. Training indices are starts of
+            complete windows; no input observations are replaced with padding.
         """
         complete_D_train = np.zeros([num_train_points, self.window_size * n])
         for i in range(num_train_points):
-            for k in range(self.window_size):
-                if i + k < num_train_points:
-                    idx_k = training_indices[i + k]
-                    complete_D_train[i][k * n : (k + 1) * n] = Data[idx_k][0:n]
+            start = training_indices[i]
+            complete_D_train[i] = Data[start : start + self.window_size, :n].reshape(-1)
         return complete_D_train
 
     def predict_clusters(self, test_data=None):
@@ -1137,8 +1130,7 @@ class TICC:
         test_data : np.ndarray or None, default=None
             Stacked windows, of shape ``(n_windows, window_size * n_channels)``
             as returned by ``stack_training_data``, not the raw series;
-            ``None`` uses the training windows. The last ``window_size - 1``
-            rows are treated as padding (cost 0 for every state).
+            ``None`` uses the training windows. Every row is scored.
 
         Returns
         -------

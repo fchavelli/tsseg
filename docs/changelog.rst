@@ -75,6 +75,14 @@ Unreleased
   - the shared features are smoothed by the triangular moving average in the
     ``"TD"`` and ``"FD"`` domains too, not only in ``"both"`` (eq. 11, as in
     the original code).
+* ``TiccDetector`` now trains on every complete window, including the final
+  observations, and uses every window in assignment costs, log-likelihood
+  and BIC. The reference solver truncated the final ``window_size - 1``
+  windows, padded them with zeros and omitted their costs, which also
+  assigned arbitrary state 0 to the tail with ``beta=0``. Fitted outputs and
+  selected state counts can change when ``window_size > 1``; earlier TICC
+  scores need to be recomputed. Window-start label alignment, the final-label
+  extension, constructor defaults and the unused ``threshold`` are retained.
 * Change the default ``tolerance`` of ``ChangeFinderDetector`` and
   ``BOCDDetector`` from ``0`` to ``0.01`` (1% of the series length), as
   ``FLUSSDetector`` and the default margin of ``F1Score``. The tolerance only
