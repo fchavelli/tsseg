@@ -62,16 +62,16 @@ class TireDetector(BaseSegmenter):
     ----------
     window_size : int, default=20
         Length of the sliding windows (at least 4, below the series length);
-        also the lag between the two representations compared by the
-        dissimilarity and the half-width of the triangular filters that smooth
-        the representations and the dissimilarity.
+        also the target time scale for comparison and for the half-width of
+        the triangular representation and dissimilarity filters.
     stride : int, default=1
         Step between consecutive windows, at most ``window_size``. The
-        dissimilarity compares the windows starting at ``i * stride`` and
-        ``(i + window_size) * stride``, adjacent only when ``stride=1``; it is
-        placed midway between the end of the first and the start of the
-        second, and interpolated linearly between these points, so that the
-        change points are time point indices whatever the stride.
+        comparison lag and both filter half-widths are
+        ``ceil(window_size / stride)`` window rows. Compared windows are
+        adjacent when stride divides window_size; otherwise their gap is
+        smaller than one stride. Scores are placed midway between the end
+        of the first window and the start of the second, retaining fractional
+        centers for interpolation onto time point indices.
     domain : {"TD", "FD", "both"}, default="both"
         Representations learned in the time domain (``"TD"``), the frequency
         domain (``"FD"``) or both, concatenated with weights that equalise
@@ -532,40 +532,38 @@ class TireDetector(BaseSegmenter):
 
     def _run_pipeline(self, X: np.ndarray) -> np.ndarray:
         features_td, features_fd = self._compute_latent_features(X)
+        window_size, stride = self.config.window_size, self.config.stride
+        lag = (window_size + stride - 1) // stride
+        n_timepoints = X.shape[0]
+        active_features = features_fd if self.config.domain == "FD" else features_td
+        if active_features.shape[0] <= lag:
+            return np.zeros(n_timepoints)
 
         if self.config.domain == "TD":
             features = features_td
         elif self.config.domain == "FD":
             features = features_fd
         else:
-            beta = np.quantile(
-                utils.distance(features_td, self.config.window_size), 0.95
-            )
-            alpha = np.quantile(
-                utils.distance(features_fd, self.config.window_size), 0.95
-            )
+            beta = np.quantile(utils.distance(features_td, lag), 0.95)
+            alpha = np.quantile(utils.distance(features_fd, lag), 0.95)
             features = np.concatenate((features_td * alpha, features_fd * beta), axis=1)
         # Paper eq. 11 and the original code: the shared features are smoothed
         # in every domain; the dissimilarity is smoothed below (eq. 14).
-        features = utils.matched_filter(features, self.config.window_size)
-        distances = utils.distance(features, self.config.window_size)
+        features = utils.matched_filter(features, lag)
+        distances = utils.distance(features, lag)
 
-        distances = utils.matched_filter(distances, self.config.window_size)
+        distances = utils.matched_filter(distances, lag)
         scores = utils.new_peak_prominences(distances)[0]
         scores = np.array(scores)
         if scores.size == 0:
             scores = np.zeros_like(distances)
         scores = scores / (np.max(scores) + 1e-8)
-        n_timepoints = X.shape[0]
         if scores.size == 0:
             return np.zeros(n_timepoints)
         # Score i compares the windows starting at i * stride and
-        # (i + window_size) * stride.  It is placed midway between the end of
-        # the first and the start of the second (at i + window_size when
-        # stride == 1, where the two windows are adjacent), then interpolated
-        # linearly between these points; 0 before the first and after the last.
-        window_size, stride = self.config.window_size, self.config.stride
-        positions = np.arange(scores.size) * stride + (window_size * (stride + 1)) // 2
+        # (i + lag) * stride. Keep the exact midpoint between the end of the
+        # first and start of the second, including fractional time points.
+        positions = np.arange(scores.size) * stride + (window_size + lag * stride) / 2
         return np.interp(
             np.arange(n_timepoints), positions, scores, left=0.0, right=0.0
         )

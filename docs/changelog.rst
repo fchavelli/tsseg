@@ -50,6 +50,12 @@ Unreleased
   and ``consensus`` are not used. Opt-in: the default (``"ensembling"``) and
   the other strategies keep their outputs, and univariate series ignore the
   strategy.
+* ``TireDetector`` now expresses its comparison lag, domain-weight distances
+  and both smoothing half-widths as ``ceil(window_size / stride)`` window
+  rows. Outputs change for ``stride > 1``: these scales no longer grow with
+  the stride, and fractional score centers are retained during interpolation.
+  Scores at ``stride=1`` are unchanged for comparable window pairs. When no
+  pair can be compared, postprocessing returns zero scores.
 * ``TireDetector(domain="FD")`` no longer trains the time domain autoencoder,
   whose features it discarded. Its outputs change at equal ``random_state``
   (that training drew from the torch random stream before the frequency
