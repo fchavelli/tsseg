@@ -33,6 +33,11 @@ multi-dimensional time series:
 | **Complexity:** :math:`O(d\,n^{2}\log n)`: one matrix profile per channel,
   with an FFT for each subsequence
 
+The profile excludes neighbours within ``round(window_size / 4)`` points,
+using MATLAB's half-away-from-zero rounding. Extended chains must span
+strictly more than ``window_size / 4`` points, without rounding that threshold.
+These are separate rules in the original implementation.
+
 Parameters
 ----------
 

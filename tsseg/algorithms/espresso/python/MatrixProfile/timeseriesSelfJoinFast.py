@@ -24,7 +24,8 @@ def timeseries_self_join_fast(
     if subsequence_length < 4:
         raise ValueError("Subsequence length must be at least 4")
 
-    exclusion_zone = int(round(subsequence_length / 4))
+    # MATLAB rounds positive half-integers away from zero, unlike Python.
+    exclusion_zone = (subsequence_length + 2) // 4
     profile_len = n - subsequence_length + 1
 
     matrix_profile = np.full(profile_len, np.inf, dtype=float)

@@ -41,6 +41,11 @@ Unreleased
   smaller). The segment covariance is the maximum likelihood one (``ddof=0``)
   for every dimension, as it already was for one channel. Outputs change for
   ``model="normal"`` only.
+* ``EspressoDetector`` now uses MATLAB's half-away-from-zero rounding for
+  the matrix-profile exclusion radius and compares chain separation with
+  the unrounded quarter-window threshold, as in the original implementation.
+  Outputs may change for some custom window sizes; the default ``64`` and
+  windows ``32`` and ``128`` are unaffected by these corrections.
 * ``FLUSSDetector`` accepts ``multivariate_strategy="cac_mean"``: the
   corrected arc curves of the channels are averaged, then the change points
   are extracted from that mean curve as on a univariate series (at most
