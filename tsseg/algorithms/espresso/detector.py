@@ -6,6 +6,8 @@ from typing import Any
 
 import numpy as np
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -97,15 +99,19 @@ class EspressoDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "window_size",
+        "chain_len",
+    )
     def __init__(
         self,
+        *,
         window_size: int = 64,
         chain_len: int = 3,
-        *,
         n_segments: int | None = None,
         peak_distance_fraction: float = 0.01,
-        axis: int = 0,
         random_state: int | None = None,
+        axis: int = 0,
     ) -> None:
         if window_size < 4:
             raise ValueError("window_size must be >= 4")

@@ -112,6 +112,15 @@ Unreleased
   ``aggregate_change_points`` is unchanged and no longer used by the
   detectors.
 
+* Active detector constructors now expose keyword-only parameters with
+  ``axis: int = 0`` last. Existing positional calls retain their original
+  argument binding and emit ``FutureWarning``; compatibility will remain for
+  at least one released version before removal in a future breaking release.
+  ``AutoPlaitDetector``, ``EAggloDetector``, ``GreedyGaussianDetector``,
+  ``InformationGainDetector`` and ``RandomDetector`` now accept ``axis`` at
+  construction. Other parameter names and defaults are unchanged; deprecated
+  detectors retain their signatures.
+
 0.4.0 (2026-11-18)
 ------------------
 

@@ -6,6 +6,8 @@ from collections.abc import Callable
 import numpy as np
 import pandas as pd
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -60,6 +62,8 @@ class EAggloDetector(BaseSegmenter):
         unless the first and last clusters were merged) and returns a number.
         ``"len_penalty"`` subtracts the number of boundaries, ``"mean_diff_penalty"``
         adds the mean segment length. ``None`` applies no penalty.
+    axis : int, default=0
+        Time axis: rows with ``0``, columns with ``1``.
 
     Attributes
     ----------
@@ -163,16 +167,23 @@ class EAggloDetector(BaseSegmenter):
         ),
     }
 
+    @_deprecate_positional_args(
+        "member",
+        "alpha",
+        "penalty",
+    )
     def __init__(
         self,
+        *,
         member=None,
         alpha=1.0,
         penalty=None,
+        axis: int = 0,
     ):
         self.member = member
         self.alpha = alpha
         self.penalty = penalty
-        super().__init__(axis=0)
+        super().__init__(axis=axis)
 
     def _fit(self, X, y=None):
         """Find optimally clustered segments.

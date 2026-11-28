@@ -7,6 +7,8 @@ from typing import Literal
 import numpy as np
 from scipy.signal import find_peaks
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -288,8 +290,30 @@ class TireDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "window_size",
+        "stride",
+        "domain",
+        "intermediate_dim_td",
+        "latent_dim_td",
+        "nr_shared_td",
+        "nr_ae_td",
+        "loss_weight_td",
+        "intermediate_dim_fd",
+        "latent_dim_fd",
+        "nr_shared_fd",
+        "nr_ae_fd",
+        "loss_weight_fd",
+        "nfft",
+        "norm_mode",
+        "peak_distance_fraction",
+        "max_epochs",
+        "patience",
+        "learning_rate",
+    )
     def __init__(
         self,
+        *,
         window_size: int = 20,
         stride: int = 1,
         domain: Literal["TD", "FD", "both"] = "both",
@@ -308,12 +332,11 @@ class TireDetector(BaseSegmenter):
         peak_distance_fraction: float = 0.0,
         max_epochs: int = 20,
         patience: int = 5,
-        learning_rate: float = 1e-3,
-        *,
+        learning_rate: float = 0.001,
         n_segments: int | None = None,
         prominence_threshold: float = 0.5,
-        axis: int = 0,
         random_state: int | None = None,
+        axis: int = 0,
     ) -> None:
         if window_size < 4:
             raise ValueError("window_size must be at least 4")

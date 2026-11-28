@@ -54,6 +54,11 @@ Parameters
        output. Passing it emits a ``FutureWarning`` at ``fit``; it will be
        removed in a future release.
 
+   * - ``axis``
+     - int
+     - ``0``
+     - Time axis (rows with ``0``, columns with ``1``).
+
 Usage
 -----
 

@@ -2,6 +2,8 @@ import numpy as np
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import minmax_scale
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 
 
@@ -62,7 +64,22 @@ class ICIDDetector(BaseSegmenter):
         "capability:semi_supervised": False,
     }
 
-    def __init__(self, window_size=50, alpha=0.5, t=200, psi_list=None, axis=0):
+    @_deprecate_positional_args(
+        "window_size",
+        "alpha",
+        "t",
+        "psi_list",
+        "axis",
+    )
+    def __init__(
+        self,
+        *,
+        window_size=50,
+        alpha=0.5,
+        t=200,
+        psi_list=None,
+        axis: int = 0,
+    ):
         self.window_size = window_size
         self.alpha = alpha
         self.t = t

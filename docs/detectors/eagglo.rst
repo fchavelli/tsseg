@@ -55,6 +55,11 @@ Parameters
      - ``None``
      - Penalty function (``"len_penalty"``, ``"mean_diff_penalty"`` or callable).
 
+   * - ``axis``
+     - int
+     - ``0``
+     - Time axis (rows with ``0``, columns with ``1``).
+
 Usage
 -----
 

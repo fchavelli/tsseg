@@ -7,6 +7,8 @@ import warnings
 
 import numpy as np
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -195,20 +197,35 @@ class ClapDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "window_size",
+        "classifier",
+        "merge_score",
+        "n_splits",
+        "n_jobs",
+        "sample_size",
+        "random_state",
+        "axis",
+        "n_change_points",
+        "change_points",
+        "n_segments",
+        "distance",
+    )
     def __init__(
         self,
+        *,
         window_size="suss",
         classifier="rocket",
         merge_score="cgain",
         n_splits=5,
         n_jobs=1,
-        sample_size=1_000,
+        sample_size=1000,
         random_state=42,
-        axis=0,
         n_change_points=None,
         change_points=None,
         n_segments=None,
         distance="znormed_euclidean_distance",
+        axis: int = 0,
     ):
         self.window_size = window_size
         self.classifier = classifier

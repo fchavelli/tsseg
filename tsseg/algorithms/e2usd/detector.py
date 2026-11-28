@@ -2,6 +2,8 @@
 
 import numpy as np
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -255,13 +257,29 @@ class E2USDDetector(BaseSegmenter):
         ],
     }
 
+    @_deprecate_positional_args(
+        "axis",
+        "window_size",
+        "step",
+        "n_states",
+        "alpha",
+        "batch_size",
+        "nb_steps",
+        "lr",
+        "depth",
+        "out_channels",
+        "reduced_size",
+        "kernel_size",
+        "use_gpu",
+        "random_state",
+    )
     def __init__(
         self,
-        axis=0,
+        *,
         window_size=256,
         step=50,
         n_states=20,
-        alpha=1e3,
+        alpha=1000.0,
         batch_size=1,
         nb_steps=20,
         lr=0.003,
@@ -271,6 +289,7 @@ class E2USDDetector(BaseSegmenter):
         kernel_size=3,
         use_gpu=None,
         random_state=None,
+        axis: int = 0,
     ):
         self.window_size = window_size
         self.step = step

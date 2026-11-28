@@ -46,6 +46,21 @@ This project adheres to strict code quality standards to maintain professional r
 You can also run ``make lint`` which combines both. Please ensure all checks
 pass before submitting a Pull Request.
 
+Constructor compatibility
+-------------------------
+
+Active detector constructors expose keyword-only parameters, with
+``axis: int = 0`` last (``0`` means time along rows, ``1`` along columns).
+Use names at construction, for example ``BOCDDetector(hazard_lambda=1000)``.
+The constructors that previously accepted positional arguments retain their
+old positional mapping and emit ``FutureWarning``. Moving ``axis`` in the
+displayed signature does not change how an old positional call binds.
+Inspection and estimator tools see the canonical keyword-only signature;
+keyword calls, ``get_params``, ``clone`` and ``reset`` remain available.
+Compatibility stays for at least one released version before removal in a
+later breaking release. New detectors should use keyword-only parameters
+directly. Deprecated detectors are outside this migration.
+
 Testing
 -------
 

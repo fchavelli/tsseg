@@ -37,6 +37,8 @@ class RandomDetector(BaseSegmenter):
     random_state : int, optional
         Seed of the random generator, drawn again at each ``fit``. ``None``
         gives a different segmentation at each ``fit``.
+    axis : int, default=0
+        Time axis: rows with ``0``, columns with ``1``.
 
     Attributes
     ----------
@@ -107,6 +109,7 @@ class RandomDetector(BaseSegmenter):
         n_change_points: int | None = None,
         n_states: int | None = None,
         random_state: int | None = None,
+        axis: int = 0,
     ) -> None:
         if semi_supervised and n_change_points is None:
             raise ValueError(
@@ -143,7 +146,7 @@ class RandomDetector(BaseSegmenter):
         self.n_change_points_drawn_: int | None = None
         self._n_timepoints_: int | None = None
         self._rng: np.random.Generator | None = None
-        super().__init__(axis=0)
+        super().__init__(axis=axis)
 
         if self.semi_supervised:
             self.set_tags(semi_supervised=True)

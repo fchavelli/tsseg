@@ -6,6 +6,8 @@ import warnings
 
 import numpy as np
 
+from tsseg.algorithms._constructor import _deprecate_positional_args
+
 from ..base import BaseSegmenter
 from ..param_schema import (
     Closed,
@@ -82,6 +84,8 @@ class AutoPlaitDetector(BaseSegmenter):
         regimes itself and has no guided mode, so this value has never changed
         the output. Passing it emits a ``FutureWarning`` at ``fit``; it will be
         removed in a future release.
+    axis : int, default=0
+        Time axis: rows with ``0``, columns with ``1``.
 
     Attributes
     ----------
@@ -136,8 +140,16 @@ class AutoPlaitDetector(BaseSegmenter):
         ),
     }
 
-    def __init__(self, n_cps=None):
-        super().__init__(axis=0)
+    @_deprecate_positional_args(
+        "n_cps",
+    )
+    def __init__(
+        self,
+        *,
+        n_cps=None,
+        axis: int = 0,
+    ):
+        super().__init__(axis=axis)
         self.n_cps = n_cps
 
     def _fit(self, X, y=None):
