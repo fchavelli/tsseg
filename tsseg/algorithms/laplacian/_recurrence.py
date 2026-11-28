@@ -20,11 +20,11 @@
 """Mutual k-NN recurrence affinity and diagonal median filter.
 
 Dense re-implementations of the two librosa functions used by the Laplacian
-segmentation recipe, with the same outputs (checked against librosa 0.11.0)
-and without the librosa dependency:
+segmentation recipe, without the librosa dependency:
 
 - :func:`recurrence_affinity` is ``librosa.segment.recurrence_matrix(F.T,
-  k=k, width=width, metric=metric, sym=True, mode="affinity")``;
+  k=k, width=width, metric=metric, sym=True, mode="affinity")``, except that
+  exact-zero distances remain links and a zero bandwidth uses its limit;
 - :func:`timelag_median_filter` is ``librosa.segment.timelag_filter(
   scipy.ndimage.median_filter)(R, size=(1, size))``, computed one lag at a
   time so that memory stays at two ``(t, t)`` arrays.
@@ -65,15 +65,16 @@ def recurrence_affinity(
     -------
     np.ndarray of shape (t, t)
         ``exp(-d_ij / b)`` where frames ``i`` and ``j`` are each among the
-        other's ``k`` nearest neighbours at distance ``d_ij > 0``, 0
+        other's ``k`` nearest neighbours at distance ``d_ij >= 0``, 0
         elsewhere; ``b`` is the median over frames of the distance to their
         farthest kept neighbour. Exactly symmetric.
 
     Notes
     -----
-    As in librosa, a pair at distance exactly 0 is not a link (sparse storage
-    drops it) and the farthest of the ``k`` kept links is measured after the
-    mutual filter.
+    The farthest of the ``k`` kept links is measured after the mutual filter,
+    as in librosa. Unlike its sparse distance graph, exact-zero distances
+    remain links here. If ``b == 0``, the positive-bandwidth limit gives
+    weight 1 to a linked distance of 0 and 0 to a positive distance.
     """
     F = np.asarray(F, dtype=float)
     t = F.shape[0]
@@ -90,22 +91,23 @@ def recurrence_affinity(
     knn.fit(F)
     dist, ind = knn.kneighbors()  # the query frame itself is excluded
 
-    # k nearest links of each frame, outside the band |i - j| < width. librosa
-    # stores the graph sparsely, so a distance of 0 is no link, and it ranks a
-    # row's links by ``np.argsort`` of their distances in column order: the
-    # same sort is applied here, so that ties resolve identically.
+    # k nearest links of each frame, outside the band |i - j| < width. Keep
+    # membership separately: an exact-zero distance is a valid neighbour.
+    # Preserve librosa's sorting of distances in column order.
     D = np.zeros((t, t))
+    neighbours = np.zeros((t, t), dtype=bool)
     rows = np.arange(t)
-    keep = (np.abs(ind - rows[:, None]) >= width) & (dist != 0)
+    keep = np.abs(ind - rows[:, None]) >= width
     for i in rows:
         cols, d = ind[i][keep[i]], dist[i][keep[i]]
         order = np.argsort(cols)
         cols, d = cols[order], d[order]
         top = np.argsort(d)[:k]
         D[i, cols[top]] = d[top]
+        neighbours[i, cols[top]] = True
 
     # mutual neighbours only (``rec.minimum(rec.T)`` in librosa)
-    linked = (D > 0) & (D.T > 0)
+    linked = neighbours & neighbours.T
     D = np.where(linked, np.minimum(D, D.T), 0.0)
 
     # bandwidth: median over frames of the distance to the farthest link;
@@ -114,6 +116,8 @@ def recurrence_affinity(
     if not np.any(np.isfinite(far)):
         return np.zeros((t, t))
     bandwidth = float(np.nanmedian(far))
+    if bandwidth == 0:
+        return (linked & (D == 0)).astype(float)
     with np.errstate(invalid="ignore", divide="ignore"):
         R = np.where(linked, np.exp(D / (-1 * bandwidth)), 0.0)
     return R

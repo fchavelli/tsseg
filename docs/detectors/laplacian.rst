@@ -72,9 +72,17 @@ weights on the same features as the recurrence, and median-filtered
 eigenvectors. The cosine ignores scale: with ``feature="raw"``, states that
 differ only by their amplitude look alike, and with ``"spec"`` nearly
 constant frames are dominated by their DC term, so that two levels of the
-same sign look alike. Two frames at distance exactly 0 are never linked, and
-when more than half of the consecutive frames are identical all path weights
-are 1.
+same sign look alike.
+
+**Duplicate frames and zero bandwidths.** Exact-zero distances retain their
+mutual-neighbour links with weight 1. If the recurrence or path bandwidth
+is zero, weights use the limit as a positive bandwidth tends to zero:
+zero distances have weight 1 and positive distances have weight 0. The
+inherited recurrence dropped exact-zero links, and the inherited path gave
+even nonzero jumps weight 1 whenever its median squared distance was zero.
+The corrected graph can be disconnected. These limits do not change cosine
+distances, positive-bandwidth formulas or the state-count selector; outputs
+on series with duplicate frames or median-zero paths can change.
 
 **Defaults.** ``feature="spec"``, ``window_size=128``, ``step=16`` were
 declared before an evaluation on the 592 series of TSB-SEG. Guided, the mean
@@ -167,8 +175,9 @@ Usage
 **Implementation:** the recipe of the librosa example and of msaf
 ``scluster``, written for tsseg. The mutual k-NN recurrence and the diagonal
 median filter are ported from librosa (ISC), and Louvain from NetworkX
-(BSD-3): tsseg depends on neither, and the ports give the same outputs
-(checked against librosa 0.11 and NetworkX 3.5). On the nine MoCap trials of
+(BSD-3): tsseg depends on neither. Positive-distance recurrence, diagonal
+filtering and Louvain are checked against librosa 0.11 and NetworkX 3.5;
+the graph limits above are deliberate differences. On the nine MoCap trials of
 ``load_mocap``, the reproduction test recovers the scores of the TSB-SEG
 evaluation to the sixth decimal (mean SMS 0.839 guided, 0.822
 unsupervised). The paper's own results, on songs, are not reproduced: they

@@ -8,7 +8,8 @@ of msaf's ``scluster`` (MIT), applied to windows of a time series:
 2. recurrence: mutual k-NN affinity between frames (cosine), then a median
    filter along the diagonals, then **symmetrised** (see Notes);
 3. path: affinity between consecutive frames, ``exp(-||f_i - f_{i+1}||^2 / s)``
-   with ``s`` the median of these squared distances;
+   with ``s`` the median of these squared distances; when ``s == 0``, only
+   zero-distance edges retain weight 1;
 4. ``A = mu R + (1 - mu) P``, with ``mu`` balancing the degrees of the two
    graphs (McFee & Ellis, Eq. 7);
 5. smallest eigenvectors of the normalised Laplacian of ``A``, median filtered
@@ -193,7 +194,7 @@ def laplacian_embedding(
 
     path_d = np.sum(np.diff(F, axis=0) ** 2, axis=1)
     sigma = np.median(path_d)
-    path_sim = np.exp(-path_d / sigma) if sigma > 0 else np.ones_like(path_d)
+    path_sim = np.exp(-path_d / sigma) if sigma > 0 else (path_d == 0).astype(float)
     P = np.diag(path_sim, k=1) + np.diag(path_sim, k=-1)
     if Rf.any():
         deg_p, deg_r = P.sum(1), Rf.sum(1)

@@ -88,8 +88,8 @@ class LaplacianDetector(BaseSegmenter):
     cumulative norm; k-means (10 initialisations) on the first ``k``. Each
     point takes the label of the frame whose centre is nearest.
 
-    Departures from the paper (the first three as in the librosa example and
-    msaf, the others tsseg's):
+    Departures from the paper (following the librosa example and msaf unless
+    a tsseg choice is noted):
 
     - recurrence: cosine distance and ``exp(-d / b)`` instead of the Gaussian
       kernel ``exp(-||x_i - x_j||^2 / (2 sigma^2))`` ([1]_, Sec. 2.3);
@@ -104,9 +104,7 @@ class LaplacianDetector(BaseSegmenter):
       same sign look alike;
     - path: weights on the same features as the recurrence, with the median
       squared distance as bandwidth, instead of a Gaussian kernel on MFCC
-      ([1]_, Eq. 9); all path weights are 1 when more than half of the
-      consecutive frames are identical. As in librosa, two frames at
-      distance exactly 0 are never a recurrence link;
+      ([1]_, Eq. 9);
     - eigenvectors median filtered over ``evec_smooth`` frames (not in the
       paper);
     - frame features: a spectrum per window instead of beat-synchronous
@@ -116,6 +114,11 @@ class LaplacianDetector(BaseSegmenter):
       decompose the resulting non-symmetric matrix with ``eigh``, which reads
       a single triangle. tsseg uses ``(Rf + Rf.T) / 2`` and checks that the
       spectrum lies in ``[0, 2]``, with a fallback to other LAPACK drivers;
+    - graph limits (tsseg): exact-zero mutual-neighbour distances retain
+      affinity 1. When a recurrence or path bandwidth is zero, the
+      positive-bandwidth limit gives weight 1 to zero distances and 0 to
+      positive distances, instead of dropping duplicate recurrence links or
+      setting every path weight to 1;
     - fixed step in points (tsseg), so that the smoothing lengths mean the
       same duration on every series (no cap on the number of frames);
     - unknown number of states (tsseg): the paper keeps, among ``m = 2..10``,
@@ -135,8 +138,9 @@ class LaplacianDetector(BaseSegmenter):
     The method is weaker on univariate series (TSSB) than CLaP.
 
     The recurrence, the median filters and the Louvain step are ported from
-    librosa (ISC) and NetworkX (BSD-3) with identical outputs, without these
-    dependencies (notices in the sub-package ``LICENSE``).
+    librosa (ISC) and NetworkX (BSD-3), without these dependencies (notices in
+    the sub-package ``LICENSE``). The recurrence retains exact-zero links and
+    defines a zero-bandwidth limit, as described above.
 
     References
     ----------

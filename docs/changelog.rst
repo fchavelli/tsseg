@@ -91,6 +91,14 @@ Unreleased
   for BOCD) are not affected. An explicit ``tolerance=0`` keeps the previous
   outputs, and so does a series shorter than 100 samples, where 1% rounds down
   to 0 samples.
+* ``LaplacianDetector`` retains exact-zero mutual-neighbour links with
+  affinity 1 instead of dropping duplicate frames from the recurrence graph.
+  A zero recurrence or path bandwidth uses its positive-bandwidth limit:
+  zero distances get weight 1 and positive distances get weight 0. A path
+  with median squared distance zero previously gave every edge weight 1,
+  including jumps between distinct plateaus. Graphs can now be disconnected
+  and affected outputs can change. The cosine metric, public parameters,
+  positive-bandwidth formulas and state-count selector are unchanged.
 * Fix the fusion of the per-channel change points of
   ``multivariate_strategy="ensembling"`` (``BOCDDetector``, ``BeastDetector``,
   ``FLUSSDetector``, ``ChangeFinderDetector``). The change points of all
