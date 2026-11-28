@@ -9,6 +9,12 @@ This changelog highlights notable updates. For full commit history, refer to
 Unreleased
 ----------
 
+* ESPRESSO's matrix profile now returns z-normalised Euclidean distances
+  directly. The FFT helper already took their square root; a second root at
+  the self-join return transformed the distances again. Nearest-neighbour
+  indices are unchanged. Semantic densities and change points may change
+  with three or more chain expansions, whose cost budget depends on the
+  distance values; no detection-quality improvement is established.
 * ``SNLDSDetector`` has new training defaults: ``learning_rate=1e-3``
   (was ``1e-4``), ``use_temperature_annealing=False`` and
   ``use_cross_entropy_reg=False`` (both were ``True``); ``n_train_steps``

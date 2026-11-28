@@ -27,6 +27,15 @@ multi-dimensional time series:
    ``n_segments - 1`` candidates picked, from the channel whose picks reach the
    highest gain; there are fewer when that channel has fewer candidates.
 
+The matrix profile contains Euclidean distances. Earlier versions applied an
+extra square root after computing the minimum distance; nearest-neighbour
+indices are unchanged by its removal. Chaining sums these distances against a
+budget of twice the largest profile value, so changing their units can affect
+the semantic density from the third expansion onward. Finite nonnegative
+profiles give the same density through two expansions. This correction
+restores the distance units of the MATLAB source; it does not establish a
+detection-quality improvement or complete numerical parity with that source.
+
 | **Type:** change point detection
 | **Supervision:** semi-supervised (``n_segments`` required)
 | **Scope:** univariate and multivariate
