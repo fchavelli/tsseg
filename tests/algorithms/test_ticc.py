@@ -28,7 +28,8 @@ def _runs(labels):
     return cps.tolist(), [int(labels[0])] + [int(labels[c]) for c in cps]
 
 
-# Outputs of the solver before its refactoring (tsseg 0.3.0) on _series().
+# Reference boundaries and state partitions on _series() (tsseg 0.3.0).
+# State identifiers are arbitrary: correcting the windows can permute them.
 @pytest.mark.parametrize(
     "kwargs, expected",
     [
@@ -44,10 +45,21 @@ def _runs(labels):
         ),
     ],
 )
-def test_guided_output_is_unchanged(kwargs, expected):
-    labels = TiccDetector(**kwargs).fit_predict(_series())
+def test_guided_recovers_the_reference_partition(kwargs, expected):
+    X = _series()
+    detector = TiccDetector(**kwargs)
+    labels = detector.fit_predict(X)
 
-    assert _runs(labels) == expected
+    change_points, states = _runs(labels)
+    assert change_points == expected[0]
+    np.testing.assert_array_equal(
+        np.equal.outer(states, states), np.equal.outer(expected[1], expected[1])
+    )
+    w = kwargs["window_size"]
+    np.testing.assert_array_equal(
+        detector.ticc_.trained_model["complete_D_train"],
+        np.array([X[t : t + w].ravel() for t in range(len(X) - w + 1)]),
+    )
 
 
 def test_bic_selects_the_number_of_states():
@@ -111,9 +123,9 @@ def _short_series(n_timepoints):
 
 
 def _series_with_outlying_end():
-    """Noise whose last ``window_size`` rows are outliers, for ``window_size=10``."""
+    """Noise with one outlying final observation, hence one outlying window."""
     X = np.random.default_rng(0).normal(size=(600, 2))
-    X[-10:] = 1e3
+    X[-1] = 1e3
     return X
 
 
@@ -125,7 +137,7 @@ def _series_with_outlying_end():
         (_short_series(12), 2, "has only 3 windows"),
         (_short_series(11), 3, "has only 2 windows"),
         # enough windows, but the initial mixture gives the outlying ones a state
-        (_series_with_outlying_end(), 2, r"gives state 1 only 1 of the 591 windows"),
+        (_series_with_outlying_end(), 2, r"gives state [01] only 1 of the 591 windows"),
     ],
 )
 def test_guided_fit_refuses_a_state_with_fewer_than_two_windows(X, n_states, match):

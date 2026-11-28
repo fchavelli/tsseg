@@ -77,18 +77,15 @@ class TiccDetector(BaseSegmenter):
 
     Notes
     -----
-    Windows. As the reference code, ``fit`` stacks the windows that start at
+    Windows. ``fit`` stacks the complete windows that start at
     ``t = 0, ..., n - w``: the label of time point ``t`` is that of the
     points ``t`` to ``t + w - 1`` (the paper labels the window that ends at
-    ``t``). The last ``w - 1`` of these windows would run past point
-    ``n - w`` and are padded with zeros: the last ``w - 1`` observations of
-    the series enter no window. The padded windows take part in the initial
-    Gaussian mixture and in the mean and covariance of their state, but their
-    cost is 0 for every state in the assignment step, so they keep the state
-    of the last full window (with ``beta=0``, they all take state 0). The
-    detector gives the last ``w - 1`` time points the label of the last
-    window: for ``beta > 0``, the last ``2(w - 1)`` labels repeat the label of
-    time point ``n - 2w + 1``.
+    ``t``). Every observation enters a window, and all ``n - w + 1`` windows
+    contribute to fitting, assignment costs and the likelihood. The detector
+    gives the last ``w - 1`` time points the label of the window starting at
+    ``n - w``. The reference code instead truncates the final windows and
+    pads them with zeros, omitting the final observations and their costs;
+    this port corrects that behavior, so fitted outputs can differ.
 
     Solver. A Gaussian mixture with full covariances, fitted on the stacked
     windows, gives the initial states. The update step solves, for each state
@@ -130,10 +127,9 @@ class TiccDetector(BaseSegmenter):
     Toeplitz :math:`\\Theta_i` above ``2e-5`` in absolute value, :math:`d` the
     number of channels (the mean), :math:`s` the number of switches between
     clusters and :math:`T` the number of time points. A time point belongs to
-    :math:`w` = ``window_size`` overlapping windows, so the sum of the window
-    log-likelihoods counts each observation :math:`w` times: it is divided by
-    :math:`w` (a composite likelihood). This costs ``max_states`` fits of
-    TICC.
+    up to :math:`w` = ``window_size`` overlapping windows (fewer near the
+    ends). The sum of the window log-likelihoods is divided by :math:`w`
+    (a composite likelihood). This costs ``max_states`` fits of TICC.
 
     On univariate series, the log-likelihood of the fitted model often does
     not increase with the number of states, and BIC then selects a single
@@ -189,7 +185,7 @@ class TiccDetector(BaseSegmenter):
         ),
         "threshold": ParamDef(
             constraint=Interval(float, 0, None, Closed.NEITHER),
-            description="Convergence threshold.",
+            description="Unused; retained for compatibility.",
         ),
         "num_proc": ParamDef(
             constraint=Interval(int, 1, None, Closed.LEFT),
@@ -241,11 +237,10 @@ class TiccDetector(BaseSegmenter):
 
     def _bic(self, model, labels, n_timepoints, n_channels):
         """BIC of a fitted TICC model (see the Notes of the class)."""
-        valid = labels[: len(labels) - (self.window_size - 1)]
         n_params = sum(
             n_free_parameters(theta, self.window_size, n_channels) + n_channels
             for cluster, theta in model.train_cluster_inverse_.items()
-            if np.any(valid == cluster)
+            if np.any(labels == cluster)
         )
         n_switches = int(np.count_nonzero(np.diff(labels)))
         loglik = model.log_likelihood()

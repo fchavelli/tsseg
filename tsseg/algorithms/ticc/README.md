@@ -16,9 +16,18 @@ via an EM-like procedure with a temporal consistency penalty.
 ## Implementation
 
 Taken from the original repository by David Hallac (Stanford). The core solver
-is in `ticc.py`; its changes from the original, which leave the output
-unchanged, are listed at the top of the file (local random generator, solver
-run in-process, vectorised Z-update and assignment step). The BIC used to select
+is in `ticc.py`. The port corrects the reference solver's truncated training
+windows: every row contains `X[start:start + window_size]`, including the final
+observations, and all complete windows contribute assignment costs and
+likelihoods. The reference instead zero-padded the final windows and omitted
+their costs. Fitted outputs, including BIC-selected state counts, can change
+when `window_size > 1`; earlier TICC scores need to be recomputed. The labels
+remain aligned to window starts, with the last label extended to the final
+`window_size - 1` points; the unused `threshold` argument is retained.
+
+The other changes listed at the top of `ticc.py` preserve successful outputs
+(local random generator, solver run in-process, vectorised Z-update and
+assignment step). The BIC used to select
 the number of states is described in the docstring of `TiccDetector`; the
 original repository's `computeBIC`, kept in `ticc.py`, sums the log-likelihoods
 of the clusters without weighting them by their size and selects one state on
