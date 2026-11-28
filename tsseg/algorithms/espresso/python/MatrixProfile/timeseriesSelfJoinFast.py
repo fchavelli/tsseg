@@ -14,7 +14,11 @@ def timeseries_self_join_fast(
     *,
     rng: Generator | int | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the matrix profile and index for a self-join."""
+    """Return minimum z-normalised Euclidean distances and neighbour indices.
+
+    The FFT distance helper already converts squared distances to Euclidean
+    distances. Keep those units when selecting and returning the minima.
+    """
 
     vector = np.asarray(a, dtype=float).reshape(-1)
     n = vector.size
@@ -66,7 +70,7 @@ def timeseries_self_join_fast(
         mp_index[update_pos] = idx
         matrix_profile[update_pos] = distance_profile[update_pos]
 
-    return np.sqrt(matrix_profile), mp_index
+    return matrix_profile, mp_index
 
 
 def _fast_find_nn_pre(
