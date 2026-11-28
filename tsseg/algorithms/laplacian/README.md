@@ -21,7 +21,8 @@ the repeated sections of songs, applied to frames of a time series.
   no license and was not used.
 - `_recurrence.py`: mutual k-NN recurrence affinity and diagonal median
   filter, ported from librosa 0.11.0 (`recurrence_matrix`, `timelag_filter`),
-  dense, with identical outputs (tested against librosa when it is installed)
+  dense, tested against librosa when it is installed. Exact-zero distances
+  retain recurrence links here; zero bandwidths use the limit described below.
 - `_louvain.py`: Louvain communities (Blondel et al., 2008), ported from
   NetworkX 3.5 (`louvain_communities`, undirected weighted case), with the
   same communities for a given seed (tested against NetworkX when it is
@@ -52,6 +53,12 @@ the repeated sections of songs, applied to frames of a time series.
   needs a minimal segment duration in seconds). Defaults `feature="spec"`,
   `window_size=128`, `step=16` declared before the TSB-SEG evaluation (592
   series): guided SMS 0.717 per series against 0.692 for CLaP.
+- Graph limits: exact-zero mutual-neighbour distances have affinity 1.
+  A zero recurrence or path bandwidth uses the positive-bandwidth limit:
+  zero distances get weight 1 and positive distances get weight 0. This
+  retains duplicate recurrence links and avoids maximally weighted jumps
+  across plateaus; it can make the graph disconnected. Cosine distances,
+  positive-bandwidth formulas and the state-count selector are unchanged.
 - Reproduction: the paper evaluates songs (audio, constant-Q features), not
   reproducible here; `tests/reproduction/test_laplacian_mocap.py` recovers
   the TSB-SEG evaluation on the nine MoCap trials of `load_mocap` to the sixth
